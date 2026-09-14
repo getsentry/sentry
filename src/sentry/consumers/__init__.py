@@ -176,6 +176,37 @@ def ingest_monitors_options() -> list[click.Option]:
     return options
 
 
+def clock_tasks_options() -> list[click.Option]:
+    """Return a list of monitors-clock-tasks options."""
+    options = [
+        click.Option(
+            ["--mode", "mode"],
+            type=click.Choice(["serial", "batched-parallel"]),
+            default="serial",
+            help="The mode to process clock tasks in. Parallel uses multithreading.",
+        ),
+        click.Option(
+            ["--max-batch-size", "max_batch_size"],
+            type=int,
+            default=500,
+            help="Maximum number of clock tasks to batch before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-batch-time", "max_batch_time"],
+            type=int,
+            default=1,
+            help="Maximum time spent batching clock tasks before processing in parallel.",
+        ),
+        click.Option(
+            ["--max-workers", "max_workers"],
+            type=int,
+            default=None,
+            help="The maximum number of threads to spawn in parallel mode.",
+        ),
+    ]
+    return options
+
+
 def uptime_options() -> list[click.Option]:
     """Return a list of uptime-results options."""
     options = [
@@ -317,6 +348,7 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
     "monitors-clock-tasks": {
         "topic": Topic.MONITORS_CLOCK_TASKS,
         "strategy_factory": "sentry.monitors.consumers.clock_tasks_consumer.MonitorClockTasksStrategyFactory",
+        "click_options": clock_tasks_options(),
     },
     "monitors-incident-occurrences": {
         "topic": Topic.MONITORS_INCIDENT_OCCURRENCES,

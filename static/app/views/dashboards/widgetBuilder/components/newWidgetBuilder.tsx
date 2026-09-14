@@ -152,6 +152,7 @@ export function WidgetBuilderV2({
   // reset the drag position when the draggable preview is not visible
   useEffect(() => {
     if (!isPreviewDraggable) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
     }
   }, [isPreviewDraggable]);
@@ -170,6 +171,7 @@ export function WidgetBuilderV2({
           <Backdrop zIndex="widgetBuilderDrawer" />
           <WidgetBuilderProvider>
             <ContainerWithoutSidebar
+              data-test-id="widget-builder-container"
               style={
                 navigationElementRef.current
                   ? isMediumScreen

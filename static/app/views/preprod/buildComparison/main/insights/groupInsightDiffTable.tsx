@@ -13,7 +13,7 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   DiffTableChangeAmountCell,
-  DiffTableHeaderRow,
+  DiffTableHeader,
   DiffTableWithColumns,
   getDiffChangeElements,
   ITEMS_PER_PAGE,
@@ -143,11 +143,13 @@ export function GroupInsightItemDiffTable({
 
   useEffect(() => {
     if (safeCurrentPage !== currentPage) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCurrentPage(safeCurrentPage);
     }
   }, [currentPage, safeCurrentPage]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
   }, [sort.field, sort.kind, groupDiffItems.length]);
 
@@ -161,30 +163,7 @@ export function GroupInsightItemDiffTable({
     <Stack gap="md">
       <DiffTableWithColumns
         columns={tableHeaders}
-        header={
-          <DiffTableHeaderRow>
-            {tableHeaders.map(header => (
-              <SimpleTable.HeaderCell
-                key={header.key}
-                handleSortClick={
-                  header.key
-                    ? () =>
-                        setSort({
-                          field: header.key,
-                          kind:
-                            sort?.field === header.key && sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc',
-                        })
-                    : undefined
-                }
-                sort={sort && sort?.field === header.key ? sort.kind : undefined}
-              >
-                {header.label}
-              </SimpleTable.HeaderCell>
-            ))}
-          </DiffTableHeaderRow>
-        }
+        header={<DiffTableHeader headers={tableHeaders} onSort={setSort} sort={sort} />}
       >
         {sortedDiffItems.length === 0 && (
           <SimpleTable.Empty>
@@ -224,7 +203,6 @@ export function GroupInsightItemDiffTable({
                       ) : null
                     }
                     disabled={!groupDiffItem.path}
-                    isHoverable
                     maxWidth={420}
                   >
                     <TextOverflow

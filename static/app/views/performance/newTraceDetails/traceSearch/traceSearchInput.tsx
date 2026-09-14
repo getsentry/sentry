@@ -65,6 +65,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     if (nextStatus) {
       const elapsed = performance.now() - nextStatus[0];
       if (elapsed > MIN_LOADING_TIME || nextStatus[1] === 'loading') {
+        // oxlint-disable-next-line react/set-state-in-effect
         setStatus(nextStatus);
         return;
       }

@@ -1,26 +1,28 @@
-import {Fragment} from 'react';
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {Form, type FormProps} from 'sentry/components/forms/form';
 import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 const DEFAULT_PARALLEL_LIMIT = 20;
+const PARALLEL_LIMIT_ERROR = 'Parallel limit must be at least 1';
 
-type OnSubmitArgs = Parameters<NonNullable<FormProps['onSubmit']>>;
-interface MutationVariables {
-  limit: number;
-  onSubmitError: OnSubmitArgs[2];
-  onSubmitSuccess: OnSubmitArgs[1];
-}
+const schema = z.object({
+  dashboardsAsyncQueueParallelLimit: z
+    .number()
+    .min(1, PARALLEL_LIMIT_ERROR)
+    .nullable()
+    .refine(value => value !== null, PARALLEL_LIMIT_ERROR),
+});
 
 interface ChangeDashboardsParallelLimitModalProps extends ModalRenderProps {
   onSuccess: () => void;
@@ -30,6 +32,7 @@ interface ChangeDashboardsParallelLimitModalProps extends ModalRenderProps {
 function ChangeDashboardsParallelLimitModal({
   Header,
   Body,
+  Footer,
   closeModal,
   organization,
   onSuccess,
@@ -37,76 +40,71 @@ function ChangeDashboardsParallelLimitModal({
   const currentLimit =
     organization.dashboardsAsyncQueueParallelLimit ?? DEFAULT_PARALLEL_LIMIT;
 
-  const {mutate, isPending} = useMutation<
-    Record<string, any>,
-    RequestError,
-    MutationVariables
-  >({
-    mutationFn: ({limit}) =>
-      fetchMutation({
+  const mutation = useMutation({
+    mutationFn: (data: {dashboardsAsyncQueueParallelLimit: number}) =>
+      fetchMutation<Organization>({
         method: 'PUT',
         url: getApiUrl('/organizations/$organizationIdOrSlug/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        data: {dashboardsAsyncQueueParallelLimit: limit},
+        data,
       }),
-    onSuccess: (response, {onSubmitSuccess}) => {
-      onSubmitSuccess?.(response);
+    onSuccess: () => {
       addSuccessMessage('Dashboard parallel query limit updated.');
       onSuccess();
       closeModal();
     },
-    onError: (error, {onSubmitError}) => {
-      onSubmitError?.({responseJSON: error?.responseJSON});
+    onError: () => {
       addErrorMessage('Failed to update dashboard parallel query limit.');
     },
   });
 
-  const onSubmit: NonNullable<FormProps['onSubmit']> = (
-    data,
-    onSubmitSuccess,
-    onSubmitError
-  ) => {
-    const limit = Number(data.dashboardsAsyncQueueParallelLimit);
-
-    if (!limit || limit < 1 || isPending) {
-      return;
-    }
-
-    mutate({limit, onSubmitSuccess, onSubmitError});
+  const defaultValues: z.input<typeof schema> = {
+    dashboardsAsyncQueueParallelLimit: currentLimit,
   };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
+  });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header>
         <Heading as="h2">Change Dashboard Parallel Query Limit</Heading>
       </Header>
       <Body>
-        <p>
-          <Text bold>Current value: </Text>
-          {currentLimit}
-        </p>
-        <Form
-          onSubmit={onSubmit}
-          onCancel={closeModal}
-          submitLabel={isPending ? 'Submitting...' : 'Save'}
-          submitDisabled={isPending}
-          cancelLabel="Cancel"
-          footerClass="modal-footer"
-        >
-          <NumberField
-            label="Parallel Limit"
-            name="dashboardsAsyncQueueParallelLimit"
-            help="Controls how many dashboard widget queries can run in parallel."
-            defaultValue={currentLimit}
-            min={1}
-            disabled={isPending}
-            inline={false}
-            stacked
-          />
-        </Form>
+        <Stack gap="xl">
+          <Text>
+            <Text bold>Current value: </Text>
+            {currentLimit}
+          </Text>
+          <form.AppField name="dashboardsAsyncQueueParallelLimit">
+            {field => (
+              <field.Layout.Stack
+                label="Parallel Limit"
+                hintText="Controls how many dashboard widget queries can run in parallel."
+                required
+              >
+                <field.Number
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  min={1}
+                  disabled={mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Save</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 

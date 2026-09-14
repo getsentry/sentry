@@ -6,7 +6,10 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
-import {useMetricsIssueSection} from 'sentry/components/events/metrics/useMetricsIssueSection';
+import {
+  useMetricsIssueSection,
+  NUMBER_ABBREVIATED_METRICS,
+} from 'sentry/components/events/metrics/useMetricsIssueSection';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -23,8 +26,6 @@ import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceViewMetricsProviderWrapper} from 'sentry/views/performance/newTraceDetails/traceMetrics';
-
-import {NUMBER_ABBREVIATED_METRICS} from './useMetricsIssueSection';
 
 export function MetricsSection({
   event,

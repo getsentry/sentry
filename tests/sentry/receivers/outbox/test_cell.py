@@ -203,7 +203,9 @@ class HandleSeerRunCreateTest(TestCase):
 
         handle_seer_run_create(
             object_identifier=run.id,
-            payload=self._make_payload({"feature_id": "night_shift", "payload": {}}),
+            payload=self._make_payload(
+                {"feature_id": "night_shift", "payload": {}, "referrer": "night_shift"}
+            ),
             shard_identifier=run.id,
         )
 
@@ -216,6 +218,22 @@ class HandleSeerRunCreateTest(TestCase):
         assert sent_body["feature_id"] == "night_shift"
         assert sent_body["ref"] == str(run.uuid)
         assert sent_body["external_idempotency_key"] == str(run.uuid)
+        assert sent_body["referrer"] == "night_shift"
+
+    @patch("sentry.receivers.outbox.cell.make_feature_run_request")
+    def test_feature_run_referrer_absent_when_body_carries_none(self, mock_request: Mock) -> None:
+        """The handler invents no referrer. A body without one — an outbox row
+        enqueued before callers started sending it — dispatches without the field."""
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 56}))
+        run = self.create_seer_run(type=SeerRunType.FEATURE_RUN, referrer="smart_assignment")
+
+        handle_seer_run_create(
+            object_identifier=run.id,
+            payload=self._make_payload({"feature_id": "smart_assignment", "payload": {}}),
+            shard_identifier=run.id,
+        )
+
+        assert "referrer" not in mock_request.call_args.args[0]
 
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     def test_idempotent_retry_already_set(self, mock_request: Mock) -> None:

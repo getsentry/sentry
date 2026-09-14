@@ -22,7 +22,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 type CreateSampleEventButtonProps = ButtonProps & {
   source: string;
   hasScmOnboarding?: boolean;
-  onClick?: () => void;
   project?: Project;
 };
 
@@ -32,7 +31,6 @@ const EVENT_POLL_INTERVAL = 1000;
 export function CreateSampleEventButton({
   source,
   hasScmOnboarding,
-  onClick,
   project,
   ...buttonProps
 }: CreateSampleEventButtonProps) {
@@ -128,8 +126,6 @@ export function CreateSampleEventButton({
             duration: Math.ceil(performance.now() - t0),
             source,
           });
-
-          onClick?.();
 
           navigate(
             normalizeUrl(

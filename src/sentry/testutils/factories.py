@@ -32,8 +32,11 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry.ai_monitoring.conversation_titles import (
+    clamp_conversation_id_for_storage,
+    conversation_id_hash,
+)
 from sentry.ai_monitoring.models import AIConversationMetadata
-from sentry.ai_monitoring.utils import clamp_conversation_id_for_storage, conversation_id_hash
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -87,6 +90,9 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionProject,
     InvestigationBlockParameter,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationEvent,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
 )
@@ -106,7 +112,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, CustomInboundFilterDataType
 from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -444,6 +450,25 @@ class Factories:
     def create_investigation_favorite(investigation, user):
         return InvestigationFavoriteUser.objects.create(
             investigation=investigation, user_id=user.id
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_run(investigation, **kwargs):
+        return InvestigationOrchestrationRun.objects.create(investigation=investigation, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_event(orchestration_run, **kwargs):
+        return InvestigationOrchestrationEvent.objects.create(
+            orchestration_run=orchestration_run, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_investigation_orchestration_command(orchestration_run, **kwargs):
+        return InvestigationOrchestrationCommand.objects.create(
+            orchestration_run=orchestration_run, **kwargs
         )
 
     @staticmethod
@@ -824,7 +849,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_project_key(project):
+    def create_project_key(project, **kwargs):
+        if kwargs:
+            return project.key_set.create(**kwargs)
         return project.key_set.get_or_create()[0]
 
     @staticmethod
@@ -833,6 +860,7 @@ class Factories:
         project: Project,
         name: str = "Custom inbound filter",
         active: bool = True,
+        data_type: str = CustomInboundFilterDataType.ERROR,
         conditions: list[dict[str, object]] | None = None,
     ) -> CustomInboundFilter:
         if conditions is None:
@@ -842,6 +870,7 @@ class Factories:
             project=project,
             name=name,
             active=active,
+            data_type=data_type,
             conditions=conditions,
         )
 

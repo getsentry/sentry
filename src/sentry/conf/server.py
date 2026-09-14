@@ -201,7 +201,6 @@ SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
 SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
 SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
-SENTRY_HYBRIDCLOUD_DELETIONS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
@@ -442,8 +441,6 @@ SENTRY_HYBRIDCLOUD_OUTBOX_MODELS: Mapping[str, list[str]] = {
     "CONTROL": ["sentry.ControlOutbox"],
     "CELL": ["sentry.CellOutbox"],
 }
-# Backwards-compatible alias for getsentry, which extends this mapping with UsageOutbox.
-SENTRY_OUTBOX_MODELS = SENTRY_HYBRIDCLOUD_OUTBOX_MODELS
 
 # Do not modify reordering
 # The applications listed first in INSTALLED_APPS have precedence
@@ -885,9 +882,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.dynamic_sampling.per_org.feature_cache",
     "sentry.dynamic_sampling.per_org.scheduler",
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    "sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-    "sentry.dynamic_sampling.tasks.recalibrate_orgs",
-    "sentry.dynamic_sampling.tasks.sliding_window_org",
     "sentry.feedback.tasks.update_user_reports",
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
@@ -985,6 +979,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.digests",
     "sentry.tasks.email",
     "sentry.tasks.files",
+    "sentry.tasks.gpu_crash",
     "sentry.tasks.groupowner",
     "sentry.tasks.llm_issue_detection.detection",
     "sentry.tasks.llm_issue_detection",
@@ -1014,6 +1009,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.uptime.rdap.tasks",
     "sentry.uptime.subscriptions.tasks",
     "sentry.workflow_engine.tasks.delayed_workflows",
+    "sentry.workflow_engine.tasks.health_check",
     "sentry.workflow_engine.tasks.workflows",
     "sentry.workflow_engine.tasks.actions",
     "sentry.tasks.seer.explorer_index",
@@ -1044,6 +1040,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "flush-delayed-workflows": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.workflows.schedule_delayed_workflows",
         "schedule": timedelta(seconds=15),
+    },
+    "health-check-organization-detectors": {
+        "task": "workflow_engine:sentry.workflow_engine.tasks.health_check.health_check_organization_detectors",
+        "schedule": crontab("*/30", "*", "*", "*", "*"),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
@@ -1146,22 +1146,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.ingest.transaction_clusterer.tasks.spawn_clusterers",
         "schedule": crontab("17", "*", "*", "*", "*"),
     },
-    "dynamic-sampling-boost-low-volume-projects": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-boost-low-volume-transactions": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.boost_low_volume_transactions",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-recalibrate-orgs": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.recalibrate_orgs",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
-    "dynamic-sampling-sliding-window-org": {
-        "task": "telemetry-experience:sentry.dynamic_sampling.tasks.sliding_window_org",
-        "schedule": crontab("*/10", "*", "*", "*", "*"),
-    },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
         "schedule": timedelta(seconds=10),
@@ -1227,6 +1211,12 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Hourly rather than daily: the sweep has to keep pace with inbound PR
         # webhooks, and small frequent batches are gentler than one daily surge.
         "schedule": crontab("20", "*", "*", "*", "*"),
+    },
+    "autofix-sweep-pr-iteration-details": {
+        "task": "seer:sentry.tasks.autofix.sweep_pr_iteration_details",
+        # Hourly: the task discards iteration rows more than a day old, so it
+        # must be regular, not prompt.
+        "schedule": crontab("40", "*", "*", "*", "*"),
     },
     "relocation-find-transfer-region": {
         "task": "relocation:sentry.relocation.transfer.find_relocation_transfer_region",
@@ -1531,6 +1521,10 @@ SUPERUSER_ORG_ID: int | None = None
 SENTRY_SCIM_STAFF_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_READ_TEAM_SLUG: str | None = None
 SENTRY_SCIM_SUPERUSER_WRITE_TEAM_SLUG: str | None = None
+
+# Mapping of UserPermission strings to SCIM team slugs.
+# Adding/removing members from these teams grants/revokes the corresponding UserPermission.
+SENTRY_SCIM_PERMISSION_TEAM_SLUGS: dict[str, str] = {}
 
 # Project ID for recording frontend (javascript) exceptions
 SENTRY_FRONTEND_PROJECT: int | None = None
@@ -2341,7 +2335,7 @@ if SENTRY_DEV_DSN:
     # In production, this value is *not* set via an env variable
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
-    SENTRY_SDK_CONFIG["dsn"] = SENTRY_DEV_DSN
+    SENTRY_SDK_CONFIG["sentry_mirror_dsn"] = SENTRY_DEV_DSN
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
@@ -2895,6 +2889,9 @@ SENTRY_REPROCESSING_TOMBSTONES_TTL = 24 * 3600
 # How long reprocessing counters are kept in Redis before they expire.
 SENTRY_REPROCESSING_SYNC_TTL = 30 * 24 * 3600  # 30 days
 
+# How long the reprocessing page claims are kept in Redis before they expire.
+SENTRY_REPROCESSING_PAGE_CLAIM_TTL = 24 * 3600  # 1 day
+
 # How many events to query for at once while paginating through an entire
 # issue. Note that this needs to be kept in sync with the time-limits on
 # `sentry.tasks.reprocessing2.reprocess_group`. That task is responsible for
@@ -2915,7 +2912,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 1.0
+SAMPLED_DEFAULT_RATE = 0.0125
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
@@ -2993,6 +2990,13 @@ SEER_GHE_ENCRYPT_KEY: str | None = os.getenv("SEER_GHE_ENCRYPT_KEY")
 SENTRY_VROOM = os.getenv("VROOM", "http://127.0.0.1:8085")
 
 SENTRY_TEMPEST_URL = os.getenv("TEMPEST", "http://127.0.0.1:9130")
+
+# URL of the teapot GPU crash dump symbolication service, derived from the
+# SENTRY_TEAPOT_HOST host:port (the k8s service in SaaS, localhost in dev).
+SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}"
+
+# Shared secret used to sign requests to teapot
+SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
@@ -3094,9 +3098,6 @@ SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
 # For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
 # to a slice ID
 SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
-
-# Show banners on the login page that are defined in layout.html
-SHOW_LOGIN_BANNER = False
 
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
@@ -3329,8 +3330,6 @@ if SILO_DEVSERVER:
     SENTRY_LOCALITIES = [
         {
             "name": "us",
-            # TODO(cells): Deprecate category
-            "category": "MULTI_TENANT",
             "cells": ["us"],
             "new_org_cell": "us",
         }

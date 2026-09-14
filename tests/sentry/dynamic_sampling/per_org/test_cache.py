@@ -3,17 +3,12 @@ from __future__ import annotations
 from datetime import timedelta
 from unittest.mock import DEFAULT, MagicMock, patch
 
-import orjson
-
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import (
     MIN_RECALIBRATION_FACTOR_AGE,
     generate_project_sample_rates_cache_key,
     generate_transaction_sample_rates_cache_key,
-    get_cached_rebalanced_project_sample_rates,
-    get_cached_rebalanced_transaction_sample_rates,
-    get_cached_recalibration_factor,
     get_project_sample_rate,
     get_transaction_sample_rates,
     set_project_sample_rates,
@@ -32,9 +27,6 @@ from sentry.dynamic_sampling.tasks.helpers import (
 )
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     generate_boost_low_volume_projects_cache_key,
-)
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    generate_boost_low_volume_transactions_cache_key,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -194,6 +186,17 @@ class WriteCachesTest(TestCase):
             # A stale factor must not keep being applied once the new one is rejected.
             mocks[DELETE_FACTOR].assert_called_once_with(self.organization.id)
             mocks[SET_FACTOR].assert_not_called()
+
+    def test_a_factor_out_of_bounds_is_clamped_when_the_clamp_option_is_on(self) -> None:
+        with override_options({"dynamic-sampling.recalibration.clamp-factor": True}):
+            for factor, bound in (
+                (MIN_REBALANCE_FACTOR / 2, MIN_REBALANCE_FACTOR),
+                (MAX_REBALANCE_FACTOR * 2, MAX_REBALANCE_FACTOR),
+            ):
+                mocks = self._write(DynamicSamplingResults(recalibration_factor=factor))
+
+                mocks[SET_FACTOR].assert_called_once_with(self.organization.id, bound)
+                mocks[DELETE_FACTOR].assert_not_called()
 
     def test_a_pass_without_a_factor_leaves_the_stored_one_alone(self) -> None:
         mocks = self._write(DynamicSamplingResults())
@@ -363,58 +366,3 @@ class PerOrgSampleRateCacheTest(TestCase):
             assert get_transaction_sample_rates(self.organization.id, self.project.id) is None
 
         assert capture.call_count == 1
-
-
-class LegacyCacheReadersTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.redis = get_redis_client_for_ds()
-
-    def test_get_cached_recalibration_factor_reads_the_legacy_cache(self) -> None:
-        org = self.create_organization()
-        cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
-        self.redis.delete(cache_key)
-        self.addCleanup(self.redis.delete, cache_key)
-        self.redis.set(cache_key, 2.5)
-
-        assert get_cached_recalibration_factor(org.id) == 2.5
-
-    def test_get_cached_recalibration_factor_reports_a_cache_miss_as_the_identity(self) -> None:
-        org = self.create_organization()
-        cache_key = legacy_recalibration_cache.generate_recalibrate_orgs_cache_key(org.id)
-        self.addCleanup(self.redis.delete, cache_key)
-
-        # Writing the identity factor deletes the key, so a miss is how 1.0 is stored.
-        legacy_recalibration_cache.set_guarded_adjusted_factor(org.id, 1.0)
-        assert self.redis.get(cache_key) is None
-        assert get_cached_recalibration_factor(org.id) == 1.0
-
-    def test_get_cached_rebalanced_project_sample_rates(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        cache_key = generate_boost_low_volume_projects_cache_key(org.id)
-        self.redis.delete(cache_key)
-        self.addCleanup(self.redis.delete, cache_key)
-        self.redis.hset(cache_key, str(project.id), "0.25")
-
-        assert get_cached_rebalanced_project_sample_rates(org.id) == {project.id: 0.25}
-
-    def test_get_cached_rebalanced_transaction_sample_rates(self) -> None:
-        org = self.create_organization()
-        project_hit = self.create_project(organization=org)
-        project_miss = self.create_project(organization=org)
-        cache_key = generate_boost_low_volume_transactions_cache_key(
-            org_id=org.id, proj_id=project_hit.id
-        )
-        self.redis.delete(cache_key)
-        self.addCleanup(self.redis.delete, cache_key)
-        self.redis.set(cache_key, orjson.dumps([{"checkout": 0.3}, 0.5]).decode())
-
-        result = get_cached_rebalanced_transaction_sample_rates(
-            org.id, [project_hit.id, project_miss.id]
-        )
-
-        assert result == {
-            project_hit.id: ({"checkout": 0.3}, 0.5),
-            project_miss.id: None,
-        }

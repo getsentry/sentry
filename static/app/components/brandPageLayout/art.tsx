@@ -36,6 +36,8 @@ export function BrandLayoutArt({
 }
 
 const Artwork = styled('div')<{$aspectRatio: number; $bleedRatio: number}>`
+  --brand-artwork-right-bleed: ${p => p.$bleedRatio * 100}%;
+
   position: absolute;
   user-select: none;
   right: 0;

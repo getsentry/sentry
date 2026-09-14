@@ -189,6 +189,7 @@ export function useReplaySummary(
           replayRecord?.id ?? ''
         ),
       });
+      // oxlint-disable-next-line react/purity
       startSummaryRequestTime.current = Date.now();
     },
   });

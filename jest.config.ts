@@ -260,7 +260,7 @@ const config: Config.InitialOptions = {
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   moduleNameMapper: {
-    '\\.(css|less|png|gif|jpg|avif|woff|mp4)$':
+    '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/stories/storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',

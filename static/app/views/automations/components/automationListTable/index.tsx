@@ -6,13 +6,16 @@ import NoAlertsImage from 'sentry-images/features/alerts-not-found.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {SelectAllHeaderCheckbox} from 'sentry/components/workflowEngine/ui/selectAllHeaderCheckbox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
+import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -54,21 +57,22 @@ function HeaderCell({
   children: React.ReactNode;
   sort: Sort | undefined;
   className?: string;
-  divider?: boolean;
   sortKey?: string;
 } & Omit<ComponentProps<typeof SimpleTable.HeaderCell>, 'sort'>) {
   const location = useLocation();
   const navigate = useNavigate();
-  const isSortedByField = sort?.field === sortKey;
   const handleSort = () => {
     if (!sortKey) {
       return;
     }
-    const newSort =
-      sort && isSortedByField ? `${sort.kind === 'asc' ? '-' : ''}${sortKey}` : sortKey;
+    const nextSort = getNextSort(sortKey, sort ?? undefined, 'asc');
     navigate({
       pathname: location.pathname,
-      query: {...location.query, sort: newSort, cursor: undefined},
+      query: {
+        ...location.query,
+        sort: encodeSort(nextSort),
+        cursor: undefined,
+      },
     });
   };
 
@@ -147,33 +151,32 @@ export function AutomationListTable({
 
   return (
     <AutomationsSimpleTable
+      columns={AUTOMATION_COLUMNS}
       header={
-        canEditAutomations && selected.size === 0 ? (
+        !canEditAutomations || selected.size === 0 ? (
           <SimpleTable.HeaderRow key="header">
             <HeaderCell sort={sort} sortKey="name">
               <Flex gap="md" align="center">
-                <SelectAllHeaderCheckbox
-                  checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                  onChange={checked => togglePageSelected(checked)}
-                />
+                {canEditAutomations && (
+                  <SelectAllHeaderCheckbox
+                    checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                    onChange={checked => togglePageSelected(checked)}
+                  />
+                )}
                 <span>{t('Name')}</span>
               </Flex>
             </HeaderCell>
-            <HeaderCell
-              data-column-name="last-triggered"
-              sort={sort}
-              sortKey="lastTriggered"
-            >
+            <HeaderCell columnKey="last-triggered" sort={sort} sortKey="lastTriggered">
               {t('Last Triggered')}
             </HeaderCell>
-            <HeaderCell data-column-name="action" sort={sort} sortKey="actions">
+            <HeaderCell columnKey="action" sort={sort} sortKey="actions">
               {t('Actions')}
             </HeaderCell>
-            <HeaderCell data-column-name="projects" sort={sort}>
+            <HeaderCell columnKey="projects" sort={sort}>
               {t('Projects')}
             </HeaderCell>
             <HeaderCell
-              data-column-name="connected-monitors"
+              columnKey="connected-monitors"
               sort={sort}
               sortKey="connectedDetectors"
             >
@@ -246,47 +249,14 @@ const StyledFlex = styled(Flex)`
   padding: ${p => p.theme.size.sm};
 `;
 
+const AUTOMATION_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: {zero: '1fr', sm: '2.5fr', '4xl': 'minmax(0, 3fr)'}},
+  {key: 'last-triggered', visible: {'3xl': true}, width: 'minmax(160px, 1fr)'},
+  {key: 'action', visible: {xl: true}, width: '1fr'},
+  {key: 'projects', visible: {sm: true}, width: '1fr'},
+  {key: 'connected-monitors', visible: {'4xl': true}, width: '1fr'},
+];
+
 const AutomationsSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr;
-
   margin-bottom: ${p => p.theme.space.xl};
-
-  [data-column-name='last-triggered'],
-  [data-column-name='action'],
-  [data-column-name='projects'],
-  [data-column-name='connected-monitors'] {
-    display: none;
-  }
-
-  @container (min-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 2.5fr 1fr;
-
-    [data-column-name='projects'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    grid-template-columns: 2.5fr 1fr 1fr;
-
-    [data-column-name='action'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['3xl']}) {
-    grid-template-columns: 2.5fr minmax(160px, 1fr) 1fr 1fr;
-
-    [data-column-name='last-triggered'] {
-      display: flex;
-    }
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    grid-template-columns: minmax(0, 3fr) minmax(160px, 1fr) 1fr 1fr 1fr;
-
-    [data-column-name='connected-monitors'] {
-      display: flex;
-    }
-  }
 `;

@@ -142,6 +142,7 @@ export function ReleaseComparisonChart({
         ReleaseComparisonChartType.UNHANDLED_SESSIONS,
       ].includes(chartInUrl)
     ) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setExpanded(e => new Set(e.add(ReleaseComparisonChartType.CRASH_FREE_SESSIONS)));
     }
 
@@ -192,18 +193,18 @@ export function ReleaseComparisonChart({
           query: {
             field: ['failure_rate()', 'count()'],
             query: new MutableSearch([
-              'event.type:transaction',
+              'is_transaction:true',
               `release:${release.version}`,
             ]).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),
         api.requestPromise(url, {
           query: {
             field: ['failure_rate()', 'count()'],
-            query: new MutableSearch(['event.type:transaction']).formatString(),
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            query: new MutableSearch(['is_transaction:true']).formatString(),
+            dataset: DiscoverDatasets.SPANS,
             ...commonQuery,
           },
         }),
@@ -295,6 +296,7 @@ export function ReleaseComparisonChart({
 
   useEffect(() => {
     if (hasDiscover || hasPerformance) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchEventsTotals();
       fetchIssuesTotals();
     }
@@ -968,13 +970,25 @@ export function ReleaseComparisonChart({
 
   function getTableHeaders(withExpanders: boolean) {
     const headers = [
-      <DescriptionCell key="description">{t('Description')}</DescriptionCell>,
-      <Cell key="releases">{t('All Releases')}</Cell>,
-      <Cell key="release">{t('This Release')}</Cell>,
-      <Cell key="change">{t('Change')}</Cell>,
+      <SimpleTable.HeaderCell key="description">
+        <DescriptionCell>{t('Description')}</DescriptionCell>
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="releases">
+        <Cell>{t('All Releases')}</Cell>
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="release">
+        <Cell>{t('This Release')}</Cell>
+      </SimpleTable.HeaderCell>,
+      <SimpleTable.HeaderCell align="right" key="change">
+        <Cell>{t('Change')}</Cell>
+      </SimpleTable.HeaderCell>,
     ];
     if (withExpanders) {
-      headers.push(<Cell key="expanders" />);
+      headers.push(
+        <SimpleTable.HeaderCell align="right" key="expanders">
+          <Cell />
+        </SimpleTable.HeaderCell>
+      );
     }
     return headers;
   }
@@ -1109,13 +1123,21 @@ export function ReleaseComparisonChart({
       </ChartPanel>
       <ChartTable
         data-test-id="release-comparison-table"
-        withExpanders={withExpanders}
+        columns={[
+          {
+            key: 'description',
+            width: {
+              zero: 'minmax(min-content, 1fr)',
+              '4xl': 'minmax(400px, auto)',
+            },
+          },
+          {key: 'releases', width: 'minmax(min-content, 1fr)'},
+          {key: 'release', width: 'minmax(min-content, 1fr)'},
+          {key: 'change', width: 'minmax(min-content, 1fr)'},
+          {key: 'expanders', visible: withExpanders, width: '75px'},
+        ]}
         header={
-          <SimpleTable.HeaderRow>
-            {getTableHeaders(withExpanders).map((header, i) => (
-              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
-            ))}
-          </SimpleTable.HeaderRow>
+          <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
       >
         {charts.map(chartRow => renderChartRow(chartRow))}
@@ -1171,29 +1193,9 @@ const Change = styled('div')<{color?: string}>`
   ${p => p.color && `color: ${p.color}`}
 `;
 
-const ChartTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'withExpanders',
-})<{withExpanders: boolean}>`
+const ChartTable = styled(SimpleTable)`
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-
-  && {
-    grid-template-columns: repeat(4, minmax(min-content, 1fr)) ${p =>
-        p.withExpanders ? '75px' : ''};
-  }
-
-  @container (min-width: ${p => p.theme.container['4xl']}) {
-    && {
-      grid-template-columns: minmax(400px, auto) repeat(
-          3,
-          minmax(min-content, 1fr)
-        ) ${p => (p.withExpanders ? '75px' : '')};
-    }
-  }
-
-  > * {
-    border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  }
 `;
 
 const StyledNotAvailable = styled(NotAvailable)`

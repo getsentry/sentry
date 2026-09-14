@@ -2,6 +2,7 @@ import {useState, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {Button} from '@sentry/scraps/button';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -34,6 +35,41 @@ import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateD
 import type {DashboardDetails} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
+/**
+ * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
+ * starring is a frequent, cheaply reversible action, so burying it a click deep
+ * made it hard to find.
+ *
+ * Presentational on purpose: the starred state has to live in the parent, which
+ * stays mounted while this button does not (see `isFavorited` below).
+ */
+function DashboardFavoriteButton({
+  isFavorited,
+  onToggle,
+}: {
+  isFavorited: boolean | undefined;
+  onToggle: () => void;
+}) {
+  const label = isFavorited ? t('Unstar') : t('Star');
+
+  return (
+    <Button
+      size="zero"
+      variant="transparent"
+      aria-label={label}
+      tooltipProps={{title: label}}
+      // Unstarred deliberately inherits the button's colour instead of going
+      // `muted` like the table-row stars do. This one sits directly beside the
+      // ellipsis trigger, which inherits too, so a dimmer star reads as a
+      // rendering bug next to its neighbour.
+      icon={
+        <IconStar isSolid={isFavorited} variant={isFavorited ? 'warning' : undefined} />
+      }
+      onClick={onToggle}
+    />
+  );
+}
+
 interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
   hasUnsavedFilters: boolean;
@@ -53,11 +89,14 @@ export function DashboardBreadcrumbTitle({
   onChange,
   onEdit,
 }: DashboardBreadcrumbTitleProps) {
+  // Lives here rather than in `DashboardFavoriteButton` because the button
+  // unmounts while editing or previewing, and a toggle never writes back to
+  // `dashboard.isFavorited` — remounting from the prop would revert the star.
   const [isFavorited, setIsFavorited] = useState(dashboard.isFavorited);
   const api = useApi();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const queryClient = useQueryClient();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
   const openDashboardRevisions = useOpenDashboardRevisions(dashboard);
@@ -109,30 +148,25 @@ export function DashboardBreadcrumbTitle({
     Boolean(dashboard.id) &&
     !isPrebuiltDashboard &&
     organization.features.includes('dashboards-edit');
-  const favoriteItem = {
-    key: 'favorite',
-    label: isFavorited ? t('Unstar') : t('Star'),
-    leadingItems: <IconStar isSolid={isFavorited} />,
-    onAction: async () => {
-      const nextIsFavorited = !isFavorited;
-      setIsFavorited(nextIsFavorited);
-      try {
-        await updateDashboardFavorite(
-          api,
-          queryClient,
-          organization,
-          dashboard.id,
-          nextIsFavorited
-        );
-        trackAnalytics('dashboards_manage.toggle_favorite', {
-          organization,
-          dashboard_id: dashboard.id,
-          favorited: nextIsFavorited,
-        });
-      } catch {
-        setIsFavorited(isFavorited);
-      }
-    },
+  const handleToggleFavorite = async () => {
+    const nextIsFavorited = !isFavorited;
+    setIsFavorited(nextIsFavorited);
+    try {
+      await updateDashboardFavorite(
+        api,
+        queryClient,
+        organization,
+        dashboard.id,
+        nextIsFavorited
+      );
+      trackAnalytics('dashboards_manage.toggle_favorite', {
+        organization,
+        dashboard_id: dashboard.id,
+        favorited: nextIsFavorited,
+      });
+    } catch {
+      setIsFavorited(isFavorited);
+    }
   };
   const revisionItem = {
     key: 'revisions',
@@ -176,7 +210,6 @@ export function DashboardBreadcrumbTitle({
       },
     };
     const menuItems = [
-      favoriteItem,
       ...(canViewRevisions ? [revisionItem] : []),
       ...(isDashboardEditor ? [editItem] : []),
       ...(isPrebuiltDashboard ? [duplicateItem] : []),
@@ -188,12 +221,28 @@ export function DashboardBreadcrumbTitle({
         item={{
           type: 'page-title',
           label: dashboard.title,
-          trailingActions: {
-            type: 'menu',
-            triggerLabel: t('Dashboard actions'),
-            triggerIcon: <IconEllipsis />,
-            items: menuItems,
-          },
+          trailingActions: [
+            // Starring used to be the one item every dashboard had, so the menu
+            // was unconditional. Now that it has moved out, hide the trigger
+            // when nothing is left to put behind it.
+            menuItems.length > 0
+              ? {
+                  type: 'menu',
+                  triggerLabel: t('Dashboard actions'),
+                  triggerIcon: <IconEllipsis />,
+                  items: menuItems,
+                }
+              : null,
+            {
+              type: 'button',
+              element: (
+                <DashboardFavoriteButton
+                  isFavorited={isFavorited}
+                  onToggle={handleToggleFavorite}
+                />
+              ),
+            },
+          ],
         }}
       />
     );

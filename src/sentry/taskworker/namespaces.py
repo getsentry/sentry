@@ -342,6 +342,13 @@ symbolication_jvm_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+# GPU crash symbolication (teapot), isolated from `symbolication` so a slow
+# teapot can't back up the native CPU symbolication queue.
+gpu_crash_dump_tasks = app.taskregistry.create_namespace(
+    "gpu.crash_dump",
+    app_feature="errors",
+)
+
 telemetry_experience_tasks = app.taskregistry.create_namespace(
     "telemetry-experience",
     app_feature="transactions",

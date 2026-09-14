@@ -32,7 +32,7 @@ export default function InvoiceDetailsPaymentForm({
   const location = useLocation();
   const endpoint = [
     getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/new/', {
-      path: {organizationIdOrSlug: invoice.customer.slug, paymentId: invoice.id},
+      path: {organizationIdOrSlug: organization.slug, paymentId: invoice.id},
     }),
   ] satisfies ApiQueryKey;
 

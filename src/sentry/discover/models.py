@@ -10,10 +10,12 @@ from django.utils import timezone
 from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
+from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
+from sentry.models.organization import Organization
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -210,3 +212,157 @@ class TeamKeyTransaction(Model):
         app_label = "sentry"
         db_table = "sentry_performanceteamkeytransaction"
         unique_together = (("project_team", "transaction"),)
+
+
+class DiscoverSavedQueryStarredManager(BaseManager["DiscoverSavedQueryStarred"]):
+    """
+    Positions here are not local to this table, being shared with ExploreSavedQueryStarred.
+    See `explore/utils.py` and `saved_query_starred_order.py` for the implementation details.
+    """
+
+    def get_starred_query(
+        self, organization: Organization, user_id: int, query: DiscoverSavedQuery
+    ) -> DiscoverSavedQueryStarred | None:
+        """
+        Returns the starred query if it exists, otherwise None.
+        """
+        return self.filter(
+            organization=organization, user_id=user_id, discover_saved_query=query
+        ).first()
+
+    def insert_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: DiscoverSavedQuery,
+        starred: bool = True,
+    ) -> bool:
+        """
+        Inserts a new starred query at the end of the shared list.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            discover_saved_query: The query to insert
+
+        Returns:
+            True if the query was starred, False if the query was already starred
+        """
+        from sentry.explore.utils import next_starred_position
+
+        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+            if self.get_starred_query(organization, user_id, query):
+                return False
+
+            self.create(
+                organization=organization,
+                user_id=user_id,
+                discover_saved_query=query,
+                position=next_starred_position(organization, user_id),
+                starred=starred,
+            )
+            return True
+
+    def delete_starred_query(
+        self, organization: Organization, user_id: int, query: DiscoverSavedQuery
+    ) -> bool:
+        """
+        Deletes a starred query from the list.
+        Decrements the position of all later queries in both tables to close the gap.
+
+        Args:
+            organization: The organization the queries belong to
+            user_id: The ID of the user whose starred queries are being updated
+            discover_saved_query: The query to delete
+
+        Returns:
+            True if the query was unstarred, False if the query was already unstarred
+        """
+        from sentry.explore.utils import shift_starred_positions
+
+        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            deleted_position = starred_query.position
+            starred_query.delete()
+
+            # A row unstarred via ``updated_starred_query`` holds no position and so left no
+            # gap to close. Filtering on ``position__gt=None`` would raise, not match nothing.
+            if deleted_position is not None:
+                shift_starred_positions(
+                    organization, user_id, from_position=deleted_position, delta=-1
+                )
+            return True
+
+    def updated_starred_query(
+        self,
+        organization: Organization,
+        user_id: int,
+        query: DiscoverSavedQuery,
+        starred: bool,
+    ) -> bool:
+        """
+        Updates the starred status of a query.
+        """
+        from sentry.explore.utils import next_starred_position
+
+        with transaction.atomic(using=router.db_for_write(DiscoverSavedQueryStarred)):
+            if not (starred_query := self.get_starred_query(organization, user_id, query)):
+                return False
+
+            starred_query.starred = starred
+            if starred:
+                starred_query.position = next_starred_position(organization, user_id)
+            else:
+                starred_query.position = None
+
+            starred_query.save()
+            return True
+
+
+@cell_silo_model
+class DiscoverSavedQueryStarred(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    discover_saved_query = FlexibleForeignKey("discover.DiscoverSavedQuery")
+
+    position = models.PositiveSmallIntegerField(null=True, db_default=None)
+    starred = models.BooleanField(db_default=True)
+
+    objects: ClassVar[DiscoverSavedQueryStarredManager] = DiscoverSavedQueryStarredManager()
+
+    class Meta:
+        app_label = "discover"
+        db_table = "sentry_discoversavedquerystarred"
+        constraints = [
+            # A position appears at most once in an organization user's list, starred or not.
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "position"],
+                name="sentry_discoversavedquerystarred_unique_query_per_org_user",
+                deferrable=models.Deferrable.DEFERRED,
+            ),
+        ]
+
+
+@cell_silo_model
+class DiscoverSavedQueryLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Excluded
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    discover_saved_query = FlexibleForeignKey("discover.DiscoverSavedQuery")
+
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "discover"
+        db_table = "sentry_discoversavedquerylastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "discover_saved_query_id"],
+                name="sentry_disc_savedquery_lastvisited_uniq",
+            )
+        ]

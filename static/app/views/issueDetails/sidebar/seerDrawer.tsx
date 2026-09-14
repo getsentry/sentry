@@ -11,14 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const useOpenSeerDrawer = ({
-  group,
-  project,
-}: {
-  group: Group;
-  project: Project;
-  buttonRef?: React.RefObject<HTMLButtonElement | null>;
-}) => {
+export const useOpenSeerDrawer = ({group, project}: {group: Group; project: Project}) => {
   const {openDrawer} = useDrawer();
   const navigate = useNavigate();
   const location = useLocation();

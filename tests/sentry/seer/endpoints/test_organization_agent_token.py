@@ -23,7 +23,6 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
-from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.endpoints.project_rules import ProjectRulesEndpoint
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
@@ -130,11 +129,13 @@ def _public_get_endpoints() -> tuple[PublicGetEndpoint, ...]:
     discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
+        status = view.publish_status.get(method)
         if (
             method != "GET"
             or not path.startswith("/api/0/")
             or path.startswith("/api/0/{var}/")
-            or view.publish_status.get(method) is not ApiPublishStatus.PUBLIC
+            or status is None
+            or not status.is_published
         ):
             continue
 
@@ -169,11 +170,13 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
     discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
+        status = view.publish_status.get(method)
         if (
             method == "GET"
             or not path.startswith("/api/0/")
             or path.startswith("/api/0/{var}/")
-            or view.publish_status.get(method) is not ApiPublishStatus.PUBLIC
+            or status is None
+            or not status.is_published
         ):
             continue
 
@@ -1161,6 +1164,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         # A well-formed nonexistent identifier still exercises authentication, endpoint
         # scopes, URL conversion, and the outer resource permission boundary.
         opaque_values = {
+            "conversation_id": uuid4().hex,
             "external_issue_id": "1",
             "profile_id": uuid4().hex,
             "snapshot_id": "1",
@@ -1275,9 +1279,11 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             "GroupAutofixEndpoint": "organizations:gen-ai-features",
             "GroupIntegrationDetailsEndpoint": "organizations:integrations-issue-basic",
             "OrganizationEventsEndpoint": "organizations:discover-basic",
+            "OrganizationGroupSearchViewsEndpoint": "organizations:issue-views",
             "OrganizationProfilingChunksEndpoint": "organizations:continuous-profiling",
             "OrganizationProfilingFlamegraphEndpoint": "organizations:profiling",
             "OrganizationTraceItemAttributesEndpoint": "organizations:visibility-explore-view",
+            "OrganizationTraceItemMetricsEndpoint": "organizations:visibility-explore-view",
             "ProjectProfilingProfileEndpoint": "organizations:profiling",
         }
         if feature := endpoint_flags.get(endpoint.endpoint_name):
@@ -1561,6 +1567,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             },
             ("OrganizationDetailsEndpoint", "PUT"): {"name": self.org.name},
             ("OrganizationDetectorIndexEndpoint", "PUT"): {"enabled": False},
+            ("OrganizationGroupSearchViewsEndpoint", "POST"): {
+                "name": "Permission Matrix Issue View",
+                "query": "is:unresolved",
+                "querySort": "date",
+                "projects": [self.project.id],
+                "environments": [],
+                "timeFilters": {"period": "14d"},
+            },
             ("OrganizationReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
             ("ProjectReleaseFileDetailsEndpoint", "PUT"): {"name": "updated-matrix.js"},
             ("ProjectReleaseFilesEndpoint", "POST"): {

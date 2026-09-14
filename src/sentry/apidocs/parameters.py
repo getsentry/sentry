@@ -226,6 +226,19 @@ Valid fields include:
 """,
     )
 
+    MEMBER_QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description=(
+            "Limit results to members matching the given query. `id, `user.id`, ... are supported prefixes "
+            "match on: `id`, `user.id`, `email`, `role`, `scope`, `isInvited`, `ssoLinked`, "
+            "`has2fa`, `hasExternalUsers`. For example, `query=user.id:1234`. An unrecognized "
+            "field returns no results."
+        ),
+    )
+
     PROJECT_QUERY = OpenApiParameter(
         name="query",
         location="query",
@@ -566,6 +579,14 @@ Prefix with `-` to sort in descending order.
         type=str,
         many=True,
         description="Filter by monitor type(s). Can be specified multiple times.",
+    )
+
+    ENABLED = OpenApiParameter(
+        name="enabled",
+        location="query",
+        required=False,
+        type=bool,
+        description="Filter by whether monitors are enabled.",
     )
 
 
@@ -949,7 +970,7 @@ class EventParams:
         name="full",
         type=OpenApiTypes.BOOL,
         location=OpenApiParameter.QUERY,
-        description="Specify true to include the full event body, including the stacktrace, in the event payload.",
+        description="Specify true to include the full event body, including the stacktrace, in the event payload. When true, the page size is capped at 10.",
         required=False,
         default=False,
     )

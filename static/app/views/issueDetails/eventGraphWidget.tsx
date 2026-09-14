@@ -22,11 +22,12 @@ export default function EventGraphWidget({
   chartRef,
 }: LoadableChartWidgetProps) {
   const {groupId} = useParams();
-  const {[ReleasesDrawerFields.EVENT_ID]: eventId} = useLocationQuery({
+  const locationQuery = useLocationQuery({
     fields: {
       [ReleasesDrawerFields.EVENT_ID]: decodeScalar,
     },
   });
+  const eventId = locationQuery[ReleasesDrawerFields.EVENT_ID];
 
   const {
     event,

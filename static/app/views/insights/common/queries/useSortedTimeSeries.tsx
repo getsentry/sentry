@@ -138,7 +138,6 @@ export const useSortedTimeSeries = <
   }, [result.data]);
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...result,
     data,
     meta: result.data?.meta,

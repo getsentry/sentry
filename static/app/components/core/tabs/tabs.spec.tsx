@@ -391,6 +391,20 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('option', {name: 'Activity'})).not.toBeInTheDocument();
   });
 
+  it('keeps the first tab visible when only it and the overflow trigger fit', async () => {
+    containerWidth = 120;
+    renderTabs();
+
+    expect(screen.getByRole('tab', {name: 'Details'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+
+    expect(screen.queryByRole('option', {name: 'Details'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Activity'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'User Feedback'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Attachments'})).toBeInTheDocument();
+  });
+
   it('recomputes overflow when the container is resized', async () => {
     containerWidth = 1000;
     renderTabs();

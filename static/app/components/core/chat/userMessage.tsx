@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container} from '@sentry/scraps/layout';
 
 interface UserMessageProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -8,13 +9,13 @@ interface UserMessageProps extends React.HTMLAttributes<HTMLDivElement> {
    * Caps how wide the bubble can grow relative to its container. Defaults to
    * `80%` so a bubble never spans the full conversation width.
    */
-  maxWidth?: React.CSSProperties['maxWidth'];
+  maxWidth?: CSS['maxWidth'];
   /**
    * How wide the bubble sizes itself. Left unset by default so it hugs its
    * content; pass `100%` to fill up to `maxWidth`, useful for multiline or rich
    * content that reads better in a wider bubble.
    */
-  width?: React.CSSProperties['width'];
+  width?: CSS['width'];
 }
 
 /**

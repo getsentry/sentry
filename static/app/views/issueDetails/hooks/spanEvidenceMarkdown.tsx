@@ -20,7 +20,7 @@ import {
   isTransactionBased,
   IssueType,
 } from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
@@ -71,13 +71,13 @@ function normalizeSpanDescription(span: EvidenceSpan): string {
 
 /** Mirrors the `code.*` span data the UI's SlowDBQueryEvidence renders. */
 function getSpanCodeLocation(span: EvidenceSpan): string | null {
-  const data = span?.data;
-  const filepath = data?.['code.filepath'];
+  const data = span?.data ?? {};
+  const filepath = getAttributeValue(data, 'code.file.path', 'string');
   if (!filepath) {
     return null;
   }
-  const lineno = data?.['code.lineno'];
-  const fn = data?.['code.function'];
+  const lineno = getAttributeValue(data, 'code.line.number', 'number')?.toString();
+  const fn = getAttributeValue(data, 'code.function', 'string');
   const location = lineno === undefined ? filepath : `${filepath}:${lineno}`;
   return fn ? `${location} ${fn}` : location;
 }
@@ -268,14 +268,10 @@ function formatIssueTypeMetrics(
  * issues. Returns an empty string for issues that don't expose span evidence
  * (e.g. errors).
  */
-export function formatSpanEvidenceToMarkdown(
-  event: Event,
-  organization: Organization,
-  group: Group
-): string {
+export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string {
   const issueType = group.issueType;
 
-  const regressionData = getKeyValueListData(organization, issueType, event);
+  const regressionData = getKeyValueListData(issueType, event);
   if (regressionData) {
     const regressionLines = keyValueListDataToMarkdownLines(regressionData);
     if (regressionLines.length === 0) {

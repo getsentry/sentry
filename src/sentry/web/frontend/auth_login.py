@@ -117,6 +117,10 @@ class AuthLoginView(BaseView, ReactMixin):
         return super().handle(request, *args, **kwargs)
 
     def get(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
+        customer_domain_redirect = self.get_customer_domain_login_redirect(request)
+        if customer_domain_redirect is not None:
+            return customer_domain_redirect
+
         if should_render_react_auth(request):
             return self.handle_react(request)
 
@@ -189,6 +193,23 @@ class AuthLoginView(BaseView, ReactMixin):
             and self.org_exists(request=request)
             and request.path_info not in non_sso_urls
         )
+
+    def get_customer_domain_login_redirect(
+        self, request: HttpRequest
+    ) -> HttpResponseRedirect | None:
+        if (
+            not features.has("system:multi-region")
+            or request.user.is_authenticated
+            or not request.subdomain
+            or not self.org_exists(request)
+        ):
+            return None
+
+        path = construct_link_with_query(
+            path=reverse("sentry-auth-organization", args=[request.subdomain]),
+            query_params=request.GET,
+        )
+        return HttpResponseRedirect(absolute_uri(path))
 
     def get_org_auth_login_redirect(self, request: HttpRequest) -> HttpResponseBase:
         """
@@ -571,7 +592,6 @@ class AuthLoginView(BaseView, ReactMixin):
             "join_request_link": self.get_join_request_link(
                 organization=organization, request=request
             ),  # NOTE: not utilized in basic login page (only org login)
-            "show_login_banner": settings.SHOW_LOGIN_BANNER,
             "show_partner_login_banner": request.GET.get("partner") is not None,
             "referrer": request.GET.get("referrer"),
         }

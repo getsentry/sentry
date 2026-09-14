@@ -1140,8 +1140,7 @@ export function isLegalEquationColumn(column: Column): boolean {
 
 export function generateAggregateFields(
   organization: Organization,
-  eventFields: readonly Field[] | Field[],
-  excludeFields: readonly string[] = []
+  eventFields: readonly Field[] | Field[]
 ): Field[] {
   const functions = Object.keys(AGGREGATIONS);
   const fields = Object.values(eventFields).map(field => field.field);
@@ -1163,7 +1162,7 @@ export function generateAggregateFields(
       const newField = `${func}(${parameters
         .map((param: any) => param.defaultValue)
         .join(',')})`;
-      if (!fields.includes(newField) && !excludeFields.includes(newField)) {
+      if (!fields.includes(newField)) {
         fields.push(newField);
       }
     }

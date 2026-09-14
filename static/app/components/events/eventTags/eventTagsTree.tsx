@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
+  type EventTagTreeRowConfig,
   EventTagsTreeRow,
   type EventTagsTreeRowProps,
 } from 'sentry/components/events/eventTags/eventTagsTreeRow';
@@ -38,6 +39,8 @@ interface EventTagsTreeProps {
   event: Event;
   projectSlug: Project['slug'];
   tags: EventTagWithMeta[];
+  /** Applied to every row; e.g. `disableActions` for read-only surfaces. */
+  config?: EventTagTreeRowConfig;
 }
 
 function addToTagTree({
@@ -106,6 +109,7 @@ function getTagTreeRows({
   event,
   project,
   isLast,
+  config,
 }: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
   const subtreeEntries = Array.from(content.subtree.entries());
   const subtreeRows = subtreeEntries.reduce<React.ReactNode[]>(
@@ -113,6 +117,7 @@ function getTagTreeRows({
       const branchRows = getTagTreeRows({
         event,
         project,
+        config,
         tagKey: tag,
         content: tagContent,
         spacerCount: spacerCount + 1,
@@ -134,6 +139,7 @@ function getTagTreeRows({
       event={event}
       project={project}
       isLast={isLast}
+      config={config}
     />,
     ...subtreeRows,
   ];
@@ -148,6 +154,7 @@ function TagTreeColumns({
   columnCount,
   projectSlug,
   event,
+  config,
 }: EventTagsTreeProps & {columnCount: number}) {
   const organization = useOrganization();
   const {data: project, isPending} = useDetailedProject({
@@ -171,7 +178,7 @@ function TagTreeColumns({
     // root parent so that we do not split up roots/branches when forming columns
     const tagTreeRowGroups: React.ReactNode[][] = Array.from(tagTree.entries()).map(
       ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event})
+        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event, config})
     );
     // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
     const tagTreeRowTotal = tagTreeRowGroups.reduce(
@@ -208,7 +215,7 @@ function TagTreeColumns({
       {startIndex: 0, runningTotal: 0, columns: []}
     );
     return data.columns;
-  }, [columnCount, isPending, project, event, tags]);
+  }, [columnCount, isPending, project, event, tags, config]);
 
   return <Fragment>{assembledColumns}</Fragment>;
 }

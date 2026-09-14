@@ -89,6 +89,7 @@ class SmartAssignmentScore(models.TextChoices):
 class SmartAssignmentPayload(BaseModel):
     group_id: int
     project_slug: str | None = None
+    connected_repos: list[str] = Field(default_factory=list)
 
 
 class RankedCandidate(BaseModel):

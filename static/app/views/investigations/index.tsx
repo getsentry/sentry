@@ -99,7 +99,7 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationsPage() {
+export function InvestigationsPage() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -297,7 +297,6 @@ function InvestigationsPage() {
                   <GridEditable
                     data={investigations}
                     columnOrder={COLUMNS}
-                    columnSortBy={[]}
                     grid={{
                       renderHeadCell: column => column.name,
                       renderBodyCell,

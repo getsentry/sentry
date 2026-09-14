@@ -4,11 +4,11 @@ import {motion, type MotionProps} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {AssertionFormError} from 'sentry/views/detectors/components/uptime/formErrors';
@@ -92,7 +92,7 @@ export function OpContainer({
               {...listeners}
               {...attributes}
             />
-            {tooltip && <QuestionTooltip size="xs" title={tooltip} isHoverable />}
+            {tooltip && <InfoTip size="xs" title={tooltip} />}
           </Flex>
           <Grid columns="1fr max-content" align="center" gap="sm">
             {children}

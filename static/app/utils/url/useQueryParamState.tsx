@@ -87,6 +87,7 @@ export function useQueryParamState<T = string>({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setLocalState(deserializeValue());
   }, [deserializeValue, syncStateWithUrl]);
 

@@ -13,6 +13,7 @@ export function buildRunsSearchQuery(searchQuery?: string) {
   const trimmed = searchQuery?.trim();
   return [
     'is:mine',
+    'is:agent',
     'type:explorer',
     trimmed ? `"${escapeDoubleQuotes(trimmed)}"` : undefined,
   ]

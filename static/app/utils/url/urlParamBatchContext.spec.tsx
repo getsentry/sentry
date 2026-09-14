@@ -1,25 +1,19 @@
 import debounce from 'lodash/debounce';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {
   UrlParamBatchProvider,
   useUrlBatchContext,
 } from 'sentry/utils/url/urlParamBatchContext';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {testableDebounce} from './testUtils';
 
-jest.mock('sentry/utils/useNavigate');
 jest.mock('lodash/debounce');
 
 describe('UrlParamBatchProvider', () => {
-  let mockNavigate: jest.Mock;
-
   beforeEach(() => {
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
     jest.mocked(debounce).mockImplementation(testableDebounce);
     jest.useFakeTimers();
   });
@@ -33,23 +27,20 @@ describe('UrlParamBatchProvider', () => {
   it('should batch updates to the URL query params', () => {
     setWindowLocation('http://localhost/');
 
-    const {result} = renderHook(() => useUrlBatchContext(), {
-      wrapper: UrlParamBatchProvider,
+    const {result, router} = renderHookWithProviders(() => useUrlBatchContext(), {
+      additionalWrapper: UrlParamBatchProvider,
+      initialRouterConfig: {
+        location: {pathname: '/'},
+      },
     });
     const {batchUrlParamUpdates} = result.current;
 
     batchUrlParamUpdates({foo: 'bar'});
     batchUrlParamUpdates({potato: 'test'});
 
-    jest.runAllTimers();
+    act(() => jest.runAllTimers());
 
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(mockNavigate).toHaveBeenCalledWith(
-      {
-        pathname: '/',
-        query: {foo: 'bar', potato: 'test'},
-      },
-      {replace: true, preventScrollReset: true}
-    );
+    expect(router.location.pathname).toBe('/');
+    expect(router.location.query).toEqual({foo: 'bar', potato: 'test'});
   });
 });

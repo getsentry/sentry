@@ -585,20 +585,32 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
 
     def test_missing_base_shows_failure_message(self) -> None:
         artifact, metrics = self._create_artifact_with_metrics(image_count=2)
+        base_sha = "abc123" + "0" * 34
+        base_repo_url = "https://github.com/getsentry/sentry"
 
         result = format_missing_base_snapshot_pr_comment(
-            [artifact], {artifact.id: metrics}, project=self.project
+            [artifact],
+            {artifact.id: metrics},
+            project=self.project,
+            base_sha=base_sha,
+            base_repo_url=base_repo_url,
         )
 
         assert "## Sentry Snapshot Testing" in result
         assert "2 uploaded" in result
-        assert "No base snapshots found to compare against" in result
-        assert "main branch" in result
+        assert (
+            f"Base commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce snapshots"
+            in result
+        )
+        assert "Did its snapshot job fail?" in result
+        assert "Try rebasing this branch on a commit with a successful snapshot job." in result
         assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
-            format_missing_base_snapshot_pr_comment([], {}, project=self.project)
+            format_missing_base_snapshot_pr_comment(
+                [], {}, project=self.project, base_sha="abc123" + "0" * 34
+            )
 
 
 @cell_silo_test

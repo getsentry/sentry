@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, lazy, useMemo, useRef} from 'react';
 
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -14,15 +14,11 @@ import {EventInsightDiff} from 'sentry/components/events/eventInsightDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import {AggregateSpanDiff} from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
-import {EventBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import {EventComparison} from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
-import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
@@ -52,6 +48,7 @@ import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
@@ -88,6 +85,12 @@ import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/si
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+
+const LazyEventViewHierarchy = lazy(() =>
+  import('sentry/components/events/eventViewHierarchy').then(module => ({
+    default: module.EventViewHierarchy,
+  }))
+);
 
 export interface EventDetailsContentProps {
   group: Group;
@@ -266,19 +269,6 @@ export function EventDetailsContent({
           <EventRegressionSummary event={event} group={group} />
         </ErrorBoundary>
       )}
-      {issueTypeConfig.performanceDurationRegression.enabled && (
-        <Fragment>
-          <ErrorBoundary mini>
-            <EventBreakpointChart event={event} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <AggregateSpanDiff event={event} project={project} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventComparison event={event} project={project} />
-          </ErrorBoundary>
-        </Fragment>
-      )}
       {issueTypeConfig.profilingDurationRegression.enabled && (
         <Fragment>
           <ErrorBoundary mini>
@@ -349,7 +339,12 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
-      <EventViewHierarchy event={event} project={project} />
+      <LazyLoad
+        LazyComponent={LazyEventViewHierarchy}
+        event={event}
+        project={project}
+        loadingFallback={null}
+      />
       <EventInsightDiff event={event} project={project} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />

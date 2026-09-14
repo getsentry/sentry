@@ -30,10 +30,6 @@ describe('useCopyIssueDetails', () => {
     issueCategory: IssueCategory.PERFORMANCE,
     issueType: IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
   });
-  const endpointRegressionGroup = GroupFixture({
-    issueCategory: IssueCategory.PERFORMANCE,
-    issueType: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-  });
   const functionRegressionGroup = GroupFixture({
     issueCategory: IssueCategory.PERFORMANCE,
     issueType: IssueType.PROFILE_FUNCTION_REGRESSION,
@@ -910,7 +906,7 @@ LIMIT 21`;
     });
 
     it('summarizes N+1 span evidence with dedup, cardinality, code and timing', () => {
-      expect(formatSpanEvidenceToMarkdown(nPlusOneEvent, organization, performanceGroup))
+      expect(formatSpanEvidenceToMarkdown(nPlusOneEvent, performanceGroup))
         .toMatchInlineSnapshot(`
         "
         ## Span Evidence
@@ -1075,11 +1071,7 @@ LIMIT 21`;
         ],
       });
 
-      const result = formatSpanEvidenceToMarkdown(
-        payloadEvent,
-        organization,
-        payloadGroup
-      );
+      const result = formatSpanEvidenceToMarkdown(payloadEvent, payloadGroup);
       expect(result).toContain('**Payload Size:**');
       expect(result).toContain('5000000 B');
     });
@@ -1117,7 +1109,6 @@ LIMIT 21`;
 
       const result = formatSpanEvidenceToMarkdown(
         renderBlockingEvent,
-        organization,
         renderBlockingGroup
       );
       expect(result).toContain('**FCP Delay:**');
@@ -1148,7 +1139,7 @@ LIMIT 21`;
         ],
       });
 
-      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      const result = formatSpanEvidenceToMarkdown(apiEvent, apiGroup);
       expect(result).toContain('**Query Parameters:** id:{1,2,3}');
       expect(result).toContain('**Path Parameters:** /users/*');
     });
@@ -1175,7 +1166,7 @@ LIMIT 21`;
         entries: [{type: EntryType.SPANS, data: spans}],
       });
 
-      const result = formatSpanEvidenceToMarkdown(apiEvent, organization, apiGroup);
+      const result = formatSpanEvidenceToMarkdown(apiEvent, apiGroup);
       expect(result).toContain('**Query Parameters:** id:{1,2,3}');
     });
 
@@ -1209,22 +1200,14 @@ LIMIT 21`;
         ],
       });
 
-      const result = formatSpanEvidenceToMarkdown(
-        injectionEvent,
-        organization,
-        injectionGroup
-      );
+      const result = formatSpanEvidenceToMarkdown(injectionEvent, injectionGroup);
       expect(result).toContain("**Vulnerable Parameters:** username: admin' OR '1'='1");
       expect(result).toContain('**Request URL:** https://example.com/login');
     });
 
     it('does not add type-specific metrics for N+1 DB issues', () => {
       // N+1 DB has no extra per-type metric rows beyond the generic summary.
-      const result = formatSpanEvidenceToMarkdown(
-        nPlusOneEvent,
-        organization,
-        performanceGroup
-      );
+      const result = formatSpanEvidenceToMarkdown(nPlusOneEvent, performanceGroup);
       expect(result).not.toContain('**Payload Size:**');
       expect(result).not.toContain('**FCP Delay:**');
       expect(result).not.toContain('**Query Parameters:**');
@@ -1244,7 +1227,7 @@ LIMIT 21`;
         },
       });
 
-      expect(formatSpanEvidenceToMarkdown(profileEvent, organization, performanceGroup))
+      expect(formatSpanEvidenceToMarkdown(profileEvent, performanceGroup))
         .toMatchInlineSnapshot(`
         "
         ## Span Evidence
@@ -1267,48 +1250,13 @@ LIMIT 21`;
         },
       });
 
-      expect(formatSpanEvidenceToMarkdown(profileEvent, organization, performanceGroup))
+      expect(formatSpanEvidenceToMarkdown(profileEvent, performanceGroup))
         .toMatchInlineSnapshot(`
         "
         ## Span Evidence
 
         **Transaction:** app.start
         **File Path:** /data/cache.db
-        "
-      `);
-    });
-
-    it('includes regression metrics for endpoint regression issues', () => {
-      const regressionEvent = EventFixture({
-        ...event,
-        title: 'ApiException',
-        occurrence: {
-          type: 1018,
-          evidenceData: {
-            transaction: '/api/0/users/',
-            aggregateRange1: 100_000,
-            aggregateRange2: 200_000,
-            trendDifference: 100_000,
-            trendPercentage: 2,
-            breakpoint: 1_709_161_200,
-          },
-          evidenceDisplay: [],
-        },
-      });
-
-      expect(
-        formatSpanEvidenceToMarkdown(
-          regressionEvent,
-          organization,
-          endpointRegressionGroup
-        )
-      ).toMatchInlineSnapshot(`
-        "
-        ## Regression Summary
-
-        **Endpoint Name:** /api/0/users/
-        **Change in Duration:** 2min to 3min (+100%)
-        **Approx. Start Time:** Feb 28, 2024 11:00:00 PM UTC
         "
       `);
     });
@@ -1332,13 +1280,8 @@ LIMIT 21`;
         },
       });
 
-      expect(
-        formatSpanEvidenceToMarkdown(
-          regressionEvent,
-          organization,
-          functionRegressionGroup
-        )
-      ).toMatchInlineSnapshot(`
+      expect(formatSpanEvidenceToMarkdown(regressionEvent, functionRegressionGroup))
+        .toMatchInlineSnapshot(`
         "
         ## Regression Summary
 
@@ -1351,25 +1294,7 @@ LIMIT 21`;
       `);
     });
 
-    it('omits span evidence when regression issues lack evidenceData', () => {
-      const endpointRegressionEvent = EventFixture({
-        ...event,
-        title: 'ApiException',
-        occurrence: {
-          type: 1018,
-          evidenceDisplay: [],
-        },
-      });
-
-      const endpointResult = issueAndEventToMarkdown({
-        group: endpointRegressionGroup,
-        event: endpointRegressionEvent,
-        organization,
-      });
-
-      expect(endpointResult).not.toContain('## Span Evidence');
-      expect(endpointResult).not.toContain('**Transaction:** ApiException');
-
+    it('omits span evidence when a regression issue lacks evidenceData', () => {
       const functionRegressionEvent = EventFixture({
         ...event,
         title: 'ApiException',

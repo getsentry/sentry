@@ -3225,6 +3225,17 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def assertNoResolution(self, group: Group) -> None:
         assert not GroupResolution.objects.filter(group=group).exists()
 
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug, status="resolved")
+
+        assert response.status_code == 204
+
     def test_global_resolve(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -4653,6 +4664,17 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         for group in groups:
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
+
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug)
+
+        assert response.status_code == 204
 
     @patch("sentry.eventstream.snuba.SnubaEventStream._send")
     @patch("sentry.eventstream.snuba.datetime")

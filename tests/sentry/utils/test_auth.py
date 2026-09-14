@@ -166,6 +166,28 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
+    def test_static_asset_next_uses_default(self) -> None:
+        default = reverse("sentry-login")
+
+        result = get_login_redirect(self._make_request("/org-slug/service-worker.abc123.js.map/"))
+        assert result == default
+
+        result = get_login_redirect(self._make_request("/_static/sentry/entrypoints/app.js"))
+        assert result == default
+
+        result = get_login_redirect(
+            self._make_request("http://testserver/org-slug/service-worker.abc123.js.map")
+        )
+        assert result == default
+
+        request = self._make_request("/org-slug/service-worker.abc123.js.map")
+        request.subdomain = "orgslug"
+        result = get_login_redirect(request)
+        assert result == f"http://orgslug.testserver{default}"
+
+        result = get_login_redirect(self._make_request("/organizations/org-slug/issues/"))
+        assert result == "/organizations/org-slug/issues/"
+
 
 @control_silo_test
 class LoginTest(TestCase):
