@@ -7,10 +7,14 @@ import {SvgIcon} from './svgIcon';
 import {useIconDefaults} from './useIconDefaults';
 
 // Safari claims CSS `d` property support but can't interpolate it in @keyframes
-const supportsCssDAnimation =
-  typeof CSS !== 'undefined' &&
-  CSS.supports('d: path("M0 0")') &&
-  !(/Safari\//.test(navigator?.userAgent) && !/Chrom/.test(navigator?.userAgent));
+let supportsCssDAnimation = false;
+try {
+  supportsCssDAnimation =
+    CSS.supports('d: path("M0 0")') &&
+    !(/Safari\//.test(navigator.userAgent) && !/Chrom/.test(navigator.userAgent));
+} catch {
+  // jsdom/SSR — CSS.supports not available
+}
 
 interface IconSeerProps extends SVGIconProps {
   animation?: 'idle' | 'loading';
