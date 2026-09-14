@@ -8,7 +8,6 @@ from django.db.models import (
     CharField,
     F,
     IntegerField,
-    OrderBy,
     OuterRef,
     QuerySet,
     Subquery,
@@ -140,7 +139,7 @@ def build_combined_queryset(
     user_id: int,
 ) -> QuerySet[DiscoverSavedQuery, dict[str, Any]]:
     """Build an ordered union of the two querysets."""
-    order_by: list[str | OrderBy] = []
+    order_by: list[str]
 
     # Explore doesn't make this clear, but `starred=1` essentially hardcodes an order by
     # So to skip looping over the order by list, make it an if check
