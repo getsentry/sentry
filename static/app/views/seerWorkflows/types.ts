@@ -34,7 +34,7 @@ type SeerNightShiftRunOptions = {
 export type SeerNightShiftRunExtras = {
   coverage?: {complete: number; failed: number; partial: number; total: number};
   options?: SeerNightShiftRunOptions;
-  status?: 'running' | 'complete' | 'partial' | 'failed';
+  status?: WorkflowRunStatus;
   target_project_ids?: number[];
   triggering_user_id?: number;
 };
@@ -61,13 +61,13 @@ export type SeerNightShiftRun = {
   strategy?: 'agentic_triage';
 };
 
-export type MonitorCleanupStatus = 'running' | 'complete' | 'partial' | 'failed';
+export type WorkflowRunStatus = 'running' | 'complete' | 'partial' | 'failed';
 
 export type MonitorCleanupRun = {
   dateAdded: string;
   dateCompleted: string | null;
   errorMessage: string | null;
-  extras: {status: MonitorCleanupStatus};
+  extras: {status: WorkflowRunStatus};
   id: string;
   results: SeerWorkflowResult[];
   seerRunId: string;
@@ -76,7 +76,11 @@ export type MonitorCleanupRun = {
 
 export type SeerWorkflowRun = SeerNightShiftRun | MonitorCleanupRun;
 
-export type WorkflowKind = 'agentic_triage' | 'duplicate_monitors';
+export type WorkflowStrategy = 'agentic_triage' | 'duplicate_monitors';
+
+export type WorkflowRunCreateRequest = {
+  strategy: 'duplicate_monitors';
+};
 
 export type SeerWorkflowResult = {
   extras: unknown;
@@ -87,7 +91,12 @@ export type SeerWorkflowResult = {
 
 export type StrategyVisibility = 'configurable' | 'internal';
 export type StrategyCategory = 'issues' | 'reliability' | 'user_experience';
-export type RunStatus = 'succeeded' | 'failed' | 'skipped' | 'running' | 'partial';
+export type WorkflowRowStatus =
+  | 'succeeded'
+  | 'failed'
+  | 'skipped'
+  | 'running'
+  | 'partial';
 
 export type Frequency = 'hourly' | 'daily' | 'weekly';
 
@@ -106,14 +115,14 @@ export type OutputId =
 export type WorkflowRow = {
   dateAdded: string;
   id: string;
-  kind: WorkflowKind;
   runId: string;
-  status: RunStatus;
+  status: WorkflowRowStatus;
+  strategy: WorkflowStrategy;
   errorMessage?: string | null;
   monitorCleanup?: {
     results: SeerWorkflowResult[];
     seerRunId: string;
-    scanStatus?: MonitorCleanupStatus;
+    runStatus?: WorkflowRunStatus;
   };
   options?: SeerNightShiftRunOptions;
   resultText?: string;

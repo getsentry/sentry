@@ -4,7 +4,7 @@ import type {
   OutputId,
   StrategyCategory,
   StrategyVisibility,
-  WorkflowKind,
+  WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 
 type StrategyMeta = {
@@ -17,7 +17,7 @@ type StrategyMeta = {
   visibility: StrategyVisibility;
 };
 
-export const STRATEGY_META: Record<WorkflowKind, StrategyMeta> = {
+export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
   duplicate_monitors: {
     label: 'Duplicate monitors',
     summary: 'Finds possible duplicate metric monitors for review.',

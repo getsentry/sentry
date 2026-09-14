@@ -8,7 +8,7 @@ describe('MonitorCleanupResults', () => {
       <MonitorCleanupResults
         organizationSlug="org-slug"
         results={[]}
-        scanStatus="complete"
+        runStatus="complete"
       />
     );
     expect(
@@ -20,7 +20,7 @@ describe('MonitorCleanupResults', () => {
     render(
       <MonitorCleanupResults
         organizationSlug="org-slug"
-        scanStatus="partial"
+        runStatus="partial"
         results={[{id: '1', kind: 'duplicate_monitors', seerRunId: null, extras: output}]}
       />
     );
@@ -240,7 +240,7 @@ describe('MonitorCleanupResults', () => {
     render(
       <MonitorCleanupResults
         organizationSlug="org-slug"
-        scanStatus="partial"
+        runStatus="partial"
         results={[
           {
             id: '1',

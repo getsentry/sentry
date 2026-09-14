@@ -61,13 +61,14 @@ import {
   STRATEGY_META,
 } from 'sentry/views/seerWorkflows/strategies';
 import type {
-  RunStatus,
-  SeerWorkflowRun,
   SeerNightShiftRunErrorType,
   SeerNightShiftRunIssue,
   SeerNightShiftRunPullRequest,
-  WorkflowKind,
+  SeerWorkflowRun,
   WorkflowRow,
+  WorkflowRowStatus,
+  WorkflowRunCreateRequest,
+  WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 
 const RUNS_COLUMNS: TableColumnConfig[] = [
@@ -84,27 +85,25 @@ function SeerWorkflows() {
   const navigate = useNavigate();
   const isSentryEmployee = useIsSentryEmployee();
   const [expanded, setExpanded] = useState(new Set<string>());
-  const {mutate: startMonitorScan, isPending: isStartingMonitorScan} = useMutation({
-    mutationFn: () =>
+  const {mutate: startWorkflowRun, isPending: isStartingWorkflowRun} = useMutation({
+    mutationFn: (data: WorkflowRunCreateRequest) =>
       fetchMutation<{runId: string}>({
         url: getApiUrl('/organizations/$organizationIdOrSlug/seer/workflows/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {strategy: 'duplicate_monitors'},
+        data,
       }),
-    onSuccess: async result => {
+    onSuccess: async (result, {strategy}) => {
       clearAllFilters();
-      setExpanded(previous =>
-        new Set(previous).add(`${result.runId}:duplicate_monitors`)
-      );
+      setExpanded(previous => new Set(previous).add(`${result.runId}:${strategy}`));
       await refetch();
     },
     onError: error => {
       addErrorMessage(
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
-          : t('Could not start the monitor scan. Try again.')
+          : t('Could not start the workflow. Try again.')
       );
     },
   });
@@ -129,11 +128,11 @@ function SeerWorkflows() {
     const apiRows = (data ?? []).map(toWorkflowRow);
     return isSentryEmployee
       ? apiRows
-      : apiRows.filter(row => STRATEGY_META[row.kind]?.visibility !== 'internal');
+      : apiRows.filter(row => STRATEGY_META[row.strategy]?.visibility !== 'internal');
   }, [data, isSentryEmployee]);
 
-  const strategyFilter = decodeList(location.query.strategy) as WorkflowKind[];
-  const statusFilter = decodeList(location.query.status) as RunStatus[];
+  const strategyFilter = decodeList(location.query.strategy) as WorkflowStrategy[];
+  const statusFilter = decodeList(location.query.status) as WorkflowRowStatus[];
   const sourceFilter = decodeList(location.query.source);
   const period = decodeScalar(location.query.period);
 
@@ -163,22 +162,22 @@ function SeerWorkflows() {
   }, [rows]);
 
   const strategySections = useMemo(() => {
-    const present = new Set<WorkflowKind>();
+    const present = new Set<WorkflowStrategy>();
     for (const row of rows) {
-      present.add(row.kind);
+      present.add(row.strategy);
     }
     return CATEGORY_ORDER.map(category => ({
       key: category,
       label: CATEGORY_LABELS[category],
       options: Array.from(present)
-        .filter(kind => STRATEGY_META[kind]?.category === category)
-        .map(kind => ({value: kind, label: STRATEGY_META[kind].label})),
+        .filter(strategy => STRATEGY_META[strategy]?.category === category)
+        .map(strategy => ({value: strategy, label: STRATEGY_META[strategy].label})),
     })).filter(section => section.options.length > 0);
   }, [rows]);
 
   const filteredRows = useMemo(() => {
     return rows.filter(row => {
-      if (strategyFilter.length && !strategyFilter.includes(row.kind)) {
+      if (strategyFilter.length && !strategyFilter.includes(row.strategy)) {
         return false;
       }
       if (statusFilter.length && !statusFilter.includes(row.status)) {
@@ -252,9 +251,9 @@ function SeerWorkflows() {
   };
 
   const expandLatest = decodeScalar(location.query.expandLatest) as
-    | WorkflowKind
+    | WorkflowStrategy
     | undefined;
-  const autoExpandedForRef = useRef<WorkflowKind | null>(null);
+  const autoExpandedForRef = useRef<WorkflowStrategy | null>(null);
   useEffect(() => {
     if (
       !expandLatest ||
@@ -265,7 +264,7 @@ function SeerWorkflows() {
     }
     // Only auto-expand a run that's actually visible under the current filters,
     // otherwise we'd set expansion state on a row hidden by status/period/etc.
-    const candidates = filteredRows.filter(row => row.kind === expandLatest);
+    const candidates = filteredRows.filter(row => row.strategy === expandLatest);
     if (candidates.length === 0) {
       return;
     }
@@ -294,13 +293,13 @@ function SeerWorkflows() {
               <DropdownMenu
                 size="sm"
                 triggerLabel={t('Run…')}
-                triggerProps={{busy: isStartingMonitorScan}}
-                isDisabled={isStartingMonitorScan}
+                triggerProps={{busy: isStartingWorkflowRun}}
+                isDisabled={isStartingWorkflowRun}
                 items={[
                   {
                     key: 'duplicate_monitors',
                     label: t('Monitor scan'),
-                    onAction: () => startMonitorScan(),
+                    onAction: () => startWorkflowRun({strategy: 'duplicate_monitors'}),
                   },
                 ]}
               />
@@ -453,8 +452,8 @@ function SeerWorkflows() {
                         <SimpleTable.RowCell>
                           <Flex gap="sm" align="center" wrap="wrap">
                             <SourceIcon source={row.source} />
-                            <Text size="sm">{STRATEGY_META[row.kind].label}</Text>
-                            {STRATEGY_META[row.kind]?.visibility === 'internal' ? (
+                            <Text size="sm">{STRATEGY_META[row.strategy].label}</Text>
+                            {STRATEGY_META[row.strategy]?.visibility === 'internal' ? (
                               <Container
                                 display="inline-block"
                                 border="muted"
@@ -547,7 +546,7 @@ function SourceIcon({source}: {source: string | undefined}) {
   );
 }
 
-const STATUS_FILTER_OPTIONS: Array<{label: string; value: RunStatus}> = [
+const STATUS_FILTER_OPTIONS: Array<{label: string; value: WorkflowRowStatus}> = [
   {value: 'succeeded', label: 'Succeeded'},
   {value: 'failed', label: 'Failed'},
   {value: 'skipped', label: 'Skipped'},
@@ -576,7 +575,7 @@ const STATUS_VARIANT = {
   skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
   partial: {Icon: IconWarning, label: 'Incomplete', text: 'warning'},
 } as const satisfies Record<
-  Exclude<RunStatus, 'running'>,
+  Exclude<WorkflowRowStatus, 'running'>,
   {
     Icon: React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>;
     label: string;
@@ -584,7 +583,7 @@ const STATUS_VARIANT = {
   }
 >;
 
-function StatusIcon({status}: {status: RunStatus}) {
+function StatusIcon({status}: {status: WorkflowRowStatus}) {
   if (status === 'running') {
     return (
       <Tooltip title={t('Running')} skipWrapper>
@@ -684,7 +683,7 @@ function UserSection({
       <Stack gap="md">
         {row.monitorCleanup.results.length === 0 && <Text>{row.resultText}</Text>}
         <MonitorCleanupResults
-          scanStatus={row.monitorCleanup.scanStatus}
+          runStatus={row.monitorCleanup.runStatus}
           results={row.monitorCleanup.results}
           organizationSlug={organizationSlug}
         />
@@ -705,7 +704,7 @@ function UserSection({
 }
 
 function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
-  const explorerRunIds = getExplorerRunIds(row);
+  const explorerRunIds = getTriageRunIds(row);
   return (
     <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
@@ -1029,7 +1028,7 @@ function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
       id: `${run.id}:duplicate_monitors`,
       runId: run.id,
       dateAdded: run.dateAdded,
-      kind: 'duplicate_monitors',
+      strategy: 'duplicate_monitors',
       status:
         status === 'running' || status === 'failed' || status === 'partial'
           ? status
@@ -1047,16 +1046,16 @@ function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
       monitorCleanup: {
         results,
         seerRunId: run.seerRunId,
-        scanStatus: status,
+        runStatus: status,
       },
     };
   }
-  const errorPresentation = getErrorPresentation(run.errorType ?? null);
+  const errorPresentation = getTriageErrorPresentation(run.errorType ?? null);
   return {
     id: `${run.id}:agentic_triage`,
     runId: run.id,
     dateAdded: run.dateAdded,
-    kind: 'agentic_triage',
+    strategy: 'agentic_triage',
     status: errorPresentation?.status ?? 'succeeded',
     source: run.extras.options?.source,
     errorMessage: run.errorMessage,
@@ -1071,9 +1070,9 @@ function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
   };
 }
 
-function getErrorPresentation(
+function getTriageErrorPresentation(
   errorType: SeerNightShiftRunErrorType | null
-): {resultText: string; status: RunStatus} | null {
+): {resultText: string; status: WorkflowRowStatus} | null {
   switch (errorType) {
     case null:
       return null;
@@ -1092,7 +1091,7 @@ function getErrorPresentation(
   }
 }
 
-function getExplorerRunIds(row: WorkflowRow): string[] {
+function getTriageRunIds(row: WorkflowRow): string[] {
   return (row.triage?.seerRuns ?? [])
     .map(seerRun => seerRun.seerRunId)
     .filter((id): id is string => id !== null);

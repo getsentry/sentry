@@ -13,31 +13,31 @@ import {t, tn} from 'sentry/locale';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {
-  MonitorCleanupStatus,
   SeerWorkflowResult,
+  WorkflowRunStatus,
 } from 'sentry/views/seerWorkflows/types';
 
-const monitor = z.object({
+const resourceSchema = z.object({
   id: z.string().regex(/^\d+$/),
   name: z.string(),
 });
-const comparison = z.array(
+const comparisonSchema = z.array(
   z.object({
     property: z.string(),
     values: z.array(z.object({monitorId: z.string(), value: z.string()})),
   })
 );
-const finding = z.object({
+const findingSchema = z.object({
   reason: z.string(),
-  comparison: comparison.default([]),
+  comparison: comparisonSchema.default([]),
   kind: z.enum(['exact_duplicate', 'overlapping_coverage', 'duplicate_notifications']),
-  monitors: z.array(monitor).min(2),
+  monitors: z.array(resourceSchema).min(2),
   suggestedKeepId: z.string().nullable(),
-  alerts: z.array(monitor),
+  alerts: z.array(resourceSchema),
 });
 const outputSchema = z.object({
   schemaVersion: z.literal(1),
-  findings: z.array(finding),
+  findings: z.array(findingSchema),
   outputKind: z.literal('monitor_cleanup'),
   projectId: z.string(),
   projectSlug: z.string(),
@@ -237,11 +237,11 @@ function FindingCard({
 export function MonitorCleanupResults({
   results,
   organizationSlug,
-  scanStatus,
+  runStatus,
 }: {
   organizationSlug: string;
   results: SeerWorkflowResult[];
-  scanStatus?: MonitorCleanupStatus;
+  runStatus?: WorkflowRunStatus;
 }) {
   const parsed = results.map(result => outputSchema.safeParse(result.extras));
   const projects = new Map(
@@ -254,11 +254,11 @@ export function MonitorCleanupResults({
     0
   );
   const incomplete =
-    scanStatus === 'partial' ||
+    runStatus === 'partial' ||
     parsed.some(output => !output.success || output.data.scan.status === 'partial');
   return (
     <Stack gap="xl" containerType="inline-size">
-      {(projects.size > 0 || scanStatus === 'complete' || scanStatus === 'partial') && (
+      {(projects.size > 0 || runStatus === 'complete' || runStatus === 'partial') && (
         <Stack gap="sm" padding="lg" background="secondary" radius="md">
           <Text size="sm">
             {t(
