@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 from collections.abc import Callable, Collection, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
@@ -17,22 +18,28 @@ _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
 _used_categories: set[OutboxCategory] = set()
 
 
-def _run_replication_handler(
-    category: OutboxCategory, direction: str, action: str, handler: Callable[[], None]
-) -> None:
-    tags = {
-        "silo": SiloMode.get_current_mode().value.lower(),
-        "category": category.name,
-        "direction": direction,
-        "action": action,
-    }
-    try:
-        with metrics.timer("hybridcloud.replication.handler.duration", tags=tags):
-            handler()
-    except Exception:
-        metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "error"})
-        raise
-    metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "success"})
+def _instrument_replication_receiver(
+    category: OutboxCategory, direction: str
+) -> Callable[[Callable[..., None]], Callable[..., None]]:
+    def decorator(receiver: Callable[..., None]) -> Callable[..., None]:
+        @functools.wraps(receiver)
+        def wrapped(*args: Any, **kwargs: Any) -> None:
+            tags = {
+                "silo": SiloMode.get_current_mode().value.lower(),
+                "category": category.name,
+                "direction": direction,
+            }
+            try:
+                with metrics.timer("hybridcloud.replication.handler.duration", tags=tags):
+                    receiver(*args, **kwargs)
+            except Exception:
+                metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "error"})
+                raise
+            metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": "success"})
+
+        return wrapped
+
+    return decorator
 
 
 class OutboxCategory(IntEnum):
@@ -96,6 +103,7 @@ class OutboxCategory(IntEnum):
         return [(i.value, i.value) for i in cls]
 
     def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
+        @_instrument_replication_receiver(self, "cell_to_control")
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -109,28 +117,16 @@ class OutboxCategory(IntEnum):
                 cast(Any, model), object_identifier, cell_name=None
             )
             if maybe_instance is None:
-                _run_replication_handler(
-                    self,
-                    "cell_to_control",
-                    "delete",
-                    lambda: model.handle_async_deletion(
-                        identifier=object_identifier,
-                        shard_identifier=shard_identifier,
-                        payload=payload,
-                    ),
+                model.handle_async_deletion(
+                    identifier=object_identifier, shard_identifier=shard_identifier, payload=payload
                 )
             else:
-                instance = maybe_instance
-                _run_replication_handler(
-                    self,
-                    "cell_to_control",
-                    "replicate",
-                    lambda: instance.handle_async_replication(shard_identifier=shard_identifier),
-                )
+                maybe_instance.handle_async_replication(shard_identifier=shard_identifier)
 
         process_cell_outbox.connect(receiver, weak=False, sender=self)
 
     def connect_control_model_updates(self, model: type[HasControlReplicationHandlers]) -> None:
+        @_instrument_replication_receiver(self, "control_to_cell")
         def receiver(
             object_identifier: int,
             payload: Mapping[str, Any] | None,
@@ -145,26 +141,15 @@ class OutboxCategory(IntEnum):
                 cast(Any, model), object_identifier, cell_name=cell_name
             )
             if maybe_instance is None:
-                _run_replication_handler(
-                    self,
-                    "control_to_cell",
-                    "delete",
-                    lambda: model.handle_async_deletion(
-                        identifier=object_identifier,
-                        cell_name=cell_name,
-                        shard_identifier=shard_identifier,
-                        payload=payload,
-                    ),
+                model.handle_async_deletion(
+                    identifier=object_identifier,
+                    cell_name=cell_name,
+                    shard_identifier=shard_identifier,
+                    payload=payload,
                 )
             else:
-                instance = maybe_instance
-                _run_replication_handler(
-                    self,
-                    "control_to_cell",
-                    "replicate",
-                    lambda: instance.handle_async_replication(
-                        shard_identifier=shard_identifier, cell_name=cell_name
-                    ),
+                maybe_instance.handle_async_replication(
+                    shard_identifier=shard_identifier, cell_name=cell_name
                 )
 
         process_control_outbox.connect(receiver, weak=False, sender=self)
