@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
@@ -29,10 +29,6 @@ export default function SeerRepoDetails() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
-
-  const queryRef = useRef(query);
-  // oxlint-disable-next-line react/refs
-  queryRef.current = query;
 
   const isSupportedProvider = useIsSeerSupportedProvider();
 
@@ -95,7 +91,7 @@ export default function SeerRepoDetails() {
         onClose: () => {
           navigate({
             pathname: `/settings/${organization.slug}/seer/repos/`,
-            query: queryRef.current,
+            query,
           });
         },
         shouldCloseOnLocationChange: nextLocation =>
@@ -110,6 +106,7 @@ export default function SeerRepoDetails() {
     navigate,
     openDrawer,
     organization,
+    query,
     refetch,
     repoId,
     repoWithSettings,

@@ -116,11 +116,13 @@ function useFocusRestore(ref: React.RefObject<HTMLElement | null>) {
 
 type FieldState = {indicator: React.ReactNode};
 
-export function BaseField<T extends HTMLElement>(
-  props: BaseFieldProps<T> & {
-    children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
-  }
-) {
+export function BaseField<T extends HTMLElement>({
+  children,
+  disabled,
+  ref: refProp,
+}: BaseFieldProps<T> & {
+  children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
+}) {
   const autoSaveContext = useAutoSaveContext();
   const indicator = useAutoSaveIndicator();
   const field = useFieldContext();
@@ -132,13 +134,11 @@ export function BaseField<T extends HTMLElement>(
 
   return (
     <Flex gap="sm" align="center">
-      {/* oxlint-disable-next-line react/refs */}
-      {props.children(
+      {children(
         {
           // oxlint-disable-next-line react/refs
-          ref: mergeRefs(ref, props.ref),
-          // oxlint-disable-next-line react/refs
-          disabled: !!props.disabled || autoSaveContext?.status === 'pending',
+          ref: mergeRefs(ref, refProp),
+          disabled: !!disabled || autoSaveContext?.status === 'pending',
           'aria-invalid': !field.state.meta.isValid,
           'aria-describedby': hintTextId,
           onBlur: field.handleBlur,
@@ -147,8 +147,8 @@ export function BaseField<T extends HTMLElement>(
         },
         {indicator}
       )}
-      {/* oxlint-disable-next-line react/refs */}
-      <FieldMeta.Status disabled={props.disabled} />
+
+      <FieldMeta.Status disabled={disabled} />
     </Flex>
   );
 }
