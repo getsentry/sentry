@@ -6,7 +6,7 @@ from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+from sentry.utils.query import RangeQuerySetWrapper
 
 BATCH_SIZE = 1000
 
@@ -21,7 +21,7 @@ def replace_boolean_deescalation_comparisons(
     ).values_list("id", flat=True)
 
     for condition_ids in chunked(
-        RangeQuerySetWrapperWithProgressBar(
+        RangeQuerySetWrapper(
             conditions,
             step=BATCH_SIZE,
             result_value_getter=lambda condition_id: condition_id,
