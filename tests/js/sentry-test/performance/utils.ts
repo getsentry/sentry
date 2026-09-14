@@ -1,7 +1,11 @@
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
-import {IssueType} from 'sentry/types/group';
+import {
+  getIssueTitleFromType,
+  ISSUE_TYPE_TO_OCCURRENCE_TYPE,
+  IssueType,
+} from 'sentry/types/group';
 
 export enum ProblemSpan {
   PARENT = 'parent',
@@ -26,6 +30,7 @@ interface TransactionSettings {
   duration?: number;
   fcp?: number;
 }
+
 export class TransactionEventBuilder {
   TRACE_ID = '8cbbc19c0f54447ab702f00263262726';
   ROOT_SPAN_ID = '0000000000000000';
@@ -104,6 +109,17 @@ export class TransactionEventBuilder {
       user: null,
     };
     if (occurenceBasedEvent) {
+      const issueType = problemType ?? IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES;
+
+      const occurrenceType = ISSUE_TYPE_TO_OCCURRENCE_TYPE[issueType] ?? null;
+      if (occurrenceType === null) {
+        // Not every `IssueType` has a corresponding occurrence type id (errors and replays don't, for
+        // example) which means they can't work with this builder
+        throw new Error(
+          `TransactionEventBuilder can't build an occurrence for '${issueType}', because it has no corresponding entry in \`OCCURRENCE_TYPE_TO_ISSUE_TYPE\`.`
+        );
+      }
+
       this.#event.occurrence = {
         evidenceData: perfEvidenceData,
         eventId: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -111,10 +127,10 @@ export class TransactionEventBuilder {
         evidenceDisplay: [],
         fingerprint: ['fingerprint123'],
         id: 'id123',
-        issueTitle: 'N + 1 Query',
+        issueTitle: getIssueTitleFromType(issueType) ?? '<untitled issue>',
         resourceId: '',
         subtitle: 'SELECT * FROM TABLE',
-        type: 1006,
+        type: occurrenceType,
       };
     } else {
       this.#event.perfProblem = perfEvidenceData;
