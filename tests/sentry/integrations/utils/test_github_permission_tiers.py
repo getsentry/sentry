@@ -56,9 +56,9 @@ MISSING_CODE_REVIEW = {
 MISSING_PR_COMMENTS = {**MISSING_CODE_REVIEW, "pull_requests": "read"}
 
 ALL_KEYS = [
-    "pr_iteration",
+    "autofix_pr_iteration",
     "autofix_pull_requests",
-    "code_review",
+    "code_review_statuses",
     "pull_request_comments",
     "baseline",
 ]
@@ -118,7 +118,10 @@ def test_a_newer_tier_held_without_an_older_one_is_inconsistent(mock_warning) ->
 def test_a_gap_in_the_middle_of_the_chain_is_inconsistent(mock_warning) -> None:
     assert _keys({**UP_TO_DATE, "actions": "read", "checks": "read"}) == ALL_KEYS
 
-    assert mock_warning.call_args[1]["extra"]["behind_tiers"] == ["pr_iteration", "code_review"]
+    assert mock_warning.call_args[1]["extra"]["behind_tiers"] == [
+        "autofix_pr_iteration",
+        "code_review_statuses",
+    ]
 
 
 @mock.patch("sentry.integrations.utils.github_permission_tiers.logger.warning")
