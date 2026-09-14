@@ -414,7 +414,7 @@ const BodyCell = memo(function BodyCellImpl({
     case 'age':
       return (
         <Text align="right" variant="muted">
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.timestamp)} />
+          <TimeSince unitStyle="short" date={new Date(dataRow.timestamp)} />
         </Text>
       );
     default:
