@@ -1280,6 +1280,7 @@ class DashboardParams:
             "owned",
             "shared",
             "showHidden",
+            "showUserHidden",
         ],
         description="Filter the dashboards returned. Repeat this parameter to apply multiple filters.",
     )

@@ -7,6 +7,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -39,6 +40,7 @@ from sentry.dashboards.endpoints.organization_dashboards import OrganizationDash
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -344,5 +346,45 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
             return Response(status=204)
 
         dashboard.favorited_by = current_favorites
+
+        return Response(status=204)
+
+
+class DashboardHiddenSerializer(serializers.Serializer[dict[str, bool]]):
+    shouldHide = serializers.BooleanField(required=True)
+
+
+@cell_silo_endpoint
+class OrganizationDashboardHiddenEndpoint(OrganizationDashboardBase):
+    """
+    Endpoint for managing the hidden status of dashboards for users
+    """
+
+    publish_status = {
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
+    def put(self, request: Request, organization: Organization, dashboard: Dashboard) -> Response:
+        """
+        Toggle hidden status for current user by hiding or unhiding the dashboard
+        """
+        if not features.has(
+            "organizations:dashboards-hide-dashboards", organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        if not request.user.is_authenticated:
+            return Response(status=401)
+
+        serializer = DashboardHiddenSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        if serializer.validated_data["shouldHide"]:
+            DashboardHiddenUser.objects.get_or_create(user_id=request.user.id, dashboard=dashboard)
+        else:
+            DashboardHiddenUser.objects.filter(
+                user_id=request.user.id, dashboard=dashboard
+            ).delete()
 
         return Response(status=204)

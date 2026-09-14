@@ -44,7 +44,12 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
+from sentry.models.dashboard import (
+    Dashboard,
+    DashboardFavoriteUser,
+    DashboardHiddenUser,
+    DashboardLastVisited,
+)
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -515,6 +520,15 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
             if hidden_prebuilt_ids:
                 dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
+
+        if "showUserHidden" not in filters and features.has(
+            "organizations:dashboards-hide-dashboards", organization, actor=request.user
+        ):
+            dashboards = dashboards.exclude(
+                id__in=DashboardHiddenUser.objects.filter(user_id=request.user.id).values(
+                    "dashboard_id"
+                )
+            )
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")
