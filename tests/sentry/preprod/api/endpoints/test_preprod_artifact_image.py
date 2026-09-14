@@ -52,6 +52,20 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         primary.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    def test_explicit_snapshot_type_overrides_icon_prefix(self, mock_get_session) -> None:
+        image_id = "icn_123456789abc"
+        image_data = b"snapshot image"
+        session = self._create_mock_session(image_data, "image/png")
+        mock_get_session.return_value = session
+
+        response = self.client.get(self._get_url(image_id), {"image_type": "preprod_snapshots"})
+
+        assert response.status_code == 200
+        assert response.content == image_data
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+        session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
     def test_rejects_unknown_image_type(self, mock_get_session) -> None:
         response = self.client.get(self._get_url("icn_123456789abc"), {"image_type": "attachments"})
 

@@ -23,6 +23,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 logger = logging.getLogger(__name__)
 
 PREPROD_SIZE_APP_ICON = "preprod_size_app_icon"
+PREPROD_SNAPSHOTS = "preprod_snapshots"
 
 
 def _content_disposition(raw_filename: str | None) -> str | None:
@@ -70,9 +71,10 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
                 type=str,
                 location="query",
                 required=False,
-                enum=[PREPROD_SIZE_APP_ICON],
+                enum=[PREPROD_SIZE_APP_ICON, PREPROD_SNAPSHOTS],
                 description=(
-                    "Use preprod_size_app_icon to request a size-analysis app icon. "
+                    "Use preprod_size_app_icon for size-analysis app icons, or "
+                    "preprod_snapshots for snapshot images and diff masks. "
                     "When omitted, legacy app icons are recognized by their icn_ prefix."
                 ),
             ),
@@ -85,7 +87,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         image_id: str,
     ) -> HttpResponse:
         image_type = request.GET.get("image_type")
-        if image_type not in (None, PREPROD_SIZE_APP_ICON):
+        if image_type not in (None, PREPROD_SIZE_APP_ICON, PREPROD_SNAPSHOTS):
             return Response({"detail": "Invalid image_type"}, status=400)
 
         organization_id = project.organization_id
