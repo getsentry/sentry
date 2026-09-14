@@ -2,8 +2,18 @@ import {useMemo} from 'react';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 
+import {
+  FORTY_EIGHT_HOURS,
+  getDiffInMinutes,
+  GranularityLadder,
+  ONE_HOUR,
+  ONE_WEEK,
+  SIX_HOURS,
+  TWENTY_FOUR_HOURS,
+} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,13 +37,27 @@ const AI_CLIENT_FILTER = `${SpanFields.GEN_AI_OPERATION_TYPE}:ai_client`;
 const COUNT = `count(${SpanFields.SPAN_DURATION})`;
 const COST = `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`;
 
-function createBreakdownWidget({
+const AGENT_CHART_INTERVALS = new GranularityLadder([
+  [ONE_WEEK, '1d'],
+  [FORTY_EIGHT_HOURS, '6h'],
+  [TWENTY_FOUR_HOURS, '1h'],
+  [SIX_HOURS, '30m'],
+  [ONE_HOUR, '5m'],
+  [0, '1m'],
+]);
+
+export function getAgentChartInterval(datetime: PageFilterDatetime): string {
+  return AGENT_CHART_INTERVALS.getInterval(getDiffInMinutes(datetime));
+}
+
+function createGroupedWidget({
   id,
   title,
   description,
   query,
   groupBy,
   aggregate,
+  interval,
   groupByLabel,
   aggregateLabel,
 }: {
@@ -43,6 +67,7 @@ function createBreakdownWidget({
   groupBy: string;
   groupByLabel: string;
   id: string;
+  interval: string;
   query: string;
   title: string;
 }): Widget {
@@ -52,7 +77,7 @@ function createBreakdownWidget({
     description,
     displayType: DisplayType.BAR,
     widgetType: WidgetType.SPANS,
-    interval: '1h',
+    interval,
     limit: 3,
     queries: [
       {
@@ -73,6 +98,7 @@ export function AgentsCharts() {
   const location = useLocation();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
+  const chartInterval = getAgentChartInterval(selection.datetime);
 
   const agentRunsQuery = useCombinedQuery(getAgentRunsFilter());
   const estimatedCostQuery = useCombinedQuery(AI_CLIENT_FILTER);
@@ -80,8 +106,9 @@ export function AgentsCharts() {
 
   const widgets = useMemo<Widget[]>(
     () => [
-      createBreakdownWidget({
+      createGroupedWidget({
         id: 'explore-agents-agent-runs',
+        interval: chartInterval,
         title: t('Agent runs'),
         description: t('Number of agent runs grouped by agent name.'),
         query: agentRunsQuery,
@@ -90,8 +117,9 @@ export function AgentsCharts() {
         groupByLabel: t('Agent Name'),
         aggregateLabel: t('Runs'),
       }),
-      createBreakdownWidget({
+      createGroupedWidget({
         id: 'explore-agents-estimated-cost',
+        interval: chartInterval,
         title: t('Estimated Cost'),
         description: t('Estimated cost of LLM calls grouped by response model.'),
         query: estimatedCostQuery,
@@ -100,8 +128,9 @@ export function AgentsCharts() {
         groupByLabel: t('Model'),
         aggregateLabel: t('Estimated Cost'),
       }),
-      createBreakdownWidget({
+      createGroupedWidget({
         id: 'explore-agents-tool-calls',
+        interval: chartInterval,
         title: t('Tool calls'),
         description: t('Number of tool calls grouped by tool name.'),
         query: toolCallsQuery,
@@ -111,7 +140,7 @@ export function AgentsCharts() {
         aggregateLabel: t('Calls'),
       }),
     ],
-    [agentRunsQuery, estimatedCostQuery, toolCallsQuery]
+    [agentRunsQuery, chartInterval, estimatedCostQuery, toolCallsQuery]
   );
 
   const dashboard = useMemo<DashboardDetails>(
@@ -151,6 +180,7 @@ export function AgentsCharts() {
                 selection={selection}
                 showContextMenu={false}
                 widget={widget}
+                widgetInterval={chartInterval}
                 widgetLegendState={widgetLegendState}
                 widgetLimitReached={false}
               />
