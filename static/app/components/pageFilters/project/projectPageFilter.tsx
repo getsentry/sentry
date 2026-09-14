@@ -46,6 +46,10 @@ export interface ProjectPageFilterProps extends Partial<
   Omit<MultipleSelectProps<number>, 'onChange' | 'sizeLimit' | 'trigger' | 'emptyMessage'>
 > {
   /**
+   * Limit the selector to projects matching this predicate
+   */
+  filterProjects?: (project: Project) => boolean;
+  /**
    * Called when the selection changes
    */
   onChange?: (selected: number[]) => void;
@@ -63,6 +67,7 @@ export interface ProjectPageFilterProps extends Partial<
 export function ProjectPageFilter({
   onChange,
   disabled,
+  filterProjects,
   menuTitle,
   menuWidth,
   resetParamsOnChange,
@@ -74,8 +79,11 @@ export function ProjectPageFilter({
   const navigate = useNavigate();
   const matches = useMatches();
   const organization = useOrganization();
-  // Project data s
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {projects: allProjects, initiallyLoaded: projectsLoaded} = useProjects();
+  const projects = useMemo(
+    () => (filterProjects ? allProjects.filter(filterProjects) : allProjects),
+    [allProjects, filterProjects]
+  );
   const {
     selection: {projects: urlProjectSelection},
     isReady: pageFilterIsReady,

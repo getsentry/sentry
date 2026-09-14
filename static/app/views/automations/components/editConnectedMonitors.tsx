@@ -18,6 +18,7 @@ import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEn
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
@@ -26,6 +27,11 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
+import {
+  canConnectAutomationToDetector,
+  hasAutomationWriteAccess,
+  hasOrganizationAutomationWriteAccess,
+} from 'sentry/views/automations/utils/permissions';
 import {DetectorSearch} from 'sentry/views/detectors/components/detectorSearch';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
 import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
@@ -101,12 +107,35 @@ function AllMonitors({
     setCursor(undefined);
   }, []);
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const filterWritableProjects = useCallback(
+    (project: Project) => hasAutomationWriteAccess({organization, project}),
+    [organization]
+  );
+  const writableProjects = projects.filter(filterWritableProjects);
+  const canEditOrganization = hasOrganizationAutomationWriteAccess(organization);
+  const projectIds = canEditOrganization
+    ? selection.projects
+    : writableProjects
+        .filter(
+          project =>
+            selection.projects.includes(-1) ||
+            (selection.projects.length === 0
+              ? project.isMember
+              : selection.projects.includes(Number(project.id)))
+        )
+        .map(project => Number(project.id));
+  const hasNoWritableProjects = !canEditOrganization && projectIds.length === 0;
 
   return (
     <PageFiltersContainer>
       <FormSection title={t('All Monitors')}>
         <Flex gap="xl">
-          <ProjectPageFilter storageNamespace="automationDrawer" />
+          <ProjectPageFilter
+            filterProjects={filterWritableProjects}
+            storageNamespace="automationDrawer"
+          />
           <div style={{flexGrow: 1}}>
             <DetectorSearch initialQuery={searchQuery} onSearch={onSearch} />
           </div>
@@ -119,7 +148,8 @@ function AllMonitors({
           cursor={cursor}
           onCursor={setCursor}
           query={searchQuery}
-          projectIds={selection.projects}
+          projectIds={projectIds}
+          detectorIds={hasNoWritableProjects ? [] : undefined}
           openInNewTab
         />
       </FormSection>
@@ -136,11 +166,17 @@ function ConnectMonitorsDrawer({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const {projects} = useProjects();
 
   // Because GlobalDrawer is rendered outside of our form context, we need to duplicate the state here
   const [localDetectorIds, setLocalDetectorIds] = useState(initialIds);
 
   const toggleConnected = ({detector}: {detector: Detector}) => {
+    const project = projects.find(p => p.id === detector.projectId);
+    if (!canConnectAutomationToDetector({organization, detector, project})) {
+      return;
+    }
+
     const oldDetectorsData =
       queryClient.getQueryData(
         detectorListApiOptions(organization, {
@@ -188,7 +224,11 @@ function AllProjectIssuesSection({
 }: {
   onProjectChange: (projectIds: string[]) => void;
 }) {
+  const organization = useOrganization();
   const {projects} = useProjects();
+  const writableProjects = projects.filter(project =>
+    hasAutomationWriteAccess({organization, project})
+  );
 
   return (
     <Stack gap="md">
@@ -197,7 +237,7 @@ function AllProjectIssuesSection({
           name="projectIds"
           label={t('Projects')}
           placeholder={t('Select projects')}
-          projects={projects}
+          projects={writableProjects}
           groupProjects={p => (p.isMember ? 'member' : 'all')}
           groups={PROJECT_GROUPS}
           onChange={(values: string[]) => onProjectChange(values)}

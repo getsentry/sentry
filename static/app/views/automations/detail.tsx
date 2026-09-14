@@ -253,7 +253,7 @@ export default function AutomationDetail() {
 function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const organization = useOrganization();
   const {mutate: updateAutomation, isPending: isUpdating} = useUpdateAutomation();
-  const canEdit = useCanEditAutomation();
+  const canEdit = useCanEditAutomation(automation.id);
   const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
 
   const toggleDisabled = () => {

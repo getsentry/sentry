@@ -41,6 +41,30 @@ describe('ProjectPageFilter', () => {
 
   afterEach(() => PageFiltersStore.reset());
 
+  it('limits project options and group counts using the predicate', async () => {
+    render(<ProjectPageFilter filterProjects={project => project.id !== '2'} />, {
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+
+    expect(screen.getByRole('row', {name: 'project-1'})).toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'project-3'})).toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: 'project-2'})).not.toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'All Projects'})).toHaveTextContent('(2)');
+    expect(screen.getByRole('row', {name: 'My Projects'})).toHaveTextContent('(1)');
+  });
+
+  it('does not fall back to all projects when the predicate excludes every project', async () => {
+    render(<ProjectPageFilter filterProjects={() => false} />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+
+    expect(screen.queryByRole('row', {name: 'project-1'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: 'project-2'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: 'project-3'})).not.toBeInTheDocument();
+  });
+
   it('renders & handles single selection', async () => {
     const {router} = render(<ProjectPageFilter />, {
       organization,

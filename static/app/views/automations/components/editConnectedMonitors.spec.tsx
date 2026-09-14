@@ -324,4 +324,86 @@ describe('EditConnectedMonitors', () => {
       expect(model.getValue('projectIds')).toEqual([otherProject.id]);
     });
   });
+
+  it('only offers writable projects to a team admin', async () => {
+    const writableProject = ProjectFixture({
+      id: '3',
+      slug: 'writable-project',
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([otherProject, writableProject]);
+
+    render(
+      <Form model={new FormModel()}>
+        <EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />
+      </Form>,
+      {
+        organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+      }
+    );
+
+    await userEvent.click(await screen.findByText('Select projects'));
+
+    expect(await screen.findByText(writableProject.slug)).toBeInTheDocument();
+    expect(screen.queryByText(otherProject.slug)).not.toBeInTheDocument();
+  });
+
+  it('restricts the specific monitor picker with project selection', async () => {
+    const writableProject = ProjectFixture({
+      ...project,
+      access: ['project:read', 'alerts:write'],
+    });
+    const readOnlyProject = ProjectFixture({
+      ...otherProject,
+      isMember: true,
+    });
+    const otherWritableProject = ProjectFixture({
+      id: '3',
+      slug: 'other-writable-project',
+      isMember: false,
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([
+      writableProject,
+      readOnlyProject,
+      otherWritableProject,
+    ]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [1, 2]}));
+    const detectorsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/detectors/',
+      body: [detector1],
+    });
+
+    render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={jest.fn()} />, {
+      organization: OrganizationFixture({
+        access: ['org:read', 'alerts:read'],
+        features: ['open-membership'],
+      }),
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: ['1', '2']}},
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('radio', {name: 'Alert on specific monitors'})
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Connect Monitors'}));
+    const drawer = await screen.findByRole('complementary', {name: 'Connect Monitors'});
+
+    expect(await within(drawer).findByText(detector1.name)).toBeInTheDocument();
+    expect(detectorsRequest).toHaveBeenCalledTimes(1);
+    expect(detectorsRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: expect.objectContaining({project: [1]})})
+    );
+
+    await userEvent.click(within(drawer).getByTestId('page-filter-project-selector'));
+    expect(screen.getByRole('row', {name: writableProject.slug})).toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: otherWritableProject.slug})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('row', {name: readOnlyProject.slug})
+    ).not.toBeInTheDocument();
+  });
 });
