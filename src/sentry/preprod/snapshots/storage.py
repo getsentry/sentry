@@ -11,7 +11,7 @@ from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.utils import metrics
 
-SNAPSHOT_USECASES = (UsecaseId.PREPROD, UsecaseId.SNAPSHOTS)
+SNAPSHOT_USECASES = (UsecaseId.PREPROD, UsecaseId.PREPROD_SNAPSHOTS)
 
 
 class SnapshotStorage:

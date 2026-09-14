@@ -97,5 +97,5 @@ def test_factory_builds_all_sessions(mock_get_session) -> None:
     get_snapshot_storage(42, org=7)
     assert mock_get_session.call_args_list == [
         call(UsecaseId.PREPROD, 42, org=7),
-        call(UsecaseId.SNAPSHOTS, 42, org=7),
+        call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),
     ]
