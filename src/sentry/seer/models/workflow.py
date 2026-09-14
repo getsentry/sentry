@@ -53,8 +53,11 @@ class SeerWorkflowConfig(DefaultFieldsModel):
 class SeerWorkflowRun(DefaultFieldsModel):
     """Records each workflow invocation for an organization.
 
+    A run can split its work into multiple SeerWorkflowRunExecution records,
+    each dispatched independently to Seer.
+
     Cron invocations create one row per organization, workflow config, and
-    schedule window. Manual invocations create one row per execution.
+    schedule window. Each manual invocation creates a new row.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -90,7 +93,11 @@ class SeerWorkflowRun(DefaultFieldsModel):
 
 @cell_silo_model
 class SeerWorkflowRunExecution(DefaultFieldsModel):
-    """One planned feature execution, linked to its SeerRun when dispatched."""
+    """One chunk of a workflow run's work, dispatched as a single Seer feature run.
+
+    A workflow run can use one execution for all its work or multiple executions
+    to process smaller chunks. Each execution links to its own SeerRun when dispatched.
+    """
 
     __relocation_scope__ = RelocationScope.Excluded
 
