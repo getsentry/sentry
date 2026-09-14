@@ -387,8 +387,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             fields={
                 "externalIssue": serializers.CharField(
                     help_text="The identifier or full URL of the existing external issue to link. "
-                    "URLs are supported for GitHub (including pull requests), GitHub Enterprise, "
-                    "Jira, Jira Server, GitLab, Bitbucket, and Azure DevOps."
+                    "URL support depends on the selected integration."
                 ),
                 "repo": serializers.CharField(
                     required=False,

@@ -145,8 +145,12 @@ class RegionJiraIntegrationTest(APITestCase):
             assert installation.get_issue_link_data(f"https://example.atlassian.net/{path}") == {
                 "externalIssue": "ABC-123"
             }
-        with pytest.raises(IntegrationFormError):
-            installation.get_issue_link_data("https://other.atlassian.net/browse/ABC-123")
+        for url in (
+            "https://other.atlassian.net/browse/ABC-123",
+            "https://user:password@example.atlassian.net/browse/ABC-123",
+        ):
+            with pytest.raises(IntegrationFormError):
+                installation.get_issue_link_data(url)
 
     def test_create_comment(self) -> None:
         installation = self.integration.get_installation(self.organization.id)

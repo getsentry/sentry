@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Sequence
 from typing import Any, NoReturn
 
@@ -8,7 +7,6 @@ from django.urls import reverse
 
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
-from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
@@ -175,17 +173,6 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             "description": issue["content"]["html"],  # users content rendered as html
             "repo": data.get("repo"),
         }
-
-    def get_issue_link_data(self, url: str) -> dict[str, str]:
-        domain = self.model.metadata["domain_name"]
-        account = domain.removeprefix("bitbucket.org/")
-        path = get_issue_url_path(url, "https://bitbucket.org")
-        match = re.fullmatch(r"/([^/]+/[^/]+)/issues/(\d+)(?:/[^/]+)?", path)
-        if not match or match[1].split("/")[0].casefold() != account.casefold():
-            raise IntegrationFormError(
-                {"externalIssue": "Issue URL does not belong to this installation"}
-            )
-        return {"repo": match[1], "externalIssue": match[2]}
 
     def get_issue(self, issue_id, **kwargs):
         client = self.get_client()
