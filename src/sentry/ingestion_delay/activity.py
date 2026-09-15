@@ -12,7 +12,7 @@ from sentry.utils.outcomes import Outcome
 logger = logging.getLogger(__name__)
 
 ITEM_TYPE_TO_CATEGORY: dict[TraceItemType.ValueType, DataCategory] = {
-    TraceItemType.TRACE_ITEM_TYPE_SPAN: DataCategory.SPAN_INDEXED,
+    TraceItemType.TRACE_ITEM_TYPE_SPAN: DataCategory.SPAN,
     TraceItemType.TRACE_ITEM_TYPE_LOG: DataCategory.LOG_ITEM,
     TraceItemType.TRACE_ITEM_TYPE_METRIC: DataCategory.TRACE_METRIC,
 }
