@@ -187,14 +187,14 @@ export function SeerExplorerContent({
   );
   const showThinking = hasCodeModeTools || showThinkingPreference;
 
-  const textareaRef = useRef<HTMLDivElement>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const blockRefs = useRef<Array<HTMLDivElement | null>>([]);
   const userScrolledUpRef = useRef(false);
   const prWidgetButtonRef = useRef<HTMLButtonElement>(null);
 
   const focusInput = useCallback(() => {
-    textareaRef.current?.focus();
+    composerRef.current?.focus();
   }, []);
 
   // - Session data and mutators ----------------------------------------------
@@ -439,7 +439,7 @@ export function SeerExplorerContent({
     clearInput,
     inputValue: inputValue.text,
     focusInput,
-    composerRef: textareaRef,
+    composerRef,
     panelSize: 'max',
     slashCommandHandlers: {
       onNew: startNewSession,
@@ -452,7 +452,7 @@ export function SeerExplorerContent({
         ? setOverrideCodeModeEnable
         : undefined,
     },
-    inputAnchorRef: textareaRef,
+    inputAnchorRef: composerRef,
     prWidgetAnchorRef: prWidgetButtonRef,
     prWidgetItems,
     prWidgetFooter,
@@ -492,7 +492,7 @@ export function SeerExplorerContent({
 
   const handleInputChange = (value: ComposerValue) => {
     setInputValue(value);
-    textareaRef.current?.focus();
+    composerRef.current?.focus();
   };
 
   const handleInputClick = () => {
@@ -516,7 +516,7 @@ export function SeerExplorerContent({
       if (scrollContainerRef.current) {
         scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
       }
-      textareaRef.current?.focus();
+      composerRef.current?.focus();
     }, 100);
   }, []);
 
@@ -762,7 +762,7 @@ export function SeerExplorerContent({
           onPRWidgetClick={openPRWidget}
           prWidgetButtonRef={prWidgetButtonRef}
           repoPRStates={repoPRStates}
-          textAreaRef={textareaRef}
+          composerRef={composerRef}
           fileApprovalActions={
             isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
               ? {

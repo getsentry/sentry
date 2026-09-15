@@ -33,6 +33,7 @@ interface QuestionActions {
 
 interface InputSectionProps {
   blocks: Block[];
+  composerRef: React.RefObject<HTMLDivElement | null>;
   enabled: boolean;
   inputValue: ComposerValue;
   onCreatePR: (repoName?: string) => void;
@@ -44,7 +45,6 @@ interface InputSectionProps {
   onSend: () => void;
   prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
-  textAreaRef: React.RefObject<HTMLDivElement | null>;
   canSendMessage?: boolean;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
@@ -67,7 +67,7 @@ export function InputSection({
   onSend,
   prWidgetButtonRef,
   repoPRStates,
-  textAreaRef,
+  composerRef,
   fileApprovalActions,
   onSuggestionsOpenChange,
   questionActions,
@@ -262,7 +262,7 @@ export function InputSection({
     <InputBlock>
       <InputRow>
         <Composer
-          ref={textAreaRef}
+          ref={composerRef}
           aria-label={t('Ask Seer a question')}
           plugins={mentionPlugins}
           value={inputValue}
@@ -275,10 +275,7 @@ export function InputSection({
               ? t('Interrupted. What should Seer do instead?')
               : t('Ask Seer a question, or press / for commands.')
           }
-          // TODO(mention-input): match the warning color used for the
-          // disabled/interrupted textarea placeholder above (needs a way to
-          // style :empty::before on a generic Composer without fighting
-          // emotion's `styled()` over its generic type parameter).
+          // TODO(composer): warning-color placeholder when interrupted
           minHeight={20}
           style={{flex: 1, maxHeight: 120}}
           size="md"
