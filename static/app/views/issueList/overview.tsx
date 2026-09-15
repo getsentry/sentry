@@ -81,10 +81,10 @@ import {
 } from './utils';
 
 const MAX_ITEMS = 25;
-// the default period for the graph in each issue row
-const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
+// when no explicit period is chosen, follow the global time range selector
+const DEFAULT_GRAPH_STATS_PERIOD = 'auto';
 const MAX_ISSUES_COUNT = 100;
 
 interface Props {
@@ -272,7 +272,9 @@ function IssueListOverviewInner({
     }
 
     const groupStatsPeriod = getGroupStatsPeriod();
-    if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
+    // The backend treats a missing groupStatsPeriod as '24h', so 'auto'
+    // (follow the global time range) has to be sent explicitly.
+    if (groupStatsPeriod !== '24h') {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
