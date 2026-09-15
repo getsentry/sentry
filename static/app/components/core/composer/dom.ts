@@ -82,7 +82,7 @@ function getTextRuns(root: Node): TextRun[] {
   return runs;
 }
 
-/** Flattens contenteditable DOM into the plain-text value owned by MentionInput. */
+/** Flattens contenteditable DOM into the plain-text value owned by Composer. */
 export function readEditorValue(root: Node): string {
   return getTextRuns(root)
     .map(run => run.text)
