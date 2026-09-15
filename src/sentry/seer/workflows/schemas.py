@@ -1,11 +1,13 @@
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
+WorkflowRunSource = Literal["cron", "manual"]
 WorkflowRunStatus = Literal["running", "complete", "partial", "failed"]
 
 
 class WorkflowRunExtras(TypedDict):
+    source: NotRequired[WorkflowRunSource]
     status: WorkflowRunStatus
     error: str | None
 

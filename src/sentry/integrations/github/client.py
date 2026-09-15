@@ -343,11 +343,13 @@ class GithubProxyClient(IntegrationProxyClient):
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         permissions = data.get("permissions")
+        last_refresh_at = deprecated_utcnow().isoformat()
         integration.metadata.update(
             {
                 "access_token": access_token,
                 "expires_at": expires_at,
                 "permissions": permissions,
+                "last_refresh_at": last_refresh_at,
             }
         )
 
@@ -358,7 +360,7 @@ class GithubProxyClient(IntegrationProxyClient):
             {
                 "permissions": permissions,
                 "expires_at": expires_at,
-                "last_refresh_at": deprecated_utcnow().isoformat(),
+                "last_refresh_at": last_refresh_at,
             }
         )
 

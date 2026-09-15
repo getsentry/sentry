@@ -226,11 +226,6 @@ performance_tasks = app.taskregistry.create_namespace(
     app_feature="transactions",
 )
 
-preprod_tasks = app.taskregistry.create_namespace(
-    "preprod",
-    app_feature="preprod",
-)
-
 preprod_size_tasks = app.taskregistry.create_namespace(
     "preprod.size",
     app_feature="preprod_size",
