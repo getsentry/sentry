@@ -47,6 +47,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
+   * Whether to request annotations (dropped-data outcomes) on the response's `meta.annotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
+   */
+  includeAnnotations?: boolean;
+  /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
@@ -109,6 +113,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled,
     groupBy,
     extrapolate,
+    includeAnnotations,
     query,
     sampling,
     caseInsensitive,
@@ -170,6 +175,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
+          includeAnnotations: includeAnnotations ? 1 : undefined,
         },
         staleTime: Infinity,
       }
@@ -182,11 +188,22 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
+export interface Annotation {
+  category: string;
+  droppedCount: number;
+  end: number;
+  label: string;
+  reason: string;
+  start: number;
+  type: string;
+}
+
 export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
+    annotations?: Annotation[];
   };
 };
