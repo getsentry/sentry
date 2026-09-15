@@ -368,6 +368,8 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    # TODO: The stateful detector handler overrides the default evaluation logic of DetectorHandler.evaluate, yet shares
+    # much of the same logic. Refactor this method to use super().evaluate() supplemented with the state manager logic.
     @override
     def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
