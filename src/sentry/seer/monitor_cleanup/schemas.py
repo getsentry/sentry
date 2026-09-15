@@ -92,6 +92,7 @@ class MonitorCleanupComparisonValue(TypedDict):
 
 
 class MonitorCleanupRunExtras(WorkflowRunExtras):
+    source: NotRequired[str]
     project_ids: list[str]
     results: list[MonitorCleanupOutput]
 
@@ -101,6 +102,7 @@ class MonitorCleanupRunExtras(WorkflowRunExtras):
 
 class MonitorCleanupRunResponse(TypedDict):
     id: str
+    source: str
     seerRunId: str
     dateAdded: datetime
     dateCompleted: datetime | None

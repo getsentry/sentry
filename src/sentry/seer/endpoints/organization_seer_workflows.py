@@ -150,6 +150,7 @@ def _serialize_monitor_cleanup_run(run: SeerWorkflowRun) -> MonitorCleanupRunRes
     run_uuid = str(agent_run.run.uuid)
     return {
         "id": str(run.id),
+        "source": extras.get("source") or "cron",
         "seerRunId": run_uuid,
         "dateAdded": run.date_added,
         "dateCompleted": run.date_completed,

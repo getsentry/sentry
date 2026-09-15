@@ -45,7 +45,7 @@ def create_monitor_cleanup_run(request: Request, organization: Organization) -> 
         feature_id="monitor_cleanup",
         payload={"response_version": 1},
         title="Monitor cleanup",
-        extras={"project_ids": [], "results": []},
+        extras={"source": "manual", "project_ids": [], "results": []},
     )
 
 

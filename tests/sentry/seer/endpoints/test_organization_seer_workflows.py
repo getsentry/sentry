@@ -100,6 +100,26 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert issue["action"] == "skip"
         assert issue["skipReason"] == "ambiguous_root_cause"
 
+    def test_returns_recorded_triage_source(self) -> None:
+        manual = Factories.create_seer_workflow_run(
+            organization=self.organization, extras={"options": {"source": "manual"}}
+        )
+        scheduled = Factories.create_seer_workflow_run(
+            organization=self.organization, extras={"options": {"source": "cron"}}
+        )
+        historical = Factories.create_seer_workflow_run(organization=self.organization)
+        unrecorded = Factories.create_seer_workflow_run(
+            organization=self.organization, extras={"options": {"source": None}}
+        )
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+        assert {run["id"]: run["source"] for run in response.data} == {
+            str(manual.id): "manual",
+            str(scheduled.id): "cron",
+            str(historical.id): "cron",
+            str(unrecorded.id): "cron",
+        }
+
     def test_issue_with_missing_group_has_null_title(self) -> None:
         # group FK is db_constraint=False, so a stale group_id is possible in
         # prod; can't use create+delete since Django still cascades that.
@@ -437,6 +457,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def test_scan_stores_findings_and_returns_them_in_history(self) -> None:
         run = self.trigger()
         assert run.source == "monitor_cleanup"
+        assert run.extras["source"] == "manual"
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
         )
@@ -460,6 +481,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         output = response.data[0]
         assert output["id"] == str(run.run.workflow_execution.run_id)
         assert output["seerRunId"] == str(run.run.uuid)
+        assert output["source"] == "manual"
         assert output["dateCompleted"] is not None
         assert output["dateCompleted"] == run.run.workflow_execution.run.date_completed
         assert output["extras"] == {"status": "partial"}
@@ -471,6 +493,31 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
             {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
         ]
+
+    def test_returns_recorded_monitor_source(self) -> None:
+        run = self.trigger()
+        run.update(extras={**run.extras, "source": "cron"})
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data[0]["source"] == "cron"
+
+    def test_defaults_historical_monitor_source_to_automated(self) -> None:
+        run = self.trigger()
+        run.extras.pop("source")
+        run.update(extras=run.extras)
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data[0]["source"] == "cron"
+
+    def test_defaults_null_monitor_source_to_automated(self) -> None:
+        run = self.trigger()
+        run.update(extras={**run.extras, "source": None})
+        with self.feature("organizations:seer-workflows-monitor-cleanup"):
+            response = self.client.get(self.url)
+        assert response.status_code == 200
+        assert response.data[0]["source"] == "cron"
 
     def test_invalid_results_report_safe_errors(self) -> None:
         run = self.trigger()
