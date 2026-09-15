@@ -275,7 +275,7 @@ const NavigationSidebarWrapper = styled(Sticky, {
   }
 
   &[data-stuck] {
-    z-index: ${p => p.theme.zIndex.stickyHeader + 1};
+    z-index: ${p => p.theme.zIndex.stickyHeader};
   }
 `;
 
