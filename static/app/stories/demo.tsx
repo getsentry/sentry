@@ -21,11 +21,7 @@ export function Demo({resizable, ...props}: DemoProps) {
 
   if (!resizable) {
     return (
-      <Container
-        containerType="inline-size"
-        marginTop="md"
-        style={{marginBottom: '-1lh'}}
-      >
+      <Container containerType="inline-size">
         <Flex
           css={allowOpenOverlayOverflowCss}
           data-test-id="storybook-demo"

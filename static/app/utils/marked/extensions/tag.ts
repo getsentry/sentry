@@ -92,30 +92,84 @@ function findTagStart(src: string): number | undefined {
   return undefined;
 }
 
-function tokenize(src: string, level: 'block' | 'inline'): Tokens.Generic | undefined {
-  let match = BLOCK_RE.exec(src);
-  if (match) {
-    const [raw, name, attrStr = '', body = ''] = match;
-    return {
-      type: 'tag',
-      raw,
-      level,
-      name,
-      attrs: parseAttrs(attrStr),
-      data: parseBody(body),
-    };
+function tokenize(src: string, level: 'block' | 'inline'): TagToken | undefined {
+  // The name group is mandatory in both patterns, so these guards never fire at
+  // runtime -- they are what lets the return type say `TagToken` rather than a
+  // generic token the callers have to assert their way out of.
+  const blockMatch = BLOCK_RE.exec(src);
+  if (blockMatch) {
+    const [raw, name, attrStr = '', body = ''] = blockMatch;
+    if (raw !== undefined && name !== undefined) {
+      return {
+        type: 'tag',
+        raw,
+        level,
+        name,
+        attrs: parseAttrs(attrStr),
+        data: parseBody(body),
+      };
+    }
   }
-  match = SELF_CLOSING_RE.exec(src);
-  if (match) {
-    const [raw, name, attrStr = ''] = match;
-    return {
-      type: 'tag',
-      raw,
-      level,
-      name,
-      attrs: parseAttrs(attrStr),
-      data: undefined,
-    };
+
+  const selfClosingMatch = SELF_CLOSING_RE.exec(src);
+  if (selfClosingMatch) {
+    const [raw, name, attrStr = ''] = selfClosingMatch;
+    if (raw !== undefined && name !== undefined) {
+      return {
+        type: 'tag',
+        raw,
+        level,
+        name,
+        attrs: parseAttrs(attrStr),
+        data: undefined,
+      };
+    }
   }
+
   return undefined;
+}
+
+/** One piece of a source string: literal text, or a tag with its parsed body. */
+export type TagSegment =
+  | {type: 'text'; value: string}
+  | {attrs: Record<string, string>; data: unknown; name: string; type: 'tag'};
+
+/**
+ * Splits a source string into its text and its tags, in document order.
+ *
+ * The extensions above find tags while marked builds a render tree; this walks
+ * the same patterns for callers that want the tags themselves.
+ */
+export function splitTags(src: string): TagSegment[] {
+  const segments: TagSegment[] = [];
+  let rest = src;
+
+  while (rest) {
+    const start = findTagStart(rest);
+    if (start === undefined) {
+      break;
+    }
+
+    const token = tokenize(rest.slice(start), 'block');
+    if (!token) {
+      break;
+    }
+
+    if (start > 0) {
+      segments.push({type: 'text', value: rest.slice(0, start)});
+    }
+    segments.push({
+      type: 'tag',
+      name: token.name,
+      attrs: token.attrs,
+      data: token.data,
+    });
+    rest = rest.slice(start + token.raw.length);
+  }
+
+  if (rest) {
+    segments.push({type: 'text', value: rest});
+  }
+
+  return segments;
 }
