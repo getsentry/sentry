@@ -1,15 +1,13 @@
 import logging
-from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -27,7 +25,6 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
-from sentry.interfaces.stacktrace import StacktraceOrder
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -36,21 +33,22 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
 from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
+from sentry.users.api.parsers.user_option import (
+    DEFAULT_ISSUE_EVENT_CHOICES,
+    STACKTRACE_ORDER_CHOICES,
+    THEME_CHOICES,
+    TIMEZONE_CHOICES,
+    UserOptionsData,
+    write_user_options,
+)
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
-from sentry.utils.dates import get_timezone_choices
-
-if TYPE_CHECKING:
-    from django.utils.functional import _StrPromise  # fake type added by django-stubs
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
-
-
-TIMEZONE_CHOICES = get_timezone_choices()
 
 
 @dataclass(frozen=True)
@@ -144,74 +142,7 @@ def record_hard_user_deletion(
     )
 
 
-StacktraceOrderValue = Literal["-1", "1", "2"]
-Theme = Literal["light", "dark", "system"]
-DefaultIssueEvent = Literal["recommended", "latest", "oldest"]
-
-# Annotating the choices ties them to the Literal types above: a choice value that is
-# not part of the Literal fails type checking. The reverse does not hold, so a Literal
-# member with no matching choice, or a new StacktraceOrder enum member, passes silently.
-STACKTRACE_ORDER_CHOICES: "tuple[tuple[StacktraceOrderValue, _StrPromise], ...]" = (
-    (StacktraceOrder.DEFAULT.value, _("Default (let Sentry decide)")),
-    (StacktraceOrder.MOST_RECENT_LAST.value, _("Most recent call last")),
-    (StacktraceOrder.MOST_RECENT_FIRST.value, _("Most recent call first")),
-)
-THEME_CHOICES: "tuple[tuple[Theme, _StrPromise], ...]" = (
-    ("light", _("Light")),
-    ("dark", _("Dark")),
-    ("system", _("Default to system")),
-)
-DEFAULT_ISSUE_EVENT_CHOICES: "tuple[tuple[DefaultIssueEvent, _StrPromise], ...]" = (
-    ("recommended", _("Recommended")),
-    ("latest", _("Latest")),
-    ("oldest", _("Oldest")),
-)
-
-# Every field name on UserOptionsSerializer. Keeping this as a Literal lets both
-# UserOptionsData and OPTION_KEY_MAP below be checked against one another.
-UserOptionField = Literal[
-    "language",
-    "stacktraceOrder",
-    "timezone",
-    "clock24Hours",
-    "theme",
-    "defaultIssueEvent",
-    "prefersIssueDetailsStreamlinedUI",
-]
-
-
-class UserOptionsData(TypedDict, total=False):
-    """The validated `options` object from a PUT body.
-
-    Mirrors the fields on UserOptionsSerializer. Every field is optional because
-    the serializer is used with partial=True.
-    """
-
-    language: str
-    stacktraceOrder: StacktraceOrderValue
-    timezone: str
-    clock24Hours: bool
-    theme: Theme
-    defaultIssueEvent: DefaultIssueEvent
-    prefersIssueDetailsStreamlinedUI: bool
-
-
-# Maps each API field to the key the value is stored under in UserOption. An entry whose
-# key is not a UserOptionsData field fails type checking. An entry that is *missing* does
-# not: DRF declares serializer fields at runtime, so type checking cannot see them. A
-# field added to the serializer but not to this map validates and is then never written.
-OPTION_KEY_MAP: Mapping[UserOptionField, str] = {
-    "theme": "theme",
-    "language": "language",
-    "timezone": "timezone",
-    "stacktraceOrder": "stacktrace_order",
-    "defaultIssueEvent": "default_issue_event",
-    "clock24Hours": "clock_24_hours",
-    "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-}
-
-
-class UserOptionsSerializer(serializers.Serializer[None]):
+class UserOptionsSerializer(serializers.Serializer[UserOption]):
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
     stacktraceOrder = serializers.ChoiceField(choices=STACKTRACE_ORDER_CHOICES, required=False)
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
@@ -329,7 +260,7 @@ class DeleteUserData(TypedDict):
     hardDelete: NotRequired[bool]
 
 
-class DeleteUserSerializer(serializers.Serializer[None]):
+class DeleteUserSerializer(serializers.Serializer[User]):
     organizations = serializers.ListField(
         child=serializers.CharField(required=False), required=True
     )
@@ -444,12 +375,7 @@ class UserDetailsEndpoint(UserEndpoint):
                     )
 
         options_result: UserOptionsData = serializer_options.validated_data
-
-        for api_field, option_key in OPTION_KEY_MAP.items():
-            if api_field in options_result:
-                UserOption.objects.set_value(
-                    user=user, key=option_key, value=options_result[api_field]
-                )
+        write_user_options(user, options_result)
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()
@@ -496,7 +422,7 @@ class UserDetailsEndpoint(UserEndpoint):
             )
 
         avail_org_ids = {o["organization_id"] for o in org_results}
-        requested_org_slugs_to_remove = set(delete_data["organizations"])
+        requested_org_slugs_to_remove = set(delete_data.get("organizations"))
         requested_org_ids_to_remove = OrganizationMapping.objects.filter(
             slug__in=requested_org_slugs_to_remove
         ).values_list("organization_id", flat=True)
