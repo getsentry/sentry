@@ -1011,7 +1011,7 @@ export const SEER_EMBED_SCHEMAS = {
       'specific replay ID, use the `replay` embed instead. ' +
       '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
       'Inline renders a link; block renders the first five matching replays ' +
-      'with their duration, error count and rage clicks.',
+      'with their OS, browser, duration and error count.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
