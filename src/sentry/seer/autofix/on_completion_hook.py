@@ -31,6 +31,7 @@ from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     get_iterations,
     get_latest_iteration_index,
+    iteration_repos,
     should_open_autofix_pr_as_draft,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -1160,7 +1161,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not iterations:
             return True
 
-        return any(block.merged_file_patches for block in iterations[-1].blocks)
+        return bool(iteration_repos(iterations[-1]))
 
     @classmethod
     @trace
