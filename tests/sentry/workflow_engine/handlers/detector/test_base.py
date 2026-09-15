@@ -64,6 +64,20 @@ def build_mock_occurrence_and_event(
     )
 
 
+def assert_event_matches_occurrence(
+    event_data: EventData | None,
+    occurrence: IssueOccurrence,
+) -> None:
+    assert event_data is not None
+    assert event_data["event_id"] == occurrence.event_id
+    assert event_data["project_id"] == occurrence.project_id
+    assert event_data["timestamp"] == occurrence.detection_time
+    assert event_data["received"] == occurrence.detection_time
+    assert event_data["environment"] is None
+    assert event_data["platform"] == "python"
+    assert event_data["tags"] == {}
+
+
 def status_change_comparator(self: StatusChangeMessage, other: StatusChangeMessage) -> bool:
     return (
         isinstance(other, StatusChangeMessage)
@@ -536,14 +550,8 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         event_data = evaluation.data["event_data"]
 
         assert isinstance(occurrence, IssueOccurrence)
-        assert event_data is not None
-        assert event_data["event_id"] == occurrence.event_id
-        assert event_data["project_id"] == self.detector.project_id
-        assert event_data["timestamp"] == occurrence.detection_time
-        assert event_data["received"] == occurrence.detection_time
-        assert event_data["environment"] is None
-        assert event_data["platform"] == "python"
-        assert event_data["tags"] == {}
+
+        assert_event_matches_occurrence(event_data, occurrence)
 
     def test_evaluate__preserves_event_id_from_create_occurrence(self) -> None:
         handler = MockEventIdDetectorHandler(self.detector)
@@ -553,9 +561,9 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         event_data = evaluation.data["event_data"]
 
         assert isinstance(occurrence, IssueOccurrence)
-        assert event_data is not None
         assert occurrence.event_id == MockEventIdDetectorHandler.event_id
-        assert event_data["event_id"] == MockEventIdDetectorHandler.event_id
+
+        assert_event_matches_occurrence(event_data, occurrence)
 
     def test_evaluate__produces_valid_issue_platform_payload(self) -> None:
         evaluation = self.evaluate_triggered()
@@ -615,9 +623,9 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
         event_data = evaluation.data["event_data"]
 
         assert isinstance(occurrence, IssueOccurrence)
-        assert event_data is not None
         assert occurrence.event_id == MockOccurrenceIdDetectorHandler.occurrence_id
-        assert event_data["event_id"] == MockOccurrenceIdDetectorHandler.occurrence_id
+
+        assert_event_matches_occurrence(event_data, occurrence)
 
     def test_evaluate__warns_when_slow_conditions_remain(self) -> None:
         self.create_data_condition(
@@ -777,15 +785,8 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         event_data = result.result["group-two"].data["event_data"]
 
         assert isinstance(occurrence, IssueOccurrence)
-        assert event_data is not None
 
-        assert event_data["event_id"] == occurrence.event_id
-        assert event_data["project_id"] == self.detector.project_id
-        assert event_data["timestamp"] == occurrence.detection_time
-        assert event_data["received"] == occurrence.detection_time
-        assert event_data["environment"] is None
-        assert event_data["platform"] == "python"
-        assert event_data["tags"] == {}
+        assert_event_matches_occurrence(event_data, occurrence)
 
     def test_evaluate__taints_the_result_when_any_group_is_tainted(self) -> None:
         clean_evaluation = self.build_condition_group_evaluation(triggered=False)
