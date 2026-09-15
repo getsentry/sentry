@@ -36,6 +36,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {
   Actions,
+  type ActionTriggerType,
   CellAction,
   copyToClipboard,
 } from 'sentry/views/discover/table/cellAction';
@@ -78,6 +79,7 @@ interface TableWidgetVisualizationProps {
    * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
    */
   allowedCellActions?: Actions[] | GetAllowedCellActionsFn;
+  cellActionTrigger?: ActionTriggerType;
   /**
    * If supplied, will override the ordering of columns from `tableData`. Can also be used to
    * supply custom display names for columns, column widths and column data type
@@ -190,6 +192,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     resizable = true,
     onTriggerCellAction,
     allowedCellActions = ALLOWED_CELL_ACTIONS,
+    cellActionTrigger,
   } = props;
 
   const theme = useTheme();
@@ -339,6 +342,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
           return (
             <CellAction
+              triggerType={cellActionTrigger}
               key={`${rowIndex}-${columnIndex}:${tableColumn.name}`}
               column={formattedColumn}
               dataRow={dataRow as TableDataRow}
