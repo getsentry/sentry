@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from threading import Event
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
@@ -702,6 +701,8 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert called_session is session
 
     def test_finalize_reads_chunks_concurrently_and_merges_in_plan_order(self):
+        from threading import Event
+
         from sentry.preprod.snapshots.manifest import (
             ChunkResult,
             ComparisonImageResult,
