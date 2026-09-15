@@ -83,6 +83,18 @@ function isOrderbyValidForAggregates(
   return false;
 }
 
+function getSkippedConditionalFilterQueryIndexes(
+  queries: Widget['queries'],
+  enabled: boolean
+): number[] {
+  if (!enabled) {
+    return [];
+  }
+  return queries.flatMap((query, index) =>
+    hasNoValidAggregatesForRequest(query.aggregates ?? []) ? [index] : []
+  );
+}
+
 function keepAlignedValues<T>(
   values: readonly T[] | undefined,
   keep: readonly boolean[]
@@ -188,13 +200,10 @@ export function useSpansSeriesQuery(
 
   const skippedConditionalFilterQueryIndexes = useMemo(
     () =>
-      hasConditionalAggregates
-        ? filteredWidget.queries
-            .map((query, index) =>
-              hasNoValidAggregatesForRequest(query.aggregates ?? []) ? index : null
-            )
-            .filter((index): index is number => index !== null)
-        : [],
+      getSkippedConditionalFilterQueryIndexes(
+        filteredWidget.queries,
+        hasConditionalAggregates
+      ),
     [filteredWidget.queries, hasConditionalAggregates]
   );
 
@@ -425,13 +434,10 @@ export function useSpansTableQuery(
 
   const skippedConditionalFilterQueryIndexes = useMemo(
     () =>
-      hasConditionalAggregates
-        ? filteredWidget.queries
-            .map((query, index) =>
-              hasNoValidAggregatesForRequest(query.aggregates ?? []) ? index : null
-            )
-            .filter((index): index is number => index !== null)
-        : [],
+      getSkippedConditionalFilterQueryIndexes(
+        filteredWidget.queries,
+        hasConditionalAggregates
+      ),
     [filteredWidget.queries, hasConditionalAggregates]
   );
 

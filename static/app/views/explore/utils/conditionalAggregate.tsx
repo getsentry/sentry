@@ -274,6 +274,20 @@ export function isConditionalAggregateYAxisValid(yAxis: string): boolean {
   return isConditionalAggregateFilterValid(conditional.filter);
 }
 
+function getInvalidConditionalAggregateTokenText(expression: string): string | undefined {
+  const tokens = tokenizeExpression(stripEquationPrefix(expression));
+  for (const token of tokens) {
+    if (
+      isTokenFunction(token) &&
+      token.function.endsWith(IF_SUFFIX) &&
+      !isConditionalAggregateYAxisValid(token.text)
+    ) {
+      return token.text;
+    }
+  }
+  return undefined;
+}
+
 /**
  * Validate every `_if(...)` call inside an equation (or any free-form expression).
  *
@@ -283,15 +297,7 @@ export function isConditionalAggregateYAxisValid(yAxis: string): boolean {
 export function areConditionalAggregateFiltersInExpressionValid(
   expression: string
 ): boolean {
-  const tokens = tokenizeExpression(stripEquationPrefix(expression));
-  for (const token of tokens) {
-    if (isTokenFunction(token) && token.function.endsWith(IF_SUFFIX)) {
-      if (!isConditionalAggregateYAxisValid(token.text)) {
-        return false;
-      }
-    }
-  }
-  return true;
+  return getInvalidConditionalAggregateTokenText(expression) === undefined;
 }
 
 /**
@@ -323,13 +329,9 @@ export function getConditionalFilterInvalidSeriesMessageForAggregates(
 ): string {
   for (const yAxis of aggregates) {
     if (isEquation(yAxis)) {
-      const tokens = tokenizeExpression(stripEquationPrefix(yAxis));
-      for (const token of tokens) {
-        if (isTokenFunction(token) && token.function.endsWith(IF_SUFFIX)) {
-          if (!isConditionalAggregateYAxisValid(token.text)) {
-            return getConditionalFilterInvalidSeriesMessageForYAxis(token.text);
-          }
-        }
+      const invalidTokenText = getInvalidConditionalAggregateTokenText(yAxis);
+      if (invalidTokenText) {
+        return getConditionalFilterInvalidSeriesMessageForYAxis(invalidTokenText);
       }
       continue;
     }

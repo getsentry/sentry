@@ -2107,25 +2107,21 @@ describe('Visualize', () => {
   });
 
   it('shows a per-series filter search bar for spans aggregates', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithConditionalAggregates,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['avg(span.duration)'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg(span.duration)'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     expect(
       await screen.findByRole('textbox', {name: 'Filter spans for this series'})
@@ -2133,25 +2129,21 @@ describe('Visualize', () => {
   });
 
   it('hides the per-series filter search bar when the feature is disabled', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['avg(span.duration)'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg(span.duration)'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     expect(
       await screen.findByRole('button', {name: 'Aggregate Selection'})
@@ -2162,25 +2154,21 @@ describe('Visualize', () => {
   });
 
   it('loads Explore-style _if aggregates into base dropdowns with a filter', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithConditionalAggregates,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['avg_if(`span.op:db`,span.self_time)'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.self_time)'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     expect(
       await screen.findByRole('button', {name: 'Aggregate Selection'})
@@ -2194,25 +2182,21 @@ describe('Visualize', () => {
   });
 
   it('applies visualize filters as _if aggregates', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithConditionalAggregates,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['avg(span.duration)'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg(span.duration)'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     const searchInput = await screen.findByRole('textbox', {
       name: 'Filter spans for this series',
@@ -2233,25 +2217,21 @@ describe('Visualize', () => {
   });
 
   it('preserves field aliases when applying a series filter', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithConditionalAggregates,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.TABLE,
-              field: ['{"field":"avg(span.duration)","alias":"Latency"}'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.TABLE,
+            field: ['{"field":"avg(span.duration)","alias":"Latency"}'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     const searchInput = await screen.findByRole('textbox', {
       name: 'Filter spans for this series',
@@ -2272,25 +2252,21 @@ describe('Visualize', () => {
   });
 
   it('hides the filter search bar for no-argument spans aggregates', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithConditionalAggregates,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['failure_rate()'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['failure_rate()'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     expect(
       await screen.findByRole('button', {name: 'Aggregate Selection'})
@@ -2301,25 +2277,21 @@ describe('Visualize', () => {
   });
 
   it('preserves the series filter when changing the column', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithConditionalAggregates,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['avg_if(`span.op:db`,span.duration)'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.duration)'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
@@ -2336,25 +2308,21 @@ describe('Visualize', () => {
   });
 
   it('preserves Explore-style _if filters when changing the column with the feature disabled', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['avg_if(`span.op:db`,span.duration)'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.duration)'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     expect(
       screen.queryByRole('textbox', {name: 'Filter spans for this series'})
@@ -2375,25 +2343,21 @@ describe('Visualize', () => {
   });
 
   it('preserves the series filter when changing the aggregate', async () => {
-    render(
-      <WidgetBuilderProvider>
-        <Visualize />
-      </WidgetBuilderProvider>,
-      {
-        organization: organizationWithConditionalAggregates,
-        initialRouterConfig: {
-          location: {
-            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-            query: {
-              dataset: WidgetType.SPANS,
-              displayType: DisplayType.LINE,
-              yAxis: ['avg_if(`span.op:db`,span.duration)'],
-            },
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.duration)'],
           },
-          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
         },
-      }
-    );
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Aggregate Selection'})

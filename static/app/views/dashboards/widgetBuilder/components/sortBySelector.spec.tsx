@@ -225,26 +225,22 @@ describe('WidgetBuilderSortBySelector', () => {
 
   it('sorts by Explore _if combinators on line charts', async () => {
     const combinator = 'avg_if(`span.op:db`,span.duration)';
-    const {router} = render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderSortBySelector />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              displayType: 'line',
-              dataset: 'spans',
-              fields: ['transaction'],
-              yAxis: ['avg(span.duration)', combinator],
-              sort: ['-avg(span.duration)'],
-            },
+    const {router} = render(<WidgetBuilderSortBySelector />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            displayType: 'line',
+            dataset: 'spans',
+            fields: ['transaction'],
+            yAxis: ['avg(span.duration)', combinator],
+            sort: ['-avg(span.duration)'],
           },
         },
-      }
-    );
+      },
+    });
 
     await userEvent.click(await screen.findByText('(Required)'));
     await userEvent.click(await screen.findByText(combinator));
@@ -258,26 +254,22 @@ describe('WidgetBuilderSortBySelector', () => {
 
   it('shows the selected Explore _if combinator in sort by', async () => {
     const combinator = 'avg_if(`span.op:db`,span.duration)';
-    render(
-      <WidgetBuilderProvider>
-        <WidgetBuilderSortBySelector />
-      </WidgetBuilderProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              displayType: 'line',
-              dataset: 'spans',
-              fields: ['transaction'],
-              yAxis: ['avg(span.duration)', combinator],
-              sort: [`-${combinator}`],
-            },
+    render(<WidgetBuilderSortBySelector />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            displayType: 'line',
+            dataset: 'spans',
+            fields: ['transaction'],
+            yAxis: ['avg(span.duration)', combinator],
+            sort: [`-${combinator}`],
           },
         },
-      }
-    );
+      },
+    });
 
     expect(await screen.findByText(combinator)).toBeInTheDocument();
   });
