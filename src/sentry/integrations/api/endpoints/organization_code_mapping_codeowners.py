@@ -1,3 +1,5 @@
+import json
+
 from django.http import Http404
 from rest_framework import status
 from rest_framework.exceptions import NotFound
@@ -70,6 +72,35 @@ class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
 
         if not codeowner_contents:
             return self.respond(status=status.HTTP_404_NOT_FOUND)
+
+        if isinstance(codeowner_contents, dict):
+            if "raw" not in codeowner_contents and (
+                "message" in codeowner_contents or "error" in codeowner_contents
+            ):
+                error_msg = codeowner_contents.get("message") or codeowner_contents.get("error")
+                return self.respond(
+                    {"detail": error_msg},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            raw_content = codeowner_contents.get("raw")
+            if isinstance(raw_content, str):
+                try:
+                    parsed_raw = json.loads(raw_content)
+                    if isinstance(parsed_raw, dict) and (
+                        "message" in parsed_raw or "error" in parsed_raw or "errors" in parsed_raw
+                    ):
+                        error_msg = (
+                            parsed_raw.get("message")
+                            or parsed_raw.get("error")
+                            or "Invalid CODEOWNERS file content"
+                        )
+                        return self.respond(
+                            {"detail": error_msg},
+                            status=status.HTTP_400_BAD_REQUEST,
+                        )
+                except (ValueError, TypeError):
+                    pass
 
         return self.respond(
             codeowner_contents,
