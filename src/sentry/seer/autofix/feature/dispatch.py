@@ -125,6 +125,7 @@ def trigger_autofix_feature(
             extras=extras,
         )
     else:
+        # Necessary for mypy
         assert args.existing_run_id is not None
         run = client.continue_feature_run(
             **client_args,
