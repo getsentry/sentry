@@ -11,7 +11,7 @@ import {SeerEmbedRegistry} from './embeds';
  * serializes to. Only the tags are rewritten -- the prose is already markdown,
  * and re-serializing it would flatten its headings, lists and code fences.
  */
-export function SeerMarkdownText({raw}: {raw: string}) {
+function SeerMarkdownText({raw}: {raw: string}) {
   return (
     <Fragment>
       {splitTags(raw).map((segment, index) =>
