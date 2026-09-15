@@ -749,7 +749,9 @@ class FinalizeSnapshotComparisonTest(TestCase):
             f"{prefix}/chunks/2.json": read_third,
         }
         with (
-            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch(
+                "sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session
+            ) as get_storage,
             patch("sentry.preprod.snapshots.tasks._CHUNK_RESULT_READ_CONCURRENCY", 2),
             patch(
                 "sentry.preprod.snapshots.tasks._get_json",
@@ -760,6 +762,9 @@ class FinalizeSnapshotComparisonTest(TestCase):
             finalize_snapshot_comparison(**self._kwargs(comparison, head, base))
 
         assert read_order == [1, 0]
+        socket_timeout = get_storage.call_args.kwargs["socket_timeout"]
+        assert socket_timeout.connect_timeout == 5.0
+        assert socket_timeout.read_timeout == 30.0
         comparison.refresh_from_db()
         assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
         manifest = orjson.loads(stored[f"{prefix}/comparison.json"])

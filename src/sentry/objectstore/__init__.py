@@ -119,8 +119,14 @@ class UsecaseId(Enum):
                 )
 
 
-def _create_client() -> Client:
+def _create_client(*, socket_timeout: urllib3.Timeout | None = None) -> Client:
     options = settings.SENTRY_OBJECTSTORE_CONFIG
+    connection_kwargs = options.get(
+        "connection_kwargs",
+        {"timeout": urllib3.Timeout(connect=5.0, read=None), "maxsize": 32},
+    )
+    if socket_timeout is not None:
+        connection_kwargs = {**(connection_kwargs or {}), "timeout": socket_timeout}
 
     # Initialize the `TokenGenerator` if key parameters are found.
     token_generator = None
@@ -136,10 +142,7 @@ def _create_client() -> Client:
         metrics_backend=SentryMetricsBackend(),
         retries=options.get("retries", None),
         timeout_ms=options.get("timeout_ms", None),
-        connection_kwargs=options.get(
-            "connection_kwargs",
-            {"timeout": urllib3.Timeout(connect=5.0, read=None), "maxsize": 32},
-        ),
+        connection_kwargs=connection_kwargs,
         token=token_generator,
     )
 
@@ -157,7 +160,13 @@ def _get_client() -> Client:
 _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
-def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
+def get_session(
+    usecase: UsecaseId,
+    project: Project | int,
+    *,
+    org: int | None = None,
+    socket_timeout: urllib3.Timeout | None = None,
+) -> Session:
     """Return an Objectstore session scoped to a project.
 
     There are two ways to construct a session:
@@ -183,7 +192,10 @@ def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None =
         objectstore_usecase = usecase.create()
         _USECASES[usecase] = objectstore_usecase
 
-    return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
+    client = (
+        _get_client() if socket_timeout is None else _create_client(socket_timeout=socket_timeout)
+    )
+    return client.session(objectstore_usecase, org=org_id, project=project_id)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
