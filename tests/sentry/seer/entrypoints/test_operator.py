@@ -26,6 +26,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
@@ -47,7 +48,7 @@ from sentry.seer.entrypoints.types import (
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.options import override_options
@@ -182,6 +183,25 @@ class SeerOperatorTest(TestCase):
             actor=GroupActionActor.user(self.user.id),
             referrer=AutofixReferrer.SLACK.value,
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch(
+        "sentry.seer.autofix.autofix_agent.trigger_autofix_agent",
+        side_effect=NoSeerQuotaException,
+    )
+    def test_slack_autofix_without_quota_warns_and_returns(
+        self, _mock_trigger_autofix, _mock_get_autofix_state, mock_record
+    ):
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
+        )
+
+        assert self.entrypoint.autofix_errors == []
+        assert self.entrypoint.autofix_run_ids == []
+        assert_halt_metric(mock_record, NoSeerQuotaException())
 
     @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
     @patch("sentry.seer.autofix.autofix_agent.trigger_push_changes")
