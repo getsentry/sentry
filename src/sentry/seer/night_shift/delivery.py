@@ -59,9 +59,13 @@ def _get_serialized_event(group: Group) -> tuple[str, dict[str, Any]] | None:
     if not ready_event:
         return None
 
-    serialized_event = dict(serialize(ready_event, None, EventSerializer()))
-    serialized_event.pop("_meta", None)
-    return event.event_id, serialized_event
+    serialized_event = serialize(ready_event, None, EventSerializer())
+    if serialized_event is None:
+        return None
+
+    event_data = dict(serialized_event)
+    event_data.pop("_meta", None)
+    return event.event_id, event_data
 
 
 def _capture_autofix_issue_data(
