@@ -157,6 +157,9 @@ x-sentry-service-config:
     # Spans and performance monitoring
     process-spans:
       description: Kafka consumer for processing spans data
+    # Metrics-related consumers
+    ingest-metrics:
+      description: Kafka consumer for processing metrics data
     # Post-processing forwarders
     post-process-forwarder-errors:
       description: Post-process forwarder for error events
@@ -209,6 +212,7 @@ x-sentry-service-config:
         spotlight,
         ingest-events,
         ingest-transactions,
+        ingest-metrics,
         post-process-forwarder-errors,
         post-process-forwarder-transactions,
         post-process-forwarder-issue-platform,
@@ -337,6 +341,7 @@ x-sentry-service-config:
         ingest-attachments,
         ingest-events,
         ingest-feedback-events,
+        ingest-metrics,
         ingest-monitors,
         ingest-occurrences,
         ingest-transactions,
@@ -378,6 +383,7 @@ x-sentry-service-config:
         ingest-occurrences,
         objectstore,
         process-spans,
+        ingest-metrics,
         uptime-checker,
         uptime-results,
         post-process-forwarder-errors,
@@ -417,6 +423,8 @@ x-programs:
     command: sentry run consumer ingest-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   process-spans:
     command: sentry run consumer process-spans --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  ingest-metrics:
+    command: sentry run consumer ingest-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   uptime-results:
     command: sentry run consumer uptime-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   post-process-forwarder-errors:
