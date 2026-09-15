@@ -49,6 +49,8 @@ from drf_spectacular.plumbing import build_array_type as drf_build_array_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import _SchemaType
 
+from sentry.apidocs.omission_guard import descended, omissions_enabled, record_typed_dict
+from sentry.apidocs.omissions import OMISSION_REASONS_OVERRIDE
 from sentry.apidocs.utils import reload_module_with_type_checking_enabled
 
 # This function is ported from the drf-spectacular library method here:
@@ -119,13 +121,15 @@ def resolve_type_hint(hint) -> Any:
     elif origin is None and inspect.isclass(hint) and issubclass(hint, tuple):
         # a convoluted way to catch NamedTuple. suggestions welcome.
         if get_type_hints(hint):
-            properties = {k: resolve_type_hint(v) for k, v in get_type_hints(hint).items()}
+            properties = {
+                k: _resolve_at(v, "properties", k) for k, v in get_type_hints(hint).items()
+            }
         else:
             properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}  # type: ignore[attr-defined]
         return build_object_type(properties=properties, required=properties.keys())
     elif origin is list or hint is list:
         return build_array_type(
-            resolve_type_hint(args[0]) if args else build_basic_type(OpenApiTypes.ANY)
+            _resolve_at(args[0], "items") if args else build_basic_type(OpenApiTypes.ANY)
         )
     elif origin is tuple:
         return build_array_type(
@@ -136,12 +140,12 @@ def resolve_type_hint(hint) -> Any:
     elif origin is dict or origin is defaultdict:
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any and schema is not None:
-            schema["additionalProperties"] = resolve_type_hint(args[1])
+            schema["additionalProperties"] = _resolve_at(args[1], "additionalProperties")
         return schema
     elif origin is set:
-        return build_array_type(resolve_type_hint(args[0]))
+        return build_array_type(_resolve_at(args[0], "items"))
     elif origin is frozenset:
-        return build_array_type(resolve_type_hint(args[0]))
+        return build_array_type(_resolve_at(args[0], "items"))
     elif origin is Literal:
         # Literal only works for python >= 3.8 despite typing_extensions, because it
         # behaves slightly different w.r.t. __origin__
@@ -162,9 +166,10 @@ def resolve_type_hint(hint) -> Any:
             schema.update(basic_type)
         return schema
     elif is_typeddict(hint):
+        excluded_fields = _typed_dict_exclusions(hint, excluded_fields)
         return build_object_type(
             properties={
-                k: resolve_type_hint(v)
+                k: _resolve_at(v, "properties", k)
                 for k, v in get_type_hints(hint).items()
                 if k not in excluded_fields
             },
@@ -179,7 +184,11 @@ def resolve_type_hint(hint) -> Any:
             # multiple types but errors with oneOf.
             # TODO(schew2381): Create issue in drf-spectacular to see if this
             # fix makes sense
-            schema = {"anyOf": [resolve_type_hint(arg) for arg in type_args]}
+            schema = {
+                "anyOf": [
+                    _resolve_at(arg, "anyOf", str(index)) for index, arg in enumerate(type_args)
+                ]
+            }
         else:
             schema = resolve_type_hint(type_args[0])
         if type(None) in args and schema is not None:
@@ -197,6 +206,25 @@ def resolve_type_hint(hint) -> Any:
                 schema["nullable"] = True
         return schema
     elif origin is collections.abc.Iterable:
-        return build_array_type(resolve_type_hint(args[0]))
+        return build_array_type(_resolve_at(args[0], "items"))
     else:
         raise UnableToProceedError(hint)
+
+
+def _resolve_at(hint: Any, *keys: str) -> Any:
+    """Resolve a hint nested at `keys` below its parent, for the build's omission check."""
+    with descended(*keys):
+        return resolve_type_hint(hint)
+
+
+def _typed_dict_exclusions(hint: Any, excluded_fields: Any) -> list[str]:
+    """The fields a TypedDict leaves out, recording the ones it declares as omissions.
+
+    With omissions switched off, the declared ones are kept so the build can compare."""
+    declared = {
+        path for path in get_override(hint, OMISSION_REASONS_OVERRIDE, {}) or {} if "." not in path
+    }
+    if not omissions_enabled():
+        return [name for name in excluded_fields if name not in declared]
+    record_typed_dict(hint.__name__, declared)
+    return list(excluded_fields)

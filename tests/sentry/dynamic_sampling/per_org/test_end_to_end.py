@@ -78,12 +78,7 @@ class PerOrgEndToEndTest(TestCase, SnubaTestCase, SpanTestCase):
         return rules[RESERVED_IDS[rule_type]]
 
     @with_feature("organizations:dynamic-sampling")
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.serving-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     @patch("sentry.quotas.backend.get_blended_sample_rate", return_value=BLENDED_SAMPLE_RATE)
     def test_stored_segments_end_up_as_project_rules(self, get_blended_sample_rate) -> None:
         project_a = self.create_project_with_segments(9)

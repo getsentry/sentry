@@ -96,12 +96,26 @@ class TestSeerAgentClient(TestCase):
         mock_collect_context.assert_called_once_with(self.user, self.organization, request=None)
         assert mock_post.called
         body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_assisted_query_code_mode"] is False
         assert "enable_frontend_code_search" not in body["agent_run_options"]
         assert body["metadata"]["group_id"] == group.id
 
         agent_run = SeerAgentRun.objects.get(run=run)
         assert agent_run.project_id == project.id
         assert agent_run.group_id == group.id
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @with_feature("organizations:seer-agent-enable-assisted-query-code-mode")
+    def test_start_run_enables_assisted_query_code_mode(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_assisted_query_code_mode"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
@@ -515,7 +529,22 @@ class TestSeerAgentClient(TestCase):
         assert run.seer_run_state_id == 456
         assert mock_post.called
         body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_assisted_query_code_mode"] is False
         assert "enable_frontend_code_search" not in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @with_feature("organizations:seer-agent-enable-assisted-query-code-mode")
+    def test_continue_run_enables_assisted_query_code_mode(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response(run_id=456)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=456)
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.continue_run(456, "Follow up query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_assisted_query_code_mode"] is True
 
     @patch("sentry.seer.agent.client.get_available_monitoring_providers")
     @patch("sentry.seer.agent.client.get_monitoring_provider_connections")
