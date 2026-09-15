@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 from django.utils import timezone
@@ -40,18 +41,25 @@ class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):
     def test_detect_establishes_viewer_context(self, mock_request: MagicMock) -> None:
         observed_contexts: list[ViewerContext | None] = []
 
-        def make_request(*args, **kwargs):
+        def make_request(*args: Any, **kwargs: Any) -> Mock:
             observed_contexts.append(get_viewer_context())
             return self._mock_response(200, b'{"success": true, "timeseries": []}')
 
         mock_request.side_effect = make_request
+        subscription_id = self.subscription.subscription_id
+        assert subscription_id is not None
 
         result = get_anomaly_data_from_seer(
             AnomalyDetectionSensitivity.HIGH,
             AnomalyDetectionSeasonality.AUTO,
             AnomalyDetectionThresholdType.ABOVE,
             self.subscription,
-            {"timestamp": timezone.now(), "value": 1.0},
+            {
+                "source_id": str(self.project.id),
+                "subscription_id": subscription_id,
+                "timestamp": timezone.now(),
+                "value": 1.0,
+            },
         )
 
         assert result is None
