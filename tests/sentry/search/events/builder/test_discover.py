@@ -1201,6 +1201,20 @@ class TopEventsQueryBuilderTest(TestCase):
         }
 
     @pytest.mark.querybuilder
+    def test_timestamp_condition_with_offset(self) -> None:
+        builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            interval=3600,
+            top_events=[{"timestamp.to_hour": "2023-01-01T02:00:00+02:00"}],
+            selected_columns=["timestamp.to_hour", "count()"],
+        )
+        assert (
+            "`timestamp.to_hour` = toDateTime('2023-01-01T00:00:00')"
+            in builder.get_snql_query().query.serialize()
+        )
+
+    @pytest.mark.querybuilder
     def test_resolve_top_event_conditions_duplicate_list_values(self) -> None:
         """Regression test: duplicate list values in top events must not raise TypeError."""
         # When the same list value appears in multiple top-event rows, the old

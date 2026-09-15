@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from snuba_sdk import (
@@ -421,6 +422,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
+                    values_list = [datetime.fromisoformat(value) for value in values_list]
                     if not other:
                         # timestamp fields needs special handling, creating a big OR instead
                         function, operator = Or, Op.EQ
