@@ -119,6 +119,22 @@ describe('Toast', () => {
     expect(screen.getByText('Success')).toBeInTheDocument();
   });
 
+  it('updates a toast when its variant changes', async () => {
+    let toastId: string | number = '';
+
+    render(<div />);
+    act(() => {
+      toastId = toast.loading('Loading', {duration: Infinity});
+    });
+
+    expect(await screen.findByText('Loading')).toBeInTheDocument();
+
+    act(() => void toast.success('Success', {duration: Infinity, id: toastId}));
+
+    expect(await screen.findByText('Success')).toBeInTheDocument();
+    expect(screen.queryByText('Loading')).not.toBeInTheDocument();
+  });
+
   it('runs an action and dismisses the toast', async () => {
     const onClick = jest.fn();
     render(<div />);

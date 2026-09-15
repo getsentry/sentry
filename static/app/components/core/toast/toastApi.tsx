@@ -17,14 +17,16 @@ function removeActiveToast(variant: ToastVariant, toastId: ToastId) {
   }
 }
 
-function dismissOtherVariants(variant: ToastVariant) {
+function dismissOtherVariants(variant: ToastVariant, toastIdToUpdate?: ToastId) {
   for (const [activeVariant, ids] of activeToastIds) {
     if (activeVariant === variant) {
       continue;
     }
 
     for (const toastId of ids) {
-      sonnerToast.dismiss(toastId);
+      if (toastId !== toastIdToUpdate) {
+        sonnerToast.dismiss(toastId);
+      }
     }
     activeToastIds.delete(activeVariant);
   }
@@ -33,7 +35,7 @@ function dismissOtherVariants(variant: ToastVariant) {
 function show(variant: ToastVariant, message: ReactNode, options: ToastOptions = {}) {
   const {action, dismissible = true, duration, id, onDismiss} = options;
 
-  dismissOtherVariants(variant);
+  dismissOtherVariants(variant, id);
 
   const toastId = sonnerToast.custom(
     renderedToastId => (
