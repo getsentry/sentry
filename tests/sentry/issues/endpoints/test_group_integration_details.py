@@ -1,9 +1,11 @@
+from time import time
 from typing import Any
 from unittest import mock
 
 import responses
 from django.db.utils import IntegrityError
 
+from fixtures.vsts import WORK_ITEM_RESPONSE
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -321,6 +323,47 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "repo": "example/repo"
             }
         assert len(responses.calls) == 3
+
+    @responses.activate
+    def test_put_azure_issue_url(self) -> None:
+        self.login_as(self.user)
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.create_identity_provider(type="vsts"),
+            external_id="vsts",
+            data={"access_token": "access-token", "expires": time() + 3600},
+        )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="vsts",
+            external_id="vsts:1",
+            name="fabrikam-fiber-inc",
+            metadata={"domain_name": "https://Fabrikam-Fiber-Inc.VisualStudio.COM/"},
+            oi_params={"default_auth_id": identity.id},
+        )
+        responses.get(
+            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/309",
+            body=WORK_ITEM_RESPONSE,
+            content_type="application/json",
+        )
+
+        with self.feature("organizations:integrations-issue-basic"):
+            for url in (
+                "https://fabrikam-fiber-inc.visualstudio.com/project/_workitems/edit/309",
+                "https://dev.azure.com/FABRIKAM-FIBER-INC/project/_workitems/edit/309?view=1",
+            ):
+                group = self.create_group(project=self.project)
+                path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+                response = self.client.put(path, data={"externalIssue": url})
+                assert response.status_code == 201
+                assert response.data["key"] == "309"
+                assert GroupLink.objects.filter(
+                    group_id=group.id,
+                    linked_id=response.data["id"],
+                    linked_type=GroupLink.LinkedType.issue,
+                    relationship=GroupLink.Relationship.references,
+                ).exists()
+        assert len(responses.calls) == 2
 
     @responses.activate
     def test_put_jira_issue_url(self) -> None:
