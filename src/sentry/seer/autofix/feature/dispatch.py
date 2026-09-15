@@ -12,7 +12,6 @@ from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
     AgentRunOptions,
-    SeerFeatureRunRequest,
     collect_user_org_context,
     get_proxy_headers,
 )
@@ -106,31 +105,44 @@ def trigger_autofix_feature(
     if args.stopping_point is not None:
         extras["stopping_point"] = args.stopping_point.value
 
-    client_args: SeerFeatureRunRequest = {
-        "feature_id": FEATURE_ID,
-        "payload": payload.dict(),
-        "referrer": args.referrer.value,
-        "user_org_context": collect_user_org_context(args.user, group.organization),
-        "proxy_headers": get_proxy_headers(),
-        "agent_run_options": AgentRunOptions(
-            is_context_engine_enabled=False,
-            enable_frontend_code_search=False,
-        ),
-    }
+    user_org_context = collect_user_org_context(args.user, group.organization)
     if is_new_run:
         run = client.start_feature_run(
-            **client_args,
+            feature_id=FEATURE_ID,
+            payload=payload.dict(),
+            referrer=args.referrer.value,
+            user_org_context=user_org_context,
+            proxy_headers=get_proxy_headers(),
+            agent_run_options=AgentRunOptions(
+                is_context_engine_enabled=False,
+                enable_frontend_code_search=False,
+            ),
             title=f"Autofix RCA — {payload.short_id}",
             flush=args.flush,
             extras=extras,
         )
-    else:
-        # Necessary for mypy
-        assert args.existing_run_id is not None
+    elif args.existing_run_id is not None:
+        existing_run = SeerRun.objects.filter(
+            organization_id=group.organization.id, seer_run_state_id=args.existing_run_id
+        ).first()
+
+        if existing_run is None:
+            raise Exception(f"Run with ID {args.existing_run_id} not found")
+
         run = client.continue_feature_run(
-            **client_args,
-            run_id=args.existing_run_id,
+            run=existing_run,
+            feature_id=FEATURE_ID,
+            payload=payload.dict(),
+            referrer=args.referrer.value,
+            user_org_context=user_org_context,
+            proxy_headers=get_proxy_headers(),
+            agent_run_options=AgentRunOptions(
+                is_context_engine_enabled=False,
+                enable_frontend_code_search=False,
+            ),
         )
+    else:
+        raise Exception("Unhandled run_id branch, this should never happen")
 
     if is_new_run and not skip_quota:
         quotas.backend.record_seer_run(

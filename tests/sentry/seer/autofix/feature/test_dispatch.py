@@ -22,16 +22,11 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_continues_feature_run(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        expected_context = {"org_slug": self.organization.slug, "all_org_projects": []}
 
         with (
             patch(
                 "sentry.seer.autofix.feature.dispatch.SeerAgentClient", autospec=True
             ) as MockClient,
-            patch(
-                "sentry.seer.autofix.feature.dispatch.collect_user_org_context",
-                return_value=expected_context,
-            ) as mock_collect_context,
             patch(
                 "sentry.seer.autofix.feature.dispatch.get_proxy_headers",
                 return_value={"X-Viewer-Context": "signed-viewer-context"},
@@ -77,7 +72,7 @@ class TestTriggerAutofixFeature(TestCase):
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
-        assert run_kwargs["run_id"] == 123
+        assert run_kwargs["run"] == fake_run
         assert run_kwargs["feature_id"] == "autofix"
         assert "flush" not in run_kwargs
         payload = run_kwargs["payload"]
@@ -111,9 +106,7 @@ class TestTriggerAutofixFeature(TestCase):
             "call_on_failure": True,
         }
         assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
-        assert run_kwargs["user_org_context"] == expected_context
         assert run_kwargs["proxy_headers"] == {"X-Viewer-Context": "signed-viewer-context"}
-        mock_collect_context.assert_called_once_with(None, self.group.organization)
         mock_get_proxy_headers.assert_called_once_with()
 
         client.start_feature_run.assert_not_called()

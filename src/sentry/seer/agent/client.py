@@ -619,21 +619,14 @@ class SeerAgentClient:
 
     def continue_feature_run(
         self,
-        run_id: int,
+        run: SeerRun,
         feature_id: str,
         payload: dict[str, Any],
         referrer: str,
+        user_org_context: UserOrgContext,
         agent_run_options: AgentRunOptions | None = None,
-        user_org_context: UserOrgContext | None = None,
         proxy_headers: dict[str, str] | None = None,
     ) -> SeerRun:
-        """Continue a feature-backed Seer run without creating a new run."""
-        run = SeerRun.objects.filter(
-            organization_id=self.organization.id, seer_run_state_id=run_id
-        ).first()
-        if run is None:
-            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
-
         resolved_agent_run_options = self._build_agent_run_options()
         if agent_run_options is not None:
             resolved_agent_run_options.update(agent_run_options)
@@ -645,11 +638,9 @@ class SeerAgentClient:
             payload=payload,
             referrer=referrer,
             agent_run_options=resolved_agent_run_options,
+            user_org_context=user_org_context,
+            proxy_headers=proxy_headers,
         )
-        if user_org_context is not None:
-            body["user_org_context"] = user_org_context
-        if proxy_headers is not None:
-            body["proxy_headers"] = proxy_headers
 
         response = make_feature_run_request(body, viewer_context=self.viewer_context)
         if response.status >= 400:
