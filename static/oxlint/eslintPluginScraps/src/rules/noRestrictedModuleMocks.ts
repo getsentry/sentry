@@ -1,4 +1,4 @@
-import {ESLintUtils} from '@typescript-eslint/utils';
+import {defineRule} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
 
@@ -24,7 +24,7 @@ const replacements = new Map([
  * `jest.doMock`, or `jest.spyOn`, and directs them to the supported render
  * options, stores, or fixtures listed above instead.
  */
-export const noRestrictedModuleMocks = ESLintUtils.RuleCreator.withoutDocs({
+export const noRestrictedModuleMocks = defineRule({
   meta: {
     type: 'problem',
     docs: {

@@ -1,4 +1,4 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noRelativeImportPaths} from './noRelativeImportPaths';
 
@@ -9,7 +9,7 @@ const options = [
     rootDir: 'static/app',
     allowSameFolder: true,
   },
-] as const;
+];
 
 ruleTester.run('no-relative-import-paths', noRelativeImportPaths, {
   valid: [

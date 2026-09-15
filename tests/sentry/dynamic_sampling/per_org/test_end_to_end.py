@@ -90,7 +90,7 @@ class PerOrgEndToEndTest(TestCase, SnubaTestCase, SpanTestCase):
             assert run_calculations_per_org_task(self.old_organization.id) is None
 
         # The org rate of 25% is spread over the projects so that the low-volume ones keep
-        # more of their traffic. These are the values the legacy pipeline produced as well.
+        # more of their traffic.
         for project, expected_rate in (
             (project_a, 0.14814814814814817),
             (project_b, 0.1904761904761905),

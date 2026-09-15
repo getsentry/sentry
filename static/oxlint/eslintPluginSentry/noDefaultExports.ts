@@ -1,4 +1,4 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 import ts from 'typescript';
 
 // Comment-separated static imports are harmless false positives.
@@ -69,20 +69,19 @@ export function collectLazyImportSpecifiers(
   return specifiers;
 }
 
-function findTopLevelDeclaration(body: TSESTree.ProgramStatement[], name: string) {
+function findTopLevelDeclaration(body: ESTree.Program['body'], name: string) {
   return body.find(statement => {
     switch (statement.type) {
-      case AST_NODE_TYPES.FunctionDeclaration:
-      case AST_NODE_TYPES.ClassDeclaration:
-      case AST_NODE_TYPES.TSEnumDeclaration:
-      case AST_NODE_TYPES.TSInterfaceDeclaration:
-      case AST_NODE_TYPES.TSTypeAliasDeclaration:
+      case 'FunctionDeclaration':
+      case 'ClassDeclaration':
+      case 'TSEnumDeclaration':
+      case 'TSInterfaceDeclaration':
+      case 'TSTypeAliasDeclaration':
         return statement.id?.name === name;
-      case AST_NODE_TYPES.VariableDeclaration:
+      case 'VariableDeclaration':
         return statement.declarations.some(
           declaration =>
-            declaration.id.type === AST_NODE_TYPES.Identifier &&
-            declaration.id.name === name
+            declaration.id.type === 'Identifier' && declaration.id.name === name
         );
       default:
         return false;
@@ -272,7 +271,7 @@ function getAllowedFiles(fileName: string): Set<string> | undefined {
   return cache.allowedFiles;
 }
 
-export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
+export const noDefaultExports = defineRule({
   meta: {
     type: 'problem',
     docs: {
@@ -291,12 +290,12 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
     updateAllowedFilesForSource(currentFileName, context.sourceCode.text);
 
     function visitDeclaration(
-      exported: TSESTree.Node,
-      declaration: TSESTree.ExportDefaultDeclaration
+      exported: ESTree.Node,
+      declaration: ESTree.ExportDefaultDeclaration
     ) {
       switch (exported.type) {
-        case AST_NODE_TYPES.ClassDeclaration:
-        case AST_NODE_TYPES.FunctionDeclaration: {
+        case 'ClassDeclaration':
+        case 'FunctionDeclaration': {
           context.report({
             node: declaration,
             messageId: 'forbidden',
@@ -312,9 +311,9 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        case AST_NODE_TYPES.Identifier: {
+        case 'Identifier': {
           const declarationToExport = findTopLevelDeclaration(
-            declaration.parent.body,
+            context.sourceCode.ast.body,
             exported.name
           );
 
@@ -341,15 +340,15 @@ export const noDefaultExports = ESLintUtils.RuleCreator.withoutDocs({
           return;
         }
 
-        case AST_NODE_TYPES.TSAsExpression:
+        case 'TSAsExpression':
           visitDeclaration(exported.expression, declaration);
           return;
 
         // Calls like HoCs often result in differences between internal and exported names:
         //   export default withConfig(MyComponent);
         //   export default styled(MyComponent)``;
-        case AST_NODE_TYPES.CallExpression:
-        case AST_NODE_TYPES.TaggedTemplateExpression: {
+        case 'CallExpression':
+        case 'TaggedTemplateExpression': {
           return;
         }
 
