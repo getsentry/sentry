@@ -4,6 +4,10 @@ import {createImportTracker} from '../ast/tracker/imports.ts';
 
 const replacements = new Map([
   [
+    'sentry/components/pageFilters/usePageFilters',
+    'Use PageFiltersStore.onInitializeUrlState(PageFiltersFixture({...})).',
+  ],
+  [
     'sentry/utils/useOrganization',
     'Pass organization: OrganizationFixture({...}) to the render options.',
   ],

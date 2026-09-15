@@ -5,7 +5,7 @@ from typing import Literal, NotRequired, TypedDict
 
 from pydantic import BaseModel, Field
 
-from sentry.seer.workflows.schemas import WorkflowRunExtras, WorkflowRunStatus
+from sentry.seer.workflows.schemas import WorkflowRunExtras, WorkflowRunSource, WorkflowRunStatus
 
 
 class SeerMonitorPropertyValue(BaseModel):
@@ -101,6 +101,7 @@ class MonitorCleanupRunExtras(WorkflowRunExtras):
 
 class MonitorCleanupRunResponse(TypedDict):
     id: str
+    source: WorkflowRunSource | None
     seerRunId: str
     dateAdded: datetime
     dateCompleted: datetime | None

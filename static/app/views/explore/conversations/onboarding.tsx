@@ -768,6 +768,10 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             steps={steps}
             source="conversations_onboarding"
             onCopy={() => {
+              trackAnalytics('conversations.onboarding.interaction', {
+                organization,
+                action: 'copy_agent_prompt',
+              });
               trackAnalytics('onboarding.ai_prompt_copied', {
                 organization,
                 platform: project.platform ?? 'unknown',

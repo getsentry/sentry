@@ -51,6 +51,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(run.id)
+        assert response.data[0]["source"] is None
         assert response.data[0]["errorMessage"] is None
         assert response.data[0]["errorType"] is None
         assert response.data[0]["extras"] == {"foo": "bar"}
@@ -338,7 +339,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert response.data[0]["id"] == str(own_run.id)
 
     def test_history_combines_workflows_and_respects_feature_flags(self) -> None:
-        older = Factories.create_seer_workflow_run(organization=self.organization)
+        older = Factories.create_seer_workflow_run(
+            organization=self.organization, extras={"options": {"source": None}}
+        )
         cleanup = self.create_agent_workflow(
             SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
         )
@@ -346,7 +349,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
         newer = Factories.create_seer_workflow_run(
-            organization=self.organization, workflow_config=triage_config
+            organization=self.organization,
+            workflow_config=triage_config,
+            extras={"options": {"source": "manual"}},
         )
         Factories.create_seer_workflow_run_execution(run=newer)
         Factories.create_seer_workflow_run_execution(run=newer)
@@ -362,6 +367,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
                 str(cleanup.id),
                 str(older.id),
             ]
+            assert [run["source"] for run in response.data] == ["manual", None, None]
             response = self.get_success_response(self.organization.slug, per_page=2)
             assert [run["id"] for run in response.data] == [str(newer.id), str(cleanup.id)]
 
@@ -437,6 +443,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
     def test_scan_stores_findings_and_returns_them_in_history(self) -> None:
         run = self.trigger()
         assert run.source == "monitor_cleanup"
+        assert run.extras["source"] == "manual"
         outbox = CellOutbox.objects.get(
             category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.run_id
         )
@@ -460,6 +467,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         output = response.data[0]
         assert output["id"] == str(run.run.workflow_execution.run_id)
         assert output["seerRunId"] == str(run.run.uuid)
+        assert output["source"] == "manual"
         assert output["dateCompleted"] is not None
         assert output["dateCompleted"] == run.run.workflow_execution.run.date_completed
         assert output["extras"] == {"status": "partial"}
