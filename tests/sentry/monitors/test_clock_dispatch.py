@@ -188,11 +188,6 @@ def run_short_partition_set_sequence(now: datetime) -> None:
 def test_monitor_task_trigger_missing_partitions(
     dispatch_tick: mock.MagicMock, metrics_mock: mock.MagicMock
 ) -> None:
-    """
-    Each clock call reports how many partitions from the most recent clock
-    pulse are missing from the partition clock set. The measurement does not
-    change which ticks are dispatched.
-    """
     now = timezone.now().replace(second=0, microsecond=0)
 
     # Run once as a process that has not seen a pulse, to get the ticks the

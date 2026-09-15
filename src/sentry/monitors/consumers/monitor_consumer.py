@@ -1191,7 +1191,7 @@ def process_batch(
 
         latest_partition_ts[item.partition.index] = item.timestamp
 
-        # A clock pulse only teaches us the partition list, we will have
+        # A clock pulse only tells us the partition list, we will have
         # already stored the latest_partition_ts to be used to tick the clock
         # at the end of this batch if necessary
         if wrapper["message_type"] == "clock_pulse":
@@ -1246,7 +1246,6 @@ def process_single(message: Message[KafkaPayload | FilteredPayload]) -> None:
 
         update_check_in_volume([ts])
 
-        # Remember the partition list before the clock call measures it
         if wrapper["message_type"] == "clock_pulse":
             record_pulse_partitions(wrapper)
 

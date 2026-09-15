@@ -47,41 +47,24 @@ _clock_tick_producer = SingletonProducer(_get_producer)
 
 @dataclass
 class PartitionSetState:
+    # partition ids from the most recent clock pulse this process has seen
     expected_partitions: frozenset[int] | None = None
-    """
-    The partition ids from the most recent clock pulse this process has seen.
-    None until the first pulse that carries the list.
-    """
 
+    # time when this process first saw an incomplete partition set (None when set is complete)
     incomplete_since: float | None = None
-    """
-    The unix time when this process first saw the partition clock set short,
-    or None when the set is complete.
-    """
 
 
-# Kept in process memory. A restart resets it.
 _partition_set_state = PartitionSetState()
 
 
 def record_pulse_partitions(pulse: ClockPulse) -> None:
-    """
-    Remember the partition list from a clock pulse. Every pulse carries the
-    full list, so one pulse is enough. Older pulses do not have the list.
-    """
     if "partition_ids" in pulse:
         _partition_set_state.expected_partitions = frozenset(pulse["partition_ids"])
 
 
 def _record_partition_set_metrics(partition_clocks: list[tuple[str, float]]) -> None:
-    """
-    Report how many expected partitions are missing from the partition clock
-    set, and how long the set has been short. This only measures. It does not
-    change whether the clock ticks.
-    """
     expected_partitions = _partition_set_state.expected_partitions
 
-    # Nothing to compare with until this process has seen a clock pulse
     if expected_partitions is None:
         return
 
