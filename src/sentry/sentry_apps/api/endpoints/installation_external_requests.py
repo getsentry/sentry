@@ -1,5 +1,5 @@
 import logging
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -32,7 +32,16 @@ from sentry.users.services.user.serial import serialize_generic_user
 logger = logging.getLogger("sentry.sentry-apps")
 
 
-class SentryAppInstallationExternalRequestsSerializer(serializers.Serializer):
+class SentryAppInstallationExternalRequestsData(TypedDict):
+    uri: NotRequired[str]
+    projectId: NotRequired[int]
+    query: NotRequired[str]
+    dependentData: NotRequired[str]
+
+
+class SentryAppInstallationExternalRequestsSerializer(
+    serializers.Serializer[Any, SentryAppInstallationExternalRequestsData]
+):
     uri = serializers.CharField(
         required=True,
         validators=[validate_sentry_app_uri],
