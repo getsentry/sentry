@@ -47,10 +47,6 @@ from sentry.types.actor import Actor
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
 from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +120,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         },
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
-    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
@@ -182,7 +177,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         },
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
-    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
@@ -203,7 +197,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         enforce_alerts_api_deprecation(project.organization)
-        report_used_legacy_models()
         rule_data_before = dict(rule.data)
         if rule.environment_id:
             rule_data_before["environment_id"] = rule.environment_id
@@ -368,7 +361,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-details",
@@ -406,7 +398,6 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
             )
             legacy_rule = Rule.objects.get(id=ard.rule_id, project=project)
 
-            report_used_legacy_models()
             with transaction.atomic(router.db_for_write(Rule)):
                 legacy_rule.update(status=ObjectStatus.PENDING_DELETION)
                 RuleActivity.objects.create(

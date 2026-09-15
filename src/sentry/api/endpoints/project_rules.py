@@ -61,10 +61,6 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 from sentry.workflow_engine.models import AlertRuleWorkflow, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -265,9 +261,6 @@ class DuplicateRuleEvaluator:
             all_rules = Rule.objects.exclude(id=self._rule_id)
 
         existing_rules = all_rules.filter(project__id=self._project_id, status=ObjectStatus.ACTIVE)
-        # Mark that we're using legacy Rule models (even if query returns no results)
-        report_used_legacy_models()
-
         for existing_rule in existing_rules:
             keys_checked = 0
             keys_matched = 0
@@ -842,7 +835,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.LIST_PROJECT_RULES,
     )
-    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-index",
@@ -892,7 +884,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         },
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
-    @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-workflow-index",
@@ -942,7 +933,6 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                 break
 
         rules = Rule.objects.filter(project=project, status=ObjectStatus.ACTIVE)
-        report_used_legacy_models()
         slow_rules = 0
         for rule in rules:
             for condition in rule.data["conditions"]:
