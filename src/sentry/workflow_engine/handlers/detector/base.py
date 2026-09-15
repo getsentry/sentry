@@ -232,6 +232,10 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             tainted = tainted or trigger_evaluation.is_tainted()
 
             if priority == DetectorPriorityLevel.OK:
+                # TODO: The existing implementation of this method does not resolve any issues created by the detector when
+                # the priority goes back to OK. This was an intentional decision as it ensures issues do not get resolved erroneously.
+                # In the future, we should consider either resolving the issue or allow subclasses to dictate keeping the issue open
+                # versus sending a resolve status change message.
                 continue
 
             results[group_key] = self._build_detector_evaluation(
