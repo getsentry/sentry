@@ -11,7 +11,6 @@ const TOOLTIP_SOURCE = '@sentry/scraps/tooltip';
 const TEXT_SOURCE = '@sentry/scraps/text';
 const INFO_SOURCE = '@sentry/scraps/info';
 const LOCALE_SOURCE = 'sentry/locale';
-const I18N_FUNCTIONS = new Set(['t', 'tct']);
 const TEXT_LIKE_INTRINSICS = new Set([
   'a',
   'abbr',
@@ -58,14 +57,6 @@ function getElementName(nameNode: TSESTree.JSXTagNameExpression): string {
   }
 }
 
-function isI18nCall(node: TSESTree.Expression, i18nNames: string[]): boolean {
-  return (
-    node.type === AST_NODE_TYPES.CallExpression &&
-    node.callee.type === AST_NODE_TYPES.Identifier &&
-    i18nNames.includes(node.callee.name)
-  );
-}
-
 export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'suggestion',
@@ -86,7 +77,14 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
     let resolved = false;
     let tooltipNames: string[] = [];
     let textNames: string[] = [];
-    let i18nNames: string[] = [];
+
+    function isLocaleCall(node: TSESTree.Expression): boolean {
+      return (
+        node.type === AST_NODE_TYPES.CallExpression &&
+        node.callee.type === AST_NODE_TYPES.Identifier &&
+        importTracker.resolve(node.callee.name)?.source === LOCALE_SOURCE
+      );
+    }
 
     function resolveNames() {
       if (resolved) {
@@ -95,9 +93,6 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
       resolved = true;
       tooltipNames = importTracker.findLocalNames(TOOLTIP_SOURCE, 'Tooltip');
       textNames = importTracker.findLocalNames(TEXT_SOURCE, 'Text');
-      i18nNames = Array.from(I18N_FUNCTIONS).flatMap(name =>
-        importTracker.findLocalNames(LOCALE_SOURCE, name)
-      );
     }
 
     function isTextLikeExpression(expr: TSESTree.Expression): boolean {
@@ -107,7 +102,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
         case AST_NODE_TYPES.TemplateLiteral:
           return true;
         case AST_NODE_TYPES.CallExpression:
-          return isI18nCall(expr, i18nNames);
+          return isLocaleCall(expr);
         case AST_NODE_TYPES.ConditionalExpression:
           return (
             isTextLikeExpression(expr.consequent) && isTextLikeExpression(expr.alternate)
