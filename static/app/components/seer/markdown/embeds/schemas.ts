@@ -188,7 +188,7 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
       '(e.g. "PROJECT-123"). ' +
       'Inline: renders a compact link with the short id. ' +
-      'Block: renders a full interactive issue row with title, events, users, ' +
+      'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
       'MUST NOT appear inside a markdown table or list. ' +
       'When referencing 2+ issues, use the `issues` embed instead. ' +
@@ -203,7 +203,7 @@ export const SEER_EMBED_SCHEMAS = {
   issues: {
     description:
       'The ONLY way to list multiple Sentry issues. Renders an interactive ' +
-      'table with title, trend graph, events, users, priority, and assignee ' +
+      'table with title, trend graph, events, priority, and assignee ' +
       'for each issue — do NOT duplicate any of that data as text. ' +
       'ALWAYS use this when referencing 2+ issues. ' +
       'MUST NOT appear inside a markdown table or list. ' +
@@ -496,7 +496,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: loads the saved filters and renders a live preview of matching issues. ' +
-      'Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. ' +
+      'Do not duplicate the issue titles, event counts, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
     schema: z.object({
