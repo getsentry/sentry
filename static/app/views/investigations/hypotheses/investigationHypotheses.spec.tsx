@@ -39,6 +39,20 @@ describe('shouldPollInvestigationRun', () => {
   ] as const)('%s polls: %s', (status, expected) => {
     expect(shouldPollInvestigationRun(status)).toBe(expected);
   });
+
+  it.each([
+    // A run parked at `awaiting_input` with no Seer id yet has not been created
+    // in Seer: the dispatch runs after the commit, and it can still rewrite the
+    // projection or fail the run, so the placeholder status must keep polling.
+    ['awaiting_input', false, true],
+    // Once the run exists, the same status really does mean blocked on a person.
+    ['awaiting_input', true, false],
+    // A create that failed leaves no Seer id behind, but the run has stopped for
+    // good — the missing id must not restart polling.
+    ['failed', false, false],
+  ] as const)('%s with hasSeerRun %s polls: %s', (status, hasSeerRun, expected) => {
+    expect(shouldPollInvestigationRun(status, hasSeerRun)).toBe(expected);
+  });
 });
 
 describe('InvestigationHypotheses', () => {
