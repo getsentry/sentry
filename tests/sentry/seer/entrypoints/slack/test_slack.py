@@ -8,6 +8,7 @@ from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
     SeerAgentError,
+    SeerAgentPullRequests,
     SeerAgentResponse,
     SeerAgentWriteApproval,
     SeerAutofixUpdate,
@@ -716,6 +717,31 @@ class SlackAgentEntrypointTest(TestCase):
         call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
         assert isinstance(call_data, SeerAgentError)
         assert call_data.error_message == "Seer was unable to generate a response."
+
+    @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
+    def test_on_agent_pull_requests_created(self, mock_schedule_all_thread_updates):
+        ep = self._get_entrypoint()
+        cache_payload = ep.create_agent_cache_payload()
+        pull_requests = [
+            {"repo_name": "acme/web", "pr_number": 482, "pr_url": "https://gh/acme/web/pull/482"}
+        ]
+
+        SlackAgentEntrypoint.on_agent_pull_requests_created(
+            cache_payload=cache_payload,
+            run_id=12345,
+            pull_requests=pull_requests,
+        )
+
+        mock_schedule_all_thread_updates.assert_called_once_with(
+            threads=[cache_payload["thread"]],
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            data=ANY,
+        )
+        call_data = mock_schedule_all_thread_updates.call_args.kwargs["data"]
+        assert isinstance(call_data, SeerAgentPullRequests)
+        assert call_data.run_id == 12345
+        assert call_data.pull_requests == pull_requests
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates")
     @patch("sentry.seer.entrypoints.slack.entrypoint._send_agent_write_approval")

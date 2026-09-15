@@ -233,3 +233,42 @@ class SeerAgentWriteApprovalTemplate(NotificationTemplate[SeerAgentWriteApproval
 
     def render(self, data: SeerAgentWriteApproval) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(subject="Seer Agent Write Approval", body=[])
+
+
+class SeerAgentPullRequest(TypedDict):
+    repo_name: str
+    pr_number: int
+    pr_url: str
+
+
+class SeerAgentPullRequests(NotificationData):
+    """The pull requests an agent run opened after its reply already went out.
+
+    Separate from ``SeerAgentResponse`` because the PR is created asynchronously by
+    Seer's PR step, so it does not exist yet when the completion hook posts the reply.
+    """
+
+    run_id: int
+    organization_id: int
+    pull_requests: list[SeerAgentPullRequest]
+    source: NotificationSource = NotificationSource.SEER_AGENT_PULL_REQUESTS
+
+
+@template_registry.register(NotificationSource.SEER_AGENT_PULL_REQUESTS)
+class SeerAgentPullRequestsTemplate(NotificationTemplate[SeerAgentPullRequests]):
+    category = NotificationCategory.SEER
+    example_data = SeerAgentPullRequests(
+        run_id=12345,
+        organization_id=1,
+        pull_requests=[
+            {
+                "repo_name": "getsentry/sentry",
+                "pr_number": 123,
+                "pr_url": "https://github.com/getsentry/sentry/pull/123",
+            }
+        ],
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerAgentPullRequests) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(subject="Seer Agent Pull Requests", body=[])
