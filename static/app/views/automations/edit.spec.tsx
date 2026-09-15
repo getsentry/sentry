@@ -12,6 +12,7 @@ import {
   userEvent,
   waitFor,
   within,
+  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -20,16 +21,23 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useParams} from 'sentry/utils/useParams';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 import AutomationEdit from 'sentry/views/automations/edit';
 
-jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/analytics');
 
 describe('EditAutomation', () => {
   const automation = AutomationFixture();
   const organization = OrganizationFixture();
+  const initialRouterConfig = {
+    routes: [
+      '/organizations/:orgId/monitors/alerts/:automationId/',
+      '/organizations/:orgId/monitors/alerts/:automationId/edit/',
+    ],
+    location: {
+      pathname: `/organizations/${organization.slug}/monitors/alerts/${automation.id}/edit/`,
+    },
+  } satisfies RouterConfig;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -82,10 +90,6 @@ describe('EditAutomation', () => {
       method: 'GET',
       body: [],
     });
-
-    jest.mocked(useParams).mockReturnValue({
-      automationId: automation.id,
-    });
   });
 
   it('displays `any` for ANY in the filter logic dropdown', async () => {
@@ -102,6 +106,7 @@ describe('EditAutomation', () => {
 
     render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Wait for the form to load
@@ -119,6 +124,7 @@ describe('EditAutomation', () => {
 
     const {router} = render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -153,6 +159,7 @@ describe('EditAutomation', () => {
 
     render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Wait for the component to load and display automation actions
@@ -184,6 +191,7 @@ describe('EditAutomation', () => {
 
     const {router} = render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Update an existing filter value field
@@ -257,7 +265,7 @@ describe('EditAutomation', () => {
         body: automation,
       });
 
-      render(<AutomationEdit />, {organization});
+      render(<AutomationEdit />, {organization, initialRouterConfig});
 
       await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 
