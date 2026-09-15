@@ -5,6 +5,7 @@ import {LazyLoad} from 'sentry/components/lazyLoad';
 import {
   ResourceLink,
   resourceLinkMarkdown,
+  type ResourceLinkFormatProps,
 } from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconIssues} from 'sentry/icons';
@@ -23,6 +24,12 @@ const BLOCK_COLUMNS: GroupListColumn[] = [
   'priority',
   'assignee',
 ];
+
+function IssueLink({format, id}: {id: string} & ResourceLinkFormatProps) {
+  return (
+    <ResourceLink format={format} icon={IconIssues} href={`/issues/${id}/`} title={id} />
+  );
+}
 
 function SingleIssueBlock({id}: {id: string}) {
   const queryParams = useMemo(() => ({query: `issue:${id}`, limit: '1'}), [id]);
@@ -72,9 +79,9 @@ export const Issue = defineSeerEmbed({
       case 'block':
         return <SingleIssueBlock id={id} />;
       case 'markdown':
-        return resourceLinkMarkdown(`/issues/${id}/`, id);
+        return <IssueLink id={id} format="markdown" />;
       case 'inline':
-        return <ResourceLink icon={IconIssues} href={`/issues/${id}/`} title={id} />;
+        return <IssueLink id={id} />;
     }
   },
 });
@@ -85,7 +92,9 @@ export const Issues = defineSeerEmbed({
     switch (level) {
       case 'markdown':
         // The table's columns are all live data. What a copy can carry is the
-        // set of issues it was listing, one link each.
+        // set of issues it was listing, one link each. Built as strings rather
+        // than as `IssueLink`s because the links are being joined into a list,
+        // and there is no element here to hand a `format` to.
         return ids
           .flatMap(id => resourceLinkMarkdown(`/issues/${id}/`, id) ?? [])
           .map(link => `- ${link}`)

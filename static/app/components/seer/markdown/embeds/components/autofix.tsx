@@ -54,6 +54,10 @@ export const STEP_LABELS: Record<AutofixExplorerStep, string> = {
  * naming the step and the issue whose run it belongs to. Progress, the retry
  * and continue buttons, and the step body are the reasons to be looking at the
  * embed rather than at a copy of it.
+ *
+ * The link is built as a string rather than by rendering a `ResourceLink` with
+ * `format="markdown"`, because it is composed into a larger line and this embed
+ * draws no resource link otherwise -- there is no icon to give one.
  */
 function autofixStepMarkdown(
   step: AutofixExplorerStep,
