@@ -86,6 +86,10 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     name: ClassVar[str]
     repo_provider: ClassVar[str]
+    # ``Repository.provider`` values written by the plugin that preceded this integration,
+    # where they differ from ``repo_provider``. Plugin-era rows have no integration_id and
+    # are adopted on install rather than duplicated.
+    legacy_provider_ids: ClassVar[tuple[str, ...]] = ()
 
     def __init__(self, id: str) -> None:
         self.id = id
@@ -113,6 +117,47 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
         return cast(InstT, rpc_integration.get_installation(organization_id=organization_id))
 
+    @property
+    def owned_provider_ids(self) -> list[str]:
+        """Every ``Repository.provider`` value that belongs to this provider.
+
+        An external id is only unique per provider, so lookups by external id must be
+        restricted to these or they match another provider's repository with the same id.
+        """
+        return [self.id, self.repo_provider, *self.legacy_provider_ids]
+
+    def _adoptable_repositories(self, organization_id: int, **filters: Any) -> list[RpcRepository]:
+        """Repositories this provider may take over, narrowed by ``filters``.
+
+        Its own rows (including plugin-era ones) and rows that never had a provider. A row
+        belonging to another provider is a different repository that happens to share an
+        external id, and is left alone.
+
+        Adopting rewrites ``provider`` to this provider's id, so a plugin-era or
+        provider-less row is skipped when a row already holds ``(organization, provider,
+        external_id)`` for it — whatever that row's status. That row is the repository;
+        rewriting the other would violate the unique key.
+        """
+        candidates = [
+            *repository_service.get_repositories(
+                organization_id=organization_id, providers=self.owned_provider_ids, **filters
+            ),
+            *repository_service.get_repositories(
+                organization_id=organization_id, has_provider=False, **filters
+            ),
+        ]
+        taken = {
+            repo.external_id
+            for repo in repository_service.get_repositories(
+                organization_id=organization_id,
+                providers=[self.id],
+                external_id=filters.get("external_id"),
+            )
+        }
+        return [
+            repo for repo in candidates if repo.provider == self.id or repo.external_id not in taken
+        ]
+
     def create_repository(
         self,
         repo_config: Mapping[str, Any],
@@ -126,15 +171,14 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         url = result["url"]
 
         # first check if there is an existing hidden repository for the organization and external id
-        repositories = repository_service.get_repositories(
-            organization_id=organization.id,
-            external_id=external_id,
-            status=ObjectStatus.HIDDEN,
+        repositories = self._adoptable_repositories(
+            organization.id, external_id=external_id, status=ObjectStatus.HIDDEN
         )
         existing_repo = repositories[0] if repositories else None
         if existing_repo:
             existing_repo.status = ObjectStatus.ACTIVE
             existing_repo.name = name
+            existing_repo.provider = self.id  # a plugin-era or provider-less row is ours now
             existing_repo.integration_id = integration_id
             existing_repo.url = url
             existing_repo.config = {**existing_repo.config, **(result.get("config") or {})}
@@ -146,10 +190,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             return result, existing_repo
 
         # then check if there is a repository without an integration that matches
-        repositories = repository_service.get_repositories(
-            organization_id=organization.id,
-            has_integration=False,
-            external_id=external_id,
+        repositories = self._adoptable_repositories(
+            organization.id, external_id=external_id, has_integration=False
         )
         repo = repositories[0] if repositories else None
 
@@ -223,6 +265,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
 
     def _update_repository(self, repo: RpcRepository, config: RepositoryConfig) -> RpcRepository:
         repo.status = ObjectStatus.ACTIVE
+        repo.provider = self.id  # a plugin-era or provider-less row is ours now
 
         new_config = config.get("config") or {}
         repo.config = {**repo.config, **new_config}
@@ -264,17 +307,11 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         repos_to_update: list[RpcRepository] = []
         created_repos: list[RpcRepository] = []
 
-        hidden_repos = repository_service.get_repositories(
-            organization_id=organization.id,
-            status=ObjectStatus.HIDDEN,
-        )
+        hidden_repos = self._adoptable_repositories(organization.id, status=ObjectStatus.HIDDEN)
         repos_to_update.extend(self._update_repositories(hidden_repos, external_id_to_repo_config))
 
         # then check if there are repositories without an integration that matches
-        repositories = repository_service.get_repositories(
-            organization_id=organization.id,
-            has_integration=False,
-        )
+        repositories = self._adoptable_repositories(organization.id, has_integration=False)
         repos_to_update.extend(self._update_repositories(repositories, external_id_to_repo_config))
 
         # create remaining repositories
