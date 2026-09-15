@@ -12,8 +12,8 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {
   createMemoryHistory,
   createRouter,
-  type History,
   type InitialEntry,
+  type MemoryHistory,
   type Router,
   type RouterNavigateOptions,
 } from '@remix-run/router';
@@ -92,12 +92,8 @@ export interface RouterConfig {
 }
 
 export interface RenderOptions extends rtl.RenderOptions, ProviderOptions {
-  /** Override memory history for tests that need the browser's URL. */
-  history?: History;
   initialRouterConfig?: RouterConfig;
   outletContext?: Record<string, unknown>;
-  /** Override the default v7 transition behavior to match a specific router. */
-  routerFuture?: React.ComponentProps<typeof RouterProvider>['future'];
 }
 
 interface RenderReturn extends rtl.RenderResult {
@@ -232,7 +228,7 @@ function makeRouter({
 }: {
   children: React.ReactNode;
   config: RouterConfig | undefined;
-  history: History;
+  history: MemoryHistory;
   outletContext: Record<string, unknown> | undefined;
 }) {
   const childRoutes = createRoutesFromConfig(children, config);
@@ -346,8 +342,9 @@ function getInitialRouterConfig(options: InitialRouterOptions): {
 function render(ui: React.ReactElement, options: RenderOptions = {}): RenderReturn {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
-  const history =
-    options.history ?? createMemoryHistory({initialEntries: [initialEntry]});
+  const history = createMemoryHistory({
+    initialEntries: [initialEntry],
+  });
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
@@ -362,10 +359,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
   });
 
   const renderResult = rtl.render(
-    <RouterProvider
-      router={memoryRouter}
-      future={options.routerFuture ?? {v7_startTransition: true}}
-    />,
+    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
     options
   );
 
@@ -378,10 +372,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     });
 
     renderResult.rerender(
-      <RouterProvider
-        router={newRouter}
-        future={options.routerFuture ?? {v7_startTransition: true}}
-      />
+      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
     );
     // Force the router to update children
     rtl.act(() => newRouter.revalidate());
