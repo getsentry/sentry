@@ -22,6 +22,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.schemas import WorkflowRunSource
 
 
 class SeerNightShiftRunResultResponse(TypedDict):
@@ -62,7 +63,7 @@ class SeerWorkflowRunExecutionSerializer(Serializer[SeerWorkflowRunExecutionResp
 
 class SeerNightShiftRunResponse(TypedDict):
     id: str
-    source: str
+    source: WorkflowRunSource
     dateAdded: datetime
     extras: dict[str, Any]
     errorMessage: str | None

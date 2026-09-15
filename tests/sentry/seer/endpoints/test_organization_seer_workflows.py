@@ -51,6 +51,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(run.id)
+        assert response.data[0]["source"] == "cron"
         assert response.data[0]["errorMessage"] is None
         assert response.data[0]["errorType"] is None
         assert response.data[0]["extras"] == {"foo": "bar"}
@@ -99,26 +100,6 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         issue = response.data[0]["issues"][0]
         assert issue["action"] == "skip"
         assert issue["skipReason"] == "ambiguous_root_cause"
-
-    def test_returns_recorded_triage_source(self) -> None:
-        manual = Factories.create_seer_workflow_run(
-            organization=self.organization, extras={"options": {"source": "manual"}}
-        )
-        scheduled = Factories.create_seer_workflow_run(
-            organization=self.organization, extras={"options": {"source": "cron"}}
-        )
-        historical = Factories.create_seer_workflow_run(organization=self.organization)
-        unrecorded = Factories.create_seer_workflow_run(
-            organization=self.organization, extras={"options": {"source": None}}
-        )
-        with self.feature("organizations:seer-night-shift"):
-            response = self.get_success_response(self.organization.slug)
-        assert {run["id"]: run["source"] for run in response.data} == {
-            str(manual.id): "manual",
-            str(scheduled.id): "cron",
-            str(historical.id): "cron",
-            str(unrecorded.id): "cron",
-        }
 
     def test_issue_with_missing_group_has_null_title(self) -> None:
         # group FK is db_constraint=False, so a stale group_id is possible in
@@ -358,7 +339,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert response.data[0]["id"] == str(own_run.id)
 
     def test_history_combines_workflows_and_respects_feature_flags(self) -> None:
-        older = Factories.create_seer_workflow_run(organization=self.organization)
+        older = Factories.create_seer_workflow_run(
+            organization=self.organization, extras={"options": {"source": None}}
+        )
         cleanup = self.create_agent_workflow(
             SeerWorkflowStrategy.DUPLICATE_MONITORS, "monitor_cleanup"
         )
@@ -366,7 +349,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
         newer = Factories.create_seer_workflow_run(
-            organization=self.organization, workflow_config=triage_config
+            organization=self.organization,
+            workflow_config=triage_config,
+            extras={"options": {"source": "manual"}},
         )
         Factories.create_seer_workflow_run_execution(run=newer)
         Factories.create_seer_workflow_run_execution(run=newer)
@@ -382,6 +367,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
                 str(cleanup.id),
                 str(older.id),
             ]
+            assert [run["source"] for run in response.data] == ["manual", "cron", "cron"]
             response = self.get_success_response(self.organization.slug, per_page=2)
             assert [run["id"] for run in response.data] == [str(newer.id), str(cleanup.id)]
 
@@ -493,31 +479,6 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
             {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
         ]
-
-    def test_returns_recorded_monitor_source(self) -> None:
-        run = self.trigger()
-        run.update(extras={**run.extras, "source": "cron"})
-        with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data[0]["source"] == "cron"
-
-    def test_defaults_historical_monitor_source_to_automated(self) -> None:
-        run = self.trigger()
-        run.extras.pop("source")
-        run.update(extras=run.extras)
-        with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data[0]["source"] == "cron"
-
-    def test_defaults_null_monitor_source_to_automated(self) -> None:
-        run = self.trigger()
-        run.update(extras={**run.extras, "source": None})
-        with self.feature("organizations:seer-workflows-monitor-cleanup"):
-            response = self.client.get(self.url)
-        assert response.status_code == 200
-        assert response.data[0]["source"] == "cron"
 
     def test_invalid_results_report_safe_errors(self) -> None:
         run = self.trigger()
