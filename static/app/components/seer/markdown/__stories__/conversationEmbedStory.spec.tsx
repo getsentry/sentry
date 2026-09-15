@@ -3,19 +3,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {ConversationEmbedStory} from './conversationEmbedStory';
+import {findExampleTags} from './embedStoryTestUtils';
 
 jest.mock('sentry/components/seer/markdown', () => ({
   SeerMarkdown: ({raw}: {raw: string}) => <div aria-label="Rendered markdown">{raw}</div>,
 }));
-/**
- * One element per example. Each variant renders its embed once per level it
- * declares, so the block demo -- whose raw is the bare tag -- is the one that
- * carries the data the story chose.
- */
-async function findExampleTags() {
-  const demos = await screen.findAllByLabelText('Rendered markdown');
-  return demos.filter(demo => demo.textContent?.startsWith('{%'));
-}
 
 function createConversation(conversation: Partial<Conversation>): Conversation {
   return {

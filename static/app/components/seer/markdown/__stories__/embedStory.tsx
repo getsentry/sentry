@@ -1,6 +1,8 @@
 import type {ComponentProps, ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {Kbd} from '@sentry/scraps/hotkey';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -141,7 +143,13 @@ export function EmbedStory({children, name}: EmbedStoryProps) {
         </Text>
         {'featureFlag' in schema ? (
           <Text size="sm" variant="muted">
-            Flag: {[schema.featureFlag].flat().join(' or ')}
+            Flag:{' '}
+            {[schema.featureFlag].flat().map((flag, index) => (
+              <Fragment key={flag}>
+                {index > 0 ? ' or ' : null}
+                <Kbd>{flag}</Kbd>
+              </Fragment>
+            ))}
           </Text>
         ) : null}
       </Stack>
