@@ -7,7 +7,11 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useAuthV2Rollout} from 'sentry/utils/useAuthV2Rollout';
-import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
+import {
+  AuthV2CookieState,
+  getAuthV2CookieState,
+  useEnableAuthV2,
+} from 'sentry/utils/useEnableAuthV2';
 
 jest.mock('sentry/utils/analytics');
 
@@ -22,6 +26,21 @@ function getRolloutOrganization(): string | null {
 function setRolloutOrganization(organizationSlug: string) {
   localStorage.setItem(AUTH_V2_ROLLOUT_ORGANIZATION, JSON.stringify(organizationSlug));
 }
+
+describe('getAuthV2CookieState', () => {
+  it('returns UNSET when document.cookie access throws a SecurityError (sandboxed iframe)', () => {
+    jest.spyOn(Cookies, 'get').mockImplementation(() => {
+      throw new DOMException(
+        "Forbidden in a sandboxed document without the 'allow-same-origin' flag.",
+        'SecurityError'
+      );
+    });
+
+    expect(getAuthV2CookieState()).toBe(AuthV2CookieState.UNSET);
+
+    jest.restoreAllMocks();
+  });
+});
 
 describe('useAuthV2Rollout', () => {
   beforeEach(() => {

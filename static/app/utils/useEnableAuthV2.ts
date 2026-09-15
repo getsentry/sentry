@@ -13,7 +13,15 @@ export enum AuthV2CookieState {
 }
 
 export function getAuthV2CookieState() {
-  const value = Cookies.get(REACT_AUTH_COOKIE);
+  let value: string | undefined;
+  try {
+    value = Cookies.get(REACT_AUTH_COOKIE);
+  } catch {
+    // document.cookie access is forbidden in sandboxed iframes without
+    // allow-same-origin (e.g. dashboard widget previews). Treat the cookie
+    // as absent, which is the same as UNSET.
+    return AuthV2CookieState.UNSET;
+  }
 
   if (value === '1') {
     return AuthV2CookieState.ENABLED;
