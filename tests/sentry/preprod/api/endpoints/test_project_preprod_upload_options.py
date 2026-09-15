@@ -62,7 +62,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         mock_session.mint_token.return_value = "fake-token"
         mock_get_session.return_value = mock_session
 
-        with override_options({"preprod.snapshots.snapshots-usecase.enabled": True}):
+        with override_options({"preprod.snapshots.objectstore.snapshots-usecase.enabled": True}):
             response = self.client.get(self.url, {"usecase": "auto"})
 
         assert response.status_code == 200
@@ -75,7 +75,7 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         mock_session.mint_token.return_value = "fake-token"
         mock_get_session.return_value = mock_session
 
-        with override_options({"preprod.snapshots.snapshots-usecase.enabled": True}):
+        with override_options({"preprod.snapshots.objectstore.snapshots-usecase.enabled": True}):
             response = self.client.get(self.url)
 
         assert response.status_code == 200

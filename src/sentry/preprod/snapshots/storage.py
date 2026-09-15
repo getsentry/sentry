@@ -13,7 +13,7 @@ from sentry.utils import metrics
 
 
 def get_snapshot_usecase() -> UsecaseId:
-    if options.get("preprod.snapshots.snapshots-usecase.enabled"):
+    if options.get("preprod.snapshots.objectstore.snapshots-usecase.enabled"):
         return UsecaseId.PREPROD_SNAPSHOTS
     return UsecaseId.PREPROD
 

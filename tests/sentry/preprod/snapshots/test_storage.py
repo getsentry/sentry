@@ -107,7 +107,7 @@ def test_factory_defaults_to_preprod_primary(mock_get_session) -> None:
 @django_db_all
 @patch("sentry.preprod.snapshots.storage.get_session")
 def test_factory_follows_option(mock_get_session) -> None:
-    with override_options({"preprod.snapshots.snapshots-usecase.enabled": True}):
+    with override_options({"preprod.snapshots.objectstore.snapshots-usecase.enabled": True}):
         get_snapshot_storage(42, org=7)
     assert mock_get_session.call_args_list == [
         call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),
