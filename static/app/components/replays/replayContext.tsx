@@ -580,9 +580,7 @@ export function Provider({
         // should clear out existing dom element.
         // Guard against wrapper being undefined (e.g. replayer destroyed but ref not yet cleared)
         // by falling back to rootEl, mirroring the else-if branch below.
-        initRoot(
-          (replayerRef.current.wrapper?.parentElement ?? rootEl) as RootElem
-        );
+        initRoot((replayerRef.current.wrapper?.parentElement ?? rootEl) as RootElem);
       } else if (rootEl) {
         initRoot(rootEl);
       }
