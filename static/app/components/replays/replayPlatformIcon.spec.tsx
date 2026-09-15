@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   ReplayPlatformIcon,
-  ReplayPlatformIconStack,
+  ReplayPlatformIcons,
 } from 'sentry/components/replays/replayPlatformIcon';
 
 describe('ReplayPlatformIcon', () => {
@@ -47,15 +47,14 @@ describe('ReplayPlatformIcon', () => {
   });
 });
 
-describe('ReplayPlatformIconStack', () => {
+describe('ReplayPlatformIcons', () => {
   const chrome = {name: 'Chrome', version: '103.0.0'};
   const macOS = {name: 'Mac OS X', version: '10.15.7'};
   const noBrowser = {name: null, version: null};
 
-  it('stacks the browser behind the OS, each with its own tooltip', async () => {
-    render(<ReplayPlatformIconStack browser={chrome} os={macOS} />);
+  it('shows the OS then the browser, each with its own tooltip', async () => {
+    render(<ReplayPlatformIcons browser={chrome} os={macOS} />);
 
-    // The OS leads, the browser follows and slides under it.
     const [os, browser] = screen.getAllByRole('img');
 
     await userEvent.hover(os!);
@@ -66,10 +65,10 @@ describe('ReplayPlatformIconStack', () => {
   });
 
   it('shows the OS alone for a replay with no browser', async () => {
-    render(<ReplayPlatformIconStack browser={noBrowser} os={macOS} />);
+    render(<ReplayPlatformIcons browser={noBrowser} os={macOS} />);
 
-    // A mobile replay has no browser to stack, so it gets no second icon —
-    // and no "N/A" marker standing in for one.
+    // A mobile replay has no browser, so it gets no second icon — and no
+    // "N/A" marker standing in for one.
     const icon = screen.getByRole('img');
     await userEvent.hover(icon);
 
