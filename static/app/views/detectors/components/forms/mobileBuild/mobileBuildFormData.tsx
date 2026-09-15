@@ -24,21 +24,6 @@ export interface PreprodDetectorFormData {
   workflowIds: string[];
 }
 
-type PreprodDetectorFormFieldName = keyof PreprodDetectorFormData;
-
-export const PREPROD_DETECTOR_FORM_FIELDS = {
-  name: 'name',
-  projectId: 'projectId',
-  owner: 'owner',
-  description: 'description',
-  workflowIds: 'workflowIds',
-  measurement: 'measurement',
-  thresholdType: 'thresholdType',
-  highThreshold: 'highThreshold',
-  lowThreshold: 'lowThreshold',
-  query: 'query',
-} satisfies Record<PreprodDetectorFormFieldName, PreprodDetectorFormFieldName>;
-
 export const PREPROD_DEFAULT_FORM_DATA = {
   measurement: 'install_size',
   thresholdType: 'absolute',
