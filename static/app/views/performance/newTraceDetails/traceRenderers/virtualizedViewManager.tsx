@@ -224,21 +224,23 @@ export class VirtualizedViewManager {
 
   setTimeCompression(compression: TraceTimeCompression) {
     this.time_compression = compression;
+    this.scheduler.dispatch('time compression change');
   }
 
   recomputeTimeCompression(options = this.timeCompressionOptions) {
     if (!options) {
-      this.time_compression = TraceTimeCompression.Disabled([
-        this.view.to_origin,
-        this.view.trace_space.width,
-      ]);
+      this.setTimeCompression(
+        TraceTimeCompression.Disabled([this.view.to_origin, this.view.trace_space.width])
+      );
       return;
     }
 
-    this.time_compression = TraceTimeCompression.FromVisibleItems({
-      ...options,
-      physicalWidth: this.view.trace_physical_space.width,
-    });
+    this.setTimeCompression(
+      TraceTimeCompression.FromVisibleItems({
+        ...options,
+        physicalWidth: this.view.trace_physical_space.width,
+      })
+    );
   }
 
   dividerStartVec: [number, number] | null = null;
