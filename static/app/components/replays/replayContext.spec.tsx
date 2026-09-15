@@ -192,4 +192,26 @@ describe('replayContext', () => {
 
     expect(screen.getByText('Fast forward: 8')).toBeInTheDocument();
   });
+
+  it('does not throw when the rrweb replayer wrapper is undefined during re-init', () => {
+    // Simulate a replayer whose wrapper has been torn down (undefined) while the
+    // instance ref itself still exists — this is the race condition that caused
+    // "TypeError: can't access property parentElement, M.current.wrapper is undefined".
+    const {Replayer} = jest.requireMock('@sentry-internal/rrweb');
+    Replayer.mockImplementationOnce(() => ({
+      config: {skipInactive: false, speed: 1},
+      destroy: jest.fn(),
+      getCurrentTime: () => 0,
+      getMirror: () => null,
+      iframe: document.createElement('iframe'),
+      on: jest.fn(),
+      pause: jest.fn(),
+      play: jest.fn(),
+      setConfig: jest.fn(),
+      wrapper: undefined,
+    }));
+
+    // Rendering must not throw even though wrapper is undefined.
+    expect(() => renderPlayer()).not.toThrow();
+  });
 });
