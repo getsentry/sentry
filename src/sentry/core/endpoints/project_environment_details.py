@@ -1,3 +1,5 @@
+from typing import Any
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -102,7 +104,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
             return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
-        fields = {}
+        fields: dict[str, Any] = {}
 
         if "isHidden" in data:
             fields["is_hidden"] = data["isHidden"]

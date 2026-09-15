@@ -65,7 +65,7 @@ class ReleaseThresholdStatusIndexData(TypedDict, total=False):
 
 
 class ReleaseThresholdStatusIndexSerializer(
-    serializers.Serializer[ReleaseThresholdStatusIndexData]
+    serializers.Serializer[Any, ReleaseThresholdStatusIndexData]
 ):
     start = serializers.DateTimeField(
         help_text="The start of the time series range as an explicit datetime, either in UTC ISO8601 or epoch seconds. "
