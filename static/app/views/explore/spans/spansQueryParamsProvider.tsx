@@ -1,7 +1,8 @@
 import type {ReactNode} from 'react';
+import {useCallback} from 'react';
+import type {Location} from 'history';
 
 import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
-import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   getReadableQueryParamsFromLocation,
   getTargetWithReadableQueryParams,
@@ -10,17 +11,21 @@ import {
 
 interface SpansQueryParamsProviderProps {
   children: ReactNode;
-  frozenParams?: Partial<ReadableQueryParamsOptions>;
+  fields?: string[];
 }
 
 export function SpansQueryParamsProvider({
   children,
-  frozenParams,
+  fields,
 }: SpansQueryParamsProviderProps) {
+  const getQueryParams = useCallback(
+    (location: Location) => getReadableQueryParamsFromLocation(location, fields),
+    [fields]
+  );
+
   return (
     <ExploreLocationQueryParamsProvider
-      frozenParams={frozenParams}
-      getReadableQueryParamsFromLocation={getReadableQueryParamsFromLocation}
+      getReadableQueryParamsFromLocation={getQueryParams}
       getTargetWithReadableQueryParams={getTargetWithReadableQueryParams}
       isDefaultFields={isDefaultFields}
     >
