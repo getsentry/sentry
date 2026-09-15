@@ -507,8 +507,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
-    API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
-    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
