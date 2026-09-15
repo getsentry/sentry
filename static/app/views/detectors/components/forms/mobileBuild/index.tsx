@@ -20,14 +20,12 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
-import {
-  DetectorFormLayout,
-  DetectorOwnershipSection,
-  DetectorProjectSection,
-  getDetectorSubmitTitle,
-  useDetectorProject,
-  useInitialDetectorCommonValues,
-} from 'sentry/views/detectors/components/forms/common/scraps';
+import {DetectorFormLayout} from 'sentry/views/detectors/components/forms/common/detectorFormLayout';
+import {DetectorOwnershipSection} from 'sentry/views/detectors/components/forms/common/detectorOwnershipSection';
+import {DetectorProjectSection} from 'sentry/views/detectors/components/forms/common/detectorProjectSection';
+import {getDetectorSubmitTitle} from 'sentry/views/detectors/components/forms/common/getDetectorSubmitTitle';
+import {useDetectorProject} from 'sentry/views/detectors/components/forms/common/useDetectorProject';
+import {useInitialDetectorCommonValues} from 'sentry/views/detectors/components/forms/common/useInitialDetectorCommonValues';
 import {useSubmitCreateDetector} from 'sentry/views/detectors/hooks/useSubmitCreateDetector';
 import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';

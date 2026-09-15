@@ -13,7 +13,7 @@ import type {
   PreprodMeasurement,
   PreprodThresholdType,
 } from 'sentry/types/workflowEngine/detectors';
-import {useDetectorProject} from 'sentry/views/detectors/components/forms/common/scraps';
+import {useDetectorProject} from 'sentry/views/detectors/components/forms/common/useDetectorProject';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {
   getMetricLabelForPlatform,
