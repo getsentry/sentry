@@ -885,6 +885,51 @@ describe('DetectorEdit', () => {
       },
     };
 
+    it('retains edits after an environment error and submits the corrected environment', async () => {
+      const endpoint = `/organizations/${organization.slug}/projects/${project.id}/detectors/`;
+      const failedCreate = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        statusCode: 400,
+        body: {environment: ['Environment rejected']},
+      });
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: uptimeRouterConfig,
+      });
+      const url = screen.getByRole('textbox', {name: 'URL'});
+      await userEvent.type(url, 'https://status.example.com');
+      const environment = screen.getByLabelText('Select Environment');
+      await selectEvent.select(environment, 'production');
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+      expect(await screen.findByText('Environment rejected')).toBeInTheDocument();
+      expect(failedCreate).toHaveBeenCalledTimes(1);
+      expect(url).toHaveValue('https://status.example.com');
+      expect(screen.getByText('production')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeDisabled();
+
+      const create = MockApiClient.addMockResponse({
+        url: endpoint,
+        method: 'POST',
+        body: UptimeDetectorFixture({projectId: project.id}),
+      });
+      await userEvent.type(environment, 'preview');
+      await userEvent.keyboard('{Enter}');
+      expect(screen.queryByText('Environment rejected')).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+      await waitFor(() => expect(create).toHaveBeenCalledTimes(1));
+      expect(create).toHaveBeenCalledWith(
+        endpoint,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Uptime check for status.example.com',
+            config: expect.objectContaining({environment: 'preview'}),
+            dataSources: [expect.objectContaining({url: 'https://status.example.com'})],
+          }),
+        })
+      );
+    });
+
     it('shows detect and resolve fields and submits default thresholds', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
