@@ -116,9 +116,11 @@ def build_delay_request(
 class IngestionDelayMeasurement:
     delay_seconds: float | None = None
     last_ingested_at: datetime | None = None
+    succeeded: bool = True
 
 
 NO_MEASUREMENT = IngestionDelayMeasurement()
+FAILED_MEASUREMENT = IngestionDelayMeasurement(succeeded=False)
 
 
 def _column_value(response: TraceItemTableResponse, label: str) -> float | None:
@@ -159,14 +161,14 @@ def measure_ingestion_delay(
             "ingestion_delay.query_failed",
             extra={"organization_id": organization_id, "item_type": item_type},
         )
-        return NO_MEASUREMENT
+        return FAILED_MEASUREMENT
 
     if not responses or not responses[0].column_values:
         logger.warning(
             "ingestion_delay.no_responses",
             extra={"organization_id": organization_id, "item_type": item_type},
         )
-        return NO_MEASUREMENT
+        return FAILED_MEASUREMENT
 
     delay_seconds = _column_value(responses[0], DELAY_LABEL)
     last_ingested_ms = _column_value(responses[0], LAST_INGESTED_LABEL)

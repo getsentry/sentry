@@ -23,6 +23,7 @@ class GetIngestionDelayStatusTest(TestCase):
         delay_seconds: float | None = None,
         ingested_seconds_ago: float | None = None,
         accepted: bool | None = None,
+        succeeded: bool = True,
     ) -> IngestionDelayStatus:
         with (
             mock.patch("sentry.ingestion_delay.status.datetime") as mock_datetime,
@@ -37,6 +38,7 @@ class GetIngestionDelayStatusTest(TestCase):
             mock_datetime.now.return_value = now
             self.now = now
             mock_measure.return_value = IngestionDelayMeasurement(
+                succeeded=succeeded,
                 delay_seconds=delay_seconds,
                 last_ingested_at=(
                     None
@@ -108,3 +110,9 @@ class GetIngestionDelayStatusTest(TestCase):
         assert status.complete_through is None
         assert self.mock_accepted.call_args.kwargs["start"] == self.now - MEASUREMENT_LOOKBACK
         assert self.mock_accepted.call_args.kwargs["end"] == self.now - STALL_GRACE
+
+    def test_failed_measurement_is_unknown(self) -> None:
+        status = self._status(succeeded=False)
+        assert status.status == Status.UNKNOWN
+        assert status.complete_through is None
+        assert not self.mock_accepted.called

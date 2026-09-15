@@ -43,6 +43,11 @@ def get_ingestion_delay_status(
     """
     now = datetime.now(tz=UTC)
     measurement = measure_ingestion_delay(organization_id, item_type, now)
+
+    # Snuba query failure tells us nothing about the pipeline.
+    if not measurement.succeeded:
+        return IngestionDelayStatus(None, None, IngestionStatus.UNKNOWN)
+
     delay_seconds = measurement.delay_seconds
     last_ingested_at = measurement.last_ingested_at
 

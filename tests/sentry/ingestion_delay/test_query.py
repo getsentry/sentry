@@ -1,9 +1,18 @@
 from datetime import UTC, datetime
 from unittest import mock
 
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemColumnValues,
+    TraceItemTableResponse,
+)
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.ingestion_delay.query import (
+    DELAY_LABEL,
+    FAILED_MEASUREMENT,
+    LAST_INGESTED_LABEL,
+    NO_MEASUREMENT,
     IngestionDelayMeasurement,
     measure_ingestion_delay,
 )
@@ -12,6 +21,10 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 
 
 class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.project
+
     def _measure_ingestion_delay(self) -> IngestionDelayMeasurement:
         return measure_ingestion_delay(
             organization_id=self.organization.id,
@@ -19,12 +32,21 @@ class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
             now=datetime.now(tz=UTC),
         )
 
-    def _response(self, value: float) -> mock.MagicMock:
-        response = mock.MagicMock()
-        result = mock.MagicMock()
-        result.val_double = value
-        response.column_values = [mock.MagicMock(results=[result])]
-        return response
+    def _response(
+        self, delay_seconds: float = 1.0, last_ingested_ms: float = 1.0
+    ) -> TraceItemTableResponse:
+        return TraceItemTableResponse(
+            column_values=[
+                TraceItemColumnValues(
+                    attribute_name=DELAY_LABEL,
+                    results=[AttributeValue(val_double=delay_seconds)],
+                ),
+                TraceItemColumnValues(
+                    attribute_name=LAST_INGESTED_LABEL,
+                    results=[AttributeValue(val_double=last_ingested_ms)],
+                ),
+            ]
+        )
 
     def _store_span_received_at(self, received_at: datetime) -> None:
         span = self.create_span(
@@ -64,29 +86,23 @@ class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
         assert last_ingested_at > before_insert
 
     def test_no_result_returns_none(self) -> None:
-        assert self._measure_ingestion_delay() == IngestionDelayMeasurement(
-            delay_seconds=None, last_ingested_at=None
-        )
+        assert self._measure_ingestion_delay() == NO_MEASUREMENT
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
-    def test_empty_response_returns_none(self, mock_table_rpc: mock.MagicMock) -> None:
+    def test_empty_response_is_a_failed_measurement(self, mock_table_rpc: mock.MagicMock) -> None:
         mock_table_rpc.return_value = []
-        assert self._measure_ingestion_delay() == IngestionDelayMeasurement(
-            delay_seconds=None, last_ingested_at=None
-        )
+        assert self._measure_ingestion_delay() == FAILED_MEASUREMENT
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
     def test_measures_all_projects_in_organization(self, mock_table_rpc: mock.MagicMock) -> None:
         project = self.project
         other = self.create_project(organization=self.organization)
-        mock_table_rpc.return_value = [self._response(1.0)]
-        self._measure_ingestion_delay()
+        mock_table_rpc.return_value = [self._response(delay_seconds=42.5)]
+        assert self._measure_ingestion_delay().delay_seconds == 42.5
         request = mock_table_rpc.call_args[0][0][0]
         assert set(request.meta.project_ids) == {project.id, other.id}
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
     def test_query_failure_does_not_propagate(self, mock_table_rpc: mock.MagicMock) -> None:
         mock_table_rpc.side_effect = Exception("snuba is down")
-        assert self._measure_ingestion_delay() == IngestionDelayMeasurement(
-            delay_seconds=None, last_ingested_at=None
-        )
+        assert self._measure_ingestion_delay() == FAILED_MEASUREMENT
