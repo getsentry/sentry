@@ -10,8 +10,8 @@ class CacheVersionBase(Model):
         abstract = True
 
     # Deprecated - use keyname instead.
-    key = models.CharField(max_length=64, null=False, unique=True)
-    keyname = models.CharField(max_length=200, null=True, unique=True)
+    key = models.CharField(max_length=64, null=True, unique=True)
+    keyname = models.CharField(max_length=200, null=False, unique=True)
     version = models.PositiveBigIntegerField(null=False, default=0)
 
     @classmethod
