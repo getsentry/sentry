@@ -34,18 +34,9 @@ middle of the entire block — away from the line it belongs to.
       </Text>
       <Container border="primary" radius="md" padding="md" background="primary">
         <Flex gap="sm" align="center">
-          <Flex
-            width="16px"
-            justify="center"
-            flexShrink={0}
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 4,
-              background: 'var(--content-danger)',
-              opacity: 0.8,
-            }}
-          />
+          <Flex width="12px" justify="center" flexShrink={0}>
+            <IconFire size="xs" variant="danger" />
+          </Flex>
           <Text size="sm">
             This text wraps to multiple lines and the icon floats to the vertical center
             of the whole block — detached from the first line it should belong to.
@@ -58,21 +49,7 @@ middle of the entire block — away from the line it belongs to.
         IconText (correct)
       </Text>
       <Container border="primary" radius="md" padding="md" background="primary">
-        <IconText
-          icon={
-            <span
-              style={{
-                display: 'block',
-                width: 16,
-                height: 16,
-                borderRadius: 4,
-                background: 'var(--content-success)',
-                opacity: 0.8,
-              }}
-            />
-          }
-          iconSize="md"
-        >
+        <IconText icon={<IconFire size="xs" variant="danger" />} iconSize="xs">
           <Text size="sm">
             This text wraps to multiple lines and the icon stays centered with the first
             line — exactly where the eye expects it.
@@ -82,6 +59,23 @@ middle of the entire block — away from the line it belongs to.
     </Stack>
   </Stack>
 </Storybook.Demo>
+
+```jsx
+{
+  /* ❌ align-items: center — icon drifts on wrap */
+}
+<Flex gap="sm" align="center">
+  <IconFire size="xs" variant="danger" />
+  <Text size="sm">Multi-line text...</Text>
+</Flex>;
+
+{
+  /* ✅ IconText — icon stays with the first line */
+}
+<IconText icon={<IconFire size="xs" variant="danger" />} iconSize="xs">
+  <Text size="sm">Multi-line text...</Text>
+</IconText>;
+```
 
 ## How it works
 
@@ -103,15 +97,8 @@ sync with the text's typographic rhythm, at every font-size.
       <Text size="xs" variant="muted" bold uppercase>
         Anatomy: 1lh alignment
       </Text>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'start',
-          gap: 8,
-          position: 'relative',
-        }}
-      >
-        {/* line-height guide */}
+      <div style={{position: 'relative'}}>
+        {/* The shaded band visualizes one 1lh — the height the icon centers within */}
         <div
           style={{
             position: 'absolute',
@@ -125,42 +112,29 @@ sync with the text's typographic rhythm, at every font-size.
             pointerEvents: 'none',
           }}
         />
-        {/* icon slot */}
-        <span
-          style={{
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 16,
-            transform: 'translateY(calc((1lh - 16px) / 2))',
-          }}
-        >
-          <span
-            style={{
-              display: 'block',
-              width: 16,
-              height: 16,
-              borderRadius: 4,
-              background: 'var(--content-accent)',
-            }}
-          />
-        </span>
-        <Text size="sm">
-          The shaded band is one{' '}
-          <Text size="sm" bold>
-            1lh
-          </Text>{' '}
-          tall — the icon centers within it via{' '}
-          <Text size="sm" monospace bold>
-            translateY
+        <IconText icon={<IconIssues size="md" />} iconSize="md" gap="md">
+          <Text size="sm">
+            The shaded band is one{' '}
+            <Text size="sm" bold>
+              1lh
+            </Text>{' '}
+            tall — the icon centers within it via{' '}
+            <Text size="sm" monospace bold>
+              translateY
+            </Text>
+            , matching the first line of text regardless of wrapping.
           </Text>
-          , matching the first line of text regardless of wrapping.
-        </Text>
+        </IconText>
       </div>
     </Stack>
   </Container>
 </Storybook.Demo>
+
+```jsx
+<IconText icon={<IconIssues size="md" />} iconSize="md" gap="md">
+  <Text size="sm">The icon centers within 1lh of the first line.</Text>
+</IconText>
+```
 
 ## Basic usage
 
