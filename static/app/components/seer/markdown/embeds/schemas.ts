@@ -810,7 +810,9 @@ export const SEER_EMBED_SCHEMAS = {
       'a timeseries chart of the total across the period — the chart is never ' +
       'broken out per group. When aggregate mode names only aggregates and no ' +
       'group-by columns, the chart replaces the table. Provide `yAxes` to pick ' +
-      'which aggregate is charted; samples mode charts the event count.',
+      'which aggregate is charted; samples mode charts the event count. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -870,7 +872,9 @@ export const SEER_EMBED_SCHEMAS = {
       'other query charts a single total for the period. Provide `yAxes` to pick ' +
       'which aggregate is charted — samples mode, and any query naming none, ' +
       'charts "count(span.duration)". When aggregate mode supplies no `groupBy` ' +
-      'there is only one row to show, so the chart replaces the table.',
+      'there is only one row to show, so the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -920,7 +924,9 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline renders a link; block renders the first five matching rows ' +
       'beneath a timeseries — one series per group when grouped, log volume ' +
       'otherwise. An aggregate that groups by nothing collapses to a single ' +
-      'row, so there the chart replaces the table.',
+      'row, so there the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -981,7 +987,8 @@ export const SEER_EMBED_SCHEMAS = {
       '"gen_ai.request.model:gpt-4o". Negation is not supported. ' +
       'Use `agents` to filter to specific agent names. ' +
       'Inline renders a link; block renders the first five matching conversations ' +
-      'with their duration, message count, errors and cost.',
+      'with their duration, message count, errors and cost — do NOT repeat ' +
+      'those rows as a markdown table or restate their values as text.',
     featureFlag: 'organizations:gen-ai-conversations',
     level: ['inline', 'block'],
     schema: z.object({
@@ -1011,7 +1018,8 @@ export const SEER_EMBED_SCHEMAS = {
       'specific replay ID, use the `replay` embed instead. ' +
       '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
       'Inline renders a link; block renders the first five matching replays ' +
-      'with their duration, error count and rage clicks.',
+      'with their duration, error count and rage clicks — do NOT repeat those ' +
+      'rows as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -1037,7 +1045,9 @@ export const SEER_EMBED_SCHEMAS = {
       "metric's type. " +
       'Inline renders a link; block renders a timeseries chart with the first ' +
       'five matching rows beneath it. An aggregate that groups by nothing ' +
-      'collapses to a single row, so there the chart replaces the table.',
+      'collapses to a single row, so there the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...exploreQueryFields,

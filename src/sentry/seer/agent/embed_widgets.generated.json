@@ -1053,7 +1053,7 @@
   },
   {
     "name": "errorsQuery",
-    "description": "Preview an errors (Discover) query. Use mode \"samples\" to show individual error events and \"aggregate\" to group and chart them. `query` uses event search syntax. In samples mode `fields` are non-aggregate table columns; in aggregate mode `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the total across the period — the chart is never broken out per group. When aggregate mode names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted; samples mode charts the event count.",
+    "description": "Preview an errors (Discover) query. Use mode \"samples\" to show individual error events and \"aggregate\" to group and chart them. `query` uses event search syntax. In samples mode `fields` are non-aggregate table columns; in aggregate mode `fields` must include the group-by columns and at least one aggregate function, such as \"count()\" or \"count_unique(user)\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the total across the period — the chart is never broken out per group. When aggregate mode names only aggregates and no group-by columns, the chart replaces the table. Provide `yAxes` to pick which aggregate is charted; samples mode charts the event count. The block already lists those rows and charts them, so do NOT repeat them as a markdown table or restate their values as text.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1163,7 +1163,7 @@
   },
   {
     "name": "spansQuery",
-    "description": "Preview an Explore > Traces (spans) query. Use mode \"samples\" for individual spans and mode \"aggregate\" for grouped results, supplying `groupBy` and `yAxes`. `query` uses span search syntax, e.g. \"span.op:http.client\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the same query. A query with `groupBy` charts the top five groups as one series each, matching the rows below it; every other query charts a single total for the period. Provide `yAxes` to pick which aggregate is charted — samples mode, and any query naming none, charts \"count(span.duration)\". When aggregate mode supplies no `groupBy` there is only one row to show, so the chart replaces the table.",
+    "description": "Preview an Explore > Traces (spans) query. Use mode \"samples\" for individual spans and mode \"aggregate\" for grouped results, supplying `groupBy` and `yAxes`. `query` uses span search syntax, e.g. \"span.op:http.client\". Inline renders a link; block renders the first five matching rows beneath a timeseries chart of the same query. A query with `groupBy` charts the top five groups as one series each, matching the rows below it; every other query charts a single total for the period. Provide `yAxes` to pick which aggregate is charted — samples mode, and any query naming none, charts \"count(span.duration)\". When aggregate mode supplies no `groupBy` there is only one row to show, so the chart replaces the table. The block already lists those rows and charts them, so do NOT repeat them as a markdown table or restate their values as text.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1281,7 +1281,7 @@
   },
   {
     "name": "logsQuery",
-    "description": "Preview an Explore > Logs query. Use mode \"samples\" to show individual log rows and \"aggregate\" to group and chart them. In aggregate mode supply `groupBy` and `yAxes`. `query` uses log search syntax, e.g. \"severity:error\". Inline renders a link; block renders the first five matching rows beneath a timeseries — one series per group when grouped, log volume otherwise. An aggregate that groups by nothing collapses to a single row, so there the chart replaces the table.",
+    "description": "Preview an Explore > Logs query. Use mode \"samples\" to show individual log rows and \"aggregate\" to group and chart them. In aggregate mode supply `groupBy` and `yAxes`. `query` uses log search syntax, e.g. \"severity:error\". Inline renders a link; block renders the first five matching rows beneath a timeseries — one series per group when grouped, log volume otherwise. An aggregate that groups by nothing collapses to a single row, so there the chart replaces the table. The block already lists those rows and charts them, so do NOT repeat them as a markdown table or restate their values as text.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1440,7 +1440,7 @@
   },
   {
     "name": "conversationsQuery",
-    "description": "Preview the AI agent conversations list (Explore > Agents) filtered by a search query. Use this when pointing the user at a SET of conversations — if you have a specific conversation ID, use the `conversation` embed instead. `query` uses span search syntax over gen_ai spans, e.g. \"gen_ai.request.model:gpt-4o\". Negation is not supported. Use `agents` to filter to specific agent names. Inline renders a link; block renders the first five matching conversations with their duration, message count, errors and cost.",
+    "description": "Preview the AI agent conversations list (Explore > Agents) filtered by a search query. Use this when pointing the user at a SET of conversations — if you have a specific conversation ID, use the `conversation` embed instead. `query` uses span search syntax over gen_ai spans, e.g. \"gen_ai.request.model:gpt-4o\". Negation is not supported. Use `agents` to filter to specific agent names. Inline renders a link; block renders the first five matching conversations with their duration, message count, errors and cost — do NOT repeat those rows as a markdown table or restate their values as text.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1514,7 +1514,7 @@
   },
   {
     "name": "replaysQuery",
-    "description": "Preview the Session Replay list filtered by a search query. Use this when pointing the user at a SET of replays — if you have a specific replay ID, use the `replay` embed instead. `query` uses replay search syntax, e.g. \"user.email:user@example.com\". Inline renders a link; block renders the first five matching replays with their duration, error count and rage clicks.",
+    "description": "Preview the Session Replay list filtered by a search query. Use this when pointing the user at a SET of replays — if you have a specific replay ID, use the `replay` embed instead. `query` uses replay search syntax, e.g. \"user.email:user@example.com\". Inline renders a link; block renders the first five matching replays with their duration, error count and rage clicks — do NOT repeat those rows as a markdown table or restate their values as text.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1582,7 +1582,7 @@
   },
   {
     "name": "metricsQuery",
-    "description": "Preview an Explore > Metrics query for a single trace metric. Requires the metric `name` and `type` exactly as the metrics API returns them. Use mode \"aggregate\" with `groupBy`/`yAxes` to chart the metric, or \"samples\" to list raw points. Name `yAxes` the short way, e.g. \"p95(value)\" — the embed qualifies them with the metric itself. Omit `yAxes` to use the default aggregate for the metric's type. Inline renders a link; block renders a timeseries chart with the first five matching rows beneath it. An aggregate that groups by nothing collapses to a single row, so there the chart replaces the table.",
+    "description": "Preview an Explore > Metrics query for a single trace metric. Requires the metric `name` and `type` exactly as the metrics API returns them. Use mode \"aggregate\" with `groupBy`/`yAxes` to chart the metric, or \"samples\" to list raw points. Name `yAxes` the short way, e.g. \"p95(value)\" — the embed qualifies them with the metric itself. Omit `yAxes` to use the default aggregate for the metric's type. Inline renders a link; block renders a timeseries chart with the first five matching rows beneath it. An aggregate that groups by nothing collapses to a single row, so there the chart replaces the table. The block already lists those rows and charts them, so do NOT repeat them as a markdown table or restate their values as text.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
