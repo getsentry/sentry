@@ -2,7 +2,10 @@ import {lazy, useMemo} from 'react';
 
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  resourceLinkMarkdown,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconIssues} from 'sentry/icons';
 
@@ -65,16 +68,31 @@ function MultiIssueBlock({ids}: {ids: string[]}) {
 export const Issue = defineSeerEmbed({
   name: 'issue',
   render({id}, level) {
-    if (level === 'block') {
-      return <SingleIssueBlock id={id} />;
+    switch (level) {
+      case 'block':
+        return <SingleIssueBlock id={id} />;
+      case 'markdown':
+        return resourceLinkMarkdown(`/issues/${id}/`, id);
+      case 'inline':
+        return <ResourceLink icon={IconIssues} href={`/issues/${id}/`} title={id} />;
     }
-    return <ResourceLink icon={IconIssues} href={`/issues/${id}/`} title={id} />;
   },
 });
 
 export const Issues = defineSeerEmbed({
   name: 'issues',
-  render({ids}) {
-    return <MultiIssueBlock ids={ids} />;
+  render({ids}, level) {
+    switch (level) {
+      case 'markdown':
+        // The table's columns are all live data. What a copy can carry is the
+        // set of issues it was listing, one link each.
+        return ids
+          .flatMap(id => resourceLinkMarkdown(`/issues/${id}/`, id) ?? [])
+          .map(link => `- ${link}`)
+          .join('\n');
+      case 'block':
+      case 'inline':
+        return <MultiIssueBlock ids={ids} />;
+    }
   },
 });

@@ -1,6 +1,7 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
+import {TraceLink} from 'sentry/components/seer/markdown/embeds/components/traceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 
 const LazyTraceWaterfallBlock = lazy(() => import('./traceWaterfallBlock'));
@@ -12,7 +13,15 @@ const LazyTraceWaterfallBlock = lazy(() => import('./traceWaterfallBlock'));
  */
 export const TraceWaterfall = defineSeerEmbed({
   name: 'traceWaterfall',
-  render(props) {
-    return <LazyLoad LazyComponent={LazyTraceWaterfallBlock} {...props} />;
+  render(props, level) {
+    switch (level) {
+      case 'markdown':
+        // A span tree has no text form. What survives is the trace it was
+        // showing, which is the `trace` embed's own link.
+        return <TraceLink {...props} format="markdown" />;
+      case 'block':
+      case 'inline':
+        return <LazyLoad LazyComponent={LazyTraceWaterfallBlock} {...props} />;
+    }
   },
 });

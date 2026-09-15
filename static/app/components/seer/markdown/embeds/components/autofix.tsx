@@ -27,6 +27,7 @@ import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {resourceLinkMarkdown} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -47,6 +48,21 @@ export const STEP_LABELS: Record<AutofixExplorerStep, string> = {
   code_changes: t('Code Changes'),
   pr_iteration: t('Pull Request'),
 };
+
+/**
+ * All of an autofix step that survives as text: the disclosure's own title,
+ * naming the step and the issue whose run it belongs to. Progress, the retry
+ * and continue buttons, and the step body are the reasons to be looking at the
+ * embed rather than at a copy of it.
+ */
+function autofixStepMarkdown(
+  step: AutofixExplorerStep,
+  id: string,
+  shortId: string
+): string {
+  const issue = resourceLinkMarkdown(`/issues/${id}/`, shortId);
+  return issue ? `${STEP_LABELS[step]}: ${issue}` : STEP_LABELS[step];
+}
 
 const STEP_ICONS: Record<AutofixExplorerStep, ReactNode> = {
   root_cause: <IconBug />,
@@ -126,12 +142,18 @@ function AutofixStepBody({
 
 export const Autofix = defineSeerEmbed({
   name: 'autofix',
-  render({id, shortId, ...content}: AutofixContentProps) {
-    return (
-      <AutofixDisclosure id={id} shortId={shortId} step={content.step}>
-        <AutofixStepBody {...content} />
-      </AutofixDisclosure>
-    );
+  render({id, shortId, ...content}: AutofixContentProps, level) {
+    switch (level) {
+      case 'markdown':
+        return autofixStepMarkdown(content.step, id, shortId);
+      case 'block':
+      case 'inline':
+        return (
+          <AutofixDisclosure id={id} shortId={shortId} step={content.step}>
+            <AutofixStepBody {...content} />
+          </AutofixDisclosure>
+        );
+    }
   },
 });
 
@@ -457,7 +479,13 @@ function summarizeCodeChanges(patchesByRepo: ReturnType<typeof collectPatches>):
 
 export const AutofixRef = defineSeerEmbed({
   name: 'autofixRef',
-  render(props) {
-    return <AutofixRefContent {...props} />;
+  render(props, level) {
+    switch (level) {
+      case 'markdown':
+        return autofixStepMarkdown(props.step, props.id, props.shortId);
+      case 'block':
+      case 'inline':
+        return <AutofixRefContent {...props} />;
+    }
   },
 });

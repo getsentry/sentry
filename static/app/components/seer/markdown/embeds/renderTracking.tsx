@@ -2,6 +2,8 @@ import {createContext, useContext, useEffect} from 'react';
 import {SEARCH_GEN_AI__CONVERSATION__ID} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 
+import type {SeerEmbedRenderLevel} from './registry';
+
 /**
  * Identifies where a Seer embed was rendered, so a render can be attributed to
  * a conversation and a message rather than just a page load.
@@ -43,11 +45,12 @@ interface TrackEmbedRenderedOptions {
    * the markdown was not rendered through `Markdown` (which assigns it).
    */
   index: number | undefined;
-  level: 'block' | 'inline';
+  level: SeerEmbedRenderLevel;
   name: string;
   /**
-   * False when the embed's props failed validation. Such an embed renders
-   * nothing, so counting it would overstate what users actually saw.
+   * False when the embed rendered nothing a reader saw -- its props failed
+   * validation, or it was serialized for the clipboard rather than drawn.
+   * Counting either would overstate what users actually saw.
    */
   rendered: boolean;
 }
