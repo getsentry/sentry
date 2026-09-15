@@ -30,7 +30,7 @@ export function useIsStuck(
     let root = el.parentElement;
     while (
       root &&
-      !/^(auto|scroll|hidden|overlay)$/.test(getComputedStyle(root).overflowY)
+      !['auto', 'scroll', 'hidden', 'overlay'].includes(getComputedStyle(root).overflowY)
     ) {
       root = root.parentElement;
     }
