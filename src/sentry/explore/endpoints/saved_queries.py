@@ -12,6 +12,7 @@ from django.db.models import (
     IntegerField,
     OrderBy,
     OuterRef,
+    Q,
     QuerySet,
     Subquery,
     Value,
@@ -216,11 +217,19 @@ def build_combined_queryset(
                 order_by.append("my_queries")
 
             elif sort_by == "mostStarred":
+                # Unstarring keeps the row around to hold its position, so only
+                # count the rows that are actually starred.
                 discover_queryset = discover_queryset.annotate(
-                    starred_count=Count("discoversavedquerystarred")
+                    starred_count=Count(
+                        "discoversavedquerystarred",
+                        filter=Q(discoversavedquerystarred__starred=True),
+                    )
                 )
                 explore_queryset = explore_queryset.annotate(
-                    starred_count=Count("exploresavedquerystarred")
+                    starred_count=Count(
+                        "exploresavedquerystarred",
+                        filter=Q(exploresavedquerystarred__starred=True),
+                    )
                 )
                 order_by.append("-starred_count")
 
