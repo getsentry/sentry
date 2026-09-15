@@ -425,20 +425,19 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             return []
 
     def _build_event_data(
-        self, event_data: EventData, issue_occurrence: IssueOccurrence
+        self,
+        event_data: EventData,
+        issue_occurrence: IssueOccurrence,
     ) -> EventData:
-        event_data["event_id"] = issue_occurrence.event_id
-
-        event_data["project_id"] = issue_occurrence.project_id
-
-        event_data["timestamp"] = issue_occurrence.detection_time
-
-        event_data.setdefault("environment", self.detector.config.get("environment"))
-
-        event_data.setdefault("platform", "python")
-
-        event_data.setdefault("received", issue_occurrence.detection_time)
-
-        event_data.setdefault("tags", {})
-
-        return event_data
+        return {
+            # Default values
+            "environment": self.detector.config.get("environment"),
+            "platform": "python",
+            "received": issue_occurrence.detection_time,
+            "tags": {},
+            # Override Data
+            **event_data,
+            "event_id": issue_occurrence.event_id,
+            "project_id": issue_occurrence.project_id,
+            "timestamp": issue_occurrence.detection_time,
+        }
