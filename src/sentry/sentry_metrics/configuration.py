@@ -19,7 +19,6 @@ MAX_INDEXED_COLUMN_LENGTH = 200
 
 class UseCaseKey(Enum):
     RELEASE_HEALTH = "release-health"
-    PERFORMANCE = "performance"
 
 
 # Rate limiter namespaces, the postgres (PG)

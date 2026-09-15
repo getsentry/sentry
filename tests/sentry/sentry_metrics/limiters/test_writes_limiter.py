@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from sentry.sentry_metrics.configuration import RELEASE_HEALTH_PG_NAMESPACE, UseCaseKey
+from sentry.sentry_metrics.configuration import RELEASE_HEALTH_PG_NAMESPACE
 from sentry.sentry_metrics.indexer.base import UseCaseKeyCollection
 from sentry.sentry_metrics.indexer.limiters.writes import WritesLimiter
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -14,17 +14,6 @@ WRITES_LIMITERS = {
 def get_writes_limiter(namespace: str) -> WritesLimiter:
     return WRITES_LIMITERS[namespace]
 
-
-MOCK_METRIC_PATH_MAPPING = {
-    UseCaseID.TRANSACTIONS: UseCaseKey.PERFORMANCE,
-    UseCaseID.SPANS: UseCaseKey.PERFORMANCE,
-    UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
-}
-
-MOCK_REVERSE_METRIC_PATH_MAPPING = {
-    UseCaseKey.RELEASE_HEALTH: UseCaseID.SESSIONS,
-    UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
-}
 
 MOCK_USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.TRANSACTIONS: "sentry-metrics.writes-limiter.limits.transactions",

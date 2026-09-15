@@ -193,9 +193,7 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
 
         """
-        table = TABLE_MAPPING.get(METRIC_PATH_MAPPING[use_case_id])
-        if table is None:
-            return None
+        table = TABLE_MAPPING[METRIC_PATH_MAPPING[use_case_id]]
         try:
             return int(table.objects.using_replica().get(organization_id=org_id, string=string).id)
         except table.DoesNotExist:
@@ -207,9 +205,7 @@ class PGStringIndexerV2(StringIndexer):
 
         Returns None if the entry cannot be found.
         """
-        table = TABLE_MAPPING.get(METRIC_PATH_MAPPING[use_case_id])
-        if table is None:
-            return None
+        table = TABLE_MAPPING[METRIC_PATH_MAPPING[use_case_id]]
         try:
             obj = table.objects.get_from_cache(id=id, use_replica=True)
         except table.DoesNotExist:
@@ -223,9 +219,7 @@ class PGStringIndexerV2(StringIndexer):
         self, use_case_id: UseCaseID, org_id: int, ids: Collection[int]
     ) -> Mapping[int, str]:
         ret_val: dict[int, str] = {}
-        table = TABLE_MAPPING.get(METRIC_PATH_MAPPING[use_case_id])
-        if table is None:
-            return ret_val
+        table = TABLE_MAPPING[METRIC_PATH_MAPPING[use_case_id]]
         try:
             strings = table.objects.get_many_from_cache(ids)
 
@@ -251,12 +245,7 @@ class PGStringIndexerV2(StringIndexer):
         return self._get_table_from_metric_path_key(self._get_metric_path_key(use_case_ids))
 
     def _get_table_from_metric_path_key(self, metric_path_key: UseCaseKey) -> type[BaseIndexer]:
-        try:
-            return TABLE_MAPPING[metric_path_key]
-        except KeyError:
-            raise ValueError(
-                f"Generic metrics indexer path {metric_path_key!r} has been removed"
-            ) from None
+        return TABLE_MAPPING[metric_path_key]
 
     def resolve_shared_org(self, string: str) -> int | None:
         raise NotImplementedError(
