@@ -6,7 +6,7 @@ from sentry.integrations.metric_alerts import get_status_text
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.incidents import get_started_at
 from sentry.integrations.slack.message_builder.types import INCIDENT_COLOR_MAPPING
-from sentry.integrations.slack.utils.escape import escape_slack_text
+from sentry.integrations.slack.utils.escape import escape_slack_link_label
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
@@ -38,7 +38,9 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
             )
 
         color = LEVEL_TO_COLOR.get(INCIDENT_COLOR_MAPPING.get(status, ""))
-        fallback_text = f"<{data.title_link}|*{escape_slack_text(data.title)}*>"
+        # Keep the link label plain: inline formatting inside <url|label> is
+        # not rendered by some Slack clients (notably on mobile).
+        fallback_text = f"<{data.title_link}|{escape_slack_link_label(data.title)}>"
         slack_body = BlockSlackMessageBuilder._build_blocks(
             *blocks, fallback_text=fallback_text, color=color
         )
