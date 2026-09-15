@@ -58,12 +58,22 @@ describe('initializeSdk', () => {
     });
 
     const ignoreErrors = jest.mocked(Sentry.init).mock.lastCall?.[0]?.ignoreErrors ?? [];
-    const message =
-      "TypeError: Cannot read properties of undefined (reading 'getDataParams')";
-
-    expect(
+    const matchesIgnoreErrors = (message: string) =>
       ignoreErrors.some(pattern =>
         typeof pattern === 'string' ? message.includes(pattern) : pattern.test(message)
+      );
+
+    // Chrome/V8 format
+    expect(
+      matchesIgnoreErrors(
+        "TypeError: Cannot read properties of undefined (reading 'getDataParams')"
+      )
+    ).toBe(true);
+
+    // Firefox format
+    expect(
+      matchesIgnoreErrors(
+        'TypeError: can\'t access property "getDataParams", a is undefined'
       )
     ).toBe(true);
   });
