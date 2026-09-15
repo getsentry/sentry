@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
@@ -31,7 +31,7 @@ describe('TransactionNameSearchBar', () => {
   function renderSearchBar() {
     const onSearch = jest.fn();
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
-    render(
+    const {router} = render(
       <TransactionNameSearchBar
         organization={organization}
         projectIds={[]}
@@ -39,7 +39,7 @@ describe('TransactionNameSearchBar', () => {
         onSearch={onSearch}
       />
     );
-    return {user, input: screen.getByRole('textbox'), onSearch};
+    return {user, input: screen.getByRole('textbox'), onSearch, router};
   }
 
   async function advanceTime(ms = DEFAULT_DEBOUNCE_DURATION) {
@@ -94,6 +94,20 @@ describe('TransactionNameSearchBar', () => {
     expect(screen.getByText('new-result')).toBeInTheDocument();
     expect(screen.queryByText('old-result')).not.toBeInTheDocument();
   });
+
+  it.each(['checkout', 'queue:process'])(
+    'preserves the transaction name %s when opening its summary',
+    async transaction => {
+      mockSuggestions({value: transaction});
+      const {user, input, router} = renderSearchBar();
+
+      await user.type(input, transaction.slice(0, 3));
+      const suggestion = await screen.findByRole('option');
+      await user.click(within(suggestion).getByRole('img'));
+
+      expect(router.location.query.transaction).toBe(transaction);
+    }
+  );
 
   it('submits a suggestion selected with the keyboard', async () => {
     mockSuggestions();

@@ -179,8 +179,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
     closeDropdown();
   };
 
-  const handleClickItemIcon = (value: string) => {
-    const transaction = value.slice(0, value.lastIndexOf(':'));
+  const handleClickItemIcon = (transaction: string) => {
     closeDropdown();
 
     const next = transactionSummaryRouteWithQuery({
