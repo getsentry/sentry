@@ -39,6 +39,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 @pytest.fixture
@@ -643,23 +644,29 @@ def test_detect_function_change_points(
         ],
     }
 
-    mock_detect_breakpoints.return_value = {
-        "data": [
-            {
-                "absolute_percentage_change": 5.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 500000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(project.id),
-                "transaction": str(fingerprint),
-                "trend_difference": 400000000.0,
-                "trend_percentage": 5.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-        ]
-    }
+    observed_contexts: list[ViewerContext | None] = []
+
+    def detect_breakpoints(*args, **kwargs):
+        observed_contexts.append(get_viewer_context())
+        return {
+            "data": [
+                {
+                    "absolute_percentage_change": 5.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 500000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(project.id),
+                    "transaction": str(fingerprint),
+                    "trend_difference": 400000000.0,
+                    "trend_percentage": 5.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+            ]
+        }
+
+    mock_detect_breakpoints.side_effect = detect_breakpoints
 
     options = {
         "statistical_detectors.enable": True,
@@ -669,6 +676,13 @@ def test_detect_function_change_points(
         detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
 
     assert mock_emit_function_regression_issue.called
+    assert observed_contexts == [
+        ViewerContext(
+            organization_id=project.organization_id,
+            project_id=project.id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ]
 
 
 @pytest.mark.parametrize(

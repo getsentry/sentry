@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import Generator, Iterable
 from datetime import UTC, datetime, timedelta
@@ -49,6 +50,12 @@ from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
@@ -260,14 +267,32 @@ def _detect_function_change_points(
     ]
 
     viewer_context = None
+    viewer_context_manager: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
     if function_pairs:
         project = function_pairs[0][0]
         viewer_context = SeerViewerContext(organization_id=project.organization_id)
+        if get_viewer_context() is None:
+            viewer_context_manager = viewer_context_scope(
+                ViewerContext(
+                    organization_id=project.organization_id,
+                    project_id=project.id,
+                    actor_type=ActorType.SYSTEM,
+                )
+            )
 
-    regressions = FunctionRegressionDetector.detect_regressions(
-        function_pairs, start, "p95()", TIMESERIES_PER_BATCH, viewer_context=viewer_context
+    def detect_regressions_with_viewer_context() -> Generator[BreakpointData]:
+        with viewer_context_manager:
+            yield from FunctionRegressionDetector.detect_regressions(
+                function_pairs,
+                start,
+                "p95()",
+                TIMESERIES_PER_BATCH,
+                viewer_context=viewer_context,
+            )
+
+    regressions = FunctionRegressionDetector.save_regressions_with_versions(
+        detect_regressions_with_viewer_context()
     )
-    regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
     emitted_count = 0
