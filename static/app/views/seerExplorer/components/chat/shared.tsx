@@ -17,6 +17,7 @@ export interface UserBlockProps extends BlockVariantProps {}
 
 export interface AssistantBlockProps extends BlockVariantProps {
   blockIndex: number;
+  compact?: boolean;
   interactionPending?: boolean;
   readOnly?: boolean;
   runId?: SeerExplorerRunId;

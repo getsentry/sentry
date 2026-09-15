@@ -32,6 +32,7 @@ class ResolvedMention(TypedDict):
 
     name: str
     email: str
+    username: str
 
 
 class ActivitySerializerResponse(TypedDict):
@@ -73,7 +74,8 @@ def _resolve_mentioned_users(
 ) -> dict[ActivityId, list[ResolvedMention]]:
     """The Sentry users each activity @mentions, keyed by activity id, resolved in one batch.
 
-    Returns shape: { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io"}] }
+    Returns shape:
+    { activity.id: [{ "name": "David Cramer", "email": "david@sentry.io", "username": "dcramer"}] }
     """
     activity_to_user_ids = {
         activity.id: [
@@ -91,7 +93,11 @@ def _resolve_mentioned_users(
     users = {u.id: u for u in user_service.get_many_by_id(ids=list(all_user_ids))}
     return {
         activity_id: [
-            {"name": user.get_display_name(), "email": user.email}
+            {
+                "name": user.get_display_name(),
+                "email": user.email,
+                "username": user.username,
+            }
             for user_id in user_ids
             if (user := users.get(user_id))
         ]

@@ -10,7 +10,7 @@ import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.ts';
 import type {StyleDeclaration} from '../ast/extractor/types.ts';
 import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.ts';
 
-export interface Options {
+interface Options {
   enabledCategories?: string[];
 }
 

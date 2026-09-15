@@ -22,7 +22,7 @@ import {captureProjectCreationFailure} from 'sentry/components/onboarding/captur
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
-import type {CreatedProjectRule} from 'sentry/components/onboarding/useCreateProjectRules';
+import type {CreatedProjectWorkflow} from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import {PlatformPicker, type Platform} from 'sentry/components/platformPicker';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {categoryList} from 'sentry/data/platformPickerCategories';
@@ -71,7 +71,7 @@ type FormData = {
 type CreatedProject = Pick<Project, 'name' | 'id'> & {
   platform: OnboardingSelectedSDK;
   alertRule?: Partial<AlertRuleOptions>;
-  notificationRule?: CreatedProjectRule;
+  notificationRule?: CreatedProjectWorkflow;
   team?: string;
   wasNameManuallyModified?: boolean;
 };

@@ -1886,6 +1886,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert len(owners) == 1
         assert owners[0]["type"] == "user"
         assert owners[0]["email"] == self.user.email
+        assert owners[0]["username"] == self.user.username
         assert owners[0]["slug"] is None
         assert "*checkout.py" in result["matched_rules"]
         assert result["auto_assignment"] is False
@@ -1905,6 +1906,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert owners[0]["type"] == "team"
         assert owners[0]["slug"] == self.team.slug
         assert owners[0]["email"] is None
+        assert owners[0]["username"] is None
 
     def test_resolves_by_qualified_short_id(self):
         group = self._make_event_on_path("src/app/checkout.py")
@@ -1978,8 +1980,8 @@ class TestGetTeamMembers(APITestCase):
     agent can drill from a team-level owner (from get_issue_ownership) down to people."""
 
     def test_returns_active_members(self):
-        dev = self.create_user(email="dev@example.com")
-        lead = self.create_user(email="lead@example.com")
+        dev = self.create_user(email="dev@example.com", username="dev")
+        lead = self.create_user(email="lead@example.com", username="lead")
         team = self.create_team(organization=self.organization, members=[dev, lead])
 
         result = get_team_members(
@@ -1993,9 +1995,23 @@ class TestGetTeamMembers(APITestCase):
         assert result["team_name"] == team.name
         members = result["members"]
         assert {m["email"] for m in members} == {"dev@example.com", "lead@example.com"}
+        assert {m["username"] for m in members} == {"dev", "lead"}
         assert all(m["type"] == "user" for m in members)
         assert all(m["slug"] is None for m in members)
         assert all(m["name"] for m in members)
+
+    def test_member_without_email_retains_username(self):
+        user = self.create_user(email="", username="sso-user")
+        team = self.create_team(organization=self.organization, members=[user])
+
+        result = get_team_members(
+            organization_id=self.organization.id,
+            team_slug=team.slug,
+        )
+
+        assert result is not None
+        assert result["members"][0]["email"] == ""
+        assert result["members"][0]["username"] == "sso-user"
 
     def test_empty_team_returns_no_members(self):
         team = self.create_team(organization=self.organization, members=[])

@@ -83,8 +83,7 @@ class ProjectBalancingCalculationsTest(TestCase):
                 ],
             )
 
-        # Mirrors legacy serving: a 100% org rate gives every project 100% and the balancing
-        # model never runs.
+        # A 100% org rate gives every project 100% and the balancing model never runs.
         mocks[PROJECTS_MODEL_RUN].assert_not_called()
         assert {int(item.id): item.new_sample_rate for item in result} == {
             busy.id: 1.0,

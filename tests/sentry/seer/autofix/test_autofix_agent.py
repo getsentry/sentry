@@ -192,6 +192,32 @@ class TestGenerateAutofixHandoffPrompt(TestCase):
 
         assert "Include 'Fixes AIML-2301' in the commit message" in prompt
 
+    def test_prompt_with_pr_description_links(self) -> None:
+        state = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        prompt = generate_autofix_handoff_prompt(
+            state,
+            short_id="SENTRY-123",
+            issue_url="https://sentry.example/issues/123",
+            pr_description_links=(
+                "Fixes [SENTRY-123](https://sentry.example/issues/123)",
+                "Fixes [LINEAR-456](https://linear.app/example/issue/LINEAR-456)",
+            ),
+        )
+
+        assert "Include these exact references near the bottom of the PR description" in prompt
+        assert (
+            "Also include 'Fixes [SENTRY-123](https://sentry.example/issues/123)' "
+            "in the commit message."
+        ) in prompt
+        assert "Fixes [SENTRY-123](https://sentry.example/issues/123)" in prompt
+        assert "Fixes [LINEAR-456](https://linear.app/example/issue/LINEAR-456)" in prompt
+
     def test_prompt_without_short_id(self) -> None:
         """Test that 'Fixes' is not in prompt when short_id is None."""
         state = SeerRunState(
@@ -1481,6 +1507,35 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert repos[0].owner == "owner"
         assert repos[0].name == "repo"
         assert call_kwargs["issue_short_id"] == self.group.qualified_short_id
+        assert (
+            f"Fixes [{self.group.qualified_short_id}]"
+            f"({self.group.get_absolute_url(params={'seerDrawer': 'true'})})"
+            in call_kwargs["prompt"]
+        )
+
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_trigger_coding_agent_handoff_includes_linked_linear_issue(self, mock_client_class):
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo()
+        self.create_platform_external_issue(
+            group=self.group,
+            service_type="linear",
+            display_name="PROJ#123",
+            web_url="https://linear.app/proj/issue/PROJ-123",
+        )
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        prompt = mock_client.launch_coding_agents.call_args.kwargs["prompt"]
+        assert "Fixes [PROJ-123](https://linear.app/proj/issue/PROJ-123)" in prompt
 
     @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
