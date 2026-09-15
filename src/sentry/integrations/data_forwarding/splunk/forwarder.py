@@ -106,13 +106,8 @@ class SplunkForwarder(BaseDataForwarder):
                 props.update({"exception_type": exc.type, "exception_value": exc.value})
             elif key == "logentry":
                 props.update({"message": value.formatted or value.message})
-            elif key in ("csp", "expectct", "expectstable", "hpkp"):
-                props.update(
-                    {
-                        "{}_{}".format(key.rsplit(".", 1)[-1].lower(), k): v
-                        for k, v in value.to_json().items()
-                    }
-                )
+            elif key == "csp":
+                props.update({f"csp_{k}": v for k, v in value.to_json().items()})
             elif key == "user":
                 user_payload = {}
                 if value.id:
