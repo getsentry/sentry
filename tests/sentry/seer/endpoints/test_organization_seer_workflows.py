@@ -51,7 +51,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(run.id)
-        assert response.data[0]["source"] == "cron"
+        assert response.data[0]["source"] is None
         assert response.data[0]["errorMessage"] is None
         assert response.data[0]["errorType"] is None
         assert response.data[0]["extras"] == {"foo": "bar"}
@@ -367,7 +367,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
                 str(cleanup.id),
                 str(older.id),
             ]
-            assert [run["source"] for run in response.data] == ["manual", "cron", "cron"]
+            assert [run["source"] for run in response.data] == ["manual", None, None]
             response = self.get_success_response(self.organization.slug, per_page=2)
             assert [run["id"] for run in response.data] == [str(newer.id), str(cleanup.id)]
 

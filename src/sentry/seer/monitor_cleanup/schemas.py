@@ -101,7 +101,7 @@ class MonitorCleanupRunExtras(WorkflowRunExtras):
 
 class MonitorCleanupRunResponse(TypedDict):
     id: str
-    source: WorkflowRunSource
+    source: WorkflowRunSource | None
     seerRunId: str
     dateAdded: datetime
     dateCompleted: datetime | None

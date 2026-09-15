@@ -63,7 +63,7 @@ class SeerWorkflowRunExecutionSerializer(Serializer[SeerWorkflowRunExecutionResp
 
 class SeerNightShiftRunResponse(TypedDict):
     id: str
-    source: WorkflowRunSource
+    source: WorkflowRunSource | None
     dateAdded: datetime
     extras: dict[str, Any]
     errorMessage: str | None
@@ -183,7 +183,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         pull_requests_by_result_id = attrs.get("pull_requests_by_result_id", {})
         return {
             "id": str(obj.id),
-            "source": (extras.get("options") or {}).get("source") or "cron",
+            "source": (extras.get("options") or {}).get("source"),
             "dateAdded": obj.date_added,
             "dateCompleted": obj.date_completed,
             "strategy": obj.workflow_config.strategy
