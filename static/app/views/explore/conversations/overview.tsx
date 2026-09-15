@@ -70,9 +70,6 @@ const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
-  const queryingEnhancementsEnabled = organization.features.includes(
-    'gen-ai-conversations-querying-enhancements'
-  );
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
@@ -162,13 +159,6 @@ function ConversationsOverviewPage() {
       );
     };
 
-    if (!queryingEnhancementsEnabled) {
-      return {
-        ...spanSearchQueryBuilderProviderProps,
-        getTagValues: getTagValuesWithoutCounts,
-      };
-    }
-
     const fieldDefinitionGetter =
       spanSearchQueryBuilderProviderProps.fieldDefinitionGetter;
     return {
@@ -189,7 +179,7 @@ function ConversationsOverviewPage() {
         CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
     };
-  }, [queryingEnhancementsEnabled, spanSearchQueryBuilderProviderProps]);
+  }, [spanSearchQueryBuilderProviderProps]);
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
