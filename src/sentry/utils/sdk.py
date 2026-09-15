@@ -96,6 +96,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.1,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
+    "sentry.workflow_engine.tasks.process_workflows_event": 0.00006,
 }
 
 SAMPLED_ROUTES = {
