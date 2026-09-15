@@ -20,6 +20,9 @@ def build_mock_span(
         **(attributes or {}),
     }
 
+    if description is not None:
+        span_attributes["sentry.description"] = {"type": "string", "value": description}
+
     span: SpanEvent = {
         "is_segment": is_segment,
         "parent_span_id": None,
