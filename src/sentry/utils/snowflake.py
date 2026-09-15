@@ -13,7 +13,7 @@ from rest_framework.exceptions import APIException
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.types.cell import CellContextError, get_local_cell
+from sentry.types.cell import Cell, CellContextError, get_global_directory, get_local_cell
 from sentry.utils import redis
 
 if TYPE_CHECKING:
@@ -138,6 +138,31 @@ def generate_snowflake_id(redis_key: str) -> int:
     ID_VALIDATOR.validate(snowflake_id)
 
     return snowflake_id
+
+
+def get_cell_for_snowflake_id(snowflake_id: int) -> Cell | None:
+    """Return the cell whose silo minted the given snowflake ID, if it can be told.
+
+    Return None for IDs that predate snowflake IDs, for IDs minted in monolith
+    mode, and for cell numbers that no configured cell claims. Cell numbers are
+    not guaranteed stable over time (see Cell.snowflake_id), so use the result
+    for diagnostics and hints, never for routing or authorization.
+    """
+    if snowflake_id < 0 or snowflake_id >> ID_VALIDATOR.length != 0:
+        return None
+
+    version = snowflake_id >> (TIME_DIFFERENCE.length + CELL_ID.length + CELL_SEQUENCE.length)
+    if version != msb_0_ordering(settings.SNOWFLAKE_VERSION_ID, VERSION_ID.length):
+        return None
+
+    cell_number = (snowflake_id >> CELL_SEQUENCE.length) & ((1 << CELL_ID.length) - 1)
+    if cell_number == NULL_CELL_ID:
+        return None
+
+    return next(
+        (cell for cell in get_global_directory().cells if cell.snowflake_id == cell_number),
+        None,
+    )
 
 
 def get_redis_cluster() -> RedisCluster[str] | StrictRedis[str]:

@@ -20,6 +20,7 @@ from sentry.utils.snowflake import (
     MAX_AVAILABLE_CELL_SEQUENCES,
     SnowflakeBitSegment,
     generate_snowflake_id,
+    get_cell_for_snowflake_id,
     get_redis_cluster,
     get_timestamp_redis_key,
     uses_snowflake_id,
@@ -90,6 +91,31 @@ class SnowflakeUtilsTest(TestCase):
         assert str(context.value) == "No available ID"
 
     @freeze_time(CURRENT_TIME)
+    def test_get_cell_for_snowflake_id(self) -> None:
+        cells = [
+            c1 := Cell("test-cell-1", 1, "localhost:8001"),
+            c2 := Cell("test-cell-2", 2, "localhost:8002"),
+        ]
+        with override_settings(SILO_MODE=SiloMode.CELL):
+            with override_cells(cells, c1):
+                snowflake1 = generate_snowflake_id("test_redis_key")
+            with override_cells(cells, c2):
+                snowflake2 = generate_snowflake_id("test_redis_key")
+            with override_cells(cells, c1):
+                assert get_cell_for_snowflake_id(snowflake1) == c1
+                assert get_cell_for_snowflake_id(snowflake2) == c2
+            with override_cells([c1], c1):
+                assert get_cell_for_snowflake_id(snowflake2) is None
+
+    def test_get_cell_for_snowflake_id_returns_none_for_non_snowflake_ids(self) -> None:
+        cell = Cell("test-cell", 0, "http://testserver")
+        with override_settings(SILO_MODE=SiloMode.CELL), override_cells([cell], cell):
+            monolith_snowflake = generate_snowflake_id("test_redis_key")
+        assert get_cell_for_snowflake_id(monolith_snowflake) is None
+        assert get_cell_for_snowflake_id(12345) is None
+        assert get_cell_for_snowflake_id(-1) is None
+        assert get_cell_for_snowflake_id(1 << 60) is None
+
     def test_generate_correct_ids_with_cell_id(self) -> None:
         cells = [
             c1 := Cell("test-cell-1", 1, "localhost:8001"),

@@ -1,6 +1,7 @@
 import pytest
 import responses
 from django.db import router
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -20,9 +21,10 @@ from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppIns
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.cell import override_cells
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.requests import drf_request_from_request
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import assume_test_silo_mode, create_test_cells
 
 
 class ProjectsListTest(APITestCase):
@@ -219,6 +221,32 @@ class ProjectsListTest(APITestCase):
 
         response = self.get_success_response(qs_params={"query": "id:-1"})
         assert len(response.data) == 0
+
+    def test_id_query_for_project_in_another_cell(self) -> None:
+        local_cell, other_cell = cells = create_test_cells("us", "de")
+        user = self.create_user(is_superuser=True)
+        self.login_as(user=user, superuser=True)
+
+        with override_settings(SILO_MODE=SiloMode.CELL):
+            with override_cells(cells, other_cell):
+                other_project = self.create_project()
+            with override_cells(cells, local_cell):
+                local_project = self.create_project()
+
+                response = self.get_success_response(
+                    qs_params={"query": f"id:{local_project.id}", "show": "all"}
+                )
+                assert [p["id"] for p in response.data] == [str(local_project.id)]
+
+                response = self.get_error_response(
+                    qs_params={"query": f"id:{other_project.id}", "show": "all"},
+                    status_code=404,
+                )
+                assert response.data["detail"] == (
+                    f"Project {other_project.id} is stored in locality 'de'. "
+                    f"Query it at http://de.testserver/api/0/projects/"
+                    f"?query=id%3A{other_project.id}&show=all"
+                )
 
     def test_id_query_with_invalid_values(self) -> None:
         """Test that non-numeric ID values are gracefully handled"""

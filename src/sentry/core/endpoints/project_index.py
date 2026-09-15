@@ -1,6 +1,6 @@
 from django.db.models import Q
 from django.db.models.query import EmptyQuerySet
-from rest_framework.exceptions import AuthenticationFailed, ParseError, PermissionDenied
+from rest_framework.exceptions import AuthenticationFailed, NotFound, ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,6 +20,8 @@ from sentry.organizations.services.organization import organization_service
 from sentry.search.utils import tokenize_query
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.types.cell import get_local_cell, get_locality_by_name, get_locality_name_for_cell
+from sentry.utils.snowflake import get_cell_for_snowflake_id
 
 
 @cell_silo_endpoint
@@ -111,9 +113,11 @@ class ProjectIndexEndpoint(Endpoint):
                     valid_ids = []
                     for v in value:
                         try:
-                            valid_ids.append(int(v))
+                            project_id = int(v)
                         except (ValueError, TypeError):
                             raise ParseError(detail=f"Invalid project ID: {v}")
+                        self._reject_project_in_other_cell(request, project_id)
+                        valid_ids.append(project_id)
                     queryset = queryset.filter(id__in=valid_ids)
                 else:
                     queryset = queryset.none()
@@ -124,4 +128,19 @@ class ProjectIndexEndpoint(Endpoint):
             order_by="-date_added",
             on_results=lambda x: serialize(x, request.user, ProjectWithOrganizationSerializer()),
             paginator_cls=DateTimePaginator,
+        )
+
+    def _reject_project_in_other_cell(self, request: Request, project_id: int) -> None:
+        """
+        A cell only stores its own projects, so a lookup by ID for a project in
+        another cell would return an empty list. Point the caller at the right
+        locality instead.
+        """
+        cell = get_cell_for_snowflake_id(project_id)
+        if cell is None or cell == get_local_cell():
+            return
+        locality = get_locality_by_name(get_locality_name_for_cell(cell.name))
+        raise NotFound(
+            detail=f"Project {project_id} is stored in locality {locality.name!r}. "
+            f"Query it at {locality.to_url(request.get_full_path())}"
         )
