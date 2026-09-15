@@ -10,128 +10,71 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import {IconMerge, IconOpen, IconPullRequest, IconPullRequestClosed} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {PullRequest, PullRequestStatus} from 'sentry/types/integrations';
+import type {PullRequestStatus} from 'sentry/types/integrations';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import type {TagVariant} from 'sentry/utils/theme';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import type {
-  SeerWorkflowRun,
-  WorkflowRow,
-  WorkflowRowStatus,
+  SeerAgenticTriageRun,
+  SeerAgenticTriageRunIssue,
+  SeerAgenticTriageRunPullRequest,
+  SeerAgenticTriageRunErrorType,
+  WorkflowDisplayStatus,
 } from 'sentry/views/seerWorkflows/types';
 
-type SeerAgenticTriageRunPullRequest = PullRequest & {
-  status: PullRequestStatus | null;
-};
-
-type SeerAgenticTriageRunIssue = {
-  action: string;
-  dateAdded: string;
-  groupId: string;
-  groupShortId: string | null;
-  groupTitle: string | null;
-  id: string;
-  reason: string | null;
-  seerRunId: string | null;
-  skipReason: string | null;
-  pullRequests?: SeerAgenticTriageRunPullRequest[];
-};
-
-// A Seer run dispatched by a agentic triage run, openable in Explorer.
-type SeerAgenticTriageSeerRun = {
-  seerRunId: string | null;
-};
-
-type SeerAgenticTriageRunOptions = {
-  dry_run?: boolean;
-  extra_triage_instructions?: string;
-  intelligence_level?: 'low' | 'medium' | 'high';
-  max_candidates?: number;
-  reasoning_effort?: 'low' | 'medium' | 'high';
-  source?: string;
-};
-
-type SeerAgenticTriageRunErrorType =
-  | 'no_quota'
-  | 'eligible_projects_failed'
-  | 'no_seer_access'
-  | 'invalid_shard_plan'
-  | 'shard_dispatch_failed'
-  | 'shard_delivery_failed'
-  | 'unknown';
-
-type SeerAgenticTriageRun = SeerWorkflowRun & {
-  errorType: SeerAgenticTriageRunErrorType | null;
-  extras: {options?: SeerAgenticTriageRunOptions};
-  issues: SeerAgenticTriageRunIssue[];
-  seerRuns: SeerAgenticTriageSeerRun[];
-  strategy: 'agentic_triage';
-};
-
-export type AgenticTriageRow = {
-  issues: SeerAgenticTriageRunIssue[];
-  seerRuns: SeerAgenticTriageSeerRun[];
-  options?: SeerAgenticTriageRunOptions;
-};
-
-export function getAgenticTriageRow(run: SeerWorkflowRun) {
-  if (!isAgenticTriageRun(run)) {
-    return {};
-  }
-  const errorPresentation = getTriageErrorPresentation(run.errorType ?? null);
-  return {
-    ...errorPresentation,
-    source: run.extras.options?.source,
-    triage: {
-      options: run.extras.options,
-      issues: run.issues,
-      seerRuns: run.seerRuns ?? [],
-    },
-  };
-}
-
-export function getAgenticTriageSummary(row: WorkflowRow): string {
-  if (row.status === 'running') {
+export function getAgenticTriageSummary(run: SeerAgenticTriageRun): string {
+  if (getAgenticTriageStatus(run) === 'running') {
     return t('Triaging issues…');
   }
-  if (row.resultText || row.status === 'failed') {
-    return row.resultText ?? t('Run failed');
+  const error = getTriageErrorPresentation(run.errorType ?? null);
+  if (error || run.extras.status === 'failed') {
+    return error?.resultText ?? t('Run failed');
   }
-  if (row.triage?.options?.dry_run) {
+  if (run.extras.options?.dry_run) {
     return t('dry run');
   }
-  const issueCount = row.triage?.issues.length ?? 0;
+  const issueCount = run.issues.length;
   return issueCount === 0
     ? t('No issues processed')
     : tn('%s issue', '%s issues', issueCount);
 }
 
+export function getAgenticTriageStatus(run: SeerAgenticTriageRun): WorkflowDisplayStatus {
+  const error = getTriageErrorPresentation(run.errorType ?? null);
+  if (error) {
+    return error.status;
+  }
+  return run.extras.status && run.extras.status !== 'complete'
+    ? run.extras.status
+    : 'succeeded';
+}
+
 export function AgenticTriageResults({
-  row,
+  run,
   organizationSlug,
 }: {
   organizationSlug: string;
-  row: WorkflowRow;
+  run: SeerAgenticTriageRun;
 }) {
   return (
     <Stack gap="lg">
-      <TriageDispatchesPanel row={row} />
+      <TriageDispatchesPanel run={run} />
       <IssueList
-        issues={row.triage?.issues ?? []}
+        issues={run.issues ?? []}
         organizationSlug={organizationSlug}
-        isRunning={row.status === 'running'}
+        isRunning={getAgenticTriageStatus(run) === 'running'}
       />
     </Stack>
   );
 }
 
-export function AgenticTriageDebug({row}: {row: WorkflowRow}) {
+export function AgenticTriageDebug({run}: {run: SeerAgenticTriageRun}) {
   const {
     reasoning_effort,
     intelligence_level,
     extra_triage_instructions,
     max_candidates,
-  } = row.triage?.options ?? {};
+  } = run.extras.options ?? {};
   const hasSettings =
     reasoning_effort !== undefined ||
     intelligence_level !== undefined ||
@@ -145,7 +88,7 @@ export function AgenticTriageDebug({row}: {row: WorkflowRow}) {
           {t('Run ID')}
         </Text>
         <Text size="sm" monospace>
-          {row.id}
+          {run.id}
         </Text>
         {hasSettings ? (
           <Fragment>
@@ -184,19 +127,19 @@ export function AgenticTriageDebug({row}: {row: WorkflowRow}) {
           </Fragment>
         ) : null}
       </Grid>
-      {row.errorMessage ? (
+      {run.errorMessage ? (
         <Text variant="danger" size="sm" monospace>
           {t('Error: ')}
-          {row.errorMessage}
+          {run.errorMessage}
         </Text>
       ) : null}
-      <TriageIssuesDebugAddendum row={row} />
+      <TriageIssuesDebugAddendum run={run} />
     </Stack>
   );
 }
 
-function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
-  const explorerRunIds = getTriageRunIds(row);
+function TriageDispatchesPanel({run}: {run: SeerAgenticTriageRun}) {
+  const explorerRunIds = getTriageRunIds(run);
   return (
     <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
@@ -204,7 +147,7 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
       </Text>
       {explorerRunIds.length === 0 ? (
         <Text variant="muted" size="sm">
-          {row.status === 'running'
+          {getAgenticTriageStatus(run) === 'running'
             ? t('No triage batches recorded yet.')
             : t('No triage batches recorded for this run.')}
         </Text>
@@ -372,8 +315,8 @@ function IssuePullRequestChip({
   );
 }
 
-function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
-  const issues = row.triage?.issues ?? [];
+function TriageIssuesDebugAddendum({run}: {run: SeerAgenticTriageRun}) {
+  const issues = run.issues ?? [];
   if (issues.length === 0) {
     return null;
   }
@@ -433,7 +376,7 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
 
 function getTriageErrorPresentation(
   errorType: SeerAgenticTriageRunErrorType | null
-): {resultText: string; status: WorkflowRowStatus} | null {
+): {resultText: string; status: WorkflowDisplayStatus} | null {
   switch (errorType) {
     case null:
       return null;
@@ -458,8 +401,8 @@ function getTriageErrorPresentation(
   }
 }
 
-function getTriageRunIds(row: WorkflowRow): string[] {
-  return (row.triage?.seerRuns ?? [])
+function getTriageRunIds(run: SeerAgenticTriageRun): string[] {
+  return (run.seerRuns ?? [])
     .map(seerRun => seerRun.seerRunId)
     .filter((id): id is string => id !== null);
 }
@@ -475,9 +418,4 @@ const ACTION_LABELS: Record<string, string> = {
 
 function getActionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action;
-}
-
-// Agentic triage still supplies issue and dispatch fields alongside the shared envelope.
-function isAgenticTriageRun(run: SeerWorkflowRun): run is SeerAgenticTriageRun {
-  return run.strategy === 'agentic_triage';
 }

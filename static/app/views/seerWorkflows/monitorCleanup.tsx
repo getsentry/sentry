@@ -14,22 +14,22 @@ import {
   type MonitorCleanupFinding,
   type SeerWorkflowResult,
   type WorkflowRunStatus,
-  type WorkflowRow,
+  type SeerMonitorCleanupRun,
 } from 'sentry/views/seerWorkflows/types';
 
 export function MonitorCleanupRunResults({
-  row,
+  run,
   organizationSlug,
 }: {
   organizationSlug: string;
-  row: WorkflowRow;
+  run: SeerMonitorCleanupRun;
 }) {
-  const results = row.results.filter(result => result.kind === 'duplicate_monitors');
+  const results = run.results.filter(result => result.kind === 'duplicate_monitors');
   return (
     <Stack gap="md">
-      {results.length === 0 && <Text>{getMonitorRunSummary(row)}</Text>}
+      {results.length === 0 && <Text>{getMonitorRunSummary(run)}</Text>}
       <MonitorCleanupResults
-        runStatus={row.runStatus}
+        runStatus={run.extras.status}
         results={results}
         organizationSlug={organizationSlug}
       />
@@ -37,16 +37,16 @@ export function MonitorCleanupRunResults({
   );
 }
 
-export function getMonitorRunSummary(row: WorkflowRow) {
-  if (row.status === 'running') {
+export function getMonitorRunSummary(run: SeerMonitorCleanupRun) {
+  if (run.extras.status === 'running') {
     return t('Scanning monitors…');
   }
-  if (row.status === 'failed') {
+  if (run.extras.status === 'failed') {
     return t('Monitor scan failed');
   }
-  const results = row.results.filter(result => result.kind === 'duplicate_monitors');
+  const results = run.results.filter(result => result.kind === 'duplicate_monitors');
   const findings = results.length ? getMonitorFindingSummary(results) : t('No findings');
-  return row.status === 'partial' ? t('Incomplete scan — %s', findings) : findings;
+  return run.extras.status === 'partial' ? t('Incomplete scan — %s', findings) : findings;
 }
 
 function getMonitorFindingSummary(results: SeerWorkflowResult[]) {

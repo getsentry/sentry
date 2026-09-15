@@ -42,6 +42,7 @@ describe('SeerWorkflows', () => {
       id: '1',
       seerRunId: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
       strategy: 'duplicate_monitors',
+      source: 'manual',
       dateAdded: '2026-09-09T00:00:00Z',
       extras: {status: 'complete'},
       results: [],
@@ -78,6 +79,7 @@ describe('SeerWorkflows', () => {
 
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
+    expect(screen.getAllByLabelText('Manual')).toHaveLength(2);
     expect(startScan).toHaveBeenCalledTimes(1);
     expect(startScan).toHaveBeenCalledWith(
       url,
@@ -125,7 +127,8 @@ describe('SeerWorkflows', () => {
       strategy: 'agentic_triage',
       dateAdded: '2026-09-09T00:00:00Z',
       dateCompleted: null,
-      extras: {status: 'running', options: {source: 'cron'}},
+      source: 'cron',
+      extras: {status: 'running', options: {source: 'manual'}},
       errorType: null,
       errorMessage: null,
       results: [],
@@ -136,10 +139,20 @@ describe('SeerWorkflows', () => {
       url,
       body: [runningRun],
     });
-    render(<SeerWorkflows />, {organization});
+    render(<SeerWorkflows />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/autofix/workflows/`,
+          query: {source: 'cron'},
+        },
+      },
+    });
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
 
     expect(screen.getByText('Triaging issues…')).toBeInTheDocument();
+    expect(screen.getByLabelText('Automated')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Manual')).not.toBeInTheDocument();
     expect(screen.queryByText('No issues processed')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', {name: 'Expand run'}));
     expect(screen.getByText('No issues processed yet.')).toBeInTheDocument();
@@ -520,7 +533,8 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-10T00:00:00Z',
           strategy: 'agentic_triage',
           errorMessage: null,
-          extras: {options: {source: 'cron'}},
+          source: 'cron',
+          extras: {},
           issues: [
             {
               id: '1',
@@ -538,7 +552,8 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-20T00:00:00Z',
           strategy: 'agentic_triage',
           errorMessage: null,
-          extras: {options: {source: 'cron'}},
+          source: 'cron',
+          extras: {},
           issues: [
             {
               id: '2',
@@ -600,7 +615,8 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-20T00:00:00Z',
           strategy: 'agentic_triage',
           errorMessage: null,
-          extras: {options: {source: 'cron'}},
+          source: 'cron',
+          extras: {},
           issues: [
             {
               id: '10',
@@ -619,7 +635,8 @@ describe('SeerWorkflows', () => {
           strategy: 'agentic_triage',
           errorMessage: 'Unexpected Seer error',
           errorType: 'unknown',
-          extras: {options: {source: 'cron'}},
+          source: 'cron',
+          extras: {},
           issues: [],
         },
       ],
@@ -648,7 +665,8 @@ describe('SeerWorkflows', () => {
           dateAdded: '2026-04-20T00:00:00Z',
           strategy: 'agentic_triage',
           errorMessage: null,
-          extras: {options: {source: 'cron'}},
+          source: 'cron',
+          extras: {},
           issues: [
             {
               id: '10',

@@ -1,21 +1,76 @@
 import {z} from 'zod';
 
-import type {AgenticTriageRow} from 'sentry/views/seerWorkflows/agenticTriage';
+import type {PullRequest, PullRequestStatus} from 'sentry/types/integrations';
+
+export type WorkflowRunSource = 'cron' | 'manual';
 
 export type WorkflowRunStatus = 'running' | 'complete' | 'partial' | 'failed';
 
-export type SeerWorkflowRun = {
+type SeerWorkflowRunBase = {
   dateAdded: string;
   dateCompleted: string | null;
   errorMessage: string | null;
-  extras: {status?: WorkflowRunStatus};
   id: string;
   results: SeerWorkflowResult[];
-  strategy: WorkflowStrategy;
+  source: WorkflowRunSource;
   seerRunId?: string;
 };
 
-export type WorkflowStrategy = 'agentic_triage' | 'duplicate_monitors';
+export type SeerWorkflowRun = SeerAgenticTriageRun | SeerMonitorCleanupRun;
+
+export type SeerMonitorCleanupRun = SeerWorkflowRunBase & {
+  extras: {status: WorkflowRunStatus};
+  strategy: 'duplicate_monitors';
+};
+
+export type SeerAgenticTriageRunPullRequest = PullRequest & {
+  status: PullRequestStatus | null;
+};
+
+export type SeerAgenticTriageRunIssue = {
+  action: string;
+  dateAdded: string;
+  groupId: string;
+  groupShortId: string | null;
+  groupTitle: string | null;
+  id: string;
+  reason: string | null;
+  seerRunId: string | null;
+  skipReason: string | null;
+  pullRequests?: SeerAgenticTriageRunPullRequest[];
+};
+
+// A Seer run dispatched by an agentic triage run, openable in Explorer.
+type SeerAgenticTriageSeerRun = {
+  seerRunId: string | null;
+};
+
+type SeerAgenticTriageRunOptions = {
+  dry_run?: boolean;
+  extra_triage_instructions?: string;
+  intelligence_level?: 'low' | 'medium' | 'high';
+  max_candidates?: number;
+  reasoning_effort?: 'low' | 'medium' | 'high';
+};
+
+export type SeerAgenticTriageRunErrorType =
+  | 'no_quota'
+  | 'eligible_projects_failed'
+  | 'no_seer_access'
+  | 'invalid_shard_plan'
+  | 'shard_dispatch_failed'
+  | 'shard_delivery_failed'
+  | 'unknown';
+
+export type SeerAgenticTriageRun = SeerWorkflowRunBase & {
+  errorType: SeerAgenticTriageRunErrorType | null;
+  extras: {options?: SeerAgenticTriageRunOptions; status?: WorkflowRunStatus};
+  issues: SeerAgenticTriageRunIssue[];
+  seerRuns: SeerAgenticTriageSeerRun[];
+  strategy: 'agentic_triage';
+};
+
+export type WorkflowStrategy = SeerWorkflowRun['strategy'];
 
 export type WorkflowRunCreateRequest = {
   strategy: WorkflowStrategy;
@@ -28,26 +83,12 @@ export type SeerWorkflowResult = {
   seerRunId: string | null;
 };
 
-export type WorkflowRowStatus =
+export type WorkflowDisplayStatus =
   | 'succeeded'
   | 'failed'
   | 'skipped'
   | 'running'
   | 'partial';
-
-export type WorkflowRow = {
-  dateAdded: string;
-  id: string;
-  results: SeerWorkflowResult[];
-  status: WorkflowRowStatus;
-  strategy: WorkflowStrategy;
-  errorMessage?: string | null;
-  resultText?: string;
-  runStatus?: WorkflowRunStatus;
-  seerRunId?: string;
-  source?: string;
-  triage?: AgenticTriageRow;
-};
 
 const monitorCleanupResourceSchema = z.object({
   id: z.string().regex(/^\d+$/),
