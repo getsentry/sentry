@@ -126,5 +126,11 @@ class SimpleProduceStep(ProcessingStep[KafkaPayload]):
         with metrics.timer("simple_produce_step.join_duration"):
             self.__producer.flush(timeout=5.0)
 
+        # Flush runs delivery callbacks into `__produced_message_offsets`.
+        # Submit those offsets before joining so shutdown/rebalance commits them.
+        self.__commit.submit(
+            Message(Value(None, self.__produced_message_offsets, self.__produced_message_ts))
+        )
         self.__commit.join(timeout)
         self.__produced_message_offsets = {}
+        self.__produced_message_ts = None
