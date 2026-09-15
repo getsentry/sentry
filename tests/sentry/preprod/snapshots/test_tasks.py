@@ -674,7 +674,7 @@ def test_build_comparison_plan_adds_sibling_candidates_for_hash_differing_intere
 
 
 def test_build_comparison_plan_sibling_pixel_count_uses_larger_dimensions() -> None:
-    head = _manifest({"changed.png": ("c-head", 10, 10)})
+    head = _manifest({"changed.png": ("c-head", 10, 10)}, diff_threshold=0.125)
     base = _manifest({"changed.png": ("c-base", 10, 10)})
     sibling = _sibling(
         7,
@@ -689,9 +689,29 @@ def test_build_comparison_plan_sibling_pixel_count_uses_larger_dimensions() -> N
         },
     )
     plan = _build_comparison_plan(head, base, 1, 2, sibling=sibling)
-    candidates = {(c.kind, c.name): c for chunk in plan.chunks for c in chunk.candidates}
-    assert candidates[("sibling", "changed.png")].pixel_count == 600
-    assert candidates[("base", "changed.png")].pixel_count == 100
+    assert plan.dict()["chunks"] == [
+        {
+            "chunk_index": 0,
+            "candidates": [
+                {
+                    "name": "changed.png",
+                    "head_hash": "c-head",
+                    "base_hash": "c-base",
+                    "pixel_count": 100,
+                    "diff_threshold": 0.125,
+                    "kind": "base",
+                },
+                {
+                    "name": "changed.png",
+                    "head_hash": "c-head",
+                    "base_hash": "c-sib",
+                    "pixel_count": 600,
+                    "diff_threshold": 0.125,
+                    "kind": "sibling",
+                },
+            ],
+        }
+    ]
 
 
 def test_build_comparison_plan_sibling_added_uses_snapshot_manifest_dimensions() -> None:
