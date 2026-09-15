@@ -41,7 +41,6 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.threads import NotificationActionThreadUtils
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
 )
@@ -232,6 +231,7 @@ def _handle_workflow_engine_notification(
     organization: Organization,
     notification_context: NotificationContext,
     metric_issue_context: MetricIssueContext,
+    open_period_context: OpenPeriodContext,
     integration: RpcIntegration,
     attachments: str,
     text: str,
@@ -239,7 +239,7 @@ def _handle_workflow_engine_notification(
 ) -> bool:
     assert metric_issue_context.group is not None
 
-    open_period_start = open_period_start_for_group(metric_issue_context.group)
+    open_period_start = open_period_context.date_started
 
     parent_notification_message = _fetch_parent_notification_message_for_notification_action(
         organization=organization,
@@ -310,6 +310,7 @@ def send_incident_alert_notification(
         organization=organization,
         notification_context=notification_context,
         metric_issue_context=metric_issue_context,
+        open_period_context=open_period_context,
         integration=integration,
         attachments=attachments,
         text=text,

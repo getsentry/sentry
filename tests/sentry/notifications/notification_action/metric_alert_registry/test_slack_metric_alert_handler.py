@@ -226,6 +226,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             data=asdict(self.evidence_data),
         )
         activity.save()
+        self.open_period.update(resolution_activity=activity)
 
         event_data_with_activity = WorkflowEventData(
             event=activity,
@@ -269,7 +270,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             threshold_type=AlertRuleThresholdType.BELOW,
             detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
-            alert_threshold=self.evidence_data.conditions[2]["comparison"],
+            resolve_threshold=self.evidence_data.conditions[2]["comparison"],
         )
 
         self.assert_metric_issue_context(

@@ -1,5 +1,9 @@
 from typing import Any
 
+from sentry.incidents.grouptype import MetricIssue
+from sentry.models.activity import Activity
+from sentry.services.eventstore.models import GroupEvent
+from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.registry import condition_handler_registry
@@ -25,4 +29,13 @@ class IssuePriorityGreaterOrEqualConditionHandler(DataConditionHandler[WorkflowE
                 return False
 
         group = event_data.group
+        if group.type == MetricIssue.type_id:
+            event = event_data.event
+            if isinstance(event, Activity) and event.type == ActivityType.SET_RESOLVED.value:
+                # Resolutions must match the de-escalation filter for their period,
+                # not the priority of a subsequently reopened group.
+                return False
+            if isinstance(event, GroupEvent) and event.occurrence is not None:
+                if event.occurrence.priority is not None:
+                    return event.occurrence.priority >= comparison
         return group.priority >= comparison

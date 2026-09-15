@@ -14,7 +14,7 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.groupopenperiod import GroupOpenPeriod, get_latest_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.workflow_engine.models import Action, Condition, Detector
@@ -219,9 +219,13 @@ class MetricIssueContext:
 
     @classmethod
     def _get_new_status(
-        cls, group: Group, detector_priority_level: DetectorPriorityLevel
+        cls,
+        group: Group,
+        detector_priority_level: DetectorPriorityLevel,
+        *,
+        group_status: int | None = None,
     ) -> IncidentStatus:
-        if group.status == GroupStatus.RESOLVED:
+        if (group.status if group_status is None else group_status) == GroupStatus.RESOLVED:
             return IncidentStatus.CLOSED
         elif detector_priority_level == DetectorPriorityLevel.MEDIUM:
             return IncidentStatus.WARNING
@@ -241,8 +245,12 @@ class MetricIssueContext:
         group: Group,
         evidence_data: MetricIssueEvidenceData,
         detector_priority_level: DetectorPriorityLevel,
+        *,
+        open_period: GroupOpenPeriod | None = None,
+        group_status: int | None = None,
     ) -> MetricIssueContext:
-        open_period = get_latest_open_period(group)
+        if open_period is None:
+            open_period = get_latest_open_period(group)
         if open_period is None:
             raise ValueError("No open periods found for group")
 
@@ -258,7 +266,9 @@ class MetricIssueContext:
             open_period_identifier=open_period.id,
             snuba_query=snuba_query,
             subscription=subscription,
-            new_status=cls._get_new_status(group, detector_priority_level),
+            new_status=cls._get_new_status(
+                group, detector_priority_level, group_status=group_status
+            ),
             metric_value=metric_value,
             group=group,
             title=group.title,
@@ -307,6 +317,10 @@ class OpenPeriodContext(BaseModel):
         open_period = get_latest_open_period(group)
         if open_period is None:
             raise ValueError("No open periods found for group")
+        return cls.from_open_period(open_period)
+
+    @classmethod
+    def from_open_period(cls, open_period: GroupOpenPeriod) -> OpenPeriodContext:
         return cls(
             date_started=open_period.date_started,
             date_closed=open_period.date_ended,
