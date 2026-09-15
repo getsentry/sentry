@@ -1,10 +1,10 @@
 import {isValidElement} from 'react';
 import * as Sentry from '@sentry/react';
 
-import type {FormModel} from 'sentry/components/forms/model';
-import {DEFAULT_TOAST_DURATION} from 'sentry/constants';
+import {toast, type ToastOptions} from '@sentry/scraps/toast';
+
+import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
@@ -18,27 +18,17 @@ interface IndicatorOptions {
 
 type UndoIndicatorOptions = IndicatorOptions & {undo: () => void};
 
-interface UndoableIndicatorOptions extends IndicatorOptions {
-  formModel: {
-    id: string;
-    model: FormModel;
-  };
-}
-
-export type Indicator = {
-  id: string | number;
-  message: React.ReactNode;
-  options: IndicatorOptions;
-  type: IndicatorType;
-  clearId?: null | number;
-};
-
 // Clears all indicators
+/**
+ * @deprecated Use `toast.dismiss()` from `@sentry/scraps/toast` instead.
+ */
 export function clearIndicators() {
-  IndicatorStore.clear();
+  toast.dismiss();
 }
 
-// Note previous IndicatorStore.add behavior was to default to "loading" if no type was supplied
+/**
+ * @deprecated Use the namespaced API from `@sentry/scraps/toast` instead.
+ */
 export function addMessage(
   msg: React.ReactNode,
   type: 'undo',
@@ -54,7 +44,7 @@ export function addMessage(
   type: IndicatorType,
   options: IndicatorOptions = {}
 ): void {
-  const {duration: optionsDuration, append, ...rest} = options;
+  const {duration: optionsDuration, disableDismiss, undo} = options;
 
   // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
   if (
@@ -70,17 +60,43 @@ export function addMessage(
     );
   }
 
-  // use default only if undefined, as 0 is a valid duration
-  const duration =
-    optionsDuration === undefined ? DEFAULT_TOAST_DURATION : optionsDuration;
+  const toastOptions: ToastOptions = {
+    dismissible: disableDismiss !== true,
+  };
 
-  const action = append ? 'append' : 'add';
-  // XXX: This differs from `IndicatorStore.add` since it won't return the indicator that is created
-  // because we are firing an action. You can just add a new message and it will, by default,
-  // replace active indicator
-  IndicatorStore[action](msg, type, {...rest, duration});
+  if (optionsDuration !== undefined) {
+    toastOptions.duration =
+      optionsDuration === null || optionsDuration === 0 ? Infinity : optionsDuration;
+  }
+
+  if (typeof undo === 'function') {
+    toastOptions.action = {
+      label: t('Undo'),
+      icon: <IconRefresh size="xs" />,
+      onClick: undo,
+    };
+  }
+
+  switch (type) {
+    case 'loading':
+      toast.loading(msg, toastOptions);
+      break;
+    case 'error':
+      toast.error(msg, toastOptions);
+      break;
+    case 'success':
+      toast.success(msg, toastOptions);
+      break;
+    case 'undo':
+    case '':
+      toast.message(msg, toastOptions);
+      break;
+  }
 }
 
+/**
+ * @deprecated Use `toast.loading()` from `@sentry/scraps/toast` instead.
+ */
 export function addLoadingMessage(
   msg: React.ReactNode = t('Saving changes...'),
   options?: IndicatorOptions
@@ -88,6 +104,9 @@ export function addLoadingMessage(
   return addMessage(msg, 'loading', options);
 }
 
+/**
+ * @deprecated Use `toast.error()` from `@sentry/scraps/toast` instead.
+ */
 export function addErrorMessage(msg: React.ReactNode, options?: IndicatorOptions) {
   if (isDemoModeActive()) {
     return addMessage(t('This action is not allowed in demo mode.'), 'error', options);
@@ -108,9 +127,12 @@ export function addErrorMessage(msg: React.ReactNode, options?: IndicatorOptions
   );
 }
 
+/**
+ * @deprecated Use `toast.success()` from `@sentry/scraps/toast` instead.
+ */
 export function addSuccessMessage(
   msg: React.ReactNode,
-  options?: IndicatorOptions | UndoableIndicatorOptions
+  options?: IndicatorOptions | UndoIndicatorOptions
 ) {
   return addMessage(msg, 'success', options);
 }
