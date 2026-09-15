@@ -19,6 +19,7 @@ const ORG_SLUG = 'org-slug';
 const ARTIFACT_ID = '123';
 const API_URL = `/organizations/${ORG_SLUG}/preprodartifacts/snapshots/${ARTIFACT_ID}/`;
 const ARCHIVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/snapshots/${ARTIFACT_ID}/archive/`;
+const APPROVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/${ARTIFACT_ID}/approve/`;
 
 const data = {
   head_artifact_id: ARTIFACT_ID,
@@ -42,10 +43,14 @@ const data = {
   unchanged_count: 0,
 } as unknown as SnapshotDetailsApiResponse;
 
-function renderActions() {
+function renderActions(overrides: Partial<SnapshotDetailsApiResponse> = {}) {
   const organization = OrganizationFixture({slug: ORG_SLUG});
   return render(
-    <SnapshotHeaderActions data={data} organizationSlug={ORG_SLUG} apiUrl={API_URL} />,
+    <SnapshotHeaderActions
+      data={{...data, ...overrides}}
+      organizationSlug={ORG_SLUG}
+      apiUrl={API_URL}
+    />,
     {organization}
   );
 }
@@ -135,5 +140,43 @@ describe('SnapshotHeaderActions download images', () => {
 
     expect(buildMock).not.toHaveBeenCalled();
     expect(downloadFromHref).not.toHaveBeenCalled();
+  });
+});
+
+describe('SnapshotHeaderActions re-approve', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('re-approves from the overflow menu when already approved', async () => {
+    const approveMock = MockApiClient.addMockResponse({
+      url: APPROVE_URL,
+      method: 'POST',
+      match: [MockApiClient.matchData({feature_type: 'snapshots'})],
+      statusCode: 200,
+      body: {detail: 'Already approved'},
+    });
+
+    renderActions({comparison_state: 'success', approval_status: 'approved'});
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    await userEvent.click(await screen.findByText('Re-approve'));
+
+    await waitFor(() => expect(approveMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('does not offer re-approve for auto-approved builds', async () => {
+    renderActions({comparison_state: 'success', approval_status: 'auto_approved'});
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+
+    expect(await screen.findByText('Rerun Status Checks')).toBeInTheDocument();
+    expect(screen.queryByText('Re-approve')).not.toBeInTheDocument();
+  });
+
+  it('does not offer re-approve while approval is still required', async () => {
+    renderActions({comparison_state: 'success', approval_status: 'requires_approval'});
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+
+    expect(await screen.findByText('Rerun Status Checks')).toBeInTheDocument();
+    expect(screen.queryByText('Re-approve')).not.toBeInTheDocument();
   });
 });
