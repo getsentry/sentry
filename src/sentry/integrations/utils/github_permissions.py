@@ -1,14 +1,15 @@
-"""
-when you update the app, if and only if you want warnings to show in different places in the UI
-then you should update the option with the new expected required permissions and their required level
+"""The permissions the current GitHub App version requests, and helpers to
+compare an installation against them.
 
-if you don't update the option, nothing will break since the option only lists out required permissions:
-if the user's integration contains more permissions than we expect we just ignore it, since there are
-inconsistencies with what permissions we store in the metadata anyways based on whether the integration
-is for an org or a single user
+``GITHUB_APP_REQUIRED_PERMISSIONS`` is the source of truth for what the app asks
+for. It lives in the codebase (it used to be the ``github-app.required-permissions``
+option) because it is not a secret and has to stay in lockstep with the app's
+declared permissions and the tiers in ``github_permission_tiers``. Update it
+whenever the app's required permissions change.
 
-at the moment there's no way to gate warnings in the UI by which perm is missing, but we can add that
-where the warnings are implemented since this API returns the list of missing scopes / levels
+We only ever compare against it as a floor: an installation holding *more* than
+we expect is ignored, since what GitHub reports in the integration metadata
+already varies by whether the install is for an org or a single user.
 """
 
 from __future__ import annotations
@@ -18,11 +19,7 @@ from collections.abc import Mapping
 from enum import IntEnum
 from typing import Any, NamedTuple, TypedDict
 
-from sentry import options
-
 logger = logging.getLogger(__name__)
-
-GITHUB_APP_REQUIRED_PERMISSIONS_OPTION = "github-app.required-permissions"
 
 
 class PermissionLevel(IntEnum):
@@ -57,6 +54,30 @@ class ParsedPermissions(NamedTuple):
     # this to decide whether a map they cannot fully read is one they can act
     # on at all.
     unreadable: dict[str, str]
+
+
+# The union of every permission the app's features expect, as scope -> minimum
+# level. Each scope is introduced by one of the tiers in github_permission_tiers,
+# except the last group, which predates them and is spoken for by BASELINE_TIER:
+#   actions:write, code_quality:read, security_events:read  -> PR iteration
+#   contents:write                                          -> Autofix pull requests
+#   checks:write, statuses:write                            -> Seer code review
+#   pull_requests:write                                     -> PR comments
+#   administration:read, issues:write, metadata:read,
+#   repository_hooks:write                                  -> baseline (earlier features)
+GITHUB_APP_REQUIRED_PERMISSIONS: dict[str, str] = {
+    "actions": "write",
+    "administration": "read",
+    "checks": "write",
+    "code_quality": "read",
+    "contents": "write",
+    "issues": "write",
+    "metadata": "read",
+    "pull_requests": "write",
+    "repository_hooks": "write",
+    "security_events": "read",
+    "statuses": "write",
+}
 
 
 def parse_github_app_permissions(
@@ -106,12 +127,8 @@ def get_missing_github_app_permissions(
     nothing rather than report a permission missing that may well be held.
     ``parse_github_app_permissions`` has logged the levels in question.
     """
-    required_permissions = options.get(GITHUB_APP_REQUIRED_PERMISSIONS_OPTION)
-    if not required_permissions:
-        return None
-
     expected = parse_github_app_permissions(
-        required_permissions, source="required_permissions_option"
+        GITHUB_APP_REQUIRED_PERMISSIONS, source="required_permissions"
     )
 
     integration_permissions = metadata.get("permissions") or {}

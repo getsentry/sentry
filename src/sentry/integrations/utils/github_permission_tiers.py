@@ -53,6 +53,7 @@ class PermissionTier:
     # Position on the chain. Higher is newer, and satisfying this tier means
     # satisfying every tier below it.
     order: int
+    name: str
     description: str
     # The permission raise this tier introduced, as scope -> minimum level. Not
     # the full set the feature needs: the rest came with lower tiers. Empty on
@@ -63,6 +64,7 @@ class PermissionTier:
 BASELINE_TIER = PermissionTier(
     key="baseline",
     order=0,
+    name="Various earlier features",
     description=(
         "Including issue linking, commit tracking, and keeping repository data up to date."
     ),
@@ -71,13 +73,15 @@ BASELINE_TIER = PermissionTier(
 PR_COMMENTS_TIER = PermissionTier(
     key="pull_request_comments",
     order=1,
+    name="Pull request comments",
     description="Comment on pull requests to link them to the Sentry issues they caused.",
     introduced={"pull_requests": PermissionLevel.WRITE},
 )
 
-CODE_REVIEW_STATUSES_TIER = PermissionTier(
-    key="code_review_statuses",
+CODE_REVIEW_TIER = PermissionTier(
+    key="code_review",
     order=2,
+    name="Seer Code Review",
     description="Review your pull requests and report the result as a check run.",
     introduced={"checks": PermissionLevel.WRITE, "statuses": PermissionLevel.WRITE},
 )
@@ -85,13 +89,15 @@ CODE_REVIEW_STATUSES_TIER = PermissionTier(
 AUTOFIX_PULL_REQUESTS_TIER = PermissionTier(
     key="autofix_pull_requests",
     order=3,
+    name="Autofix pull requests",
     description="Push a branch and open a pull request with a fix for an issue.",
     introduced={"contents": PermissionLevel.WRITE},
 )
 
-AUTOFIX_PR_ITERATION_TIER = PermissionTier(
-    key="autofix_pr_iteration",
+PR_ITERATION_TIER = PermissionTier(
+    key="pr_iteration",
     order=4,
+    name="Pull request iteration",
     description=(
         "Read GitHub Actions logs and re-run jobs, so Seer can get a pull "
         "request it opened to a passing build."
@@ -108,9 +114,9 @@ TIERS: tuple[PermissionTier, ...] = tuple(
         (
             BASELINE_TIER,
             PR_COMMENTS_TIER,
-            CODE_REVIEW_STATUSES_TIER,
+            CODE_REVIEW_TIER,
             AUTOFIX_PULL_REQUESTS_TIER,
-            AUTOFIX_PR_ITERATION_TIER,
+            PR_ITERATION_TIER,
         ),
         key=lambda tier: tier.order,
         reverse=True,
@@ -134,8 +140,13 @@ def _falls_short(
 def _baseline_tier_reqs(
     required_levels: Mapping[str, PermissionLevel],
 ) -> dict[str, PermissionLevel]:
-    """BASELINE_TIER's permissions: the remainder of the required permissions against the tiers' expected
-    permissions"""
+    """The requirements in ``required_levels`` that no tier claims a scope for.
+
+    These are what ``BASELINE_TIER`` speaks for. A scope showing up here that we
+    did not expect to means the app started requiring something new and nobody
+    added a tier for it, so users are being asked to accept a permission we
+    cannot name a feature for.
+    """
     claimed: dict[str, PermissionLevel] = {}
     for tier in TIERS:
         for scope, level in tier.introduced.items():
@@ -162,14 +173,21 @@ def get_permission_tiers(
 ) -> list[PermissionTier]:
     """Tiers an install holding ``permissions`` falls short of, highest order first.
 
-    ``permissions`` is the installation's own scope.
-    ``required_permissions`` is from the ``github-app.required-permissions`` option.
+    ``permissions`` is the installation's own scope -> level map as GitHub
+    reports it in ``Integration.metadata["permissions"]``; ``required_permissions``
+    is what the current app version asks for, from
+    ``GITHUB_APP_REQUIRED_PERMISSIONS``.
 
-    Empty when the install is current.
+    Empty when the install is current. When its permissions are not a point on
+    the order we cannot trust the state, so rather than guess we log it and
+    conservatively assume every tier is missing, returning them all. That covers
+    both an inconsistent set and falling short of ``BASELINE_TIER``, whose
+    permissions predate everything. Scopes beyond what any tier asks for are
+    ignored. A level we do not recognise counts as not held.
     """
     levels = parse_github_app_permissions(permissions, source="installation").levels
     required_levels = parse_github_app_permissions(
-        required_permissions, source="required_permissions_option"
+        required_permissions, source="required_permissions"
     ).levels
 
     behind = [tier for tier in TIERS if _falls_short(levels, _requirements(tier, required_levels))]
