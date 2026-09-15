@@ -10,10 +10,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
-import Indicators from 'sentry/components/indicators';
 
 const mockRefetchFeedbackList = jest.fn();
 
@@ -35,7 +34,6 @@ function renderDeleteFeedback() {
     <Fragment>
       <GlobalModal />
       <DeleteFeedbackButton />
-      <Indicators />
     </Fragment>,
     {
       organization,
@@ -56,7 +54,7 @@ async function confirmDelete() {
 
 describe('useDeleteFeedback', () => {
   beforeEach(() => {
-    clearIndicators();
+    toast.dismiss();
     mockRefetchFeedbackList.mockClear();
   });
 
