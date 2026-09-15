@@ -170,7 +170,7 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
-  it('hides data tabs when there is no agent data', async () => {
+  it('shows conversation onboarding without data tabs when there are no gen AI spans', async () => {
     localStorage.clear();
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
@@ -178,7 +178,7 @@ describe('ConversationsOverviewPage', () => {
 
     render(<ConversationsOverviewPage />, {organization});
 
-    expect(await screen.findByText('Monitor AI Agents')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Traces'})).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Spans'})).not.toBeInTheDocument();
