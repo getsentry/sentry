@@ -1,6 +1,6 @@
 """Per-section size limits. Sections apply these caps
 as they render, so output stays bounded. ``None`` means no cap; ``max_frames``/
-``max_breadcrumbs``/``max_threads`` are count caps.
+``max_breadcrumbs``/``max_threads_listed`` are count caps.
 """
 
 from __future__ import annotations
@@ -19,8 +19,11 @@ class Limits:
     max_contexts_chars: int | None = None
     max_evidence_chars: int | None = None
     max_frames: int = 16
+    # how many threads get a stacktrace. Every thread is still listed.
+    max_thread_stacktraces: int = 8
+    # a mobile crash can carry dozens of threads; list them all up to here
+    max_threads_listed: int = 64
     max_breadcrumbs: int = 10
-    max_threads: int = 8
 
 
 LIMITS_DEFAULT = Limits(
