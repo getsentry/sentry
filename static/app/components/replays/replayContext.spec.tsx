@@ -192,4 +192,52 @@ describe('replayContext', () => {
 
     expect(screen.getByText('Fast forward: 8')).toBeInTheDocument();
   });
+
+  it('does not throw when replayer wrapper is undefined during re-initialization with new events', () => {
+    // Simulate a Replayer whose `wrapper` property is undefined (e.g. destroyed
+    // but the ref has not been cleared yet). The first Replayer created will
+    // have `wrapper: undefined`; the module-level mock resumes for subsequent
+    // calls via `mockImplementationOnce`.
+    const {Replayer} = jest.requireMock('@sentry-internal/rrweb');
+    Replayer.mockImplementationOnce(() => ({
+      config: {skipInactive: false, speed: 1},
+      destroy: jest.fn(),
+      getCurrentTime: () => 0,
+      getMirror: () => null,
+      iframe: document.createElement('iframe'),
+      on: jest.fn((event: string, handler: (arg: any) => void) => {
+        mockReplayerHandlers.set(event, handler);
+      }),
+      pause: mockPause,
+      play: mockPlay,
+      setConfig: jest.fn(),
+      wrapper: undefined, // reproduce the crash condition
+    }));
+
+    // A second ReplayReader with a different timestamp yields a new events
+    // array, making `hasNewEvents` true on the next render so that the init
+    // effect re-runs with `replayerRef.current` already set.
+    const startedAt2 = new Date('2023-12-25T00:00:01');
+    const replay2 = ReplayReader.factory({
+      attachments: RRWebInitFrameEventsFixture({timestamp: startedAt2}),
+      errors: [],
+      fetching: false,
+      replayRecord: ReplayRecordFixture({started_at: startedAt2}),
+    });
+
+    const {rerender} = renderPlayer();
+
+    // Changing the replay prop gives the component new events, which causes the
+    // init effect to run again with `replayerRef.current` set (to the mock
+    // whose `wrapper` is `undefined`). Without the null-safety guard this
+    // would throw: TypeError: Cannot read properties of undefined (reading
+    // 'parentElement').
+    expect(() => {
+      rerender(
+        <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay2}>
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+    }).not.toThrow();
+  });
 });
