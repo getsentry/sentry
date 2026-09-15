@@ -539,6 +539,7 @@ const config = defineConfig({
     '@sentry/no-digits-in-tn': 'error',
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
+    '@sentry/prefer-react-component': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
     '@sentry/no-redundant-default-argument': 'error',
     '@sentry/no-static-translations': 'error',
@@ -1748,6 +1749,7 @@ const config = defineConfig({
       rules: {
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        '@sentry/prefer-react-component': 'off',
         'no-restricted-imports': [
           'error',
           {

@@ -17,6 +17,7 @@ import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
 import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
+import {preferReactComponent} from './preferReactComponent.ts';
 import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
 
 export const rules = {
@@ -28,6 +29,7 @@ export const rules = {
   'no-digits-in-tn': noDigitsInTn,
   'no-dynamic-translations': noDynamicTranslations,
   'no-flag-comments': noFlagComments,
+  'prefer-react-component': preferReactComponent,
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-redundant-default-argument': noRedundantDefaultArgument,
