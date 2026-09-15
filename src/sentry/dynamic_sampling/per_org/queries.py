@@ -324,10 +324,8 @@ def get_eap_transaction_volumes(
     root_projects: Sequence[Project] | None = None,
 ) -> list[ProjectTransactionCounts]:
     """
-    Fetch the highest-volume transactions of every root project in a single
-    LIMIT BY query, mirroring the legacy pipeline's per-project top-N
-    (``LIMIT BY (org_id, project_id)`` in boost_low_volume_transactions) so the
-    transaction rebalancing model sees the same explicit transaction set.
+    Fetch the highest-volume transactions of every root project in a single LIMIT BY
+    query. These are the explicit transactions the transaction rebalancing model balances.
     """
     # Spans rooted in one project can be owned by any project in the org, so the query
     # scope stays config.projects; root_projects only narrows which root projects
@@ -338,9 +336,6 @@ def get_eap_transaction_volumes(
         return []
 
     if max_transactions_per_project is None:
-        # Shared with the legacy pipeline so both select the same explicit transaction
-        # set per project. The companion small-transactions option is 0 in production,
-        # so only the largest transactions are fetched.
         max_transactions_per_project = int(
             options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
         )

@@ -101,10 +101,9 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        # get_sample_rate stays ungated so balancing runs on the usage-based rate, as it did
-        # against the legacy cache.
+        # get_sample_rate stays ungated so balancing runs on the usage-based rate.
         assert configuration.get_sample_rate() == 0.25
-        # The blended-100% gate applies only at serve time, mirroring legacy serving.
+        # The blended-100% gate applies only at serve time.
         assert configuration.get_serving_sample_rate() == 1.0
 
     def test_subscription_backed_org_falls_back_to_blended_sample_rate_without_volume(

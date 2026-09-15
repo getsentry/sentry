@@ -168,17 +168,16 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
 
     def get_sample_rate(self) -> TargetSampleRate:
         # The usage-based rate that project balancing runs against. The blended-100% gate is
-        # intentionally NOT applied here, so that an org under its reserved quota is still
-        # balanced on its usage-based rate, as the legacy pipeline did. That gate lives in
-        # get_serving_sample_rate, matching legacy serving.
+        # intentionally not applied here, so that an org under its reserved quota is still
+        # balanced on its usage-based rate. That gate lives in get_serving_sample_rate.
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
 
     def get_serving_sample_rate(self) -> TargetSampleRate:
-        # Serving-time parity with the legacy path (get_guarded_project_sample_rate): a blended
-        # (reserved-based) rate of 100% serves at 100%, bypassing the usage-based sliding-window
-        # rate. Kept out of get_sample_rate so the gate does not leak into project balancing.
+        # Like get_guarded_project_sample_rate, a blended (reserved-based) rate of 100% serves
+        # at 100% and bypasses the usage-based sliding window rate. Kept out of
+        # get_sample_rate so the gate does not leak into project balancing.
         if self.sample_rate == 1.0:
             return self.sample_rate
         return self.get_sample_rate()
