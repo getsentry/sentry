@@ -291,6 +291,41 @@ describe('utils/tokenizeSearch', () => {
         },
       },
       {
+        name: 'should keep an explicit typed key whole when it contains a space',
+        string: 'tags[foo, string]:bar span.op:pageload',
+        object: {
+          tokens: [
+            {type: TokenType.FILTER, key: 'tags[foo, string]', value: 'bar'},
+            {type: TokenType.FILTER, key: 'span.op', value: 'pageload'},
+          ],
+        },
+      },
+      {
+        name: 'should keep an explicit typed flag key whole when it contains a space',
+        string: 'flags[foo, number]:>10',
+        object: {
+          tokens: [{type: TokenType.FILTER, key: 'flags[foo, number]', value: '>10'}],
+        },
+      },
+      {
+        name: 'should keep an array membership typed key whole when it contains a space',
+        string: 'tags[foo, array][*]:x',
+        object: {
+          tokens: [{type: TokenType.FILTER, key: 'tags[foo, array][*]', value: 'x'}],
+        },
+      },
+      {
+        name: 'should not treat a bracket after a word ending in tags as a typed key',
+        string: 'mytags[a, b] c',
+        object: {
+          tokens: [
+            {type: TokenType.FREE_TEXT, value: 'mytags[a,'},
+            {type: TokenType.FREE_TEXT, value: 'b]'},
+            {type: TokenType.FREE_TEXT, value: 'c'},
+          ],
+        },
+      },
+      {
         name: 'should keep splitting free text that contains a bracketed span',
         string: 'foo [bar baz] qux',
         object: {

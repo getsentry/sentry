@@ -605,11 +605,18 @@ export class MutableSearch {
 }
 
 /**
- * The grammar only allows a value list directly after a filter's `:`, behind an
- * optional wildcard operator (`text_in_filter` / `numeric_in_filter`). A `[`
- * anywhere else is ordinary text.
+ * The prefixes of the grammar's explicit typed keys, e.g. `tags[foo, string]`.
  */
-function opensBracketedList(queryChars: string[], openIdx: number): boolean {
+const TYPED_KEY_PREFIXES = ['tags', 'flags'];
+
+/**
+ * Whether the unquoted `[` at `openIdx` opens a span the grammar lets contain
+ * whitespace. There are exactly two: a filter's value list, which follows the
+ * `:` behind an optional wildcard operator (`text_in_filter` /
+ * `numeric_in_filter`), and an explicit typed key such as `tags[foo, string]`,
+ * which follows a `tags`/`flags` prefix. A `[` anywhere else is ordinary text.
+ */
+function opensBracketedSpan(queryChars: string[], openIdx: number): boolean {
   let idx = openIdx;
 
   for (const op of Object.values(WildcardOperators)) {
@@ -619,7 +626,19 @@ function opensBracketedList(queryChars: string[], openIdx: number): boolean {
     }
   }
 
-  return queryChars[idx - 1] === ':';
+  if (queryChars[idx - 1] === ':') {
+    return true;
+  }
+
+  return TYPED_KEY_PREFIXES.some(prefix => {
+    const start = openIdx - prefix.length;
+    if (start < 0 || queryChars.slice(start, openIdx).join('') !== prefix) {
+      return false;
+    }
+    // The prefix has to start the key, so `mytags[a, b]` is still plain text.
+    const before = queryChars[start - 1];
+    return before === undefined || isSpace(before) || before === '!' || before === '(';
+  });
 }
 
 /**
@@ -681,7 +700,8 @@ function splitSearchIntoTokens(query: string) {
   let quoteEnclosed = false;
   // The search grammar allows whitespace between the items of a bracketed
   // list, e.g. `key:[a, b]`, so a space inside brackets does not end the
-  // token. Only a `[` in list position that is closed later counts; a stray or
+  // token, and the same goes for a typed key like `tags[foo, string]`. Only a
+  // `[` in one of those positions that is closed later counts; a stray or
   // unclosed bracket is ordinary text and keeps splitting on whitespace.
   let bracketDepth = 0;
 
@@ -695,7 +715,7 @@ function splitSearchIntoTokens(query: string) {
         // Already inside a list, so track nesting to find the matching `]`.
         bracketDepth++;
       } else if (
-        opensBracketedList(queryChars, idx) &&
+        opensBracketedSpan(queryChars, idx) &&
         hasClosingBracket(queryChars, idx)
       ) {
         bracketDepth = 1;
