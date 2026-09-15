@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from django.db import IntegrityError, models, router, transaction
 
+from sentry import features
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -15,11 +16,14 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.encryption import EncryptedJSONField
+from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 from sentry.signals import integration_added
+from sentry.silo.safety import unguarded_write
 from sentry.types.cell import find_cells_for_orgs
 
 if TYPE_CHECKING:
@@ -116,8 +120,21 @@ class Integration(DefaultFieldsModelExisting):
         """
         from sentry.integrations.models.organization_integration import OrganizationIntegration
 
-        if not isinstance(organization_id, int):
+        # We need the organization for a feature flag check. organization is a union type
+        # which includes integers. We need to map the id to an organization instance.
+        organization: Organization | RpcOrganization | None
+        if isinstance(organization_id, int):
+            context = organization_service.get_organization_by_id(
+                id=organization_id, include_projects=False, include_teams=False
+            )
+            organization = context.organization if context is not None else None
+        else:
+            organization = organization_id
             organization_id = organization_id.id
+
+        use_cas_reinstall = organization is not None and features.has(
+            "organizations:integrations-deletion-reinstall-cas", organization
+        )
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
@@ -127,8 +144,51 @@ class Integration(DefaultFieldsModelExisting):
                     defaults={"default_auth_id": default_auth_id, "config": {}},
                 )
                 # TODO(Steve): add audit log if created
-                if not created and default_auth_id:
-                    org_integration.update(default_auth_id=default_auth_id)
+                if not created and use_cas_reinstall:
+                    # Guard against a deletion race with a compare-and-swap. A
+                    # single UPDATE ... WHERE status = PENDING_DELETION is atomic:
+                    # either we rescue the row before the deletion task claims it,
+                    # or we don't touch it at all. We deliberately avoid row locks
+                    # (SELECT FOR UPDATE) here; a prior version of this fix stalled
+                    # the database under lock contention. You can find the other
+                    # side of this CAS here:
+                    #   src/sentry/deletions/defaults/organizationintegration.py
+                    #
+                    # `unguarded_write` is safe because status replication is
+                    # disabled for this model; see the note at the deletion side.
+                    with unguarded_write(using=router.db_for_write(OrganizationIntegration)):
+                        reactivated = bool(
+                            OrganizationIntegration.objects.filter(
+                                id=org_integration.id, status=ObjectStatus.PENDING_DELETION
+                            ).update(status=ObjectStatus.ACTIVE)
+                        )
+                    if reactivated:
+                        org_integration.status = ObjectStatus.ACTIVE
+                        ScheduledDeletion.cancel(org_integration)
+                    else:
+                        org_integration.refresh_from_db()
+
+                    # The deletion task has already claimed the row. Exit early. We
+                    # can not honor the re-installation request.
+                    if org_integration.status == ObjectStatus.DELETION_IN_PROGRESS:
+                        logger.info(
+                            "add-organization-deletion-in-progress",
+                            extra={
+                                "organization_id": organization_id,
+                                "integration_id": self.id,
+                                "organization_integration_id": org_integration.id,
+                            },
+                        )
+                        raise IntegrationDeletionInProgressError(
+                            "Integration deletion is already in progress. Please try again in a few minutes."
+                        )
+
+                    if default_auth_id:
+                        org_integration.update(default_auth_id=default_auth_id)
+                elif not created:
+                    # Legacy behavior (flag off): no deletion-race protection.
+                    if default_auth_id:
+                        org_integration.update(default_auth_id=default_auth_id)
 
                 if created:
                     organization_service.schedule_signal(

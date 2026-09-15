@@ -23,6 +23,7 @@ from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.shared_integrations.exceptions import IntegrationDeletionInProgressError
 
 
 @control_silo_endpoint
@@ -91,6 +92,13 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
                 org_integration = integration.add_organization(organization, user)
                 if org_integration is None:
                     raise IntegrityError
+        except IntegrationDeletionInProgressError:
+            return Response(
+                {
+                    "detail": "Integration deletion is already in progress. Please try again in a few minutes."
+                },
+                status=409,
+            )
         except IntegrityError:
             return Response({"detail": "Could not create the integration."}, status=400)
 
