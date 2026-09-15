@@ -356,50 +356,6 @@ describe('ScmRepoSelector', () => {
     expect(onRepositoryChange).toHaveBeenCalled();
   });
 
-  it('keeps focus in the search field after a keyboard selection', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
-      body: {
-        repos: [
-          {
-            externalId: '1',
-            identifier: 'getsentry/sentry',
-            name: 'sentry',
-            isInstalled: false,
-          },
-        ],
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/`,
-      body: [
-        RepositoryFixture({
-          name: 'getsentry/sentry',
-          externalSlug: 'getsentry/sentry',
-        }),
-      ],
-    });
-
-    const onRepositoryChange = jest.fn();
-    render(
-      <ScmRepoSelector
-        {...defaultProps({integration: mockIntegration, onRepositoryChange})}
-      />,
-      {organization}
-    );
-
-    const search = screen.getByRole('textbox', {name: 'Search repositories'});
-    await userEvent.click(search);
-    await userEvent.keyboard('sentry');
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'sentry'})
-    ).toBeInTheDocument();
-    await userEvent.keyboard('{Enter}');
-
-    await waitFor(() => expect(onRepositoryChange).toHaveBeenCalled());
-    expect(search).toHaveFocus();
-  });
-
   it('fires project_creation.connect_repo_selected when analyticsFlow=project-creation', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
@@ -475,7 +431,13 @@ describe('ScmRepoSelector', () => {
 
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
 
-    await userEvent.click(await screen.findByTestId('icon-close'));
+    // react-select hides the clear indicator from the accessibility tree, so
+    // reach the button through its icon. Activate it with Enter: a mouse click
+    // fires mousedown, which react-select already answers by refocusing the
+    // input, so only the keyboard path observes the refocus in handleChange.
+    const clearButton = (await screen.findByTestId('icon-close')).closest('button')!;
+    clearButton.focus();
+    await userEvent.keyboard('{Enter}');
 
     await waitFor(() => expect(onRepositoryChange).toHaveBeenCalledWith(undefined));
     expect(screen.getByRole('textbox', {name: 'Search repositories'})).toHaveFocus();
@@ -563,5 +525,6 @@ describe('ScmRepoSelector', () => {
 
     await waitFor(() => expect(onRepositoryChange).toHaveBeenCalled());
     expect(onClearDerivedState).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('textbox', {name: 'Search repositories'})).toHaveFocus();
   });
 });

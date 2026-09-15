@@ -150,8 +150,6 @@ describe('ScmIntegrationConnect', () => {
       {organization}
     );
 
-    // The pill that opened the install modal unmounts when the repo selector
-    // replaces it, so the selector takes focus instead of the body.
     await userEvent.click(await screen.findByText('GitHub'));
     const {onComplete} = openPipelineModalSpy.mock.calls[0]![0];
     act(() => onComplete?.(githubGetsentry));
