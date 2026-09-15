@@ -116,7 +116,7 @@ class OrganizationSeerWorkflowsEndpoint(OrganizationEndpoint):
         serializer = WorkflowRunCreateSerializer(data=request.data)
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        run = create_monitor_cleanup_run(request, organization)
+        run = create_monitor_cleanup_run(request, organization, source="manual")
         return Response({"runId": str(run.id)}, status=202)
 
 
