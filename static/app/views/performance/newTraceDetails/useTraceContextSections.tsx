@@ -3,16 +3,7 @@ import {useMemo} from 'react';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {
-  getTraceMetaAiSpanCount,
-  getTraceMetaErrorCount,
-  getTraceMetaLogsCount,
-  getTraceMetaMetricsCount,
-  getTraceMetaPerformanceIssueCount,
-  getTraceMetaSpanCount,
-  getTraceMetaUptimeCount,
-  type TraceMetaQueryResults,
-} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 function hasCount(count: number | undefined, fallback: boolean): boolean {
@@ -43,13 +34,13 @@ export function useTraceContextSections({
   const hasLogs =
     logsEnabled &&
     hasCount(
-      getTraceMetaLogsCount(meta),
+      meta?.logsCount,
       logsCount === undefined ? !!(logs && logs.length > 0) : logsCount > 0
     );
   const hasMetrics =
     metricsEnabled &&
     hasCount(
-      getTraceMetaMetricsCount(meta),
+      meta?.metricsCount,
       metricsCount === undefined ? !!(metrics && metrics.count > 0) : metricsCount > 0
     );
   const hasOnlyNonTraceData = tree.type === 'empty' && (hasLogs || hasMetrics);
@@ -59,14 +50,17 @@ export function useTraceContextSections({
     vitalGroup.some(vital => allowedVitals.includes(`measurements.${vital.key}`))
   );
 
-  const hasAiSpans =
-    (getTraceMetaAiSpanCount(meta) ?? 0) > 0 || !!tree.root.findChild(getIsAiNode);
+  const aiSpanCount = Object.entries(meta?.spansCountMap ?? {}).reduce(
+    (count, [op, opCount]) => (op.startsWith('gen_ai') ? count + opCount : count),
+    0
+  );
+  const hasAiSpans = aiSpanCount > 0 || !!tree.root.findChild(getIsAiNode);
 
   const traceEventCount =
-    (getTraceMetaSpanCount(meta) ?? 0) +
-    (getTraceMetaErrorCount(meta) ?? 0) +
-    (getTraceMetaPerformanceIssueCount(meta) ?? 0) +
-    (getTraceMetaUptimeCount(meta) ?? 0);
+    (meta?.spansCount ?? 0) +
+    (meta?.errorsCount ?? 0) +
+    (meta?.performanceIssuesCount ?? 0) +
+    (meta?.uptimeCount ?? 0);
 
   const hasTraceEvents =
     meta === undefined

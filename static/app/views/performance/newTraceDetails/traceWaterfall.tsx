@@ -47,7 +47,7 @@ import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/u
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
-import {getTraceMetaSpanCount, type TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
@@ -435,7 +435,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
-    const metaSpanCount = getTraceMetaSpanCount(props.meta.data);
+    const metaSpanCount = props.meta.data?.spansCount;
 
     if (traceNode && props.tree.eap_spans_count !== metaSpanCount) {
       Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
