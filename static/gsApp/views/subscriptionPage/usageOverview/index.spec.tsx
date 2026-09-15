@@ -55,7 +55,10 @@ describe('UsageOverview', () => {
     renderUsageOverview();
 
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
-    expect(screen.getByRole('button', {name: 'View all usage'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View all usage'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/stats/'
+    );
     expect(screen.getByRole('button', {name: 'Download as CSV'})).toBeInTheDocument();
   });
 

@@ -27,7 +27,7 @@ export function UsageOverviewActions({organization}: {organization: Organization
   }> = [
     {
       label: t('View all usage'),
-      to: `/settings/${organization.slug}/billing/usage/`,
+      to: `/settings/${organization.slug}/stats/`,
       icon: <IconTable />,
     },
     {
