@@ -5,6 +5,7 @@ import {WidgetFixture} from 'sentry-fixture/widget';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {useSpansSeriesQuery, useSpansTableQuery} from './useSpansWidgetQuery';
@@ -458,6 +459,61 @@ describe('useSpansSeriesQuery', () => {
         }),
       })
     );
+  });
+
+  it('keeps fieldMeta aligned when a stripped _if aggregate was not last', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: 'test',
+          fields: ['avg_if(``,span.duration)', 'p95(span.duration)'],
+          aggregates: ['avg_if(``,span.duration)', 'p95(span.duration)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+          fieldAliases: ['Stripped', 'P95'],
+          fieldMeta: [
+            {valueType: 'integer', valueUnit: null},
+            {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND},
+          ],
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {
+        data: [
+          [1, [{count: 100}]],
+          [2, [{count: 200}]],
+        ],
+      },
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useSpansSeriesQuery({
+        widget,
+        organization: organizationWithConditionalAggregates,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.timeseriesResultsUnits?.['p95(span.duration)']).toBe(
+      DurationUnit.MILLISECOND
+    );
+    expect(result.current.timeseriesResultsTypes?.['p95(span.duration)']).toBe(
+      'duration'
+    );
+    expect(
+      result.current.timeseriesResultsUnits?.['avg_if(``,span.duration)']
+    ).toBeUndefined();
   });
 
   it('retargets orderby when it pointed at a stripped invalid _if aggregate', async () => {
@@ -1072,5 +1128,68 @@ describe('useSpansTableQuery', () => {
         }),
       })
     );
+  });
+
+  it('keeps fieldMeta aligned when a stripped _if aggregate was not last', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: 'test',
+          fields: ['transaction', 'avg_if(``,span.duration)', 'p95(span.duration)'],
+          aggregates: ['avg_if(``,span.duration)', 'p95(span.duration)'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+          fieldAliases: ['', 'Stripped', 'P95'],
+          fieldMeta: [
+            null,
+            {valueType: 'integer', valueUnit: null},
+            {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND},
+          ],
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [{transaction: '/api/test', 'p95(span.duration)': 100}],
+        meta: {
+          fields: {
+            transaction: 'string',
+            'p95(span.duration)': 'number',
+          },
+          units: {
+            transaction: null,
+            'p95(span.duration)': null,
+          },
+        },
+      },
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useSpansTableQuery({
+        widget,
+        organization: organizationWithConditionalAggregates,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.tableResults?.[0]?.meta?.units?.['p95(span.duration)']).toBe(
+      DurationUnit.MILLISECOND
+    );
+    expect(result.current.tableResults?.[0]?.meta?.fields?.['p95(span.duration)']).toBe(
+      'duration'
+    );
+    expect(
+      result.current.tableResults?.[0]?.meta?.units?.['avg_if(``,span.duration)']
+    ).toBeUndefined();
   });
 });

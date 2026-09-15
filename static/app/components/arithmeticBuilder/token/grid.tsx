@@ -314,18 +314,8 @@ export function findNearestRow(
 
   for (const row of rows) {
     const rect = row.getBoundingClientRect();
-    const dx =
-      clientX < rect.left
-        ? rect.left - clientX
-        : clientX > rect.right
-          ? clientX - rect.right
-          : 0;
-    const dy =
-      clientY < rect.top
-        ? rect.top - clientY
-        : clientY > rect.bottom
-          ? clientY - rect.bottom
-          : 0;
+    const dx = distanceOutsideRange(clientX, rect.left, rect.right);
+    const dy = distanceOutsideRange(clientY, rect.top, rect.bottom);
     const distance = dx * dx + dy * dy;
     if (distance < nearestDistance) {
       nearestDistance = distance;
@@ -338,4 +328,14 @@ export function findNearestRow(
   }
 
   return nearest;
+}
+
+function distanceOutsideRange(value: number, start: number, end: number): number {
+  if (value < start) {
+    return start - value;
+  }
+  if (value > end) {
+    return value - end;
+  }
+  return 0;
 }

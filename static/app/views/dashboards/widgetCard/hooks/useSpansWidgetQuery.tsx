@@ -83,10 +83,29 @@ function isOrderbyValidForAggregates(
   return false;
 }
 
+function keepAlignedValues<T>(
+  values: readonly T[] | undefined,
+  keep: readonly boolean[]
+): T[] | undefined {
+  if (values === undefined) {
+    return undefined;
+  }
+  return keep.flatMap((kept, index) => {
+    if (!kept || index >= values.length) {
+      return [];
+    }
+    return [values[index]!];
+  });
+}
+
 /**
  * Drop invalid Explore-style `_if` aggregates before building a series/table
  * request. Also retarget `orderby` when it pointed at a removed series so
  * getSeriesRequestData does not re-inject the invalid field.
+ *
+ * `fields`, `fieldAliases`, and `fieldMeta` are parallel arrays. Strip with the
+ * same keep-mask so table/series transforms do not zip leftover meta onto the
+ * wrong remaining field.
  */
 function withValidConditionalAggregates(widget: Widget, queryIndex: number): Widget {
   const query = widget.queries[queryIndex];
@@ -103,12 +122,21 @@ function withValidConditionalAggregates(widget: Widget, queryIndex: number): Wid
   let nextOrderby = query.orderby ?? '';
   if (!isOrderbyValidForAggregates(nextOrderby, validAggregates, columns)) {
     const fallback = validAggregates[0];
-    nextOrderby = fallback
-      ? query.orderby?.startsWith('-')
-        ? `-${fallback}`
-        : fallback
-      : '';
+    if (!fallback) {
+      nextOrderby = '';
+    } else if (query.orderby?.startsWith('-')) {
+      nextOrderby = `-${fallback}`;
+    } else {
+      nextOrderby = fallback;
+    }
   }
+
+  const validAggregateSet = new Set(validAggregates);
+  const columnSet = new Set(columns);
+  const originalFields = query.fields ?? [...columns, ...aggregates];
+  const keep = originalFields.map(
+    field => columnSet.has(field) || validAggregateSet.has(field)
+  );
 
   return {
     ...widget,
@@ -120,11 +148,11 @@ function withValidConditionalAggregates(widget: Widget, queryIndex: number): Wid
         ...widgetQuery,
         aggregates: validAggregates,
         orderby: nextOrderby,
-        // Rebuild fields from columns + remaining aggregates so stripped `_if`
-        // series do not linger in the request field list.
         fields: widgetQuery.fields
-          ? [...columns, ...validAggregates]
+          ? originalFields.filter((_, fieldIndex) => keep[fieldIndex])
           : widgetQuery.fields,
+        fieldAliases: keepAlignedValues(widgetQuery.fieldAliases, keep),
+        fieldMeta: keepAlignedValues(widgetQuery.fieldMeta, keep),
       };
     }),
   };
@@ -572,11 +600,13 @@ export function useSpansTableQuery(
       const meta = transformedDataItem.meta;
       const fieldMeta = queryForTransform.fieldMeta;
       if (fieldMeta && meta) {
+        const units = (meta.units ??= {});
+        const fields = (meta.fields ??= {});
         fieldMeta.forEach((m, index) => {
           const field = queryForTransform.fields?.[index];
           if (m && field) {
-            meta.units![field] = m.valueUnit ?? '';
-            meta.fields![field] = m.valueType;
+            units[field] = m.valueUnit ?? '';
+            fields[field] = m.valueType;
           }
         });
       }
