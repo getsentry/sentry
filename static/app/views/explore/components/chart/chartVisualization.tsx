@@ -10,6 +10,7 @@ import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartX
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
+import type {DataFidelityAnnotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
@@ -26,6 +27,8 @@ interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
+  droppedData?: DataFidelityAnnotation[];
+  showDroppedData?: boolean;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
@@ -63,6 +66,8 @@ export function ChartVisualization({
   chartXRangeSelection,
   chartInfo,
   chartRef,
+  droppedData,
+  showDroppedData,
 }: ChartVisualizationProps) {
   const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
@@ -110,6 +115,8 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
+        droppedData={droppedData}
+        showDroppedData={showDroppedData}
       />
     </StyledTransparentLoadingMask>
   );
