@@ -3,6 +3,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, call, patch
 
 import orjson
+import pytest
 
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
@@ -17,7 +18,9 @@ from sentry.preprod.snapshots.manifest import (
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.tasks import (
     ImageFingerprint,
+    _ApprovalDecision,
     _build_comparison_fingerprints,
+    _decide_snapshot_approval,
     _find_approved_sibling,
     _hash_only_diffs,
     _HashOnlyDiff,
@@ -29,6 +32,31 @@ from sentry.testutils.helpers.analytics import (
     assert_not_analytics_event,
 )
 from sentry.testutils.silo import cell_silo_test
+
+
+@pytest.mark.parametrize(
+    ("status", "expected"),
+    [
+        ("unchanged", _ApprovalDecision("approved", threshold_matched_count=1)),
+        ("changed", _ApprovalDecision("evidence_mismatch", image_name="screen.png")),
+        ("errored", _ApprovalDecision("evidence_mismatch", image_name="screen.png")),
+    ],
+)
+def test_approval_decision_from_sibling_evidence(status, expected):
+    decision = _decide_snapshot_approval(
+        {ImageFingerprint("screen.png", "changed", "head-hash")},
+        {ImageFingerprint("screen.png", "changed", "sibling-hash")},
+        {
+            "screen.png": ComparisonImageResult(
+                status=status, head_hash="head-hash", base_hash="sibling-hash"
+            )
+        },
+    )
+    assert decision == expected
+
+
+def test_approval_decision_rejects_empty_change_sets():
+    assert _decide_snapshot_approval(set(), set(), {}) == _ApprovalDecision("no_changes")
 
 
 class BuildComparisonFingerprintsTest(TestCase):

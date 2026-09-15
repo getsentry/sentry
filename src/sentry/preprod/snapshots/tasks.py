@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Set
 from datetime import datetime
 from difflib import SequenceMatcher
 from typing import Any, Literal, NamedTuple
@@ -349,7 +349,7 @@ class _HashOnlyDiff(NamedTuple):
 
 
 def _hash_only_diffs(
-    head: set[ImageFingerprint], sibling: set[ImageFingerprint]
+    head: Set[ImageFingerprint], sibling: Set[ImageFingerprint]
 ) -> list[_HashOnlyDiff] | None:
     # None: names or statuses differ (structural). []: identical. Otherwise the
     # pairs that differ only by content hash and need a pixel diff.
@@ -471,6 +471,34 @@ def _find_approved_sibling(
     return SiblingComparison(approved_sibling.id, comparison_key, manifest, snapshot_manifest)
 
 
+class _ApprovalDecision(NamedTuple):
+    reason: Literal["approved", "no_changes", "structure_mismatch", "evidence_mismatch"]
+    threshold_matched_count: int = 0
+    image_name: str | None = None
+
+
+def _decide_snapshot_approval(
+    head_fingerprints: Set[ImageFingerprint],
+    sibling_fingerprints: Set[ImageFingerprint],
+    sibling_images: Mapping[str, ComparisonImageResult],
+) -> _ApprovalDecision:
+    if not head_fingerprints:
+        return _ApprovalDecision("no_changes")
+    differences = _hash_only_diffs(head_fingerprints, sibling_fingerprints)
+    if differences is None:
+        return _ApprovalDecision("structure_mismatch")
+    for difference in differences:
+        result = sibling_images.get(difference.name)
+        if (
+            result is None
+            or result.status != "unchanged"
+            or result.head_hash != difference.head_hash
+            or result.base_hash != difference.sibling_hash
+        ):
+            return _ApprovalDecision("evidence_mismatch", image_name=difference.name)
+    return _ApprovalDecision("approved", threshold_matched_count=len(differences))
+
+
 def _try_auto_approve_snapshot(
     head_artifact: PreprodArtifact,
     comparison_manifest: ComparisonManifest,
@@ -498,31 +526,28 @@ def _try_auto_approve_snapshot(
         )
         return
 
-    diffs = _hash_only_diffs(head_fingerprints, _build_comparison_fingerprints(sibling_manifest))
-    if diffs is None:
+    decision = _decide_snapshot_approval(
+        head_fingerprints, _build_comparison_fingerprints(sibling_manifest), sibling_images
+    )
+    if decision.reason == "structure_mismatch":
         logger.info("auto_approve: fingerprints do not match", extra=log_extra)
         return
+    if decision.reason == "evidence_mismatch":
+        result = sibling_images.get(decision.image_name or "")
+        metrics.incr("preprod.snapshots.auto_approve.threshold_mismatch")
+        logger.info(
+            "auto_approve: sibling diff rejected",
+            extra={
+                **log_extra,
+                "image_name": decision.image_name,
+                "status": result.status if result else None,
+            },
+        )
+        return
+    if decision.reason != "approved":
+        return
 
-    for diff in diffs:
-        result = sibling_images.get(diff.name)
-        if (
-            result is None
-            or result.status != "unchanged"
-            or result.head_hash != diff.head_hash
-            or result.base_hash != diff.sibling_hash
-        ):
-            metrics.incr("preprod.snapshots.auto_approve.threshold_mismatch")
-            logger.info(
-                "auto_approve: sibling diff rejected",
-                extra={
-                    **log_extra,
-                    "image_name": diff.name,
-                    "status": result.status if result else None,
-                },
-            )
-            return
-
-    if diffs:
+    if decision.threshold_matched_count:
         metrics.incr("preprod.snapshots.auto_approve.threshold_match")
 
     PreprodComparisonApproval.objects.create(
@@ -533,7 +558,7 @@ def _try_auto_approve_snapshot(
         extras={
             "auto_approval": True,
             "prev_approved_artifact_id": plan.sibling_artifact_id,
-            "threshold_matched_image_count": len(diffs),
+            "threshold_matched_image_count": decision.threshold_matched_count,
         },
     )
 
@@ -553,7 +578,7 @@ def _try_auto_approve_snapshot(
             **log_extra,
             "prev_approved_artifact_id": plan.sibling_artifact_id,
             "organization_slug": head_artifact.project.organization.slug,
-            "threshold_matched_image_count": len(diffs),
+            "threshold_matched_image_count": decision.threshold_matched_count,
         },
     )
 
