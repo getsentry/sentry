@@ -1,9 +1,9 @@
 import {useCallback, useMemo} from 'react';
 
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';

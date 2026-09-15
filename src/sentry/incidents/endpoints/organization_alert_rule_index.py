@@ -111,6 +111,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
@@ -285,6 +286,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         Returns the total number of on-demand alert rules for a project, along with
         the maximum allowed limit of on-demand alert rules that can be created.
         """
+        enforce_alerts_api_deprecation(organization)
         project_id = request.GET.get("project_id")
         if project_id is None:
             raise ParseError(detail="Invalid project_id")
@@ -543,6 +545,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
         """
+        enforce_alerts_api_deprecation(organization)
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
         # index to filter on. Also enforces permission checks.
@@ -776,6 +779,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         predefined threshold. These rules help you proactively identify and address issues in your
         project.
         """
+        enforce_alerts_api_deprecation(organization)
         projects = self.get_projects(request, organization)
         return self.fetch_metric_alerts(request, organization, projects)
 
@@ -955,6 +959,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         }
         ```
         """
+        enforce_alerts_api_deprecation(organization)
         if features.has(
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):

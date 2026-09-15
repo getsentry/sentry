@@ -160,6 +160,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:invite-members", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable rate limits for inviting members.
     manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=True, api_expose=False)
+    # Keep legacy alerts APIs available for an organization
+    manager.add("organizations:legacy-alerts-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False, default=True)
     # Enables higher limit for alert rules
     manager.add("organizations:more-fast-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -352,6 +354,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True, api_expose=True)
     # Enable new stack trace component for issue details
     manager.add("organizations:issue-details-new-stack-trace", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Use a data-driven Problem section for low-value span issues
+    manager.add("organizations:issue-details-generic-problem-section", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable double-reading from EAP for issue feed search queries
     manager.add("organizations:issue-feed.eap-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Fetch CI check status from the provider for pull requests linked to an issue

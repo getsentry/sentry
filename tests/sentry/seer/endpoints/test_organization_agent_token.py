@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from contextlib import nullcontext
+from contextlib import ExitStack, nullcontext
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
@@ -2060,9 +2060,27 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             else nullcontext()
         )
         if endpoint.endpoint_name == "GroupAutofixEndpoint":
-            downstream_scope: Any = patch(
-                "sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent",
-                return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
+            downstream_scope: Any = ExitStack()
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent",
+                    return_value=SimpleNamespace(seer_run_state_id=1, uuid=uuid4()),
+                )
+            )
+            # Kickoffs are gated on Seer setup (SCM integration + linked repos)
+            # mirroring the frontend; that gate is owned by test_group_ai_autofix,
+            # so assume a configured project and keep this matrix about auth.
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.has_supported_scm_integration",
+                    return_value=True,
+                )
+            )
+            downstream_scope.enter_context(
+                patch(
+                    "sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos",
+                    return_value=True,
+                )
             )
         elif endpoint.endpoint_name == "SentryAppInstallationExternalIssueActionsEndpoint":
             downstream_scope = patch(

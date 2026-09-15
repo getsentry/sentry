@@ -199,7 +199,6 @@ SENTRY_SPAN_DEDUPE_CLUSTER: str | None = None
 SENTRY_ASSEMBLE_CLUSTER = "default"
 SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 SENTRY_WORKFLOW_ENGINE_REDIS_CLUSTER = "default"
-SENTRY_HYBRIDCLOUD_BACKFILL_OUTBOXES_REDIS_CLUSTER = "default"
 SENTRY_WEEKLY_REPORTS_REDIS_CLUSTER = "default"
 SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
@@ -1800,16 +1799,12 @@ SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
+# Release-health indexer only; generic metrics consumers are gone.
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS: dict[str, str] = {}
-SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
-    SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
-)
 
 # Controls the sample rate with which we report errors to Sentry for metric messages
 # dropped due to rate limits.
 SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
-
-SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -2280,7 +2275,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.8.0"
+SELF_HOSTED_STABLE_VERSION = "26.9.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3090,36 +3085,9 @@ GATEWAY_PROXY_TIMEOUT: int | None = (
     else None
 )
 
-SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
-# This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
-# to a given slice. A slice is a set of physical resources in Sentry and Snuba.
-#
-# For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
-# to a slice ID
-SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
-
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
-# Example:
-# SLICED_KAFKA_TOPICS = {
-#   ("snuba-generic-metrics", 0): {
-#       "topic": "generic_metrics_0",
-#       "cluster": "cluster_1",
-#   },
-#   ("snuba-generic-metrics", 1): {
-#       "topic": "generic_metrics_1",
-#       "cluster": "cluster_2",
-# }
-# And then in KAFKA_CLUSTERS:
-# KAFKA_CLUSTERS = {
-#   "cluster_1": {
-#       "bootstrap.servers": "kafka1:9092",
-#   },
-#   "cluster_2": {
-#       "bootstrap.servers": "kafka2:9092",
-#   },
-# }
 SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
 
 # Used by silo tests -- activate all silo mode test decorators even if not marked stable

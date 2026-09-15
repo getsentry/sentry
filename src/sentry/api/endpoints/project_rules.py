@@ -60,6 +60,7 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 )
 from sentry.workflow_engine.models import AlertRuleWorkflow, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.detector import Detector
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -860,6 +861,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        enforce_alerts_api_deprecation(project.organization)
         expand = request.GET.getlist("expand", ["lastTriggered"])
 
         queryset = Workflow.objects.filter(
@@ -891,12 +893,11 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         examples=IssueAlertExamples.CREATE_ISSUE_ALERT_RULE,
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-rules")
-    # Temporarily disabled until project issue creation uses the new workflow endpoints.
-    # @deprecated(
-    #     ALERTS_API_DEPRECATION_DATE,
-    #     suggested_api="sentry-api-0-organization-workflow-index",
-    #     key=ALERTS_API_DEPRECATION_KEY,
-    # )
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-index",
+        key=ALERTS_API_DEPRECATION_KEY,
+    )
     def post(self, request: Request, project) -> Response:
         """
         ## Deprecated
@@ -910,6 +911,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        enforce_alerts_api_deprecation(project.organization)
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization, "request": request},
             data=request.data,
