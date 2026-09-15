@@ -15,14 +15,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 
-import type {
-  EAPTraceMeta,
-  ResponseEAPTraceMeta,
-  ResponseTraceMeta,
-  TraceMeta,
-} from './types';
+import type {EAPTraceMeta, ResponseEAPTraceMeta} from './types';
 
 export type TraceMetaTrace = {
   timestamp: number | undefined;
@@ -41,23 +35,14 @@ type TraceMetaQueryParams =
       timestamp: number;
     };
 
-function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
-  if (isEAPTraceMeta(meta)) {
-    return (
-      getTraceMetaErrorCount(meta) === 0 &&
-      getTraceMetaLogsCount(meta) === 0 &&
-      getTraceMetaMetricsCount(meta) === 0 &&
-      getTraceMetaPerformanceIssueCount(meta) === 0 &&
-      getTraceMetaSpanCount(meta) === 0 &&
-      getTraceMetaUptimeCount(meta) === 0
-    );
-  }
-
+function isEmptyMeta(meta: EAPTraceMeta): boolean {
   return (
     getTraceMetaErrorCount(meta) === 0 &&
+    getTraceMetaLogsCount(meta) === 0 &&
+    getTraceMetaMetricsCount(meta) === 0 &&
     getTraceMetaPerformanceIssueCount(meta) === 0 &&
     getTraceMetaSpanCount(meta) === 0 &&
-    getTraceMetaTransactionCount(meta) === 0
+    getTraceMetaUptimeCount(meta) === 0
   );
 }
 
@@ -82,80 +67,54 @@ function getMetaQueryParams(
   };
 }
 
-type MetaArg = TraceMeta | EAPTraceMeta | null | undefined;
-type ResponseMetaArg = ResponseTraceMeta | ResponseEAPTraceMeta | null | undefined;
-
-function isEAPTraceMeta(meta: MetaArg): meta is EAPTraceMeta {
-  if (!meta) {
-    return false;
-  }
-  return 'uptimeCount' in meta && !('transactions' in meta);
-}
-
-function isResponseEAPTraceMeta(meta: ResponseMetaArg): meta is ResponseEAPTraceMeta {
-  if (!meta) {
-    return false;
-  }
-  return 'spansCount' in meta;
-}
+type MetaArg = EAPTraceMeta | null | undefined;
 
 export function getTraceMetaErrorCount(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  return isEAPTraceMeta(meta) ? meta.errorsCount : meta.errors;
+  return meta.errorsCount;
 }
 
 export function getTraceMetaPerformanceIssueCount(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  return isEAPTraceMeta(meta) ? meta.performanceIssuesCount : meta.performance_issues;
+  return meta.performanceIssuesCount;
 }
 
 export function getTraceMetaSpanCount(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  return isEAPTraceMeta(meta) ? meta.spansCount : meta.span_count;
+  return meta.spansCount;
 }
 
 export function getTraceMetaMetricsCount(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  return isEAPTraceMeta(meta) ? meta.metricsCount : undefined;
+  return meta.metricsCount;
 }
 
 export function getTraceMetaLogsCount(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  return isEAPTraceMeta(meta) ? meta.logsCount : undefined;
-}
-
-export function getTraceMetaTransactionCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return isEAPTraceMeta(meta) ? undefined : meta.transactions;
+  return meta.logsCount;
 }
 
 export function getTraceMetaUptimeCount(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  return isEAPTraceMeta(meta) ? meta.uptimeCount : undefined;
+  return meta.uptimeCount;
 }
 
 export function getTraceMetaAiSpanCount(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  if (!isEAPTraceMeta(meta)) {
-    return;
-  }
-
   return Object.entries(meta.spansCountMap).reduce((count, [op, opCount]) => {
     return op.startsWith('gen_ai') ? count + opCount : count;
   }, 0);
@@ -165,9 +124,7 @@ export function getTraceMetaTransactionChildCountMap(meta: MetaArg) {
   if (!meta) {
     return;
   }
-  return isEAPTraceMeta(meta)
-    ? meta.transactionChildCountMap
-    : meta.transaction_child_count_map;
+  return meta.transactionChildCountMap;
 }
 
 function mergeCountMap(acc: Record<string, number>, value: Record<string, number>): void {
@@ -178,7 +135,6 @@ function mergeCountMap(acc: Record<string, number>, value: Record<string, number
 
 type TransactionChildCountMap =
   | Record<string, number>
-  | ResponseTraceMeta['transaction_child_count_map']
   | ResponseEAPTraceMeta['transactionChildCountMap'];
 
 function mergeTransactionChildCountMap(
@@ -187,9 +143,8 @@ function mergeTransactionChildCountMap(
 ): void {
   if (Array.isArray(value)) {
     value.forEach(row => {
-      const id =
-        'transaction.id' in row ? row['transaction.id'] : row['transaction.event_id'];
-      const count = 'count' in row ? row.count : row['count()'];
+      const id = row['transaction.event_id'];
+      const count = row['count()'];
 
       if (!id) {
         return;
@@ -204,7 +159,6 @@ function mergeTransactionChildCountMap(
 }
 
 async function fetchTraceMetaInBatches(
-  type: 'non-eap' | 'eap',
   organization: Organization,
   traces: TraceMetaTrace[],
   normalizedParams: any,
@@ -213,42 +167,34 @@ async function fetchTraceMetaInBatches(
   statsPeriodOverride?: string
 ) {
   const pendingTraces = [...traces];
-  const meta: TraceMeta | EAPTraceMeta =
-    type === 'eap'
-      ? {
-          errorsCount: 0,
-          logsCount: 0,
-          metricsCount: 0,
-          performanceIssuesCount: 0,
-          spansCount: 0,
-          spansCountMap: {},
-          transactionChildCountMap: {},
-          uptimeCount: 0,
-        }
-      : {
-          errors: 0,
-          performance_issues: 0,
-          projects: 0,
-          transactions: 0,
-          transaction_child_count_map: {},
-          span_count: 0,
-          span_count_map: {},
-        };
+  const meta: EAPTraceMeta = {
+    errorsCount: 0,
+    logsCount: 0,
+    metricsCount: 0,
+    performanceIssuesCount: 0,
+    spansCount: 0,
+    spansCountMap: {},
+    transactionChildCountMap: {},
+    uptimeCount: 0,
+  };
 
   const apiErrors: Error[] = [];
 
   while (pendingTraces.length > 0) {
     const batch = pendingTraces.splice(0, 3);
-    const results = await Promise.allSettled<ResponseTraceMeta | ResponseEAPTraceMeta>(
+    const results = await Promise.allSettled<ResponseEAPTraceMeta>(
       batch.map(trace => {
         const url = getApiUrl(
-          type === 'non-eap'
-            ? '/organizations/$organizationIdOrSlug/events-trace-meta/$traceId/'
-            : '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
-          {path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug}}
+          '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              traceId: trace.traceSlug,
+            },
+          }
         );
 
-        return apiFetch<ResponseTraceMeta | ResponseEAPTraceMeta>({
+        return apiFetch<ResponseEAPTraceMeta>({
           ...fetchContext,
           queryKey: [
             url,
@@ -269,39 +215,16 @@ async function fetchTraceMetaInBatches(
 
     results.reduce((acc, result) => {
       if (result.status === 'fulfilled') {
-        if (isEAPTraceMeta(acc)) {
-          if (!isResponseEAPTraceMeta(result.value)) {
-            return acc;
-          }
-
-          acc.errorsCount += result.value.errorsCount;
-          acc.logsCount += result.value.logsCount;
-          acc.metricsCount += result.value.metricsCount;
-          acc.performanceIssuesCount += result.value.performanceIssuesCount;
-          acc.spansCount += result.value.spansCount;
-          acc.uptimeCount += result.value.uptimeCount ?? 0;
-          mergeCountMap(acc.spansCountMap, result.value.spansCountMap);
-          mergeTransactionChildCountMap(
-            acc.transactionChildCountMap,
-            result.value.transactionChildCountMap
-          );
-
-          return acc;
-        }
-
-        if (isResponseEAPTraceMeta(result.value)) {
-          return acc;
-        }
-
-        acc.errors += result.value.errors;
-        acc.performance_issues += result.value.performance_issues;
-        acc.projects = Math.max(acc.projects, result.value.projects);
-        acc.transactions += result.value.transactions;
-        acc.span_count += result.value.span_count;
-        mergeCountMap(acc.span_count_map, result.value.span_count_map);
+        acc.errorsCount += result.value.errorsCount;
+        acc.logsCount += result.value.logsCount;
+        acc.metricsCount += result.value.metricsCount;
+        acc.performanceIssuesCount += result.value.performanceIssuesCount;
+        acc.spansCount += result.value.spansCount;
+        acc.uptimeCount += result.value.uptimeCount ?? 0;
+        mergeCountMap(acc.spansCountMap, result.value.spansCountMap);
         mergeTransactionChildCountMap(
-          acc.transaction_child_count_map,
-          result.value.transaction_child_count_map
+          acc.transactionChildCountMap,
+          result.value.transactionChildCountMap
         );
       } else {
         apiErrors.push(new Error(result?.reason));
@@ -314,7 +237,7 @@ async function fetchTraceMetaInBatches(
 }
 
 export type TraceMetaQueryResults = {
-  data: TraceMeta | EAPTraceMeta | undefined;
+  data: EAPTraceMeta | undefined;
   errors: Error[];
   isLoading: boolean;
   status: QueryStatus;
@@ -336,7 +259,6 @@ export function useTraceMeta(
 ): TraceMetaQueryResults {
   const filters = usePageFilters();
   const organization = useOrganization();
-  const isEAP = useIsEAPTraceEnabled();
   const maxPickableDays = useDefaultMaxPickableDays();
   const traces = getTraceMetaTraces(options);
 
@@ -350,7 +272,6 @@ export function useTraceMeta(
     queryKey: ['traceData', traces.map(trace => trace.traceSlug), disableUrlSync],
     queryFn: async context => {
       const result = await fetchTraceMetaInBatches(
-        isEAP ? 'eap' : 'non-eap',
         organization,
         traces,
         normalizedParams,
@@ -367,7 +288,6 @@ export function useTraceMeta(
         maxPickableDays > defaultStatsDays
       ) {
         return fetchTraceMetaInBatches(
-          isEAP ? 'eap' : 'non-eap',
           organization,
           traces,
           normalizedParams,

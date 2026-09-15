@@ -1,10 +1,7 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import type {
-  EAPTraceMeta,
-  TraceMeta,
-} from 'sentry/views/performance/newTraceDetails/traceApi/types';
+import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 
@@ -140,35 +137,5 @@ describe('useTraceContextSections', () => {
 
     expect(result.current.hasLogs).toBe(false);
     expect(result.current.hasMetrics).toBe(false);
-  });
-
-  it('falls back to loaded data for sections not covered by legacy trace meta', () => {
-    const legacyMeta: TraceMeta = {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      span_count: 1,
-      span_count_map: {},
-      transaction_child_count_map: {},
-      transactions: 0,
-    };
-
-    const {result} = renderHook(() =>
-      useTraceContextSections({
-        tree: makeTree({
-          root: {
-            findChild: () => ({}) as BaseNode,
-          } as unknown as TraceTree['root'],
-        }),
-        logs: [{}] as unknown as OurLogsResponseItem[],
-        metrics: {count: 1},
-        meta: legacyMeta,
-      })
-    );
-
-    expect(result.current.hasLogs).toBe(true);
-    expect(result.current.hasMetrics).toBe(true);
-    expect(result.current.hasAiSpans).toBe(true);
-    expect(result.current.hasTraceEvents).toBe(true);
   });
 });

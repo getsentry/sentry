@@ -36,10 +36,7 @@ import {
   type TraceMetricEventsResponseItem,
 } from 'sentry/views/explore/metrics/types';
 import {useMetricAttributesTreeActions} from 'sentry/views/explore/metrics/useMetricAttributesTreeActions';
-import type {
-  EAPTraceMeta,
-  TraceMeta,
-} from 'sentry/views/performance/newTraceDetails/traceApi/types';
+import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
 import {
   getTraceMetaErrorCount,
   getTraceMetaLogsCount,
@@ -187,7 +184,7 @@ function MetricDetailsTraceSummary({
   traceMeta,
   traceMetaErrors,
 }: {
-  traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMeta: EAPTraceMeta | undefined;
   traceMetaErrors: Error[];
 }) {
   return (
@@ -210,7 +207,7 @@ function MetricDetailsTraceSummaryContent({
   traceMeta,
   traceMetaErrors,
 }: {
-  traceMeta: TraceMeta | EAPTraceMeta | undefined;
+  traceMeta: EAPTraceMeta | undefined;
   traceMetaErrors: Error[];
 }) {
   if (traceMetaErrors.length > 0) {
