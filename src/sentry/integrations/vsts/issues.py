@@ -18,7 +18,7 @@ from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, Iss
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField, IntegrationProviderSlug
-from sentry.integrations.utils.issue_url import parse_issue_url
+from sentry.integrations.utils.issue_url import get_url_origin, parse_issue_url
 from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -266,12 +266,15 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         account, path = account_and_path(parsed)
         installed_account, _ = account_and_path(base)
         match = re.fullmatch(r"/(?:[^/]+/)?_workitems/edit/(\d+)", path)
-        default_port = 443 if base.scheme == "https" else 80
+        origin = get_url_origin(parsed)
+        base_origin = get_url_origin(base)
         if (
             not account
             or account != installed_account
-            or parsed.scheme != base.scheme
-            or (parsed.port or default_port) != (base.port or default_port)
+            or origin is None
+            or base_origin is None
+            or origin[0] != base_origin[0]
+            or origin[2] != base_origin[2]
             or not match
         ):
             raise IntegrationFormError(
