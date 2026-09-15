@@ -19,6 +19,18 @@ from sentry.models.releases.constants import DB_VERSION_LENGTH
 from sentry.utils import metrics
 
 
+def release_order_date(date_added, date_released=None):
+    """The date a release is ordered by.
+
+    Mirrors `COALESCE(date_released, date_added)`, the ordering the releases
+    endpoints and `most_recent_release` already use. `date_added` alone is when
+    Sentry first saw the release, which is not when it shipped: a release row
+    created by an incoming event from an old build carries a recent
+    `date_added` and so outranks the release that actually fixed the issue.
+    """
+    return date_released or date_added
+
+
 @cell_silo_model
 class GroupResolution(Model):
     """
@@ -81,14 +93,17 @@ class GroupResolution(Model):
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`
             """
-            return res_release == release.id or res_release_datetime > release.date_added
+            return res_release == release.id or res_release_datetime > release_order_date(
+                release.date_added, release.date_released
+            )
 
         try:
             (
                 res_type,
                 res_release,
                 res_release_version,
-                res_release_datetime,
+                res_release_date_added,
+                res_release_date_released,
                 current_release_version,
             ) = (
                 cls.objects.filter(group=group)
@@ -98,11 +113,14 @@ class GroupResolution(Model):
                     "release__id",
                     "release__version",
                     "release__date_added",
+                    "release__date_released",
                     "current_release_version",
                 )[0]
             )
         except IndexError:
             return False
+
+        res_release_datetime = release_order_date(res_release_date_added, res_release_date_released)
 
         # if no release is present, we assume we've gone from "no release" to "some release"
         # in application configuration, and thus this must be older
@@ -155,7 +173,10 @@ class GroupResolution(Model):
 
                     return compare_release_dates_for_in_next_release(
                         res_release=current_release_obj.id,
-                        res_release_datetime=current_release_obj.date_added,
+                        res_release_datetime=release_order_date(
+                            current_release_obj.date_added,
+                            current_release_obj.date_released,
+                        ),
                         release=release,
                     )
                 except Release.DoesNotExist:
@@ -194,6 +215,8 @@ class GroupResolution(Model):
                     ...
 
             # Fallback to older model if semver comparison fails due to whatever reason
-            return res_release_datetime >= release.date_added
+            return res_release_datetime >= release_order_date(
+                release.date_added, release.date_released
+            )
         else:
             raise NotImplementedError

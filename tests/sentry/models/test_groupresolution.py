@@ -16,6 +16,13 @@ class GroupResolutionTest(TestCase):
         self.group = self.create_group()
         self.old_semver_release = self.create_release(version="foo_package@1.0")
         self.new_semver_release = self.create_release(version="foo_package@2.0")
+        # Added after new_release, but finalized with an earlier ship date --
+        # the shape a straggler event from an old build produces.
+        self.late_registered_old_release = self.create_release(
+            version="c",
+            date_added=timezone.now(),
+            date_released=timezone.now() - timedelta(minutes=60),
+        )
 
     def test_in_next_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
@@ -171,6 +178,30 @@ class GroupResolutionTest(TestCase):
             release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
         )
         assert GroupResolution.has_resolution(self.group, self.old_release)
+
+    def test_in_release_with_late_registered_old_release(self) -> None:
+        """A release finalized as older must not clear a newer resolution."""
+        GroupResolution.objects.create(
+            release=self.new_release, group=self.group, type=GroupResolution.Type.in_release
+        )
+        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+
+    def test_in_next_release_with_late_registered_old_release(self) -> None:
+        GroupResolution.objects.create(
+            release=self.new_release,
+            group=self.group,
+            type=GroupResolution.Type.in_next_release,
+        )
+        assert GroupResolution.has_resolution(self.group, self.late_registered_old_release)
+
+    def test_in_release_resolved_in_a_late_registered_release(self) -> None:
+        """The resolution's own release is ordered by its ship date too."""
+        GroupResolution.objects.create(
+            release=self.late_registered_old_release,
+            group=self.group,
+            type=GroupResolution.Type.in_release,
+        )
+        assert not GroupResolution.has_resolution(self.group, self.new_release)
 
     def test_for_semver_in_release_with_new_release(self) -> None:
         GroupResolution.objects.create(
