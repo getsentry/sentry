@@ -57,6 +57,7 @@ from sentry.preprod.snapshots.runs import (
     FrozenComparisonPlan,
     chunks_complete,
     comparison_creation_defaults,
+    limit_chunk_pairs,
     run_prefix,
     run_queryset,
     task_comparison,
@@ -1019,6 +1020,7 @@ def _publish_frozen_plan(
     org_id: int,
     project_id: int,
 ) -> FrozenComparisonPlan | None:
+    plan = plan.copy(update={"chunks": limit_chunk_pairs(plan.chunks)})
     execution_id = uuid4().hex
     frozen_plan = FrozenComparisonPlan(
         **plan.dict(),

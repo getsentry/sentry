@@ -1,10 +1,44 @@
 import jsonschema
+import pytest
 
 from sentry.preprod.snapshots.manifest import (
+    ChunkAssignment,
+    ChunkCandidate,
     ImageMetadata,
     SnapshotManifest,
     image_metadata_extras,
 )
+from sentry.preprod.snapshots.runs import limit_chunk_pairs
+
+
+@pytest.mark.parametrize(
+    "sizes,expected",
+    [([], []), ([100], [100]), ([101], [100, 1]), ([205], [100, 100, 5]), ([70, 50], [70, 50])],
+)
+def test_pair_cap_preserves_pixel_batches_and_candidate_order(sizes, expected):
+    chunks = [
+        ChunkAssignment(
+            chunk_index=index,
+            candidates=[
+                ChunkCandidate(
+                    name=f"{index}-{pair}.png",
+                    head_hash="head",
+                    base_hash="base",
+                    pixel_count=100,
+                    diff_threshold=0.1,
+                )
+                for pair in range(size)
+            ],
+        )
+        for index, size in enumerate(sizes)
+    ]
+    capped = limit_chunk_pairs(chunks)
+    assert [len(chunk.candidates) for chunk in capped] == expected
+    assert [chunk.chunk_index for chunk in capped] == list(range(len(expected)))
+    assert [candidate for chunk in capped for candidate in chunk.candidates] == [
+        candidate for chunk in chunks for candidate in chunk.candidates
+    ]
+    assert [len(chunk.candidates) for chunk in chunks] == sizes
 
 
 def _meta(**kwargs: object) -> dict:

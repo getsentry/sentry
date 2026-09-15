@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Literal, NamedTuple
 
 from django.db import models
@@ -9,6 +10,20 @@ from sentry import options
 from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION
 from sentry.preprod.snapshots.manifest import ChunkAssignment, ChunkResult, ComparisonPlan
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
+
+MAX_PAIRS_PER_CHUNK = 100
+
+
+def limit_chunk_pairs(chunks: Sequence[ChunkAssignment]) -> list[ChunkAssignment]:
+    batches = (
+        chunk.candidates[start : start + MAX_PAIRS_PER_CHUNK]
+        for chunk in chunks
+        for start in range(0, len(chunk.candidates), MAX_PAIRS_PER_CHUNK)
+    )
+    return [
+        ChunkAssignment(chunk_index=index, candidates=candidates)
+        for index, candidates in enumerate(batches)
+    ]
 
 
 class ImageFingerprint(NamedTuple):

@@ -212,6 +212,27 @@ class TestFrozenComparison(BaseTestCase):
         assert comparison.extras["snapshot_execution_id"] == self.execution_id
         assert comparison.chunks_done_indices == [0]
 
+    def test_retry_does_not_repack_when_pair_limit_changes(self):
+        with patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 1000):
+            comparison = self._start()
+        assert len(self.plan.chunks) == 1
+        assert len(self.plan.chunks[0].candidates) == 2
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        self.chunks.reset_mock()
+        with patch("sentry.preprod.snapshots.runs.MAX_PAIRS_PER_CHUNK", 1):
+            compare_snapshots(**self.kwargs)
+        self.chunks.assert_called_once_with(
+            kwargs={
+                "comparison_id": comparison.id,
+                "chunk_index": 0,
+                "execution_id": self.execution_id,
+                **self.kwargs,
+            }
+        )
+        assert _load_frozen_plan(self.session, self.execution_id, **self.kwargs) == self.plan
+
     def test_partial_dispatch_retry_resumes_published_plan(self):
         self.chunks.side_effect = [None, RuntimeError("dispatch failed")]
         with pytest.raises(RuntimeError, match="dispatch failed"):
