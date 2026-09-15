@@ -183,7 +183,7 @@ export function ResponseGroup({
   });
 
   const startTime = new Date(group[0]!.timestamp);
-  // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false 
+  // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
   // between tool calls, but answer settles once
   const endTime =
     !settledAnswer || pendingInput
