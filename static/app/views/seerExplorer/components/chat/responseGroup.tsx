@@ -188,9 +188,7 @@ export function ResponseGroup({
   // this, the block collapses and reopens on each poll cycle when the agent retries a
   // failing tool call, causing a visible flash.
   const endTime =
-    active || pendingInput
-      ? undefined
-      : new Date(group[group.length - 1]!.timestamp);
+    active || pendingInput ? undefined : new Date(group[group.length - 1]!.timestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">
