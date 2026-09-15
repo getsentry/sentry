@@ -3,42 +3,13 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TypedDict
 
 import sentry_sdk
 
 from sentry import quotas
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
-from sentry.dynamic_sampling.types import SamplingMeasure
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 
 ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
-
-
-class MeasureConfig(TypedDict):
-    """Configuration for a sampling measure query."""
-
-    mri: str
-    use_case_id: UseCaseID
-    tags: dict[str, str]
-
-
-# Configuration for each sampling measure type
-MEASURE_CONFIGS: dict[SamplingMeasure, MeasureConfig] = {
-    # SEGMENTS: SpanMRI with is_segment=true filter (replacement for transactions)
-    SamplingMeasure.SEGMENTS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {"is_segment": "true"},
-    },
-    # SPANS: SpanMRI without is_segment filter (AM3/project mode - counts all spans)
-    SamplingMeasure.SPANS: {
-        "mri": SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-        "use_case_id": UseCaseID.SPANS,
-        "tags": {},
-    },
-}
 
 
 @dataclass(frozen=True)
@@ -89,33 +60,6 @@ def are_equal_with_epsilon(a: float | None, b: float | None) -> bool:
         return False
 
     return math.isclose(a, b)
-
-
-def compute_guarded_sliding_window_sample_rate(
-    org_id: int,
-    project_id: int | None,
-    total_root_count: int,
-    window_size: int,
-) -> float | None:
-    """
-    Computes the actual sliding window sample rate by guarding any exceptions and returning None in case
-    any problem would arise.
-    """
-    try:
-        # We want to compute the sliding window sample rate by considering a window of time.
-        # This piece of code is very delicate, thus we want to guard it properly and capture any errors.
-        return compute_sliding_window_sample_rate(org_id, project_id, total_root_count, window_size)
-    except Exception as e:
-        sentry_sdk.capture_exception(
-            e,
-            extras={
-                "org_id": org_id,
-                "project_id": project_id,
-                "total_root_count": total_root_count,
-                "window_size": window_size,
-            },
-        )
-        return None
 
 
 def compute_sliding_window_sample_rate(

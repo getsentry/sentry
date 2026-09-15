@@ -1,9 +1,11 @@
+from time import time
 from typing import Any
 from unittest import mock
 
 import responses
 from django.db.utils import IntegrityError
 
+from fixtures.vsts import WORK_ITEM_RESPONSE
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -262,6 +264,108 @@ class GroupIntegrationDetailsTest(APITestCase):
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
 
     @responses.activate
+    def test_put_github_issue_url(self) -> None:
+        self.login_as(self.user)
+        for provider, domain, api_url, issue_path in (
+            ("github", "github.com", "https://api.github.com", "issues/321"),
+            ("github", "github.com", "https://api.github.com", "pull/321/changes"),
+            (
+                "github_enterprise",
+                "github.example.com",
+                "https://github.example.com/api/v3",
+                "pull/321",
+            ),
+        ):
+            metadata: dict[str, Any] = {
+                "domain_name": f"{domain}/example",
+                "access_token": "access-token",
+                "expires_at": "3000-01-01T00:00:00Z",
+                "installation": {"id": 2, "private_key": "private-key", "verify_ssl": True},
+            }
+            integration = self.create_integration(
+                organization=self.organization,
+                provider=provider,
+                external_id=f"{provider}:{issue_path}",
+                metadata=metadata,
+            )
+            self.create_repo(
+                name="example/repo", project=self.project, integration_id=integration.id
+            )
+            responses.get(
+                f"{api_url}/repos/example/repo/issues/321",
+                json={
+                    "number": 321,
+                    "title": "Existing issue",
+                    "body": "Description",
+                    "html_url": f"https://{domain}/example/repo/{issue_path.removesuffix('/changes')}",
+                },
+            )
+            group = self.create_group(project=self.project)
+            path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+            with self.feature("organizations:integrations-issue-basic"):
+                response = self.client.put(
+                    path,
+                    data={"externalIssue": f"https://{domain}/EXAMPLE/Repo/{issue_path}"},
+                )
+            assert response.status_code == 201, response.content
+            assert response.data["key"] == "example/repo#321"
+            assert GroupLink.objects.filter(
+                group_id=group.id,
+                linked_id=response.data["id"],
+                linked_type=GroupLink.LinkedType.issue,
+                relationship=GroupLink.Relationship.references,
+            ).exists()
+            org_integration = integration_service.get_organization_integration(
+                integration_id=integration.id, organization_id=self.organization.id
+            )
+            assert org_integration is not None
+            assert org_integration.config["project_issue_defaults"][str(self.project.id)] == {
+                "repo": "example/repo"
+            }
+        assert len(responses.calls) == 3
+
+    @responses.activate
+    def test_put_azure_issue_url(self) -> None:
+        self.login_as(self.user)
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=self.create_identity_provider(type="vsts"),
+            external_id="vsts",
+            data={"access_token": "access-token", "expires": time() + 3600},
+        )
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="vsts",
+            external_id="vsts:1",
+            name="fabrikam-fiber-inc",
+            metadata={"domain_name": "https://Fabrikam-Fiber-Inc.VisualStudio.COM/"},
+            oi_params={"default_auth_id": identity.id},
+        )
+        responses.get(
+            "https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/309",
+            body=WORK_ITEM_RESPONSE,
+            content_type="application/json",
+        )
+
+        with self.feature("organizations:integrations-issue-basic"):
+            for url in (
+                "https://fabrikam-fiber-inc.visualstudio.com/project/_workitems/edit/309",
+                "https://dev.azure.com/FABRIKAM-FIBER-INC/project/_workitems/edit/309?view=1",
+            ):
+                group = self.create_group(project=self.project)
+                path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+                response = self.client.put(path, data={"externalIssue": url})
+                assert response.status_code == 201
+                assert response.data["key"] == "309"
+                assert GroupLink.objects.filter(
+                    group_id=group.id,
+                    linked_id=response.data["id"],
+                    linked_type=GroupLink.LinkedType.issue,
+                    relationship=GroupLink.Relationship.references,
+                ).exists()
+        assert len(responses.calls) == 2
+
+    @responses.activate
     def test_put_jira_issue_url(self) -> None:
         self.login_as(self.user)
         integration = self.create_integration(
@@ -331,27 +435,36 @@ class GroupIntegrationDetailsTest(APITestCase):
             "https://api.bitbucket.org/2.0/repositories/myaccount/myrepo/issues/3",
             json={"id": 3, "title": "Existing issue", "content": {"html": "Description"}},
         )
-        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
-            response = self.client.put(
-                path, data={"externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3"}
-            )
-        assert response.status_code == 201
-        assert response.data["key"] == "myaccount/myrepo#3"
-        assert GroupLink.objects.filter(
-            group_id=self.group.id,
-            linked_id=response.data["id"],
-            linked_type=GroupLink.LinkedType.issue,
-            relationship=GroupLink.Relationship.references,
-        ).exists()
-        org_integration = integration_service.get_organization_integration(
-            integration_id=integration.id, organization_id=self.organization.id
-        )
-        assert org_integration is not None
-        assert org_integration.config["project_issue_defaults"][str(self.project.id)] == {
-            "repo": "myaccount/myrepo"
-        }
-        assert len(responses.calls) == 1
+            for data in (
+                {"externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3"},
+                {
+                    "externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3/issue-title#comment-1"
+                },
+                {
+                    "externalIssue": "https://bitbucket.org/myaccount/myrepo/issues/3/",
+                    "repo": "myaccount/myrepo",
+                },
+            ):
+                group = self.create_group(project=self.project)
+                path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+                response = self.client.put(path, data=data)
+                assert response.status_code == 201
+                assert response.data["key"] == "myaccount/myrepo#3"
+                assert GroupLink.objects.filter(
+                    group_id=group.id,
+                    linked_id=response.data["id"],
+                    linked_type=GroupLink.LinkedType.issue,
+                    relationship=GroupLink.Relationship.references,
+                ).exists()
+                org_integration = integration_service.get_organization_integration(
+                    integration_id=integration.id, organization_id=self.organization.id
+                )
+                assert org_integration is not None
+                assert org_integration.config["project_issue_defaults"][str(self.project.id)] == {
+                    "repo": "myaccount/myrepo"
+                }
+        assert len(responses.calls) == 3
 
     @responses.activate
     def test_put_bitbucket_issue_url_rejects_mismatched_target(self) -> None:
@@ -648,6 +761,24 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
         assert not GroupLink.objects.get_group_issues(group, external_issue.id).exists()
         assert Group.objects.get(id=group.id).status == group.status
+
+    def test_delete_with_non_integer_external_issue_id(self) -> None:
+        self.login_as(user=self.user)
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/1/?externalIssue=invalid"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 400
+
+    def test_delete_with_out_of_range_external_issue_id(self) -> None:
+        self.login_as(user=self.user)
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/1/?externalIssue=999999999999999999999"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.delete(path)
+
+        assert response.status_code == 400
 
     def test_delete_feature_disabled(self) -> None:
         self.login_as(user=self.user)

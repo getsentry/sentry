@@ -146,9 +146,6 @@ export function useConversations() {
   const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
   const combinedQuery = useCombinedQuery();
-  const sortingEnabled = organization.features.includes(
-    'gen-ai-conversations-querying-enhancements'
-  );
   const [sort, setSort] = useQueryState(
     'sort',
     parseAsStringLiteral(CONVERSATION_SORTS).withDefault(
@@ -171,7 +168,7 @@ export function useConversations() {
           project: pageFilters.selection.projects,
           environment: pageFilters.selection.environments,
           per_page: CONVERSATION_LIST_PER_PAGE,
-          sort: sortingEnabled ? [sort] : undefined,
+          sort: [sort],
           ...normalizeDateTimeParams(pageFilters.selection.datetime),
         },
         staleTime: 0,
@@ -203,6 +200,5 @@ export function useConversations() {
     isDirectHit,
     sort,
     setSort,
-    sortingEnabled,
   };
 }

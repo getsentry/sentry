@@ -46,22 +46,15 @@ const organization = OrganizationFixture({
   features: ['gen-ai-conversations'],
 });
 
-const sortingOrganization = OrganizationFixture({
-  features: ['gen-ai-conversations', 'gen-ai-conversations-querying-enhancements'],
-});
-
-function mockConversations(
-  body: Array<Record<string, unknown>>,
-  currentOrganization = organization
-) {
+function mockConversations(body: Array<Record<string, unknown>>) {
   return MockApiClient.addMockResponse({
-    url: `/organizations/${currentOrganization.slug}/agents/conversations/`,
+    url: `/organizations/${organization.slug}/agents/conversations/`,
     body,
   });
 }
 
-function renderTable(currentOrganization = organization) {
-  return render(<ConversationsTable />, {organization: currentOrganization});
+function renderTable() {
+  return render(<ConversationsTable />, {organization});
 }
 
 describe('ConversationsTable', () => {
@@ -271,13 +264,12 @@ describe('ConversationsTable', () => {
     });
   });
 
-  it('sorts by supported headers when the feature is enabled', async () => {
-    const request = mockConversations(
-      [{...BASE_CONVERSATION, title: 'Sortable conversation'}],
-      sortingOrganization
-    );
+  it('sorts by supported headers', async () => {
+    const request = mockConversations([
+      {...BASE_CONVERSATION, title: 'Sortable conversation'},
+    ]);
 
-    renderTable(sortingOrganization);
+    renderTable();
 
     await screen.findByText('Sortable conversation');
     expect(screen.getByRole('columnheader', {name: 'Age'})).toHaveAttribute(
@@ -291,7 +283,7 @@ describe('ConversationsTable', () => {
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
-        `/organizations/${sortingOrganization.slug}/agents/conversations/`,
+        `/organizations/${organization.slug}/agents/conversations/`,
         expect.objectContaining({
           query: expect.objectContaining({sort: ['-conversation.totalCost']}),
         })
@@ -303,15 +295,6 @@ describe('ConversationsTable', () => {
         'descending'
       )
     );
-  });
-
-  it('does not make headers sortable when the feature is disabled', async () => {
-    mockConversations([{...BASE_CONVERSATION, title: 'Unsortable conversation'}]);
-
-    renderTable();
-
-    await screen.findByText('Unsortable conversation');
-    expect(screen.queryByRole('button', {name: 'Cost'})).not.toBeInTheDocument();
   });
 
   it('navigates to the conversation detail on row click', async () => {

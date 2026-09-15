@@ -91,7 +91,10 @@ describe('TransactionNameSearchBar', () => {
     await advanceTime();
     expect(await screen.findByText('new-result')).toBeInTheDocument();
 
-    await act(async () => older.resolve());
+    await act(() => {
+      older.resolve();
+      return older.promise;
+    });
     expect(screen.getByText('new-result')).toBeInTheDocument();
     expect(screen.queryByText('old-result')).not.toBeInTheDocument();
   });
