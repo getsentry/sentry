@@ -428,7 +428,7 @@ describe('EditConnectedMonitors', () => {
     await userEvent.hover(connectButton);
     expect(
       await screen.findByText(
-        'You don’t have permission to change this monitor’s alert connections.'
+        "You don't have permission to change this monitor's alert connections."
       )
     ).toBeInTheDocument();
     await userEvent.unhover(connectButton);

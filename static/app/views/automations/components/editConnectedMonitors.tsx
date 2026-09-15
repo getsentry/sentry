@@ -243,7 +243,7 @@ function SpecificMonitorsSection({
     parseAsNativeArrayOf(parseAsInteger)
   );
 
-  const toggleDrawer = () => {
+  const toggleDrawer = async () => {
     if (isDrawerOpen) {
       closeDrawer();
       return;
@@ -252,7 +252,7 @@ function SpecificMonitorsSection({
     // For users which only have access to writable projects, preset the project filter
     // to the correct project list.
     if (!hasOrganizationAutomationWriteAccess(organization)) {
-      setProjectIds(
+      await setProjectIds(
         projects
           .filter(project => hasAutomationWriteAccess({organization, project}))
           .map(project => Number(project.id))
