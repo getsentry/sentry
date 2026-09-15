@@ -1,11 +1,11 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {preferInfoText} from './preferInfoText';
 
 const ruleTester = new RuleTester({
   languageOptions: {
     parserOptions: {
-      ecmaFeatures: {jsx: true},
+      lang: 'tsx',
     },
   },
 });
@@ -19,7 +19,7 @@ function errorWithSuggestion(output: string) {
         output,
       },
     ],
-  } as const;
+  };
 }
 
 ruleTester.run('prefer-info-text', preferInfoText, {
