@@ -492,21 +492,16 @@ def detect_platforms_multi(
     """
     start_time = time.monotonic()
 
-    languages: dict[str, int]
     tree_start = time.monotonic()
     with ContextPropagatingThreadPoolExecutor(max_workers=1) as ex:
         tree_future = ex.submit(_get_tree, client, repo, ref)
-        if client.has_languages_endpoint:
-            # Independent request, so it runs while the tree fetch is in flight.
-            languages = client.get_languages(repo)
-            active_platforms = _select_active_platforms(languages)
-            entries, is_truncated = tree_future.result()
-        else:
-            # Derived from the tree, so it waits rather than fetching it twice.
-            entries, is_truncated = tree_future.result()
-            languages = client.get_languages(repo, entries)
-            active_platforms = _select_active_platforms(languages)
+        languages = client.get_languages(repo) if client.has_languages_endpoint else None
+        entries, is_truncated = tree_future.result()
     tree_duration_ms = (time.monotonic() - tree_start) * 1000
+
+    if languages is None:
+        languages = client.get_languages(repo, entries)
+    active_platforms = _select_active_platforms(languages)
     index = _build_tree_index(entries)
 
     results: list[DetectedPlatform] = []
