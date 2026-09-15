@@ -172,7 +172,7 @@ def _update_autofix_issue_data_for_pr(
         key=str(number),
     )
     issue_data.pull_request = pr
-    issue_data.raw_issue_data = {**issue_data.raw_issue_data, "status": f"pr_{action}"}
+    issue_data.raw_issue_data["status"] = f"pr_{action}"
     issue_data.save(update_fields=["pull_request", "raw_issue_data", "date_updated"])
 
 
