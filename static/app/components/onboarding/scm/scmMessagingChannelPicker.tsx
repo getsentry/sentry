@@ -1,9 +1,9 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useId, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select, type SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -50,6 +50,8 @@ export function ScmMessagingChannelPicker({
 }: ScmMessagingChannelPickerProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const workspaceId = useId();
+  const channelId = useId();
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any.
@@ -138,13 +140,20 @@ export function ScmMessagingChannelPicker({
   };
 
   const hasMultipleWorkspaces = eligibleIntegrations.length > 1;
+  const isConfirmDisabled =
+    !channel || !!channelError || isChannelLoading || isContinuing;
 
   if (!selectedIntegration) {
     return null;
   }
 
-  const handleSave = () => {
-    if (!channel) {
+  // A real form so Enter in the channel field submits through the Confirm
+  // and continue button (implicit submission), which stays a no-op while the
+  // button is disabled. react-select keeps Enter while its menu is open, so
+  // choosing an option never submits.
+  const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!channel || isConfirmDisabled) {
       return;
     }
 
@@ -160,20 +169,18 @@ export function ScmMessagingChannelPicker({
     });
   };
 
-  const isConfirmDisabled =
-    !channel || !!channelError || isChannelLoading || isContinuing;
-
   return (
-    <Container>
+    <form onSubmit={handleSave}>
       <Stack gap="lg" padding="xl">
         <Grid columns={hasMultipleWorkspaces ? '1fr 1fr' : '1fr'} gap="md">
           {hasMultipleWorkspaces && (
             <Stack gap="xs">
-              <Text bold size="sm">
+              <Text as="label" htmlFor={workspaceId} bold size="sm">
                 {t('Workspace')}
               </Text>
               <Select
-                aria-label={t('workspace')}
+                inputId={workspaceId}
+                autoFocus
                 value={selectedIntegration}
                 options={integrationOptions}
                 onChange={handleIntegrationChange}
@@ -181,7 +188,7 @@ export function ScmMessagingChannelPicker({
             </Stack>
           )}
           <Stack gap="xs">
-            <Text bold size="sm">
+            <Text as="label" htmlFor={channelId} bold size="sm">
               {t('Channel')}
             </Text>
             <ChannelField
@@ -192,6 +199,11 @@ export function ScmMessagingChannelPicker({
             >
               {() => (
                 <ChannelSelect
+                  inputId={channelId}
+                  // The picker opens in place of the button that opened it, so
+                  // it takes focus on mount; the workspace select takes it first
+                  // when there is one.
+                  autoFocus={!hasMultipleWorkspaces}
                   provider={providerKey}
                   options={channelOptions}
                   value={channel}
@@ -205,7 +217,7 @@ export function ScmMessagingChannelPicker({
           </Stack>
         </Grid>
         {isChannelsError && (
-          <Alert variant="warning">
+          <Alert variant="warning" role="alert">
             {t('Failed to load channels. You can still type a channel name.')}
           </Alert>
         )}
@@ -224,6 +236,7 @@ export function ScmMessagingChannelPicker({
           </Button>
         )}
         <Button
+          type="submit"
           size="sm"
           variant="primary"
           busy={isContinuing}
@@ -231,11 +244,10 @@ export function ScmMessagingChannelPicker({
           analyticsEventKey="onboarding.scm_messaging_confirm_and_continue_clicked"
           analyticsEventName="Onboarding: SCM Messaging Confirm And Continue Clicked"
           analyticsParams={{provider: providerKey}}
-          onClick={handleSave}
         >
           {t('Confirm and continue')}
         </Button>
       </Flex>
-    </Container>
+    </form>
   );
 }

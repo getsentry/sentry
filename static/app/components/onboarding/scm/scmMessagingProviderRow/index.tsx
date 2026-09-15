@@ -1,11 +1,11 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
+import {IconWithTooltip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
@@ -286,6 +286,30 @@ export function ScmMessagingProviderRow({
 
   const errorMessage = getInstallErrorMessage(installState);
 
+  // Every row transition swaps the actions in place, so the control the user
+  // activated unmounts and the browser drops focus to the body. Move it to the
+  // first control of the new state instead. The picker takes focus itself.
+  // Only transitions the user starts in this row are listed: a background
+  // refetch can promote installable to choose-destination on its own, and that
+  // must not pull focus from wherever the user is.
+  const focusRef = useRef<HTMLButtonElement>(null);
+  const previousVisualStateRef = useRef(visualState);
+  useEffect(() => {
+    const previous = previousVisualStateRef.current;
+    previousVisualStateRef.current = visualState;
+    if (previous === visualState || visualState === 'configuring') {
+      return;
+    }
+    const previousUnmountedControl =
+      previous === 'configuring' ||
+      previous === 'removing' ||
+      previous === 'installing' ||
+      previous === 'loading';
+    if (previousUnmountedControl || visualState === 'removing') {
+      focusRef.current?.focus();
+    }
+  }, [visualState]);
+
   return (
     <Container border={visualState === 'removing' ? 'danger' : 'primary'} radius="lg">
       <Stack>
@@ -293,8 +317,11 @@ export function ScmMessagingProviderRow({
           <Stack padding="md" gap="md" align="start">
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
-                <Alert.Button onClick={handleRetryInstall}>{t('Try again')}</Alert.Button>
+                <Alert.Button ref={focusRef} onClick={handleRetryInstall}>
+                  {t('Try again')}
+                </Alert.Button>
               }
             >
               {errorMessage || t('Installation failed. Please try again.')}
@@ -305,7 +332,17 @@ export function ScmMessagingProviderRow({
         {visualState !== 'install-error' && (
           <Flex padding="lg" gap="md" align="center" justify="between">
             <Flex gap="md" align="center" style={{flex: 1, minWidth: 0}}>
-              <Container flexShrink={0} paddingTop="2xs">
+              <Container
+                flexShrink={0}
+                paddingTop="2xs"
+                // The confirmation replaces the provider name, so the logo
+                // names the provider for screen readers. Elsewhere the name is
+                // adjacent text, and the logo stays decorative.
+                role={visualState === 'removing' ? 'img' : undefined}
+                aria-label={
+                  visualState === 'removing' ? resolvedProvider.provider.name : undefined
+                }
+              >
                 <PluginIcon pluginId={resolvedProvider.providerKey} size={28} />
               </Container>
               <Stack gap="sm">
@@ -317,15 +354,15 @@ export function ScmMessagingProviderRow({
                   </Text>
                   {resolvedProvider.status !== 'connected' &&
                     visualState !== 'removing' && (
-                      <Tooltip
+                      <IconWithTooltip
+                        icon={IconInfo}
                         title={
                           SCM_MESSAGING_PROVIDER_TOOLTIPS[resolvedProvider.providerKey]
                         }
-                      >
-                        <Flex align="center">
-                          <IconInfo size="xs" variant="muted" />
-                        </Flex>
-                      </Tooltip>
+                        aria-label={t('More information')}
+                        size="xs"
+                        variant="muted"
+                      />
                     )}
                   {resolvedProvider.status === 'connected' &&
                     visualState !== 'removing' &&
@@ -347,6 +384,7 @@ export function ScmMessagingProviderRow({
 
             <Flex gap="sm" align="center" style={{flexShrink: 0}}>
               <RowActions
+                focusRef={focusRef}
                 visualState={visualState}
                 resolvedProvider={resolvedProvider}
                 onConnect={handleConnectClick}
