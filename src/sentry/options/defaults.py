@@ -4394,6 +4394,13 @@ register(
 )
 
 register(
+    "preprod.snapshots.versioned-comparison-plans.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "preprod.snapshots.auto-approve-sibling-diffs.enabled",
     type=Bool,
     default=False,

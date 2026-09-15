@@ -1,10 +1,12 @@
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+import urllib3
+from django.test import override_settings
 from objectstore_client import RequestError
 from urllib3.exceptions import HTTPError
 
-from sentry.objectstore import UsecaseId
+from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -113,17 +115,49 @@ def test_fallback_records_metric_and_log(
 def test_factory_defaults_to_preprod_primary(mock_get_session) -> None:
     get_snapshot_storage(42, org=7)
     assert mock_get_session.call_args_list == [
-        call(UsecaseId.PREPROD, 42, org=7),
-        call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),
+        call(UsecaseId.PREPROD, 42, org=7, socket_timeout=None),
+        call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7, socket_timeout=None),
     ]
 
 
 @django_db_all
+@pytest.mark.parametrize("socket_timeout", [None, urllib3.Timeout(connect=5.0, read=30.0)])
 @patch("sentry.preprod.snapshots.storage.get_session")
-def test_factory_follows_option(mock_get_session) -> None:
+def test_factory_follows_option(mock_get_session, socket_timeout) -> None:
     with override_options({"preprod.snapshots.objectstore.snapshots-usecase.enabled": True}):
-        get_snapshot_storage(42, org=7)
+        get_snapshot_storage(42, org=7, socket_timeout=socket_timeout)
     assert mock_get_session.call_args_list == [
-        call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),
-        call(UsecaseId.PREPROD, 42, org=7),
+        call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7, socket_timeout=socket_timeout),
+        call(UsecaseId.PREPROD, 42, org=7, socket_timeout=socket_timeout),
     ]
+
+
+@django_db_all
+def test_factory_socket_timeout_does_not_change_shared_client_or_config() -> None:
+    shared_timeout = urllib3.Timeout(connect=2.0, read=None)
+    connection_kwargs = {"timeout": shared_timeout, "maxsize": 16}
+    socket_timeout = urllib3.Timeout(connect=5.0, read=30.0)
+    with (
+        override_settings(
+            SENTRY_OBJECTSTORE_CONFIG={
+                "base_url": "http://objectstore",
+                "connection_kwargs": connection_kwargs,
+                "retries": 2,
+            }
+        ),
+        patch("sentry.objectstore.Client") as client,
+        patch("sentry.objectstore._get_client") as get_shared_client,
+    ):
+        get_snapshot_storage(42, org=7, socket_timeout=socket_timeout)
+        get_shared_client.assert_not_called()
+        get_session(UsecaseId.PREPROD, 42, org=7)
+
+    assert client.call_count == 2
+    for create_call in client.call_args_list:
+        assert create_call.kwargs["connection_kwargs"] == {
+            "timeout": socket_timeout,
+            "maxsize": 16,
+        }
+        assert create_call.kwargs["retries"] == 2
+    assert connection_kwargs == {"timeout": shared_timeout, "maxsize": 16}
+    get_shared_client.assert_called_once_with()

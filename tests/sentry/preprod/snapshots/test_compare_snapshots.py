@@ -6,11 +6,367 @@ import orjson
 import pytest
 from objectstore_client import RequestError
 
-from sentry.preprod.snapshots.image_diff.types import ImageSize
+from sentry.preprod.snapshots.image_diff.types import DiffResult, ImageSize
+from sentry.preprod.snapshots.manifest import (
+    ChunkResult,
+    ComparisonPlan,
+    ImageMetadata,
+    SnapshotManifest,
+)
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
-from sentry.preprod.snapshots.tasks import _retry_objectstore
-from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import cell_silo_test
+from sentry.preprod.snapshots.runs import run_prefix
+from sentry.preprod.snapshots.tasks import (
+    _load_frozen_plan,
+    _mark_chunk_done,
+    _publish_frozen_plan,
+    _put_json,
+    _retry_objectstore,
+    compare_snapshots,
+    finalize_snapshot_comparison,
+    process_snapshot_comparison_chunk,
+)
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
+
+
+@pytest.mark.django_db(databases="__all__")
+class TestFrozenComparison(BaseTestCase):
+    @pytest.fixture
+    def cell_mode(self):
+        with assume_test_silo_mode(SiloMode.CELL):
+            yield
+
+    @pytest.fixture(autouse=True)
+    def frozen_comparison(self, cell_mode):
+        self.head = self.create_preprod_artifact(project=self.project)
+        self.base = self.create_preprod_artifact(project=self.project)
+        self.head_metrics = self.create_preprod_snapshot_metrics(self.head)
+        self.head_metrics.extras = {"manifest_key": "head_manifest"}
+        self.head_metrics.save()
+        self.base_metrics = self.create_preprod_snapshot_metrics(self.base)
+        self.base_metrics.extras = {"manifest_key": "base_manifest"}
+        self.base_metrics.save()
+        self.kwargs = {
+            "org_id": self.organization.id,
+            "project_id": self.project.id,
+            "head_artifact_id": self.head.id,
+            "base_artifact_id": self.base.id,
+        }
+        self.stored = {
+            f"{side}_manifest": orjson.dumps(
+                SnapshotManifest(
+                    images={
+                        name: ImageMetadata(content_hash=f"{side}-{name}", width=10, height=10)
+                        for name in ("first.png", "second.png")
+                    }
+                ).dict()
+            )
+            for side in ("head", "base")
+        }
+        self.session = _dict_backed_session(self.stored)
+        diff = DiffResult(
+            diff_mask_png=b"png",
+            changed_pixels=50,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+        with (
+            self.options({"preprod.snapshots.versioned-comparison-plans.enabled": True}),
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=self.session),
+            patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 100),
+            patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(10, 10)),
+            patch(
+                "sentry.preprod.snapshots.tasks._fetch_batch_images",
+                side_effect=lambda session, prefix, hashes: (
+                    {value: b"png" for value in hashes},
+                    set(),
+                ),
+            ),
+            patch(
+                "sentry.preprod.snapshots.tasks.compare_images_batch",
+                side_effect=lambda pairs, server: [diff for pair in pairs],
+            ),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
+            patch(
+                "sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"
+            ) as chunks,
+            patch(
+                "sentry.preprod.snapshots.tasks.finalize_snapshot_comparison.apply_async"
+            ) as finalizers,
+        ):
+            self.chunks = chunks
+            self.finalizers = finalizers
+            yield
+
+    def _start(self):
+        compare_snapshots(**self.kwargs)
+        comparison = PreprodSnapshotComparison.objects.get(head_snapshot_metrics=self.head_metrics)
+        assert comparison.extras is not None
+        self.execution_id = comparison.extras["snapshot_execution_id"]
+        self.prefix = run_prefix(**self.kwargs, execution_id=self.execution_id)
+        self.plan = _load_frozen_plan(self.session, self.execution_id, **self.kwargs)
+        return comparison
+
+    def test_workers_read_only_assignments_and_publish_isolated_results(self):
+        comparison = self._start()
+        self.session.get.reset_mock()
+        for call in self.chunks.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        assert [call.args[0] for call in self.session.get.call_args_list] == [
+            f"{self.prefix}/assignments/0.json",
+            f"{self.prefix}/assignments/1.json",
+        ]
+        finalize_snapshot_comparison(**self.finalizers.call_args.kwargs["kwargs"])
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_changed == 2
+        assert comparison.extras["comparison_key"].startswith(f"{self.prefix}/reports/")
+        report = orjson.loads(self.stored[comparison.extras["comparison_key"]])
+        assert all(
+            image["diff_mask_key"].startswith(f"{self.prefix}/diff/")
+            for image in report["images"].values()
+        )
+
+    def test_losing_finalizer_cannot_overwrite_winning_report_or_masks(self):
+        comparison = self._start()
+        for call in self.chunks.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        finalize_kwargs = self.finalizers.call_args.kwargs["kwargs"]
+        first_chunk_kwargs = self.chunks.call_args_list[0].kwargs["kwargs"]
+        publications = []
+        new_diff = DiffResult(
+            diff_mask_png=b"new-mask",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        def publish_and_finish_competing_attempt(session, key, manifest):
+            _put_json(session, key, manifest)
+            with (
+                patch("sentry.preprod.snapshots.tasks._put_json", wraps=_put_json),
+                patch(
+                    "sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[new_diff]
+                ),
+            ):
+                process_snapshot_comparison_chunk(**first_chunk_kwargs)
+                finalize_snapshot_comparison(**finalize_kwargs)
+            comparison.refresh_from_db()
+            winning_key = comparison.extras["comparison_key"]
+            publications.append((key, winning_key, self.stored[winning_key]))
+
+        with (
+            patch(
+                "sentry.preprod.snapshots.tasks._put_json",
+                side_effect=publish_and_finish_competing_attempt,
+            ),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as approve,
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            finalize_snapshot_comparison(**finalize_kwargs)
+
+        losing_key, winning_key, winning_bytes = publications[0]
+        comparison.refresh_from_db()
+        assert comparison.extras["comparison_key"] == winning_key
+        assert losing_key != winning_key
+        assert self.stored[winning_key] == winning_bytes
+        winner = orjson.loads(winning_bytes)
+        loser = orjson.loads(self.stored[losing_key])
+        winning_mask = winner["images"]["first.png"]["diff_mask_key"]
+        losing_mask = loser["images"]["first.png"]["diff_mask_key"]
+        assert winning_mask != losing_mask
+        assert self.stored[winning_mask] == b"new-mask"
+        assert self.stored[losing_mask] == b"png"
+        assert comparison.images_changed == 1
+        assert comparison.images_unchanged == 1
+        approve.assert_called_once()
+        vcs.assert_called_once_with(preprod_artifact_id=self.head.id, caller="compare_completion")
+
+    def test_retry_reuses_plan_and_completed_indices_after_option_disabled(self):
+        comparison = self._start()
+        first_kwargs = self.chunks.call_args_list[0].kwargs["kwargs"]
+        remaining_kwargs = self.chunks.call_args_list[1].kwargs["kwargs"]
+        process_snapshot_comparison_chunk(**first_kwargs)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        del self.stored["head_manifest"]
+        del self.stored["base_manifest"]
+        self.chunks.reset_mock()
+        self.session.get.reset_mock()
+        with self.options({"preprod.snapshots.versioned-comparison-plans.enabled": False}):
+            compare_snapshots(**self.kwargs)
+        self.chunks.assert_called_once_with(kwargs=remaining_kwargs)
+        self.session.get.assert_called_once_with(f"{self.prefix}/plan.json")
+        comparison.refresh_from_db()
+        assert comparison.extras["snapshot_execution_id"] == self.execution_id
+        assert comparison.chunks_done_indices == [0]
+
+    def test_partial_dispatch_retry_resumes_published_plan(self):
+        self.chunks.side_effect = [None, RuntimeError("dispatch failed")]
+        with pytest.raises(RuntimeError, match="dispatch failed"):
+            compare_snapshots(**self.kwargs)
+        comparison = PreprodSnapshotComparison.objects.get(head_snapshot_metrics=self.head_metrics)
+        assert comparison.extras is not None
+        execution_id = comparison.extras["snapshot_execution_id"]
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.chunks_total is None
+        self.chunks.reset_mock(side_effect=True)
+        compare_snapshots(**self.kwargs)
+        assert self.chunks.call_count == 2
+        assert {call.kwargs["kwargs"]["execution_id"] for call in self.chunks.call_args_list} == {
+            execution_id
+        }
+
+    @pytest.mark.parametrize("execution_id", [None, "b" * 32])
+    def test_stale_or_legacy_tasks_cannot_touch_frozen_run(self, execution_id):
+        comparison = self._start()
+        self.session.reset_mock()
+        process_snapshot_comparison_chunk(
+            comparison_id=comparison.id, chunk_index=0, execution_id=execution_id, **self.kwargs
+        )
+        _mark_chunk_done(comparison.id, 0, execution_id)
+        finalize_snapshot_comparison(
+            comparison_id=comparison.id, execution_id=execution_id, **self.kwargs
+        )
+        comparison.refresh_from_db()
+        assert comparison.chunks_done_indices == []
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        self.session.get.assert_not_called()
+        self.session.put.assert_not_called()
+
+    def test_second_publisher_reuses_winning_plan(self):
+        comparison = self._start()
+        alternate = ComparisonPlan(**self.plan.dict())
+        alternate.chunks[0].candidates[0].diff_threshold = 0.9
+        published = _publish_frozen_plan(
+            self.session,
+            comparison,
+            alternate,
+            None,
+            self.organization.id,
+            self.project.id,
+        )
+        assert published == self.plan
+        comparison.refresh_from_db()
+        assert comparison.extras["snapshot_execution_id"] == self.execution_id
+
+    @pytest.mark.parametrize("field,value", [("chunk_index", 4), ("diff_algorithm_version", 999)])
+    def test_invalid_assignment_is_terminal_without_processing(self, field, value):
+        comparison = self._start()
+        assignment_key = f"{self.prefix}/assignments/0.json"
+        assignment = orjson.loads(self.stored[assignment_key])
+        assignment[field] = value
+        self.stored[assignment_key] = orjson.dumps(assignment)
+        with patch("sentry.preprod.snapshots.tasks._process_chunk") as process:
+            process_snapshot_comparison_chunk(**self.chunks.call_args_list[0].kwargs["kwargs"])
+        process.assert_not_called()
+        comparison.refresh_from_db()
+        assert comparison.chunks_done_indices == [0]
+
+    @pytest.mark.parametrize("field,value", [("execution_id", "b" * 32), ("chunk_index", 99)])
+    def test_mismatched_result_degrades_instead_of_merging(self, field, value):
+        comparison = self._start()
+        for call in self.chunks.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        key = f"{self.prefix}/chunks/0.json"
+        result = orjson.loads(self.stored[key])
+        result[field] = value
+        self.stored[key] = orjson.dumps(result)
+        finalize_snapshot_comparison(**self.finalizers.call_args.kwargs["kwargs"])
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_errored == 1
+        assert comparison.images_changed == 1
+
+    def test_completed_legacy_comparison_is_not_upgraded(self):
+        with self.options({"preprod.snapshots.versioned-comparison-plans.enabled": False}):
+            compare_snapshots(**self.kwargs)
+        comparison = PreprodSnapshotComparison.objects.get(head_snapshot_metrics=self.head_metrics)
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        compare_snapshots(**self.kwargs)
+        comparison.refresh_from_db()
+        assert "snapshot_execution_id" not in (comparison.extras or {})
+        assert "snapshot_protocol_version" not in (comparison.extras or {})
+
+    @pytest.mark.parametrize(
+        "missing_key,expected_state,changed,errored",
+        [
+            ("plan.json", PreprodSnapshotComparison.State.FAILED, 0, 0),
+            ("chunks/0.json", PreprodSnapshotComparison.State.SUCCESS, 1, 1),
+        ],
+    )
+    def test_missing_published_data_fails_closed(
+        self, missing_key, expected_state, changed, errored
+    ):
+        comparison = self._start()
+        for call in self.chunks.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        del self.stored[f"{self.prefix}/{missing_key}"]
+        finalize_snapshot_comparison(**self.finalizers.call_args.kwargs["kwargs"])
+        comparison.refresh_from_db()
+        assert comparison.images_changed == changed
+        assert comparison.images_errored == errored
+        assert comparison.state == expected_state
+
+    def test_invalid_completion_indices_do_not_finalize(self):
+        comparison = self._start()
+        PreprodSnapshotComparison.objects.filter(id=comparison.id).update(
+            chunks_done_indices=[0, 99]
+        )
+        self.session.reset_mock()
+        finalize_snapshot_comparison(
+            comparison_id=comparison.id, execution_id=self.execution_id, **self.kwargs
+        )
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.PROCESSING
+        self.session.get.assert_not_called()
+
+    @pytest.mark.parametrize(
+        "changes",
+        [
+            {"head_hash": "wrong"},
+            {"base_hash": "wrong"},
+            {"status": "unchanged"},
+            {"changed_pixels": 101},
+            {"total_pixels": 0},
+        ],
+    )
+    def test_invalid_image_evidence_is_not_published(self, changes):
+        comparison = self._start()
+        for call in self.chunks.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        key = f"{self.prefix}/chunks/0.json"
+        result = orjson.loads(self.stored[key])
+        result["images"]["first.png"].update(changes)
+        self.stored[key] = orjson.dumps(result)
+        finalize_snapshot_comparison(**self.finalizers.call_args.kwargs["kwargs"])
+        comparison.refresh_from_db()
+        assert comparison.images_errored == 1
+        report = orjson.loads(self.stored[comparison.extras["comparison_key"]])
+        assert report["images"]["first.png"]["reason"] == "chunk_result_unreadable"
+
+    def test_empty_plan_finalizes_without_workers(self):
+        self.stored["head_manifest"] = self.stored["base_manifest"]
+        comparison = self._start()
+        self.chunks.assert_not_called()
+        finalize_snapshot_comparison(**self.finalizers.call_args.kwargs["kwargs"])
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.chunks_total == 0
+        assert comparison.images_unchanged == 2
 
 
 @cell_silo_test
@@ -229,7 +585,6 @@ class ProcessChunkTest(TestCase):
         from sentry.preprod.snapshots.manifest import (
             ChunkAssignment,
             ChunkCandidate,
-            ChunkResult,
             ComparisonPlan,
         )
         from sentry.preprod.snapshots.tasks import process_snapshot_comparison_chunk
@@ -620,7 +975,7 @@ class FinalizeSnapshotComparisonTest(TestCase):
         )
 
     def _changed_chunk_result(self):
-        from sentry.preprod.snapshots.manifest import ChunkResult, ComparisonImageResult
+        from sentry.preprod.snapshots.manifest import ComparisonImageResult
 
         return ChunkResult(chunk_index=0, images={"a.png": ComparisonImageResult(status="changed")})
 
@@ -704,7 +1059,6 @@ class FinalizeSnapshotComparisonTest(TestCase):
         from sentry.preprod.snapshots.manifest import (
             ChunkAssignment,
             ChunkCandidate,
-            ChunkResult,
             ComparisonImageResult,
             ComparisonPlan,
         )

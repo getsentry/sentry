@@ -21,6 +21,7 @@ from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSn
 from sentry.preprod.snapshots.precompute import build_head_images_payload
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.options import override_options
 
 
 class ProjectPreprodSnapshotTest(APITestCase):
@@ -450,6 +451,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
+    @override_options({"preprod.snapshots.versioned-comparison-plans.enabled": True})
     def test_base_upload_triggers_comparison_for_waiting_head(
         self, mock_compare_snapshots, mock_get_session
     ) -> None:
@@ -525,6 +527,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert comparison.state == PreprodSnapshotComparison.State.PENDING
 
         # The comparison task should have been queued for the waiting head.
+        assert comparison.extras == {"snapshot_protocol_version": 2}
         mock_compare_snapshots.apply_async.assert_called_once_with(
             kwargs={
                 "project_id": self.project.id,
@@ -594,7 +597,8 @@ class ProjectPreprodSnapshotTest(APITestCase):
         }
 
         # The selective base IS matched and a comparison is dispatched.
-        response = self.client.post(url, head_data, format="json")
+        with self.options({"preprod.snapshots.versioned-comparison-plans.enabled": True}):
+            response = self.client.post(url, head_data, format="json")
         assert response.status_code == 200
         head_artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
 
@@ -602,6 +606,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
             base_snapshot_metrics__preprod_artifact=base_artifact
         )
         assert comparison.state == PreprodSnapshotComparison.State.PENDING
+        assert comparison.extras == {"snapshot_protocol_version": 2}
         mock_compare_snapshots.apply_async.assert_called_once_with(
             kwargs={
                 "project_id": self.project.id,

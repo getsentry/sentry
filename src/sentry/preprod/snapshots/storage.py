@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import IO, Literal
 
+import urllib3
 from objectstore_client import Compression, GetResponse, Metadata, RequestError, Session
 from objectstore_client.multipart import MultipartUpload
 from urllib3.exceptions import HTTPError
@@ -79,7 +80,12 @@ class SnapshotStorage:
             raise error
 
 
-def get_snapshot_storage(project: Project | int, *, org: int | None = None) -> SnapshotStorage:
+def get_snapshot_storage(
+    project: Project | int,
+    *,
+    org: int | None = None,
+    socket_timeout: urllib3.Timeout | None = None,
+) -> SnapshotStorage:
     primary_usecase = get_snapshot_usecase()
     if primary_usecase == UsecaseId.PREPROD:
         fallback_usecase = UsecaseId.PREPROD_SNAPSHOTS
@@ -87,6 +93,6 @@ def get_snapshot_storage(project: Project | int, *, org: int | None = None) -> S
         fallback_usecase = UsecaseId.PREPROD
 
     return SnapshotStorage(
-        primary=get_session(primary_usecase, project, org=org),
-        fallback=get_session(fallback_usecase, project, org=org),
+        primary=get_session(primary_usecase, project, org=org, socket_timeout=socket_timeout),
+        fallback=get_session(fallback_usecase, project, org=org, socket_timeout=socket_timeout),
     )

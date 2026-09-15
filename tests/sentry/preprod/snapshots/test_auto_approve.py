@@ -6,6 +6,7 @@ import orjson
 
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
+from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION
 from sentry.preprod.snapshots.manifest import (
     ComparisonImageResult,
     ComparisonManifest,
@@ -15,6 +16,7 @@ from sentry.preprod.snapshots.manifest import (
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
+from sentry.preprod.snapshots.runs import FrozenComparisonPlan
 from sentry.preprod.snapshots.tasks import (
     ImageFingerprint,
     _build_comparison_fingerprints,
@@ -209,6 +211,29 @@ def _mock_session_with_manifests(manifests_by_key: dict[str, bytes]) -> MagicMoc
 
 @cell_silo_test
 class TryAutoApproveSnapshotTest(TestCase):
+    def test_frozen_fingerprints_do_not_reread_changed_sibling_report(self):
+        images = {"screen.png": ComparisonImageResult(status="changed", head_hash="same")}
+        sibling, comparison_key, _ = self._create_approved_sibling(42, images)
+        head = self._create_head_artifact()
+        manifest = self._create_head_manifest(images)
+        plan = FrozenComparisonPlan(
+            **self._plan(sibling, comparison_key).dict(),
+            execution_id="a" * 32,
+            diff_algorithm_version=DIFF_ALGORITHM_VERSION,
+            sibling_fingerprints=[("screen.png", "changed", "same", None)],
+        )
+        encoded = orjson.loads(orjson.dumps(plan.dict()))
+        assert encoded["sibling_fingerprints"] == [["screen.png", "changed", "same", None]]
+        plan = FrozenComparisonPlan(**encoded)
+        session = MagicMock()
+        session.get.side_effect = AssertionError("Frozen evidence must not be reloaded")
+        self._approve(head, manifest, plan, session)
+        assert PreprodComparisonApproval.objects.filter(
+            preprod_artifact=head,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        ).exists()
+        session.get.assert_not_called()
+
     def setUp(self):
         super().setUp()
         self.organization = self.create_organization(owner=self.user)
