@@ -388,6 +388,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     }
   };
 
+  // oxlint-disable-next-line react/refs
   const modifiedRowProps = mergeProps(rowProps, {
     tabIndex: isFocused ? 0 : -1,
     onKeyDown,

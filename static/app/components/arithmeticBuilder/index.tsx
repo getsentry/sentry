@@ -9,6 +9,7 @@ import {ArithmeticBuilderContext} from 'sentry/components/arithmeticBuilder/cont
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
+import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
 import {PanelProvider} from 'sentry/utils/panelProvider';
@@ -17,10 +18,18 @@ interface ArithmeticBuilderProps {
   aggregations: string[];
   expression: string;
   functionArguments: FunctionArgument[];
-  getFieldDefinition: (key: string) => FieldDefinition | null;
+  getFieldDefinition: (
+    key: string,
+    attributeTexts?: readonly string[]
+  ) => FieldDefinition | null;
   className?: string;
   'data-test-id'?: string;
   disabled?: boolean;
+  /**
+   * Fetches tag values for `_if` combinator filter arguments in equations.
+   * Only used when `hasConditionalAggregates` is on.
+   */
+  getFilterTagValues?: GetTagValues;
   /**
    * This is used when a user types in a search key and submits the token.
    * The submission happens when the user types a colon or presses enter.
@@ -28,6 +37,11 @@ interface ArithmeticBuilderProps {
    * to a known column.
    */
   getSuggestedKey?: (key: string) => string | null;
+  /**
+   * Enables the EAP filter-first `_if` argument editor. Should follow
+   * `explore-conditional-aggregates`.
+   */
+  hasConditionalAggregates?: boolean;
   /**
    * When provided, the arithmetic builder will use the references to suggest
    * keys for the user instead of aggregations and function arguments.
@@ -45,7 +59,9 @@ export function ArithmeticBuilder({
   aggregations,
   functionArguments,
   getFieldDefinition,
+  getFilterTagValues,
   getSuggestedKey,
+  hasConditionalAggregates = false,
   className,
   disabled,
   references,
@@ -73,7 +89,9 @@ export function ArithmeticBuilder({
       }),
       functionArguments,
       getFieldDefinition,
+      getFilterTagValues: hasConditionalAggregates ? getFilterTagValues : undefined,
       getSuggestedKey,
+      hasConditionalAggregates,
       references,
     };
   }, [
@@ -82,7 +100,9 @@ export function ArithmeticBuilder({
     aggregations,
     functionArguments,
     getFieldDefinition,
+    getFilterTagValues,
     getSuggestedKey,
+    hasConditionalAggregates,
     references,
   ]);
 
@@ -104,10 +124,12 @@ export function ArithmeticBuilder({
 }
 
 const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>`
-  min-height: 38px;
+  min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   position: relative;
   font-size: ${p => p.theme.font.size.md};
   cursor: text;

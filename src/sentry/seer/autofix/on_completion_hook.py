@@ -52,8 +52,12 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, pause_pr_iteration
+from sentry.seer.autofix.pr_iteration.pr_state import (
+    iteration_prs_any_closed,
+    record_pr_closed,
+)
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -284,7 +288,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         state: SeerRunState,
     ) -> PrIterationLogContext:
         """The shared PR-iteration identity, from what the caller already holds."""
-        return PrIterationLogContext.for_run(logger, state, organization.id, group.id)
+        return PrIterationLogContext.for_run(
+            logger, state, organization.id, group.id, iteration=LogCtxIteration.TRIGGERED
+        )
 
     @classmethod
     def _record_failed_tool_calls(
@@ -879,9 +885,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 )
                 return
 
-            outcome = cls._pr_iteration_push_outcome(log_ctx, group, run_id, state)
+            outcome = cls._pr_iteration_push_outcome(log_ctx, group, run_id, state, referrer)
 
             if outcome is None:
+                metrics.incr(
+                    "autofix.pr_iteration.step",
+                    tags={"checkpoint": "code_change_completed", "referrer": referrer.value},
+                    sample_rate=1.0,
+                )
                 # A push was attempted and succeeded. Not terminal yet -- we wait
                 # for the next completion hook, where the repos show as synced,
                 # to consume queued feedback and complete the iteration details.
@@ -892,6 +903,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             # push's changes as synced, or there was never anything to push.
             # A push that failed leaves the feedback queued rather than risk
             # consuming it as if changes had landed.
+            if outcome == PrIterationOutcome.ALREADY_PUSHED:
+                metrics.incr(
+                    "autofix.pr_iteration.step",
+                    tags={"checkpoint": "iteration_completed", "referrer": referrer.value},
+                    sample_rate=1.0,
+                )
+
             if outcome in (
                 PrIterationOutcome.ALREADY_PUSHED,
                 PrIterationOutcome.NO_CODE_CHANGES,
@@ -1128,6 +1146,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group: Group,
         run_id: int,
         state: SeerRunState,
+        referrer: AutofixReferrer,
     ) -> PrIterationOutcome | None:
         """Decide whether this pass needs to push, and how it ended.
 
@@ -1148,6 +1167,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         if not cls._latest_iteration_touched_files(log_ctx, state):
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes")
+            metrics.incr(
+                "autofix.pr_iteration.step",
+                tags={"checkpoint": "no_code_change", "referrer": referrer.value},
+                sample_rate=1.0,
+            )
             return PrIterationOutcome.NO_CODE_CHANGES
 
         _, is_synced = state.has_code_changes()
@@ -1165,6 +1189,22 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 errored_repos=errored_repos,
             )
             return PrIterationOutcome.PR_CREATION_ERRORED
+
+        if iteration_prs_any_closed(group.organization, state):
+            record_pr_closed("push")
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=group.organization.id,
+                reason=PauseReason.PR_CLOSED,
+            )
+            log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
+            return PrIterationOutcome.PR_CLOSED
+
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={"checkpoint": "code_change_started", "referrer": referrer.value},
+            sample_rate=1.0,
+        )
 
         pushed = cls._push_iteration_changes(
             log_ctx,

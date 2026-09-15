@@ -22,18 +22,17 @@ function renderCore(overrides: Partial<CoreProps> = {}) {
 }
 
 describe('ScmProjectDetailsCore', () => {
-  it('renders the project name and team fields', () => {
+  it('labels the project name and team fields', () => {
     renderCore();
 
-    expect(screen.getByText('Project name')).toBeInTheDocument();
-    expect(screen.getByText('Team')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-project');
+    expect(screen.getByRole('textbox', {name: 'Project name'})).toHaveValue('my-project');
+    expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
   });
 
   it('hides the team selector for a no-access member', () => {
     renderCore({isOrgMemberWithNoAccess: true});
 
-    expect(screen.getByText('Project name')).toBeInTheDocument();
-    expect(screen.queryByText('Team')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Project name'})).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Team'})).not.toBeInTheDocument();
   });
 });

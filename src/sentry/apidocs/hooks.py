@@ -11,6 +11,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
+from sentry.apidocs.omission_apply import OmissionError
+from sentry.apidocs.omission_guard import (
+    check_schema_omissions,
+    omissions_disabled,
+    omissions_enabled,
+    recording_omissions,
+)
 from sentry.apidocs.utils import SentryApiBuildError, is_internal_build
 
 HTTP_METHOD_NAME = Literal[
@@ -43,13 +50,13 @@ EXCLUSION_PATH_PREFIXES = [
 def __get_line_count_for_team_stats(team_stats: Mapping):
     """
     Returns number of lines it takes to write ownership for each team.
-    For example returns 7 for:
+    For example returns 15 for:
     enterprise: {
         block_start: {line_number_for_enterprise},
         public=[ExamplePublicEndpoint::GET],
         private=[ExamplePrivateEndpoint::GET],
         experimental=[ExampleExperimentalEndpoint::GET],
-        unknown=[ExampleUnknownEndpoint::GET]
+        public_experimental=[ExamplePublicExperimentalEndpoint::GET]
     }
     """
 
@@ -79,6 +86,9 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
             ApiPublishStatus.EXPERIMENTAL.value: sorted(
                 ownership_data[team][ApiPublishStatus.EXPERIMENTAL]
             ),
+            ApiPublishStatus.PUBLIC_EXPERIMENTAL.value: sorted(
+                ownership_data[team][ApiPublishStatus.PUBLIC_EXPERIMENTAL]
+            ),
         }
         index += __get_line_count_for_team_stats(ownership_data[team])
     dir = os.path.dirname(os.path.realpath(__file__))
@@ -100,9 +110,44 @@ class CustomEndpointEnumerator(EndpointEnumerator):
 class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
 
+    def get_schema(self, request: Any = None, public: bool = False) -> Any:
+        """Build the schema, then prove its omissions changed only what they declare.
+
+        The baseline is a second build, on a fresh registry, with omissions off."""
+        if is_internal_build():
+            # The check guards what gets published, and an internal build is not.
+            # Building the baseline would also resolve the fields the omissions
+            # drop, across a much larger set of endpoints than the published spec
+            # covers -- including a pair of TypedDicts that only terminate because
+            # the omission breaks the cycle between them.
+            return super().get_schema(request, public)
+
+        baseline_generator = type(self)(
+            patterns=self.patterns, urlconf=self.urlconf, api_version=self.api_version
+        )
+        with omissions_disabled():
+            baseline = SchemaGenerator.get_schema(baseline_generator, request, public)
+        with recording_omissions() as recorded:
+            schema = super().get_schema(request, public)
+        try:
+            check_schema_omissions(baseline, schema, recorded)
+        except OmissionError as exc:
+            raise SentryApiBuildError(str(exc)) from exc
+        return schema
+
 
 # Collected during preprocessing, used in postprocessing
 _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
+
+# (path, lowercased method) pairs published as PUBLIC_EXPERIMENTAL. Preprocessing only
+# filters endpoint tuples, so the marker has to be stamped onto the operation later.
+_EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
+
+# Prepended to the description of every PUBLIC_EXPERIMENTAL operation. The docs render
+# operation descriptions as markdown but have no badge for `x-sentry-experimental`, so
+# this is what actually warns a reader. Wording matches the note endpoints used to write
+# by hand before the status existed.
+EXPERIMENTAL_NOTICE = "**Experimental:** This API is under active development and may change."
 
 # Non-public operations admitted to an internal build, keyed by (path, lowercase
 # method). Postprocessing stamps these with ``x-sentry-publish-status`` and skips
@@ -134,6 +179,7 @@ def _declares_schema(view_class: type, method: str) -> bool:
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
+    _EXPERIMENTAL_OPERATIONS.clear()
     _INTERNAL_OPERATIONS.clear()
     internal_build = is_internal_build()
 
@@ -151,6 +197,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 ApiPublishStatus.PUBLIC: set(),
                 ApiPublishStatus.PRIVATE: set(),
                 ApiPublishStatus.EXPERIMENTAL: set(),
+                ApiPublishStatus.PUBLIC_EXPERIMENTAL: set(),
             }
 
         # Fail if endpoint is unowned
@@ -172,10 +219,12 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
-        elif status is ApiPublishStatus.PUBLIC:
-            # only pass declared public methods of the endpoint
+        elif status.is_published:
+            # only pass declared published methods of the endpoint
             # to the rest of the OpenAPI build pipeline
             filtered.append((path, path_regex, method, callback))
+            if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
+                _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
 
         elif internal_build and _declares_schema(callback.view_class, method):
             # Internal builds also admit private/experimental methods, but only
@@ -227,7 +276,9 @@ def _validate_request_body(
         # display body params without a description, so it's easy to miss them.
 
         # There is an edge case where a body param might be reference that we should ignore for now
-        if "description" not in param_data and "$ref" not in param_data:
+        # The baseline build restores omitted fields, which are exactly the ones
+        # allowed to lack a description, and it is never published.
+        if "description" not in param_data and "$ref" not in param_data and omissions_enabled():
             raise SentryApiBuildError(
                 f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}.
 
@@ -263,14 +314,21 @@ def _stamp_publish_status(result: Any) -> None:
         return
     for path, endpoints in result["paths"].items():
         for method, method_info in endpoints.items():
-            status = _INTERNAL_OPERATIONS.get((path, method), ApiPublishStatus.PUBLIC)
+            status = _INTERNAL_OPERATIONS.get((path, method))
+            if status is None:
+                # Anything preprocessing did not admit as internal is published.
+                status = (
+                    ApiPublishStatus.PUBLIC_EXPERIMENTAL
+                    if (path, method) in _EXPERIMENTAL_OPERATIONS
+                    else ApiPublishStatus.PUBLIC
+                )
             method_info[PUBLISH_STATUS_EXTENSION] = status.value
 
 
 def _is_internal_operation(method_info: Mapping[str, Any]) -> bool:
-    return method_info.get(PUBLISH_STATUS_EXTENSION, ApiPublishStatus.PUBLIC.value) != (
-        ApiPublishStatus.PUBLIC.value
-    )
+    """True for an operation only an internal build emits, so is held to no docs bar."""
+    status = method_info.get(PUBLISH_STATUS_EXTENSION)
+    return status is not None and not ApiPublishStatus(status).is_published
 
 
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
@@ -280,7 +338,19 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
             for method_info in result["paths"][path].values():
                 method_info["servers"] = servers
 
+    # Must run before _fix_issue_paths, which rewrites the path keys these are keyed on.
     _stamp_publish_status(result)
+
+    for path, method in _EXPERIMENTAL_OPERATIONS:
+        method_info = result["paths"].get(path, {}).get(method)
+        if method_info is not None:
+            method_info["x-sentry-experimental"] = True
+            description = method_info.get("description")
+            # Only prepend to an existing description; a missing one must still fail
+            # _check_description below rather than be silently satisfied here.
+            if description:
+                method_info["description"] = f"{EXPERIMENTAL_NOTICE}\n\n{description}"
+
     _fix_issue_paths(result)
     _fix_nullable_enums(result)
 

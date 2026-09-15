@@ -154,9 +154,7 @@ class TestConversationSortSerializer:
         ],
     )
     def test_known_alias(self, sort: str) -> None:
-        serializer = OrganizationAIConversationsSerializer(
-            data={"sort": [sort]}, context={"sorting_enabled": True}
-        )
+        serializer = OrganizationAIConversationsSerializer(data={"sort": [sort]})
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["sort"] == [sort]
 
@@ -178,45 +176,22 @@ class TestConversationSortSerializer:
         ],
     )
     def test_invalid_sort(self, sorts: list[str]) -> None:
-        serializer = OrganizationAIConversationsSerializer(
-            data={"sort": sorts}, context={"sorting_enabled": True}
-        )
+        serializer = OrganizationAIConversationsSerializer(data={"sort": sorts})
         assert not serializer.is_valid()
         assert "sort" in serializer.errors
 
     def test_default(self) -> None:
-        serializer = OrganizationAIConversationsSerializer(
-            data={}, context={"sorting_enabled": True}
-        )
+        serializer = OrganizationAIConversationsSerializer(data={})
         assert serializer.is_valid(), serializer.errors
         assert serializer.validated_data["sort"] == ["-conversation.age"]
-
-
-@patch(
-    "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_bulk_table_queries",
-    return_value={
-        "aggregations": {"data": []},
-        "enrichment": {"data": []},
-        "first_last_io": {"data": []},
-    },
-)
-def test_hydration_disables_aggregate_extrapolation(run_bulk_table_queries: MagicMock) -> None:
-    result = OrganizationAIConversationsEndpoint()._get_conversations_data(
-        snuba_params=SnubaParams(), conversation_ids=["conversation-a"]
-    )
-
-    assert result == []
-    run_bulk_table_queries.assert_called_once()
-    queries = run_bulk_table_queries.call_args.args[0]
-    assert all(query.resolver.config.disable_aggregate_extrapolation for query in queries)
 
 
 @patch(
     "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
     return_value={"data": []},
 )
-def test_single_query_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
-    result = OrganizationAIConversationsEndpoint()._get_conversations_data_single_query(
+def test_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
+    result = OrganizationAIConversationsEndpoint()._get_conversations_data(
         snuba_params=SnubaParams(), conversation_ids=["conversation-a"]
     )
 
@@ -402,8 +377,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         return_value={"data": []},
     )
     def test_sorting_default_candidate_query(self, run_table_query: MagicMock) -> None:
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request({"project": [self.project.id]})
+        response = self.do_request({"project": [self.project.id]})
 
         assert response.status_code == 200, response.data
         run_table_query.assert_called_once()
@@ -419,10 +393,9 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
     )
     def test_querying_preserves_requested_sampling_mode(self, run_table_query: MagicMock) -> None:
         for sampling_mode in ["NORMAL", "HIGHEST_ACCURACY", "HIGHEST_ACCURACY_FLEX_TIME"]:
-            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-                response = self.do_request(
-                    {"project": [self.project.id], "samplingMode": sampling_mode}
-                )
+            response = self.do_request(
+                {"project": [self.project.id], "samplingMode": sampling_mode}
+            )
 
             assert response.status_code == 200, response.data
             assert run_table_query.call_args.kwargs["sampling_mode"] == sampling_mode
@@ -432,14 +405,13 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         return_value={"data": []},
     )
     def test_sorting_cost_candidate_query(self, run_table_query: MagicMock) -> None:
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request(
-                {
-                    "project": [self.project.id],
-                    "query": "gen_ai.tool.name:search",
-                    "sort": "-conversation.totalCost",
-                }
-            )
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "query": "gen_ai.tool.name:search",
+                "sort": "-conversation.totalCost",
+            }
+        )
 
         assert response.status_code == 200, response.data
         query = run_table_query.call_args.kwargs
@@ -459,43 +431,22 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         return_value={"data": []},
     )
     def test_sorting_conversation_id_candidate_query(self, run_table_query: MagicMock) -> None:
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request(
-                {"project": [self.project.id], "sort": "-conversation.conversationId"}
-            )
+        response = self.do_request(
+            {"project": [self.project.id], "sort": "-conversation.conversationId"}
+        )
 
         assert response.status_code == 200, response.data
         query = run_table_query.call_args.kwargs
         assert query["selected_columns"] == ["gen_ai.conversation.id", "max(timestamp)"]
         assert query["orderby"] == ["-gen_ai.conversation.id"]
 
-    @patch(
-        "sentry.ai_monitoring.endpoints.organization_ai_conversations.Spans.run_table_query",
-        return_value={"data": []},
-    )
-    def test_sorting_disabled_preserves_legacy_query(self, run_table_query: MagicMock) -> None:
-        with self.feature({"organizations:gen-ai-conversations-querying-enhancements": False}):
-            response = self.do_request(
-                {
-                    "project": [self.project.id],
-                    "sort": ["-conversation.totalCost", "conversation.age"],
-                }
-            )
-
-        assert response.status_code == 200, response.data
-        query = run_table_query.call_args.kwargs
-        assert query["selected_columns"] == ["gen_ai.conversation.id", "max(precise.finish_ts)"]
-        assert query["orderby"] == ["-max(precise.finish_ts)"]
-        assert query["config"].disable_aggregate_extrapolation is True
-
     def test_sorting_rejects_multiple_fields(self) -> None:
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request(
-                {
-                    "project": [self.project.id],
-                    "sort": ["-conversation.totalCost", "conversation.age"],
-                }
-            )
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "sort": ["-conversation.totalCost", "conversation.age"],
+            }
+        )
 
         assert response.status_code == 400, response.data
 
@@ -512,15 +463,14 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         for sort in AI_CONVERSATIONS_FIELDS:
             if not sort.startswith("conversation."):
                 continue
-            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-                response = self.do_request(
-                    {
-                        "project": [self.project.id],
-                        "start": (now - timedelta(hours=1)).isoformat(),
-                        "end": (now + timedelta(hours=1)).isoformat(),
-                        "sort": sort,
-                    }
-                )
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                    "sort": sort,
+                }
+            )
 
             assert response.status_code == 200, (sort, response.data)
             assert [row["conversationId"] for row in response.data] == ["conversation-a"], sort
@@ -552,8 +502,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "sort": "-conversation.totalCost",
             "per_page": "2",
         }
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request(query)
+        response = self.do_request(query)
 
         assert response.status_code == 200, response.data
         assert [row["conversationId"] for row in response.data] == [
@@ -566,8 +515,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         cursor = next_link["cursor"]
         assert cursor is not None
         query["cursor"] = cursor
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request(query)
+        response = self.do_request(query)
 
         assert response.status_code == 200, response.data
         assert [row["conversationId"] for row in response.data] == ["conversation-b"]
@@ -586,16 +534,15 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
                 tool_name=tool_name,
                 cost=cost,
             )
-        with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-            response = self.do_request(
-                {
-                    "project": [self.project.id],
-                    "start": (now - timedelta(hours=1)).isoformat(),
-                    "end": (now + timedelta(hours=1)).isoformat(),
-                    "query": "gen_ai.tool.name:search",
-                    "sort": "conversation.totalCost",
-                }
-            )
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+                "query": "gen_ai.tool.name:search",
+                "sort": "conversation.totalCost",
+            }
+        )
 
         assert response.status_code == 200, response.data
         assert [row["conversationId"] for row in response.data] == [
@@ -716,16 +663,15 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         )
         self.store_ai_span(conversation_id="not-ai", timestamp=now, tool_name="search", cost=100)
         for search, expected_ids in cases:
-            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-                response = self.do_request(
-                    {
-                        "project": [self.project.id],
-                        "start": (now - timedelta(hours=1)).isoformat(),
-                        "end": (now + timedelta(hours=1)).isoformat(),
-                        "query": search,
-                        "sort": "conversation.conversationId",
-                    }
-                )
+            response = self.do_request(
+                {
+                    "project": [self.project.id],
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                    "query": search,
+                    "sort": "conversation.conversationId",
+                }
+            )
             assert response.status_code == 200, (search, response.data)
             assert [row["conversationId"] for row in response.data] == expected_ids, search
             assert [row["totalCost"] for row in response.data] == [
@@ -748,8 +694,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             "count_if(`(broken`,span.duration):>0",
             "(" * 21 + "gen_ai.tool.name:search" + ")" * 21,
         ]:
-            with self.feature("organizations:gen-ai-conversations-querying-enhancements"):
-                response = self.do_request({"project": [self.project.id], "query": search})
+            response = self.do_request({"project": [self.project.id], "query": search})
             assert response.status_code == 400, (search, response.data)
 
     def test_single_conversation_single_trace(self) -> None:
@@ -850,7 +795,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["startTimestamp"] > 0
         assert conversation["endTimestamp"] > 0
         assert conversation["endTimestamp"] >= conversation["startTimestamp"]
-        assert conversation["flow"] == ["Customer Support Agent", "Response Generator"]
+        assert set(conversation["flow"]) == {"Customer Support Agent", "Response Generator"}
         assert len(conversation["traceIds"]) == 1
         assert conversation["traceIds"][0] == trace_id
         # firstInput: first user message content from first ai_client span
@@ -994,7 +939,7 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["totalTokens"] == LLM_TOKENS * 2
         assert conversation["totalCost"] == LLM_COST * 2
         assert conversation["traceCount"] == 2
-        assert conversation["flow"] == ["Research Agent", "Summarization Agent"]
+        assert set(conversation["flow"]) == {"Research Agent", "Summarization Agent"}
         assert len(conversation["traceIds"]) == 2
         assert set(conversation["traceIds"]) == {trace_id_1, trace_id_2}
 

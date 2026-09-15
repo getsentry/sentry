@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 
 from django.conf import settings
 from redis.exceptions import RedisError
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.webhook_mailbox_sizing import (
@@ -210,9 +211,10 @@ class MailboxBucketCountTest(TestCase):
 
         assert count == _max_buckets()
 
-    def test_a_reply_that_does_not_destructure_sizes_to_the_cap(self) -> None:
+    def test_a_reply_with_the_wrong_length_sizes_to_the_cap(self) -> None:
         """Sizing runs before the payload row is written, so a reply we cannot read has
-        to fail the same way an outage does rather than 500 a webhook we could queue."""
+        to fail the same way an outage does rather than 500 a webhook we could queue.
+        A reply whose length does not match the commands queued is one we cannot read."""
         pipeline = MagicMock()
         pipeline.execute.return_value = [1]
 
@@ -224,10 +226,51 @@ class MailboxBucketCountTest(TestCase):
 
     def test_a_reply_that_does_not_coerce_sizes_to_the_cap(self) -> None:
         pipeline = MagicMock()
-        pipeline.execute.return_value = ["not-a-number", True, []]
+        # Full length, so it is the coercion that fails rather than the length check.
+        pipeline.execute.return_value = ["not-a-number", True] + ["1"] * (SHARD_COUNT - 1)
 
         with patch(
             "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
             return_value=MagicMock(pipeline=MagicMock(return_value=pipeline)),
         ):
             assert mailbox_bucket_count(MAILBOX) == _max_buckets()
+
+    def test_a_cluster_error_that_is_not_a_redis_error_sizes_to_the_cap(self) -> None:
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+            side_effect=RedisClusterException("blocked in cluster mode"),
+        ):
+            assert mailbox_bucket_count(MAILBOX) == _max_buckets()
+
+    def test_nothing_the_sizing_raises_reaches_the_caller(self) -> None:
+        for raised in (
+            RedisClusterException("blocked in cluster mode"),
+            RedisError("unreachable"),
+            ValueError("nonsense reply"),
+            RuntimeError("something entirely unforeseen"),
+        ):
+            with patch(
+                "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+                side_effect=raised,
+            ):
+                assert mailbox_bucket_count(MAILBOX) == _max_buckets(), raised
+
+    def test_a_failure_outside_the_redis_guard_still_sizes(self) -> None:
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing._count_for_payloads",
+            side_effect=RuntimeError("something unforeseen"),
+        ):
+            assert mailbox_bucket_count(MAILBOX) == _max_buckets()
+
+    def test_the_window_is_read_without_a_multi_key_command(self) -> None:
+        pipeline = MagicMock()
+        pipeline.execute.return_value = [1, True] + ["1"] * (SHARD_COUNT - 1)
+
+        with patch(
+            "sentry.hybridcloud.webhook_mailbox_sizing.redis.redis_clusters.get",
+            return_value=MagicMock(pipeline=MagicMock(return_value=pipeline)),
+        ):
+            mailbox_bucket_count(MAILBOX)
+
+        pipeline.mget.assert_not_called()
+        assert pipeline.get.call_count == SHARD_COUNT - 1

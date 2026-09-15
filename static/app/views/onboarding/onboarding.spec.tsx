@@ -672,9 +672,7 @@ describe('Onboarding', () => {
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: /Set up manually instead/})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       // Wait for scm-connect to render and its queries to resolve so the
       // mounted-effect fetches hit the mocked endpoints before afterEach
@@ -692,9 +690,10 @@ describe('Onboarding', () => {
       expect(
         await screen.findByText('npx @sentry/agent-plugin install')
       ).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: /Set up manually instead/})
-      ).toBeInTheDocument();
+      expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
+      expect(screen.getByText(/org slug: org-slug/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
       expect(
@@ -722,7 +721,7 @@ describe('Onboarding', () => {
 
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: /Set up manually instead/})
+        screen.queryByRole('button', {name: /Set up manually/})
       ).not.toBeInTheDocument();
       expect(screen.queryByText('or')).not.toBeInTheDocument();
       expect(
@@ -730,11 +729,15 @@ describe('Onboarding', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
+    it('fires SCM welcome and agentic setup view events on welcome mount', () => {
       renderOnboarding('welcome');
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_step_viewed',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
         expect.objectContaining({organization: scmOrganization})
       );
       expect(trackAnalytics).not.toHaveBeenCalledWith(
@@ -783,6 +786,11 @@ describe('Onboarding', () => {
       });
       const {router} = renderFlow(organization, 'welcome');
 
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
+        expect.anything()
+      );
+
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       expect(await screen.findByText('GitHub')).toBeInTheDocument();
@@ -792,9 +800,7 @@ describe('Onboarding', () => {
     it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(
-        await screen.findByRole('button', {name: /Set up manually instead/})
-      );
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_continue_clicked',

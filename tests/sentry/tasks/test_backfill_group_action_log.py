@@ -634,26 +634,52 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         assert dispatched_organization_ids == {first_organization.id, second_organization.id}
         assert inactive_organization.id not in dispatched_organization_ids
 
-    def test_enrolls_active_projects_without_overwriting_existing_option(self) -> None:
+    def test_enrolls_only_eligible_legacy_projects_without_state(self) -> None:
         organization = self.create_organization()
-        pending_project = self.create_project(organization=organization)
+        legacy_project = self.create_project(organization=organization)
+        missing_epoch_project = self.create_project(organization=organization)
+        already_enrolled_project = self.create_project(organization=organization)
         ineligible_project = self.create_project(organization=organization)
         completed_project = self.create_project(organization=organization)
+        new_project = self.create_project(organization=organization)
         inactive_project = self.create_project(organization=organization)
+        legacy_project.update_option("sentry:option-epoch", 15)
+        missing_epoch_project.delete_option("sentry:option-epoch")
+        already_enrolled_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
         completed_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
         inactive_project.update(status=1)
-        assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
+        assert legacy_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
 
-        with self._project_feature_results({pending_project.id, completed_project.id}) as mock_has:
+        with self._project_feature_results(
+            {
+                legacy_project.id,
+                missing_epoch_project.id,
+                already_enrolled_project.id,
+                completed_project.id,
+                new_project.id,
+            }
+        ) as mock_has:
             enroll_organization_projects_for_group_action_log_backfill(organization.id)
 
         assert mock_has.call_args_list == [
-            mock_call("projects:issue-action-log-write-to-db", pending_project),
+            mock_call("projects:issue-action-log-write-to-db", legacy_project),
+            mock_call("projects:issue-action-log-write-to-db", missing_epoch_project),
+            mock_call("projects:issue-action-log-write-to-db", already_enrolled_project),
             mock_call("projects:issue-action-log-write-to-db", ineligible_project),
             mock_call("projects:issue-action-log-write-to-db", completed_project),
+            mock_call("projects:issue-action-log-write-to-db", new_project),
         ]
-        assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+        assert legacy_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+        assert missing_epoch_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+        assert (
+            already_enrolled_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+        )
         assert completed_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert new_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert not ProjectOption.objects.filter(
+            project=new_project,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        ).exists()
         assert not ProjectOption.objects.filter(
             project=ineligible_project,
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
@@ -740,7 +766,11 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
             call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
         }
         assert dispatched_project_ids == {incomplete_project.id, inactive_project.id}
-        assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
+        assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert not ProjectOption.objects.filter(
+            project=project_without_option,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        ).exists()
         mock_coordinator_apply.assert_not_called()
 
     def test_complete_options_do_not_consume_batch(self) -> None:

@@ -110,6 +110,14 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.call.result",
     "gen_ai.tool.output",
     "gen_ai.embeddings.input",
+    "gen_ai.usage.cache_creation.input_tokens",
+    "gen_ai.usage.cache_read.input_tokens",
+    "gen_ai.usage.input_tokens",
+    "gen_ai.usage.input_tokens.cached",
+    "gen_ai.usage.input_tokens.cache_write",
+    "gen_ai.usage.output_tokens",
+    "gen_ai.usage.output_tokens.reasoning",
+    "gen_ai.usage.reasoning.output_tokens",
     "gen_ai.usage.total_tokens",
     "gen_ai.request.model",
     "gen_ai.response.model",
@@ -134,7 +142,7 @@ class AIConversationDetailsResponse(TypedDict):
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
-    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     @extend_schema(
@@ -166,8 +174,6 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         self, request: Request, organization: Organization, conversation_id: str
     ) -> Response[AIConversationDetailsResponse] | Response[DetailResponse] | Response[None]:
         """Return spans recorded for one AI conversation in start-time order.
-
-        **Experimental:** This API is under active development and may change.
 
         Message, tool, and response attributes contain their recorded string values.
         Without an explicit range, Sentry widens the search across available retention.

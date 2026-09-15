@@ -239,8 +239,8 @@ ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
 }
 
 META_PREFIX = "sentry._meta"
-META_FIELD_PREFIX = f"{META_PREFIX}.fields"
-META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
+META_FIELD_PREFIX = "sentry._meta.fields"
+META_ATTRIBUTE_PREFIX = "sentry._meta.fields.attributes"
 
 SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]
 

@@ -132,22 +132,41 @@ describe('AIContentRenderer', () => {
     expect(await screen.findByText(/const x = 1;/)).toBeInTheDocument();
   });
 
-  it('collapses generic XML tags by default', () => {
+  it('expands a generic XML tag when it is the entire message', () => {
     const text = '<thinking>\nhidden thought\n</thinking>';
+    render(<AIContentRenderer text={text} inline />);
+
+    expect(screen.getByText('<thinking>').closest('details')).toHaveAttribute('open');
+  });
+
+  it('collapses a generic XML tag when the message has other content', () => {
+    const text = 'Introduction\n<thinking>\nhidden thought\n</thinking>';
     render(<AIContentRenderer text={text} inline />);
 
     expect(screen.getByText('<thinking>').closest('details')).not.toHaveAttribute('open');
   });
 
-  it.each(['user_message', 'user-message', 'userMessage', 'user_msg', 'user_input'])(
-    'expands the %s tag by default',
-    tagName => {
-      const text = `<${tagName}>\nhello there\n</${tagName}>`;
-      render(<AIContentRenderer text={text} inline />);
+  it('collapses generic XML tags when the message contains multiple tags', () => {
+    const text = '<thinking>first</thinking>\n<context>second</context>';
+    render(<AIContentRenderer text={text} inline />);
 
-      expect(screen.getByText(`<${tagName}>`).closest('details')).toHaveAttribute('open');
-    }
-  );
+    expect(screen.getByText('<thinking>').closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByText('<context>').closest('details')).not.toHaveAttribute('open');
+  });
+
+  it.each([
+    'user_message',
+    'user-message',
+    'userMessage',
+    'user_msg',
+    'user_input',
+    'current-instruction',
+  ])('expands the %s tag by default', tagName => {
+    const text = `<${tagName}>\nhello there\n</${tagName}>`;
+    render(<AIContentRenderer text={text} inline />);
+
+    expect(screen.getByText(`<${tagName}>`).closest('details')).toHaveAttribute('open');
+  });
 
   it('renders Seer-style embed tags as plaintext via default Markdown', () => {
     const embed = '{% issue %}{"id":"PROJ-1"}{% /issue %}';
