@@ -43,11 +43,13 @@ export function IconText({
   children,
   ...rest
 }: IconTextProps) {
+  const iconSlotStyle: React.CSSProperties & Record<`--${string}`, string> = {
+    '--icon-text-size': ICON_SIZES[iconSize],
+  };
+
   return (
     <Flex align="start" gap={gap} {...rest}>
-      <IconSlot style={{'--icon-text-size': ICON_SIZES[iconSize]} as React.CSSProperties}>
-        {icon}
-      </IconSlot>
+      <IconSlot style={iconSlotStyle}>{icon}</IconSlot>
       <Content>{children}</Content>
     </Flex>
   );
