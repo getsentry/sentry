@@ -1,2 +1,2 @@
 export {InfoText, type InfoTextProps} from './infoText';
-export {InfoTip, DisabledTip} from './infoTip';
+export {DisabledTip, IconWithTooltip, InfoTip} from './infoTip';

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useId, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -50,6 +50,8 @@ export function ScmMessagingChannelPicker({
 }: ScmMessagingChannelPickerProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const workspaceId = useId();
+  const channelId = useId();
   const {channelSelectedBy} = providerDetails[providerKey];
 
   // The saved destination we're editing, if any.
@@ -169,11 +171,12 @@ export function ScmMessagingChannelPicker({
         <Grid columns={hasMultipleWorkspaces ? '1fr 1fr' : '1fr'} gap="md">
           {hasMultipleWorkspaces && (
             <Stack gap="xs">
-              <Text bold size="sm">
+              <Text as="label" htmlFor={workspaceId} bold size="sm">
                 {t('Workspace')}
               </Text>
               <Select
-                aria-label={t('workspace')}
+                inputId={workspaceId}
+                autoFocus
                 value={selectedIntegration}
                 options={integrationOptions}
                 onChange={handleIntegrationChange}
@@ -181,7 +184,7 @@ export function ScmMessagingChannelPicker({
             </Stack>
           )}
           <Stack gap="xs">
-            <Text bold size="sm">
+            <Text as="label" htmlFor={channelId} bold size="sm">
               {t('Channel')}
             </Text>
             <ChannelField
@@ -192,6 +195,11 @@ export function ScmMessagingChannelPicker({
             >
               {() => (
                 <ChannelSelect
+                  inputId={channelId}
+                  // The picker opens in place of the button that opened it, so
+                  // it takes focus on mount; the workspace select takes it first
+                  // when there is one.
+                  autoFocus={!hasMultipleWorkspaces}
                   provider={providerKey}
                   options={channelOptions}
                   value={channel}
@@ -205,7 +213,7 @@ export function ScmMessagingChannelPicker({
           </Stack>
         </Grid>
         {isChannelsError && (
-          <Alert variant="warning">
+          <Alert variant="warning" role="alert">
             {t('Failed to load channels. You can still type a channel name.')}
           </Alert>
         )}
