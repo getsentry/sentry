@@ -489,6 +489,40 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "We had trouble comparing snapshots, our team is investigating."
         assert summary == ""
 
+    def test_failed_with_base_manifest_missing_reports_missing_base(self) -> None:
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            base_sha="abcdef1234567890abcdef1234567890abcdef12",
+        )
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            commit_comparison=commit_comparison
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            state=PreprodSnapshotComparison.State.FAILED,
+        )
+        comparison.error_code = PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        comparison.save(update_fields=["error_code"])
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.FAILURE,
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "No base snapshot found for abcdef1234567890abcdef1234567890abcdef12"
+        assert "no longer has snapshots to compare against" in summary
+        assert "expire after 30 days of inactivity" in summary
+        assert "com.example.app" in summary
+
 
 @cell_silo_test
 class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
