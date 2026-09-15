@@ -4,16 +4,14 @@ from drf_spectacular.utils import OpenApiExample
 
 from sentry.apidocs.examples.organization_member_examples import ORGANIZATION_MEMBER
 from sentry.apidocs.examples.project_examples import PROJECT_SUMMARY
+from sentry.apidocs.examples.world import TEAM_BACKEND, TEAM_FRONTEND
 
 ORGANIZATION_MEMBER_ON_TEAM = deepcopy(ORGANIZATION_MEMBER)
 ORGANIZATION_MEMBER_ON_TEAM["teamRole"] = "member"
-ORGANIZATION_MEMBER_ON_TEAM["teamSlug"] = "powerful-abolitionist"
+ORGANIZATION_MEMBER_ON_TEAM["teamSlug"] = TEAM_BACKEND["slug"]
 
 BASE_TEAM_1 = {
-    "id": "4502349234123",
-    "slug": "ancient-gabelers",
-    "name": "Ancient Gabelers",
-    "dateCreated": "2023-05-31T19:47:53.621181Z",
+    **TEAM_FRONTEND,
     "isMember": True,
     "teamRole": "contributor",
     "flags": {"idp:provisioned": False},
@@ -34,10 +32,7 @@ BASE_TEAM_1 = {
 }
 
 BASE_TEAM_2 = {
-    "id": "4502349234125",
-    "slug": "squeaky-minnows",
-    "name": "Squeaky Minnows",
-    "dateCreated": "2023-07-27T11:23:34.621181Z",
+    **TEAM_BACKEND,
     "isMember": True,
     "teamRole": "contributor",
     "flags": {"idp:provisioned": False},
@@ -72,10 +67,7 @@ class TeamExamples:
         OpenApiExample(
             "Create a new team",
             value={
-                "id": "5151492858",
-                "slug": "ancient-gabelers",
-                "name": "Ancient Gabelers",
-                "dateCreated": "2021-06-12T23:38:54.168307Z",
+                **TEAM_FRONTEND,
                 "isMember": True,
                 "teamRole": "admin",
                 "flags": {"idp:provisioned": False},
@@ -110,10 +102,7 @@ class TeamExamples:
         OpenApiExample(
             "Remove a member from a team",
             value={
-                "id": "4502349234123",
-                "slug": "ancient-gabelers",
-                "name": "Ancient Gabelers",
-                "dateCreated": "2023-05-31T19:47:53.621181Z",
+                **TEAM_FRONTEND,
                 "isMember": False,
                 "teamRole": None,
                 "flags": {"idp:provisioned": False},
@@ -151,10 +140,7 @@ class TeamExamples:
             "Get list of organization's teams",
             value=[
                 {
-                    "id": "48531",
-                    "slug": "ancient-gabelers",
-                    "name": "Ancient Gabelers",
-                    "dateCreated": "2018-11-06T21:20:08.115Z",
+                    **TEAM_FRONTEND,
                     "isMember": False,
                     "teamRole": None,
                     "flags": {"idp:provisioned": False},
@@ -178,10 +164,7 @@ class TeamExamples:
                     },
                 },
                 {
-                    "id": "100253",
-                    "slug": "powerful-abolitionist",
-                    "name": "Powerful Abolitionist",
-                    "dateCreated": "2018-10-03T17:47:50.745447Z",
+                    **TEAM_BACKEND,
                     "isMember": False,
                     "teamRole": None,
                     "flags": {"idp:provisioned": False},
