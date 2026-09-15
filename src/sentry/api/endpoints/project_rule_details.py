@@ -46,6 +46,7 @@ from sentry.signals import alert_rule_edited
 from sentry.types.actor import Actor
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from sentry.workflow_engine.models.workflow import Workflow
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -142,6 +143,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
+        enforce_alerts_api_deprecation(project.organization)
         workflow_engine_rule_serializer = WorkflowEngineRuleSerializer(
             expand=request.GET.getlist("expand", []),
             prepare_component_fields=True,
@@ -200,6 +202,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
+        enforce_alerts_api_deprecation(project.organization)
         report_used_legacy_models()
         rule_data_before = dict(rule.data)
         if rule.environment_id:
@@ -384,6 +387,7 @@ class ProjectRuleDetailsEndpoint(WorkflowEngineRuleEndpoint):
          - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
          - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        enforce_alerts_api_deprecation(project.organization)
         with transaction.atomic(router.db_for_write(Workflow)):
             rule.update(status=ObjectStatus.PENDING_DELETION)
             scheduled = CellScheduledDeletion.schedule(rule, days=0, actor=request.user)

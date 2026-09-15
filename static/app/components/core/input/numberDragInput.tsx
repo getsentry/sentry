@@ -76,6 +76,7 @@ export function NumberDragInput({
 
     // Cleanup handlers
     document.removeEventListener('pointermove', onPointerMove);
+    // oxlint-disable-next-line react/immutability
     document.removeEventListener('pointerup', onPointerUp);
   }, [onPointerMove]);
 

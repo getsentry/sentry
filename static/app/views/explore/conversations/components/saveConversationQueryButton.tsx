@@ -31,7 +31,7 @@ export function SaveConversationQueryButton() {
       organization,
       source: 'conversations',
       traceItemDataset: TraceItemDataset.SPANS,
-      saveQuery: async (name, starred) => {
+      saveQuery: async ({name, starred}) => {
         const {datetime, projects, environments} = selection;
         const response = await api.requestPromise(
           getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {

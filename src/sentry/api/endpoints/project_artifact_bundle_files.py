@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from django.core.exceptions import ValidationError
 from django.utils.functional import cached_property
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -83,7 +84,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 bundle_id=bundle_id,
                 projectartifactbundle__project_id=project.id,
             )[0]
-        except IndexError:
+        except (IndexError, ValidationError):
             return Response(
                 {
                     "error": f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"

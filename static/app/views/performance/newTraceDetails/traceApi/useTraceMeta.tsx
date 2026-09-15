@@ -1,5 +1,8 @@
-import {useQuery, type QueryStatus} from '@tanstack/react-query';
-import type {QueryFunctionContext} from '@tanstack/react-query';
+import {
+  useQuery,
+  type QueryStatus,
+  type QueryFunctionContext,
+} from '@tanstack/react-query';
 import * as qs from 'query-string';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -321,20 +324,30 @@ function getTraceMetaTraces(options: UseTraceMetaOptions): TraceMetaTrace[] {
   return Array.isArray(options) ? options : [options];
 }
 
-export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResults {
+export function useTraceMeta(
+  options: UseTraceMetaOptions,
+  /**
+   * `disableUrlSync` ignores the host page's query string. Waterfalls embedded in another page
+   * (e.g. a Seer response) set this so a host `?statsPeriod=`/`?start=` cannot widen or narrow
+   * the embed's meta window. It is part of the query key so an embed and the surrounding page
+   * can ask about the same trace without sharing a cache entry.
+   */
+  {disableUrlSync = false}: {disableUrlSync?: boolean} = {}
+): TraceMetaQueryResults {
   const filters = usePageFilters();
   const organization = useOrganization();
   const isEAP = useIsEAPTraceEnabled();
   const maxPickableDays = useDefaultMaxPickableDays();
   const traces = getTraceMetaTraces(options);
 
-  const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
-    allowAbsolutePageDatetime: true,
-  });
+  const normalizedParams = normalizeDateTimeParams(
+    disableUrlSync ? {} : qs.parse(location.search),
+    {allowAbsolutePageDatetime: true}
+  );
 
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isLoading, status} = useQuery({
-    queryKey: ['traceData', traces.map(trace => trace.traceSlug)],
+    queryKey: ['traceData', traces.map(trace => trace.traceSlug), disableUrlSync],
     queryFn: async context => {
       const result = await fetchTraceMetaInBatches(
         isEAP ? 'eap' : 'non-eap',

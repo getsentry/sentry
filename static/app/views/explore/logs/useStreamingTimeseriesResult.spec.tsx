@@ -1,17 +1,13 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {initializeLogsTest, LogFixture} from 'sentry-fixture/log';
 
-import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
-
-import type {Organization} from 'sentry/types/organization';
-import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
-  LOGS_AUTO_REFRESH_KEY,
-  type AutoRefreshState,
-} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+  renderHookWithProviders,
+  type RouterConfig,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
+
+import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
@@ -19,63 +15,59 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
 
-jest.mock('sentry/utils/useLocation');
-const mockUseLocation = jest.mocked(useLocation);
-jest.mock('sentry/utils/useNavigate');
-const mockUseNavigate = jest.mocked(useNavigate);
-
 function preciseTimestampFromMillis(timestamp: number) {
   return String(BigInt(timestamp) * 1_000_000n);
 }
 
+const {organization, project, setupPageFilters} = initializeLogsTest();
+
+function Wrapper({children}: {children?: React.ReactNode}) {
+  return (
+    <LogsQueryParamsProvider
+      analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
+      source="location"
+    >
+      {children}
+    </LogsQueryParamsProvider>
+  );
+}
+
+const defaultRouterConfig: RouterConfig = {
+  location: {
+    pathname: '/',
+    query: {[LOGS_AUTO_REFRESH_KEY]: 'enabled'},
+  },
+};
+
+const idleRouterConfig: RouterConfig = {
+  location: {
+    pathname: '/',
+    query: {[LOGS_AUTO_REFRESH_KEY]: 'idle'},
+  },
+};
+
+const severityGroupByRouterConfig: RouterConfig = {
+  location: {
+    pathname: '/',
+    query: {
+      [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+      [LOGS_GROUP_BY_KEY]: [OurLogKnownFieldKey.SEVERITY],
+    },
+  },
+};
+
+const multipleGroupByRouterConfig: RouterConfig = {
+  location: {
+    pathname: '/',
+    query: {
+      [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+      [LOGS_GROUP_BY_KEY]: ['severity', 'component'],
+    },
+  },
+};
+
 describe('useStreamingTimeseriesResult', () => {
-  const {
-    organization: logsOrganization,
-    project,
-    setupPageFilters,
-  } = initializeLogsTest({
-    liveRefresh: true,
-  });
-
   setupPageFilters();
-
-  beforeEach(() => {
-    jest.resetAllMocks();
-    mockUseNavigate.mockReturnValue(jest.fn());
-  });
-
-  const createWrapper = ({
-    autoRefresh = 'idle',
-    groupBy,
-    organization,
-  }: {
-    autoRefresh?: AutoRefreshState;
-    groupBy?: string | string[];
-    organization?: Organization;
-  }) => {
-    return function ({children}: {children: React.ReactNode}) {
-      const query: Record<string, string | string[]> = {};
-      if (autoRefresh) {
-        query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
-      }
-      if (groupBy) {
-        query[LOGS_GROUP_BY_KEY] = groupBy;
-      }
-      const mockLocation = LocationFixture({query});
-      mockUseLocation.mockReturnValue(mockLocation);
-
-      return (
-        <OrganizationContext.Provider value={organization ?? logsOrganization}>
-          <LogsQueryParamsProvider
-            analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-            source="location"
-          >
-            {children}
-          </LogsQueryParamsProvider>
-        </OrganizationContext.Provider>
-      );
-    };
-  };
 
   function createMockTableData(
     logFixtures: OurLogsResponseItem[]
@@ -455,10 +447,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'enabled', organization: logsOrganization}),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: defaultRouterConfig,
+        organization,
       }
     );
 
@@ -469,10 +463,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockSingleAxisTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: idleRouterConfig,
+        organization,
       }
     );
 
@@ -483,10 +479,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockMultiAxisTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: idleRouterConfig,
+        organization,
       }
     );
 
@@ -497,10 +495,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockMultiGroupTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: idleRouterConfig,
+        organization,
       }
     );
 
@@ -511,10 +511,12 @@ describe('useStreamingTimeseriesResult', () => {
     const mockTableData = createMockTableData([]);
     const mockTimeseriesData = getMockMultiAxisGroupTimeseries();
 
-    const {result} = renderHook(
+    const {result} = renderHookWithProviders(
       () => useStreamingTimeseriesResult(mockTableData, mockTimeseriesData, 0n),
       {
-        wrapper: createWrapper({autoRefresh: 'idle'}),
+        additionalWrapper: Wrapper,
+        initialRouterConfig: idleRouterConfig,
+        organization,
       }
     );
 
@@ -525,12 +527,14 @@ describe('useStreamingTimeseriesResult', () => {
     it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockSingleAxisTimeseries();
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
+          additionalWrapper: Wrapper,
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({autoRefresh: 'enabled'}),
+          initialRouterConfig: defaultRouterConfig,
+          organization,
         }
       );
 
@@ -550,25 +554,25 @@ describe('useStreamingTimeseriesResult', () => {
         LogFixture({
           [OurLogKnownFieldKey.ID]: '1',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '2',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8200),
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '3',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8100),
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '4',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
         }),
       ]);
@@ -599,15 +603,14 @@ describe('useStreamingTimeseriesResult', () => {
     it('should create buckets from table data and merge with timeseries', async () => {
       const mockTimeseriesData = getMockMultiGroupTimeseries();
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
+          additionalWrapper: Wrapper,
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({
-            autoRefresh: 'enabled',
-            groupBy: [OurLogKnownFieldKey.SEVERITY],
-          }),
+          initialRouterConfig: severityGroupByRouterConfig,
+          organization,
         }
       );
 
@@ -653,35 +656,35 @@ describe('useStreamingTimeseriesResult', () => {
         LogFixture({
           [OurLogKnownFieldKey.ID]: '5',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
           [OurLogKnownFieldKey.SEVERITY]: 'brand_new_severity',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '6',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8001),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '7',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8001),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '8',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '9',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(7000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
@@ -752,7 +755,7 @@ describe('useStreamingTimeseriesResult', () => {
           LogFixture({
             [OurLogKnownFieldKey.ID]: '10',
             [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+            [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
             [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(12000),
             [OurLogKnownFieldKey.SEVERITY]: 'yet_another_severity',
           }),
@@ -837,15 +840,14 @@ describe('useStreamingTimeseriesResult', () => {
       const mockTimeseriesData = getMockMultiGroupTimeseries();
       const ingestDelayMs = 8500n * 1_000_000n; // Set delay to match last bucket timestamp
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, ingestDelayMs),
         {
+          additionalWrapper: Wrapper,
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({
-            autoRefresh: 'enabled',
-            groupBy: [OurLogKnownFieldKey.SEVERITY],
-          }),
+          initialRouterConfig: severityGroupByRouterConfig,
+          organization,
         }
       );
 
@@ -856,35 +858,35 @@ describe('useStreamingTimeseriesResult', () => {
         LogFixture({
           [OurLogKnownFieldKey.ID]: '10',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '11',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8600),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '12',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8000),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '13',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(6500),
           [OurLogKnownFieldKey.SEVERITY]: 'info',
         }),
         LogFixture({
           [OurLogKnownFieldKey.ID]: '14',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8500),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
         }),
@@ -944,15 +946,14 @@ describe('useStreamingTimeseriesResult', () => {
     it('should handle multiple group-by fields correctly', async () => {
       const mockTimeseriesData = getMockMultipleGroupByTimeseries();
 
-      const {result, rerender} = renderHook(
+      const {result, rerender} = renderHookWithProviders(
         (tableData: UseInfiniteLogsQueryResult) =>
           useStreamingTimeseriesResult(tableData, mockTimeseriesData, 0n),
         {
+          additionalWrapper: Wrapper,
           initialProps: createMockTableData([]),
-          wrapper: createWrapper({
-            autoRefresh: 'enabled',
-            groupBy: ['severity', 'component'],
-          }),
+          initialRouterConfig: multipleGroupByRouterConfig,
+          organization,
         }
       );
 
@@ -987,7 +988,7 @@ describe('useStreamingTimeseriesResult', () => {
         LogFixture({
           [OurLogKnownFieldKey.ID]: '1',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(9000),
           [OurLogKnownFieldKey.SEVERITY]: 'error',
           component: 'frontend',
@@ -995,7 +996,7 @@ describe('useStreamingTimeseriesResult', () => {
         LogFixture({
           [OurLogKnownFieldKey.ID]: '2',
           [OurLogKnownFieldKey.PROJECT_ID]: project.id,
-          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(logsOrganization.id),
+          [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
           [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: preciseTimestampFromMillis(8500),
           [OurLogKnownFieldKey.SEVERITY]: 'warn',
           component: 'backend',

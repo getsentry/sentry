@@ -82,6 +82,15 @@ ALL_KILLSWITCH_OPTIONS = {
             "symbolication_function": "process_minidump, process_applecrashreport, process_native_stacktraces, or process_js_stacktraces",
         },
     ),
+    "store.load-shed-gpu-crash-projects": KillswitchInfo(
+        description="Skip routing GPU crash events to the isolated teapot task "
+        "(event is forwarded to normal process/save, unenriched)",
+        fields={
+            "project_id": "A project ID to filter events by.",
+            "event_id": "An event ID as given in the event payload.",
+            "platform": "The event platform as defined in the event payload's platform field.",
+        },
+    ),
     "store.load-shed-save-event-projects": KillswitchInfo(
         description="Drop events in save_event",
         fields={
@@ -248,6 +257,25 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={
             "project_id": "A project ID to halt merge for.",
+        },
+    ),
+    "hybridcloud.webhookpayload.shed-inbound": KillswitchInfo(
+        description="""
+        Drop inbound integration webhooks before a WebhookPayload row is written.
+
+        Break glass for an inbound flood: matching senders get a 429 with a
+        Retry-After instead of having their webhook queued, so the flood stops
+        costing the control primary payload INSERTs and push triggers.
+
+        Every condition must name a `provider`; leaving `integration_id` unset sheds
+        that whole provider. A condition without a `provider` would match every one
+        of them, so it is ignored rather than honoured.
+
+        Shed webhooks are gone unless the sender redelivers them.
+        """,
+        fields={
+            "provider": "An integration provider slug, e.g. github or jira.",
+            "integration_id": "An integration ID, to shed a single integration.",
         },
     ),
 }

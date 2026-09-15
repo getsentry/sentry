@@ -1,4 +1,5 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
@@ -117,6 +118,24 @@ describe('SimpleTable component', () => {
     expect(within(header).getByRole('button', {name: 'A'})).toBeInTheDocument();
   });
 
+  it('centers a column header through styles rather than a DOM attribute', () => {
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell align="center">A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    const header = screen.getByRole('columnheader', {name: 'A'});
+    const content = within(header).getByText('A').parentElement!;
+
+    expect(header).not.toHaveAttribute('align');
+    expect(getEmotionRules(content).join('')).toContain('justify-content: center');
+  });
+
   it('renders a single spanning cell when given a full width row', () => {
     render(
       <SimpleTable
@@ -153,6 +172,25 @@ describe('SimpleTable component', () => {
     const cell = screen.getByRole('cell');
 
     expect(within(cell).getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
+  it('renders a retryable error in a spanning cell when errored', async () => {
+    const onRetry = jest.fn();
+    render(
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Error message="Failed to load" onRetry={onRetry} />
+      </SimpleTable>
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    expect(screen.getByText('Failed to load')).toBeInTheDocument();
+    expect(onRetry).toHaveBeenCalledTimes(1);
   });
 
   it('renders the empty state as a cell when there are no rows', () => {

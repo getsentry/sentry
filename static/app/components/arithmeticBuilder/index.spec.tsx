@@ -240,26 +240,44 @@ describe('ArithmeticBuilder', () => {
     // Because we're deleting tokens from the start, we cannot get them
     // up front as they will change as we delete. We have to get the
     // element once we reach that position.
-    const tokens: Array<() => HTMLElement | null> = [
-      firstFreeText,
-      () => screen.queryByRole('gridcell', {name: 'Delete left'}),
-      firstFreeText,
-      () => screen.queryByPlaceholderText('span.duration'),
-      firstFreeText,
-      () => screen.queryByRole('gridcell', {name: 'Delete +'}),
-      firstFreeText,
-      () => screen.queryByPlaceholderText('span.op'),
-      firstFreeText,
-      () => screen.queryByRole('gridcell', {name: 'Delete right'}),
-      firstFreeText,
+    const tokens: Array<{
+      focus: () => HTMLElement | null;
+      gone: () => HTMLElement | null;
+    }> = [
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByRole('gridcell', {name: 'Delete left'}),
+        gone: () => screen.queryByRole('gridcell', {name: 'Delete left'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByPlaceholderText('span.duration'),
+        gone: () => screen.queryByRole('row', {name: 'sum(span.duration)'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByRole('gridcell', {name: 'Delete +'}),
+        gone: () => screen.queryByRole('gridcell', {name: 'Delete +'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByPlaceholderText('span.op'),
+        gone: () => screen.queryByRole('row', {name: 'count_if(span.op,equals,db)'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
+      {
+        focus: () => screen.queryByRole('gridcell', {name: 'Delete right'}),
+        gone: () => screen.queryByRole('gridcell', {name: 'Delete right'}),
+      },
+      {focus: firstFreeText, gone: firstFreeText},
     ];
 
     let i = 0;
-    const focus = () => expect(tokens[i]!()).toHaveFocus();
-    const focus0 = () => expect(tokens[0]!()).toHaveFocus();
-    const deletion = () => expect(tokens[i]!()).not.toBeInTheDocument();
+    const focus = () => expect(tokens[i]!.focus()).toHaveFocus();
+    const focus0 = () => expect(tokens[0]!.focus()).toHaveFocus();
+    const deletion = () => expect(tokens[i]!.gone()).not.toBeInTheDocument();
 
-    await userEvent.click(tokens[i]!()!);
+    await userEvent.click(tokens[i]!.focus()!);
     await waitFor(focus);
 
     while (i < tokens.length - 1) {
@@ -275,6 +293,23 @@ describe('ArithmeticBuilder', () => {
     }
 
     expect(screen.getAllByRole('row')).toHaveLength(1);
+  });
+
+  it('deleting a function keeps the following function arguments', async () => {
+    const expression = 'sum(span.duration) + count_if(span.op,equals,db)';
+    render(<ArithmeticBuilderWrapper expression={expression} />);
+
+    const sumRow = await screen.findByRole('row', {name: 'sum(span.duration)'});
+    await userEvent.click(
+      within(sumRow).getByRole('button', {name: 'Remove function sum(span.duration)'})
+    );
+
+    expect(
+      screen.queryByRole('row', {name: 'sum(span.duration)'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('row', {name: 'count_if(span.op,equals,db)'})
+    ).toBeInTheDocument();
   });
 
   it('deleting a middle literal does not shift remaining literal values', async () => {

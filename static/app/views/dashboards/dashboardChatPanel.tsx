@@ -11,8 +11,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {IconChevron, IconClose, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import type {PendingUserInput} from 'sentry/views/seerExplorer/types';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {PendingUserInput, Block} from 'sentry/views/seerExplorer/types';
 
 import {DashboardChatBlock} from './dashboardChatBlock';
 
@@ -52,6 +51,7 @@ export function DashboardChatPanel({
   // Expand history automatically when updating triggered by user input
   useEffect(() => {
     if (isUpdating) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsHistoryExpanded(true);
     }
   }, [isUpdating]);

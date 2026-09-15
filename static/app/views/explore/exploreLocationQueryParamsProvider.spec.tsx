@@ -8,6 +8,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
 import {
   useQueryParamsQuery,
+  useSetQueryParams,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
@@ -45,11 +46,15 @@ function isDefaultFields(): boolean {
 
 function TestComponent() {
   const query = useQueryParamsQuery();
+  const setQueryParams = useSetQueryParams();
   const setQuery = useSetQueryParamsQuery();
   return (
     <div>
       <div>query: {query}</div>
       <button onClick={() => setQuery('changed')}>set changed</button>
+      <button onClick={() => setQueryParams({query: 'replaced'}, {replace: true})}>
+        set replaced
+      </button>
       <button onClick={() => setQuery(query)}>set same</button>
     </div>
   );
@@ -99,6 +104,24 @@ describe('ExploreLocationQueryParamsProvider', () => {
 
     // A single back returns to the original query, proving the same-value set
     // did not push a duplicate 'changed' entry.
+    router.navigate(-1);
+    await waitFor(() => expect(router.location.query.q).toBe('start'));
+  });
+
+  it('replaces the current history entry when requested', async () => {
+    const {router} = render(
+      <Wrapper>
+        <TestComponent />
+      </Wrapper>,
+      {initialRouterConfig: {location: {pathname: '/traces/', query: {q: 'start'}}}}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'set changed'}));
+    expect(await screen.findByText('query: changed')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'set replaced'}));
+    expect(await screen.findByText('query: replaced')).toBeInTheDocument();
+
     router.navigate(-1);
     await waitFor(() => expect(router.location.query.q).toBe('start'));
   });

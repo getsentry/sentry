@@ -53,7 +53,9 @@ export function IssuePreviewAutofixRootCauseSection({
             prompt={t('How can this root cause be improved?')}
           />
           {section.status === 'processing' ? (
-            <WorkingIndicator>{t('Generating root cause...')}</WorkingIndicator>
+            <WorkingIndicator blocks={section.blocks}>
+              {t('Generating root cause...')}
+            </WorkingIndicator>
           ) : rootCause ? (
             <Markdown raw={rootCause.one_line_description} />
           ) : (

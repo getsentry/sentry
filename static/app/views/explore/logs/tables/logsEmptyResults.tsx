@@ -38,7 +38,7 @@ export function LogsEmptyResults({
 
     return (
       <DataTable.Status>
-        <EmptyStateWarning withIcon variant="accent">
+        <EmptyStateWarning variant="accent">
           <EmptyStateText size="xl">{t('No logs found yet')}</EmptyStateText>
           <EmptyStateText size="md">
             {displayTotalPayloadBytes
@@ -80,7 +80,7 @@ export function LogsEmptyResults({
 
   return (
     <DataTable.Status>
-      <EmptyStateWarning withIcon variant="accent">
+      <EmptyStateWarning variant="accent">
         <EmptyStateText size="xl">{t('No logs found')}</EmptyStateText>
         <EmptyStateText size="md">
           {tct(

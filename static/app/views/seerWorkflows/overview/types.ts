@@ -204,7 +204,7 @@ export interface OverviewRun {
   lastTriggeredAt: string;
   proposedFix: {oneLineSummary: string | null} | null;
   pullRequests: OverviewPullRequest[];
-  rootCause: {oneLineDescription: string | null} | null;
+  rootCause: {headline: string | null; oneLineDescription: string | null} | null;
   seerRunId: string;
   shortId: string;
   status: RunStatus | null;

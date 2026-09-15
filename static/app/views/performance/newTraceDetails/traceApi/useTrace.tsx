@@ -20,6 +20,8 @@ import type {TraceSplitResults} from './types';
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
 
+const EMPTY_QUERY: Location['query'] = {};
+
 type TraceQueryParamOptions = {
   limit?: number;
   targetId?: string;
@@ -126,6 +128,13 @@ export function getTraceQueryParams(
 
 type UseTraceOptions = {
   additionalAttributes?: string[];
+  /**
+   * Ignore the host page's query string entirely. Waterfalls embedded in another page (e.g. a
+   * Seer response) set this so the host's `?eventId=`/`?node=`/`?start=`/`?end=`/`?timestamp=` —
+   * which usually describe a different trace — cannot steer this fetch. The caller then supplies
+   * the whole window itself via `timestamp`/`targetEventId`.
+   */
+  disableUrlSync?: boolean;
   limit?: number;
   referrer?: string;
   /**
@@ -142,7 +151,7 @@ export type TraceQueryResult = UseApiQueryResult<TraceTree.Trace, RequestError>;
 export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const filters = usePageFilters();
   const organization = useOrganization();
-  const query = qs.parse(location.search);
+  const query = options.disableUrlSync ? EMPTY_QUERY : qs.parse(location.search);
 
   const isEAPEnabled = useIsEAPTraceEnabled();
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
@@ -164,6 +173,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     // clicking on a span, that updates the url.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    options.disableUrlSync,
     options.limit,
     options.timestamp,
     options.targetEventId,

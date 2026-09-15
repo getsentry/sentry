@@ -78,7 +78,7 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
         <Placeholder width="80px" height="32px" style={{borderRadius: '4px'}} />
       </Stack>
 
-      {/* VCS info skeleton - matches KeyValueData.Card structure */}
+      {/* VCS info skeleton - matches KeyValueTableCard structure */}
       <SkeletonCard>
         <Placeholder
           width="80px"

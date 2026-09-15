@@ -29,6 +29,7 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
@@ -329,7 +330,10 @@ function VisualizationWidgetContent({
             ],
             query: applyDashboardFilters({
               baseQuery: exploreQuery.formatString(),
-              dashboardFilters,
+              dashboardFilters: withGlobalFilterFallback(
+                dashboardFilters,
+                widget.queries[0]?.globalFilterFallback
+              ),
               widgetType: widget.widgetType,
             }),
           });

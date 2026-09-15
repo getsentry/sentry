@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -18,8 +19,6 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
 import {Form} from 'sentry/components/forms/form';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {
@@ -34,6 +33,11 @@ import {
   useRevokeConsoleSdkPlatformInvite,
   type ConsoleSdkInviteUser,
 } from 'sentry/views/settings/organizationConsoleSdkInvites/hooks';
+
+const INVITE_COLUMNS: TableColumnConfig[] = [
+  {key: 'user', width: '1fr'},
+  {key: 'platforms', width: '1fr'},
+];
 
 function QuotaAlert() {
   const playstation = useFormField<boolean>('playstation');
@@ -109,19 +113,11 @@ function InvitesTableContent({
   onRevoke,
 }: InvitesTableProps) {
   if (isPending) {
-    return (
-      <SimpleTable.Empty>
-        <LoadingIndicator />
-      </SimpleTable.Empty>
-    );
+    return <SimpleTable.Loading />;
   }
 
   if (isError) {
-    return (
-      <SimpleTable.Empty>
-        <LoadingError onRetry={onRefetch} />
-      </SimpleTable.Empty>
-    );
+    return <SimpleTable.Error onRetry={onRefetch} />;
   }
 
   if (invites.length === 0) {
@@ -311,7 +307,8 @@ function ToggleConsolePlatformsModal({
           />
         </div>
 
-        <SimpleTableWithColumns
+        <SimpleTable
+          columns={INVITE_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>User</SimpleTable.HeaderCell>
@@ -326,7 +323,7 @@ function ToggleConsolePlatformsModal({
             onRefetch={refetchInvites}
             onRevoke={handleRevoke}
           />
-        </SimpleTableWithColumns>
+        </SimpleTable>
 
         <QuotaAlert />
       </Body>
@@ -346,10 +343,6 @@ const NumberFieldFromConfig = styled(FieldFromConfig)`
   > div {
     padding-right: ${p => p.theme.space['3xl']};
   }
-`;
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 1fr;
 `;
 
 const StyledQuotaAlert = styled(Alert)`

@@ -387,6 +387,9 @@ function useFilterSuggestions({
         token,
         fieldDefinition,
       }),
+    // React Compiler treats one of these dependencies as mutated later in the
+    // component, so it cannot prove the memoization is preserved.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [key, filterValue, token, fieldDefinition]
   );
   // Only keys that explicitly have predefined values should skip the fetch.
@@ -579,7 +582,6 @@ function ItemCheckbox({disabled, value}: {disabled: boolean; value: string}) {
     >
       <CheckWrap role="presentation">
         <Checkbox
-          size="sm"
           checked={selected}
           disabled={disabled}
           onChange={() => {
@@ -644,7 +646,8 @@ function ValueComboboxCustomMenu(
       {...props}
       portalTarget={
         canSelectMultipleValues
-          ? (props.portalTarget ?? wrapperRef.current)
+          ? // oxlint-disable-next-line react/refs
+            (props.portalTarget ?? wrapperRef.current)
           : props.portalTarget
       }
       wrapperRef={wrapperRef}
@@ -794,6 +797,7 @@ export function SearchQueryBuilderValueCombobox({
       }
       const newIndex = nearestOccurrence(liftedValue, oldIndex);
       if (newIndex === -1) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setEditingChip(null);
         setInputValue('');
       } else {
@@ -820,6 +824,7 @@ export function SearchQueryBuilderValueCombobox({
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
+    // oxlint-disable-next-line react/refs
     topLevelWrapperRef.current
   );
   const selectedValueMap = useMemo(

@@ -294,6 +294,7 @@ def _forward_to_judge(
             metrics.incr(
                 "pr_metrics.emit.skipped",
                 tags={"reason": "no_eligible_attribution_indeterminate"},
+                sample_rate=1.0,
             )
             logger.warning(
                 "pr_metrics.emit.needs_judge",
@@ -307,7 +308,7 @@ def _forward_to_judge(
             return
 
         verdict = select_fallback_verdict(pr)
-        metrics.incr("pr_metrics.emit.fallback_verdict", tags={"verdict": verdict})
+        metrics.incr("pr_metrics.emit.fallback_verdict", tags={"verdict": verdict}, sample_rate=1.0)
         logger.info(
             "pr_metrics.emit.fallback_verdict",
             extra={
@@ -321,7 +322,7 @@ def _forward_to_judge(
         return
 
     if not has_seer_access(organization):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"}, sample_rate=1.0)
         logger.info(
             "pr_metrics.emit.needs_judge",
             extra={
@@ -334,7 +335,7 @@ def _forward_to_judge(
         return
 
     if not features.has("organizations:pr-metrics", organization):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "needs_judge"}, sample_rate=1.0)
         logger.info(
             "pr_metrics.emit.needs_judge",
             extra={
@@ -347,7 +348,7 @@ def _forward_to_judge(
         return
 
     if not _claim_for_judge(pr):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"}, sample_rate=1.0)
         return
 
     try:
@@ -363,7 +364,6 @@ def _forward_to_judge(
         PullRequestMetrics.objects.filter(
             pull_request=pr, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
         ).update(verdict=None)
-        metrics.incr("pr_metrics.judge.enqueue_failed")
         logger.exception(
             "pr_metrics.judge.enqueue_failed",
             extra={
@@ -373,7 +373,7 @@ def _forward_to_judge(
             },
         )
         return
-    metrics.incr("pr_metrics.judge.enqueued")
+    metrics.incr("pr_metrics.judge.enqueued", sample_rate=1.0)
 
 
 def _claim_cooldown(pr: PullRequest) -> bool:
@@ -435,11 +435,17 @@ def handle_emission(
         return
 
     if not is_pr_tracked(pr):
+        # Ambient rate while this metric's rarer reasons are unsampled: `untracked` is
+        # the webhook firehose, so sampling already resolves it. Keep both `untracked`
+        # sites on the same rate — one tag value split across two rates still totals
+        # correctly, but stops being exact.
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return
 
     if not _claim_cooldown(pr):
-        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "already_claimed"})
+        metrics.incr(
+            "pr_metrics.cooldown.skipped", tags={"reason": "already_claimed"}, sample_rate=1.0
+        )
         return
 
     log_extra = {
@@ -463,11 +469,10 @@ def handle_emission(
         PullRequestMetrics.objects.filter(
             pull_request=pr, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
         ).update(verdict=None)
-        metrics.incr("pr_metrics.cooldown.enqueue_failed")
         logger.exception("pr_metrics.cooldown.enqueue_failed", extra=log_extra)
         return
 
-    metrics.incr("pr_metrics.cooldown.scheduled")
+    metrics.incr("pr_metrics.cooldown.scheduled", sample_rate=1.0)
 
 
 def run_deferred_emission(pull_request: PullRequest, organization: Organization) -> None:
@@ -497,7 +502,7 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     if pull_request.closed_at is None or pull_request.head_commit_sha is None:
         # Reopened (or no longer terminal) while waiting. Release the sentinel so a
         # later re-close can re-claim and reschedule.
-        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "reopened"})
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "reopened"}, sample_rate=1.0)
         logger.info("pr_metrics.cooldown.reopened", extra=log_extra)
         return
 
@@ -520,7 +525,7 @@ def _claim_and_emit(
     claim. ``emitted_metric`` lets each caller keep its own success counter.
     """
     if not _claim_terminal_event(pull_request, verdict):
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
+        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"}, sample_rate=1.0)
         return
 
     diagnosis_labels = calculate_deterministic_diagnosis_labels(pull_request, verdict)
@@ -530,7 +535,7 @@ def _claim_and_emit(
     # claim still stands and the row is forgone — an acceptable loss for telemetry,
     # not worth a rollback that would reopen the redelivery race.
     emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
-    metrics.incr(emitted_metric)
+    metrics.incr(emitted_metric, sample_rate=1.0)
 
 
 def handle_metrics(
@@ -573,7 +578,9 @@ def handle_metrics(
         return
 
     if is_stale_github_pull_request_payload(pr, pull_request):
-        metrics.incr("pr_metrics.metrics.stale_snapshot")
+        # Counted by lifecycle_mapping's unsampled, provider-tagged
+        # `scm.webhook.pull_request.stale_snapshot`; this path keeps the log for its
+        # delivery id.
         logger.info(
             "pr_metrics.metrics.stale_snapshot",
             extra={
@@ -1018,7 +1025,7 @@ def _prs_from_check_payload(
         if number is None or str(number) in seen:
             continue
         if not is_own_repo_pull_request(pull_request_base_repo_id(ref), repo.external_id):
-            metrics.incr("pr_metrics.check.foreign_pull_request")
+            metrics.incr("pr_metrics.check.foreign_pull_request", sample_rate=1.0)
             continue
         seen.add(str(number))
         # Check payloads carry no PR timestamp, only a number. A missing row is the
@@ -1108,7 +1115,7 @@ def _resolve_or_stub_pull_request(
         reason = None
 
     if reason is not None:
-        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": reason})
+        metrics.incr("pr_metrics.pull_request.unresolved", tags={"reason": reason}, sample_rate=1.0)
         logger.info("pr_metrics.pull_request.unresolved", extra={**log_extra, "reason": reason})
         return None
 
@@ -1119,7 +1126,7 @@ def _resolve_or_stub_pull_request(
         defaults={"opened_at": opened_at, "title": title},
     )
     if created:
-        metrics.incr("pr_metrics.pull_request.stub_created")
+        metrics.incr("pr_metrics.pull_request.stub_created", sample_rate=1.0)
         logger.info("pr_metrics.pull_request.stub_created", extra=log_extra)
     return pull_request
 
@@ -1236,6 +1243,7 @@ def _record_delegated_candidate(provider: str, outcome: str) -> None:
     metrics.incr(
         "pr_metrics.delegated_agent.candidate",
         tags={"provider": provider, "outcome": outcome},
+        sample_rate=1.0,
     )
 
 
@@ -1425,6 +1433,7 @@ def _link_matched_delegated_agent_pr(
                 "outcome": outcome,
                 "match_path": match.match_path,
             },
+            sample_rate=1.0,
         )
 
     try:

@@ -303,7 +303,6 @@ describe('SeerDrawer', () => {
               ],
             }),
           ],
-          status: 'completed',
         }),
       },
     });
@@ -343,7 +342,7 @@ describe('SeerDrawer', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
         body: {
-          autofix: makeExplorerAutofixData({status: 'completed'}),
+          autofix: makeExplorerAutofixData({}),
         },
       });
 
@@ -371,7 +370,7 @@ describe('SeerDrawer', () => {
         url: autofixUrl,
         body: {
           autofix: {
-            ...makeExplorerAutofixData({status: 'completed'}),
+            ...makeExplorerAutofixData({}),
             repo_pr_states: {
               'org/repo': {pr_creation_status: 'completed'},
             },

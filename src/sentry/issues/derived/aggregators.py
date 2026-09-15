@@ -73,6 +73,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # A merge preserves the destination group's status. Ignore actions migrated
+    # from source groups so their history cannot overwrite that status.
+    if entry.original_group_id is not None:
+        return None
+
     current = state[STATUS]
 
     match entry.action:

@@ -346,6 +346,16 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         # are enabled; enable it so the parity checks have a comparable action to compare.
         ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
+    def test_deprecated_api_disabled(self) -> None:
+        with self.feature({"organizations:legacy-alerts-api": False}):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                status_code=status.HTTP_410_GONE,
+            )
+
+        assert response.data == {"detail": "This API no longer exists."}
+
     def mock_conversations_info(self, channel):
         return patch(
             "slack_sdk.web.client.WebClient.conversations_info",

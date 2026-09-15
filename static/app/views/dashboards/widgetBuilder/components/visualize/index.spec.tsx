@@ -11,15 +11,16 @@ import {
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {
+  useTraceItemDatasetAttributes,
+  useTraceMetricItemAttributes,
+} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
-jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -27,7 +28,6 @@ const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/wid
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
-  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -88,8 +88,11 @@ describe('Visualize', () => {
         };
       });
 
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
+      attributes: {},
+      isLoading: false,
+      secondaryAliases: {},
+    });
   });
 
   afterEach(() => {
@@ -507,7 +510,7 @@ describe('Visualize', () => {
   });
 
   it('properly transitions between aggregates of higher to no parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -536,14 +539,13 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count'
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(expect.objectContaining({field: 'count()'}));
+    });
   });
 
   it('properly transitions between aggregates of higher to lower parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -573,12 +575,11 @@ describe('Visualize', () => {
       'count_miserable'
     );
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({field: ['count_miserable(user,300)']}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({field: 'count_miserable(user,300)'})
+      );
+    });
   });
 
   it('adds the default value for an aggregate with 2 parameters', async () => {
@@ -895,7 +896,7 @@ describe('Visualize', () => {
   });
 
   it('shifts the selected aggregate up when it is the last one and removed', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -922,12 +923,9 @@ describe('Visualize', () => {
     // The second field is now selected, but the URL param for selectedAggregate
     // is cleared, so the last field is selected
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({selectedAggregate: undefined}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).not.toHaveProperty('selectedAggregate');
+    });
   });
 
   it('only shows the relevant options for the release dataset', async () => {
@@ -1694,7 +1692,7 @@ describe('Visualize', () => {
     });
 
     it('adds equations', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1736,16 +1734,15 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
-      );
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
+      });
     });
 
     it('adds equations line chart', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1787,12 +1784,11 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
-      );
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
+      });
     });
   });
 
@@ -2162,6 +2158,107 @@ describe('Visualize', () => {
     expect(aggregateSelectors).toHaveLength(2);
     expect(aggregateSelectors[0]).toHaveTextContent('sum');
     expect(aggregateSelectors[1]).toHaveTextContent('sum');
+  });
+
+  it('uses the attribute selector for group-by columns in trace metrics tables', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: ['span.op', 'sum(value,alpha_metric,counter,none)'],
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'alpha_metric'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.op'
+    );
+  });
+
+  it('lets users switch trace metrics table columns between aggregates and fields', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    const {router} = render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: [
+              'sum(value,alpha_metric,counter,none)',
+              'sum(value,alpha_metric,counter,none)',
+            ],
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    await userEvent.click(
+      (await screen.findAllByRole('button', {name: 'alpha_metric'}))[0]!
+    );
+    await userEvent.click(await screen.findByRole('option', {name: 'field'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Column Selection'})
+    ).toHaveTextContent('span.description');
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
+        })
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'field'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          field: [
+            'sum(value,alpha_metric,counter,none)',
+            'sum(value,alpha_metric,counter,none)',
+          ],
+        })
+      );
+    });
   });
 
   it('enables visualize step when discover-saved-queries-deprecation feature is disabled', async () => {

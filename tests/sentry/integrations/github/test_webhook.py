@@ -23,6 +23,9 @@ from fixtures.github import (
     push_event_with_commit_authors,
 )
 from sentry import options
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationMissingPermissionsEvent,
+)
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.webhook import (
     CheckSuiteWebhook,
@@ -57,6 +60,7 @@ from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -426,6 +430,34 @@ class InstallationNewPermissionsEventWebhookTest(APITestCase):
             "contents": "write",
             "pull_requests": "write",
         }
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_records_permissions_accepted_analytics(self, get_jwt: MagicMock) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(hours=1)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={
+                "access_token": "old-token",
+                "expires_at": future_expires.isoformat(),
+                "permissions": {"contents": "read"},
+            },
+        )
+        self._add_refresh_response()
+
+        with assert_analytics_events(
+            [
+                AiAutofixPrIterationMissingPermissionsEvent(
+                    action="permissions_accepted",
+                    organization_id=self.organization.id,
+                    integration_id=integration.id,
+                )
+            ]
+        ):
+            assert self._post() == 204
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -2242,6 +2274,7 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="@octocat",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=True,
+            provider_event_updated_at="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)
@@ -2277,9 +2310,77 @@ class IssuesEventWebhookTest(APITestCase):
             external_user_name="",
             external_issue_key="baxterthehacker/public-repo#2",
             assign=False,
+            provider_event_updated_at="2015-05-05T23:40:28Z",
         )
 
         assert_success_metric(mock_record)
+
+    def _linked_group_for_assignee_sync(self) -> Group:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(config={"sync_reverse_assignment": True})
+
+        Repository.objects.create(
+            organization_id=self.organization.id,
+            external_id="35129377",
+            provider="integrations:github",
+            name="baxterthehacker/public-repo",
+        )
+        group = self.create_group(project=self.project)
+        self.create_integration_external_issue(
+            group=group,
+            integration=self.integration,
+            key="baxterthehacker/public-repo#2",
+        )
+        return group
+
+    def _create_github_member(self, username: str):
+        member = self.create_user(email=f"{username}@example.com")
+        self.create_member(organization=self.organization, user=member, teams=[self.team])
+        self.create_external_user(
+            user=member,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.GITHUB.value,
+            external_name=f"@{username}",
+        )
+        return member
+
+    def _assigned_event(self, login: str, updated_at: str) -> dict:
+        event = json.loads(ISSUES_ASSIGNED_EVENT_EXAMPLE)
+        event["issue"]["updated_at"] = updated_at
+        event["issue"]["assignees"] = [{"login": login}]
+        return event
+
+    def test_assignment_delivered_out_of_order_keeps_newer_assignee(self) -> None:
+        # The reassignment to bob happened after the one to alice, so it wins even though
+        # it was delivered first.
+        group = self._linked_group_for_assignee_sync()
+        self._create_github_member("alice")
+        bob = self._create_github_member("bob")
+
+        with self.feature("organizations:integrations-issue-sync"):
+            self._post_issues_event(self._assigned_event("bob", "2015-05-05T23:40:31Z"))
+            self._post_issues_event(self._assigned_event("alice", "2015-05-05T23:40:28Z"))
+
+        assignee = group.get_assignee()
+        assert assignee is not None
+        assert assignee.id == bob.id
+
+    def test_unassignment_delivered_out_of_order_stays_unassigned(self) -> None:
+        # GitHub unassigns via an empty `assignees` snapshot, on the same code path.
+        group = self._linked_group_for_assignee_sync()
+        self._create_github_member("alice")
+
+        unassigned = json.loads(ISSUES_UNASSIGNED_EVENT_EXAMPLE)
+        unassigned["issue"]["updated_at"] = "2015-05-05T23:40:31Z"
+
+        with self.feature("organizations:integrations-issue-sync"):
+            self._post_issues_event(unassigned)
+            self._post_issues_event(self._assigned_event("alice", "2015-05-05T23:40:28Z"))
+
+        assert group.get_assignee() is None
 
     def test_missing_assignee_data(self) -> None:
         Repository.objects.create(

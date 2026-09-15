@@ -771,7 +771,7 @@ export function GlobalCommandPaletteActions() {
           )}
           {isActiveSuperuser() && (
             <CMDKAction
-              display={{label: t('Exit Superuser'), icon: <IconLock locked={false} />}}
+              display={{label: t('Exit Superuser'), icon: <IconLock />}}
               keywords={[t('superuser')]}
               onAction={() => exitSuperuser()}
             />

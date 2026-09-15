@@ -8,7 +8,7 @@ from django.db.models import Q
 from django.utils import timezone as django_timezone
 from taskbroker_client.retry import Retry
 
-from sentry import analytics
+from sentry import analytics, options
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.helpers.group_index.update import get_current_release_version_of_group
 from sentry.constants import ObjectStatus
@@ -227,7 +227,10 @@ def sync_status_inbound(
 ) -> None:
     from sentry.integrations.mixins import ResolveSyncAction
 
-    integration = integration_service.get_integration(integration_id=integration_id)
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
+    )
     if integration is None:
         raise Integration.DoesNotExist
     elif integration.status != ObjectStatus.ACTIVE:

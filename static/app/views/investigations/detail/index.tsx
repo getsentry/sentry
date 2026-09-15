@@ -77,7 +77,7 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
+export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,

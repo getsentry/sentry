@@ -1,23 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderDatasetSelector as DatasetSelector} from 'sentry/views/dashboards/widgetBuilder/components/datasetSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: jest.fn(),
-}));
-
-const mockUseNavigate = jest.mocked(useNavigate);
-
 describe('DatasetSelector', () => {
   it('changes the dataset', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <DatasetSelector />
       </WidgetBuilderProvider>
@@ -27,12 +18,42 @@ describe('DatasetSelector', () => {
 
     await userEvent.click(await screen.findByRole('option', {name: 'Issues'}));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'issue'}),
-      }),
-      expect.anything()
+    await waitFor(() => {
+      expect(router.location.query).toEqual(expect.objectContaining({dataset: 'issue'}));
+    });
+  });
+
+  it('does not restore a Trace Metrics table when the feature is disabled', async () => {
+    const {router} = render(<DatasetSelector />, {
+      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboard/1/',
+          query: {
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+            field: ['sum(value,alpha_metric,counter,none)'],
+          },
+        },
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Application Metrics'})
     );
+    await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Application Metrics'})
+    );
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({displayType: DisplayType.LINE})
+      );
+    });
   });
 
   it('disables transactions dataset when discover-saved-queries-deprecation feature is enabled', async () => {
@@ -79,14 +100,11 @@ describe('DatasetSelector', () => {
   });
 
   it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
-    const mockNavigate = jest.fn();
-    mockUseNavigate.mockReturnValue(mockNavigate);
-
     const organizationWithoutDeprecation = OrganizationFixture({
       features: [], // No discover-saved-queries-deprecation feature
     });
 
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <DatasetSelector />
       </WidgetBuilderProvider>,
@@ -105,11 +123,10 @@ describe('DatasetSelector', () => {
 
     await userEvent.click(transactionsOption);
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({dataset: 'transaction-like'}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({dataset: 'transaction-like'})
+      );
+    });
   });
 });

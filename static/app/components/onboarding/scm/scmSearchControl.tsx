@@ -1,6 +1,6 @@
 import {Container} from '@sentry/scraps/layout';
+import {components as selectComponents} from '@sentry/scraps/select';
 
-import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconSearch} from 'sentry/icons';
 
 /**

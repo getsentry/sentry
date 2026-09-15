@@ -141,7 +141,7 @@ The `<DocIntegrationAvatar />` component displays an avatar for a doc integratio
 To display multiple avatars in a group, use the `AvatarList` component. It accepts `users` or `teams`.
 
 export function useLoadedMembers() {
-  const {data: members = [], isPending: fetching} = useMembers({limit: 50});
+  const {data: members = [], isPending: fetching} = useMembers();
 
 return {members, fetching};
 }

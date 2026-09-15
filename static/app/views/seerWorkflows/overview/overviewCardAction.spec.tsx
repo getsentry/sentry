@@ -33,7 +33,10 @@ describe('OverviewCardAction', () => {
       groupId: '2',
       shortId: 'PROJ-1',
       title: 'TypeError in checkout cart',
-      rootCause: {oneLineDescription: 'The cart total is read before it is set.'},
+      rootCause: {
+        headline: null,
+        oneLineDescription: 'The cart total is read before it is set.',
+      },
       proposedFix: null,
       seerRunId: 'run-1',
       lastTriggeredAt: '2026-07-14T09:00:00Z',
@@ -348,12 +351,13 @@ describe('OverviewCardAction', () => {
   });
 
   it('shows a loading state before revealing all options at once', async () => {
+    const codingAgents = Promise.withResolvers<void>();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
       body: {
         integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
       },
-      asyncDelay: 50,
+      asyncDelay: codingAgents.promise,
     });
 
     render(
@@ -370,6 +374,8 @@ describe('OverviewCardAction', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Open Seer'})
     ).not.toBeInTheDocument();
+
+    codingAgents.resolve();
 
     expect(
       await screen.findByRole('menuitemradio', {name: 'Open Seer'})

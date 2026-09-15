@@ -1,6 +1,6 @@
 from taskbroker_client.retry import Retry
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.analytics import IntegrationIssueStatusSyncedEvent
@@ -47,7 +47,9 @@ def sync_status_outbound(group_id: int, external_issue_id: int) -> bool | None:
         return None
 
     integration = integration_service.get_integration(
-        integration_id=external_issue.integration_id, status=ObjectStatus.ACTIVE
+        integration_id=external_issue.integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if not integration:
         return None

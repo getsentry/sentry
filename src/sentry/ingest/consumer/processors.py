@@ -395,6 +395,7 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
             key_id=None,  # TODO: Inject this from Relay
             group_id=group_id,
             start_time=None,  # TODO: Inject this from Relay
+            is_pending=event is None,
         )
     else:
         logger.error("invalid individual attachment type: %s", attachment_type)

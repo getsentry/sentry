@@ -32,7 +32,6 @@ type Props = {
   organization: Organization;
   widgetLimitReached: boolean;
   hasUnsavedFilters?: boolean;
-  hideAddWidget?: boolean;
   isSaving?: boolean;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 };
@@ -40,7 +39,6 @@ type Props = {
 export function DashboardActionBar({
   dashboard,
   dashboardState,
-  hideAddWidget = false,
   onAddWidget,
   onCancel,
   onChangeEditAccess,
@@ -131,7 +129,7 @@ export function DashboardActionBar({
               variant="primary"
               data-test-id="dashboard-commit"
               disabled={hasReachedDashboardLimit || isLoading}
-              tooltipProps={{isHoverable: true, title: limitMessage}}
+              tooltipProps={{title: limitMessage}}
             >
               {t('Save and Finish')}
             </Button>
@@ -152,7 +150,7 @@ export function DashboardActionBar({
   return (
     <DashboardEditFeature>
       {hasFeature => {
-        const showAddWidget = hasFeature && !isPrebuiltDashboard && !hideAddWidget;
+        const showAddWidget = hasFeature && !isPrebuiltDashboard;
         const showEditAccess = !isPrebuiltDashboard;
 
         if (!showAddWidget && !showEditAccess) {
@@ -219,7 +217,6 @@ function AddWidgetDropdown({
         tooltipProps: {title: tooltip},
         variant: 'primary',
       }}
-      position="bottom-end"
     />
   );
 }

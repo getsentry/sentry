@@ -12,7 +12,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -336,9 +335,7 @@ export default function ProjectEnvironments() {
         {isPending ? (
           <EnvironmentTableSkeleton isHidden={isHidden} />
         ) : isError ? (
-          <SimpleTable.Empty>
-            <LoadingError onRetry={refetch} />
-          </SimpleTable.Empty>
+          <SimpleTable.Error onRetry={refetch} />
         ) : visibleEnvironments.length ? (
           <Fragment>
             {currentPage === 1 && !isHidden && !deferredSearchQuery && (

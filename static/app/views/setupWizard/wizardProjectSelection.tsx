@@ -2,15 +2,15 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {PlatformIcon} from 'platformicons';
+import {z} from 'zod';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
-import {Button} from '@sentry/scraps/button';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Input} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {IdBadge} from 'sentry/components/idBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {canCreateProject} from 'sentry/components/projects/canCreateProject';
@@ -37,6 +37,28 @@ const urlParams = new URLSearchParams(location.search);
 const platformParam = urlParams.get('project_platform');
 const orgSlugParam = urlParams.get('org_slug');
 
+type WizardFormValues = {
+  newProjectName: string;
+  newProjectPlatform: string | null;
+  newProjectTeam: string | null;
+  organizationId: string | null;
+  projectId: string | null;
+};
+
+const wizardSchema = z.object({
+  organizationId: z
+    .string()
+    .nullable()
+    .refine(value => value !== null, t('Select an organization')),
+  projectId: z
+    .string()
+    .nullable()
+    .refine(value => value !== null, t('Select a project')),
+  newProjectName: z.string(),
+  newProjectPlatform: z.string().nullable(),
+  newProjectTeam: z.string().nullable(),
+});
+
 function getOrgDisplayName(organization: OrganizationSummary) {
   return organization.name || organization.slug;
 }
@@ -62,15 +84,6 @@ function getInitialOrgId(organizations: OrganizationSummary[]) {
   return null;
 }
 
-function errorIsHasNoDsnError(e: unknown): boolean | undefined {
-  try {
-    const response = (e as {responseJSON?: {error?: string}}).responseJSON;
-    return response?.error === 'No DSN found for this project';
-  } catch {
-    return false;
-  }
-}
-
 export function WizardProjectSelection({
   hash,
   organizations,
@@ -82,22 +95,67 @@ export function WizardProjectSelection({
 
   const [debouncedSearch] = useDebouncedValue(search, {wait: 300});
   const isSearchStale = search !== debouncedSearch;
-  const [selectedOrgId, setSelectedOrgId] = useState<string | null>(() =>
-    getInitialOrgId(organizations)
-  );
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const isCreateProjectSelected = selectedProjectId === CREATE_PROJECT_VALUE;
+  const updateWizardCacheMutation = useUpdateWizardCache(hash);
+  const createProjectMutation = useCreateProjectFromWizard();
 
-  const [newProjectName, setNewProjectName] = useState(platformParam || '');
-  const [newProjectTeam, setNewProjectTeam] = useState<string | null>(null);
-  const [newProjectPlatform, setNewProjectPlatform] = useState(platformParam || null);
+  const defaultValues: WizardFormValues = {
+    organizationId: getInitialOrgId(organizations),
+    projectId: null,
+    newProjectName: platformParam || '',
+    newProjectPlatform: platformParam || null,
+    newProjectTeam: null,
+  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: wizardSchema},
+    onSubmit: async ({value}) => {
+      const parsedValue = wizardSchema.parse(value);
+      const organization = organizations.find(
+        org => org.id === parsedValue.organizationId
+      );
+      if (!organization) {
+        return;
+      }
+
+      let projectId = parsedValue.projectId;
+      if (projectId === CREATE_PROJECT_VALUE) {
+        const project = await createProjectMutation
+          .mutateAsync({
+            organization,
+            team: parsedValue.newProjectTeam,
+            name: parsedValue.newProjectName,
+            platform: parsedValue.newProjectPlatform || platformParam || 'other',
+          })
+          .catch(() => null);
+
+        if (!project) {
+          return;
+        }
+
+        projectId = project.id;
+      }
+
+      await updateWizardCacheMutation
+        .mutateAsync({
+          organizationId: organization.id,
+          projectId,
+        })
+        .catch(() => {});
+    },
+  });
+  const selectedOrgId = useStore(form.store, state => state.values.organizationId);
+  const selectedProjectId = useStore(form.store, state => state.values.projectId);
+  const isCreateProjectSelected = selectedProjectId === CREATE_PROJECT_VALUE;
 
   const selectedOrg = useMemo(
     () => organizations.find(org => org.id === selectedOrgId),
     [organizations, selectedOrgId]
   );
 
-  const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
+  const orgDetailsRequest = useOrganizationDetails({
+    organization: selectedOrg,
+  });
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
 
   const accessTeams = useMemo(() => {
@@ -125,11 +183,6 @@ export function WizardProjectSelection({
   const isCreationEnabled =
     canUserCreateProject && (isOrgMemberWithNoAccess || hasSelectableTeams);
 
-  const updateWizardCacheMutation = useUpdateWizardCache(hash);
-  const createProjectMutation = useCreateProjectFromWizard();
-
-  const isPending =
-    updateWizardCacheMutation.isPending || createProjectMutation.isPending;
   const isSuccess = isCreateProjectSelected
     ? updateWizardCacheMutation.isSuccess && createProjectMutation.isSuccess
     : updateWizardCacheMutation.isSuccess;
@@ -177,17 +230,19 @@ export function WizardProjectSelection({
   useEffect(() => {
     // We need to check the cached options as they hold all options that were fetched for the org
     // and not just the options that match the search query
-    if (cachedProjectOptions.length === 1) {
-      setSelectedProjectId(cachedProjectOptions[0]!.value);
+    const firstProjectOption = cachedProjectOptions.at(0);
+    if (cachedProjectOptions.length === 1 && firstProjectOption) {
+      form.setFieldValue('projectId', firstProjectOption.value);
     }
-  }, [cachedProjectOptions]);
+  }, [cachedProjectOptions, form]);
 
   // Set the selected team to the first team if there is only one
   useEffect(() => {
     if (selectableTeams?.length === 1) {
-      setNewProjectTeam(selectableTeams[0]!.slug);
+      const teamSlug = selectableTeams[0]!.slug;
+      form.setFieldValue('newProjectTeam', teamSlug);
     }
-  }, [selectableTeams]);
+  }, [form, selectableTeams]);
 
   // As the cache hook sorts the options by value, we need to sort them afterwards
   const sortedProjectOptions = useMemo(
@@ -206,58 +261,6 @@ export function WizardProjectSelection({
     [selectedProjectId, sortedProjectOptions]
   );
 
-  const selectedTeam = useMemo(
-    () => selectableTeams?.find(team => team.slug === newProjectTeam),
-    [newProjectTeam, selectableTeams]
-  );
-
-  const isProjectSelected = isCreateProjectSelected
-    ? isOrgMemberWithNoAccess
-      ? newProjectName && (platformParam || newProjectPlatform)
-      : newProjectName && (platformParam || newProjectPlatform) && newProjectTeam
-    : selectedProject;
-
-  const isFormValid = selectedOrg && isProjectSelected;
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!isFormValid || !selectedOrg || !selectedProjectId) {
-      return;
-    }
-
-    let projectId = selectedProjectId;
-    try {
-      if (isCreateProjectSelected) {
-        const project = await createProjectMutation.mutateAsync({
-          organization: selectedOrg,
-          team: newProjectTeam,
-          name: newProjectName,
-          platform: newProjectPlatform || platformParam || 'other',
-        });
-
-        projectId = project.id;
-      }
-    } catch {
-      addErrorMessage('Failed to create project! Please try again');
-      return;
-    }
-
-    try {
-      await updateWizardCacheMutation.mutateAsync({
-        organizationId: selectedOrg.id,
-        projectId,
-      });
-    } catch (e) {
-      const errorMessage = errorIsHasNoDsnError(e)
-        ? t(
-            'The selected project has no active DSN. Please add an active DSN to the project.'
-          )
-        : t('Something went wrong! Please try again.');
-
-      addErrorMessage(errorMessage);
-    }
-  };
-
   if (isSuccess) {
     return <WaitingForWizardToConnect hash={hash} organizations={organizations} />;
   }
@@ -271,136 +274,189 @@ export function WizardProjectSelection({
   }
 
   const platformField = (
-    <FieldWrapper>
-      <label>{t('Platform')}</label>
-      <StyledCompactSelect
-        value={newProjectPlatform!}
-        search
-        options={platformOptions}
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            icon={
-              newProjectPlatform ? (
-                <PlatformIcon platform={newProjectPlatform} size={16} alt="" />
-              ) : null
-            }
-          >
-            {newProjectPlatform
-              ? platforms.find(p => p.id === newProjectPlatform)!.name
-              : t('Select a platform')}
-          </OverlayTrigger.Button>
-        )}
-        onChange={({value}) => {
-          setNewProjectPlatform(value as string);
-        }}
-      />
-    </FieldWrapper>
+    <form.AppField
+      name="newProjectPlatform"
+      validators={{
+        onDynamic: z
+          .string()
+          .nullable()
+          .refine(value => value !== null, t('Select a platform')),
+      }}
+    >
+      {field => (
+        <field.Layout.Stack label={t('Platform')} required>
+          <field.Base<HTMLButtonElement>>
+            {baseProps => {
+              const selectedPlatform = field.state.value;
+              return (
+                <StyledCompactSelect
+                  value={field.state.value ?? undefined}
+                  search
+                  options={platformOptions}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      {...baseProps}
+                      icon={
+                        selectedPlatform ? (
+                          <PlatformIcon platform={selectedPlatform} size={16} alt="" />
+                        ) : null
+                      }
+                    >
+                      {selectedPlatform
+                        ? (platforms.find(p => p.id === selectedPlatform)?.name ??
+                          selectedPlatform)
+                        : t('Select a platform')}
+                    </OverlayTrigger.Button>
+                  )}
+                  onChange={({value}) => {
+                    field.handleChange(value as string);
+                  }}
+                />
+              );
+            }}
+          </field.Base>
+        </field.Layout.Stack>
+      )}
+    </form.AppField>
   );
 
   const projectNameField = (
-    <FieldWrapper>
-      <label>{t('Project Slug')}</label>
-      <Input
-        value={newProjectName}
-        onChange={event => setNewProjectName(event.target.value)}
-        placeholder={t('Enter a project slug')}
-      />
-    </FieldWrapper>
+    <form.AppField
+      name="newProjectName"
+      validators={{onDynamic: z.string().min(1, t('Enter a project slug'))}}
+    >
+      {field => (
+        <field.Layout.Stack label={t('Project Slug')} required>
+          <field.Input
+            value={field.state.value}
+            onChange={field.handleChange}
+            placeholder={t('Enter a project slug')}
+          />
+        </field.Layout.Stack>
+      )}
+    </form.AppField>
   );
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form.AppForm form={form}>
       <Stack gap="xl">
-        <Heading>{t('Select your Sentry project')}</Heading>
-        <FieldWrapper>
-          <label>{t('Organization')}</label>
-          <StyledCompactSelect
-            autoFocus
-            value={selectedOrgId!}
-            search
-            options={orgOptions}
-            trigger={triggerProps => (
-              <OverlayTrigger.Button
-                {...triggerProps}
-                icon={
-                  selectedOrg ? (
-                    <OrganizationAvatar size={16} organization={selectedOrg} />
-                  ) : null
-                }
-              >
-                {selectedOrg ? (
-                  getOrgDisplayName(selectedOrg)
-                ) : (
-                  <SelectPlaceholder>{t('Select an organization')}</SelectPlaceholder>
-                )}
-              </OverlayTrigger.Button>
-            )}
-            onChange={({value}) => {
-              if (value !== selectedOrgId) {
-                setSelectedOrgId(value as string);
-                setSelectedProjectId(null);
-                clearProjectOptions();
-              }
-            }}
-          />
-        </FieldWrapper>
-        <FieldWrapper>
-          <label>{t('Project')}</label>
-          {orgProjectsRequest.error instanceof RequestError ? (
-            <ProjectLoadingError
-              error={orgProjectsRequest.error}
-              onRetry={orgProjectsRequest.refetch}
-            />
-          ) : (
-            <StyledCompactSelect
-              // Remount the component when the org changes to reset the component state
-              key={selectedOrgId}
-              search={{onChange: setSearch}}
-              onClose={() => setSearch('')}
-              disabled={!selectedOrgId}
-              value={selectedProjectId!}
-              options={sortedProjectOptions}
-              trigger={triggerProps => (
-                <OverlayTrigger.Button
-                  {...triggerProps}
-                  icon={
-                    isCreateProjectSelected ? (
-                      <IconAdd />
-                    ) : selectedProject ? (
-                      <ProjectBadge avatarSize={16} project={selectedProject} hideName />
-                    ) : null
-                  }
-                >
-                  {isCreateProjectSelected
-                    ? t('Create Project')
-                    : selectedProject?.slug || (
-                        <SelectPlaceholder>{t('Select a project')}</SelectPlaceholder>
-                      )}
-                </OverlayTrigger.Button>
-              )}
-              onChange={({value}) => {
-                setSelectedProjectId(value as string);
-              }}
-              emptyMessage={emptyMessage}
-              menuFooter={
-                isCreationEnabled
-                  ? ({closeOverlay}) => (
-                      <MenuComponents.CTAButton
-                        onClick={() => {
-                          setSelectedProjectId(CREATE_PROJECT_VALUE);
-                          closeOverlay();
-                        }}
-                        icon={<IconAdd />}
+        <Heading as="h5" size="xl">
+          {t('Select your Sentry project')}
+        </Heading>
+        <form.AppField name="organizationId">
+          {field => (
+            <field.Layout.Stack label={t('Organization')} required>
+              <field.Base<HTMLButtonElement>>
+                {baseProps => (
+                  <StyledCompactSelect
+                    autoFocus
+                    value={field.state.value ?? undefined}
+                    search
+                    options={orgOptions}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        {...baseProps}
+                        icon={
+                          selectedOrg ? (
+                            <OrganizationAvatar size={16} organization={selectedOrg} />
+                          ) : null
+                        }
                       >
-                        {t('Create Project')}
-                      </MenuComponents.CTAButton>
-                    )
-                  : undefined
-              }
-            />
+                        {selectedOrg ? (
+                          getOrgDisplayName(selectedOrg)
+                        ) : (
+                          <Text ellipsis variant="muted" bold={false} align="left">
+                            {t('Select an organization')}
+                          </Text>
+                        )}
+                      </OverlayTrigger.Button>
+                    )}
+                    onChange={({value}) => {
+                      if (value !== selectedOrgId) {
+                        const organizationId = value as string;
+                        field.handleChange(organizationId);
+                        form.setFieldValue('projectId', null);
+                        clearProjectOptions();
+                      }
+                    }}
+                  />
+                )}
+              </field.Base>
+            </field.Layout.Stack>
           )}
-        </FieldWrapper>
+        </form.AppField>
+        <form.AppField name="projectId">
+          {field => (
+            <field.Layout.Stack label={t('Project')} required>
+              {orgProjectsRequest.error instanceof RequestError ? (
+                <ProjectLoadingError
+                  error={orgProjectsRequest.error}
+                  onRetry={orgProjectsRequest.refetch}
+                />
+              ) : (
+                <field.Base<HTMLButtonElement>>
+                  {baseProps => (
+                    <StyledCompactSelect
+                      // Remount the component when the org changes to reset the component state
+                      key={selectedOrgId}
+                      search={{onChange: setSearch}}
+                      onClose={() => setSearch('')}
+                      disabled={!selectedOrgId}
+                      value={selectedProjectId!}
+                      options={sortedProjectOptions}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.Button
+                          {...triggerProps}
+                          {...baseProps}
+                          icon={
+                            isCreateProjectSelected ? (
+                              <IconAdd />
+                            ) : selectedProject ? (
+                              <ProjectBadge
+                                avatarSize={16}
+                                project={selectedProject}
+                                hideName
+                              />
+                            ) : null
+                          }
+                        >
+                          {isCreateProjectSelected
+                            ? t('Create Project')
+                            : selectedProject?.slug || (
+                                <Text ellipsis variant="muted" bold={false} align="left">
+                                  {t('Select a project')}
+                                </Text>
+                              )}
+                        </OverlayTrigger.Button>
+                      )}
+                      onChange={({value}) => {
+                        field.handleChange(value as string);
+                      }}
+                      emptyMessage={emptyMessage}
+                      menuFooter={
+                        isCreationEnabled
+                          ? ({closeOverlay}) => (
+                              <MenuComponents.CTAButton
+                                onClick={() => {
+                                  field.handleChange(CREATE_PROJECT_VALUE);
+                                  closeOverlay();
+                                }}
+                                icon={<IconAdd />}
+                              >
+                                {t('Create Project')}
+                              </MenuComponents.CTAButton>
+                            )
+                          : undefined
+                      }
+                    />
+                  )}
+                </field.Base>
+              )}
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
         {isCreateProjectSelected &&
           (isOrgMemberWithNoAccess ? (
             <Fragment>
@@ -410,69 +466,74 @@ export function WizardProjectSelection({
           ) : (
             <Fragment>
               {!platformParam && platformField}
-              <Columns>
+              <Grid columns={{zero: '1fr', sm: '1fr 1fr'}} gap="xl">
                 {projectNameField}
-                <FieldWrapper>
-                  <label>{t('Team')}</label>
-                  <StyledCompactSelect
-                    value={newProjectTeam!}
-                    options={
-                      selectableTeams?.map(team => ({
-                        value: team.slug,
-                        label: `#${team.slug}`,
-                        leadingItems: <IdBadge team={team} hideName />,
-                        searchKey: team.slug,
-                      })) || []
-                    }
-                    trigger={triggerProps => (
-                      <OverlayTrigger.Button
-                        {...triggerProps}
-                        icon={
-                          selectedTeam ? (
-                            <IdBadge avatarSize={16} team={selectedTeam} hideName />
-                          ) : null
-                        }
-                      >
-                        {selectedTeam ? `#${selectedTeam.slug}` : t('Select a team')}
-                      </OverlayTrigger.Button>
-                    )}
-                    onChange={({value}) => {
-                      setNewProjectTeam(value as string);
-                    }}
-                  />
-                </FieldWrapper>
-              </Columns>
+                <form.AppField
+                  name="newProjectTeam"
+                  validators={{
+                    onDynamic: z
+                      .string()
+                      .nullable()
+                      .refine(value => value !== null, t('Select a team')),
+                  }}
+                >
+                  {field => (
+                    <field.Layout.Stack label={t('Team')} required>
+                      <field.Base<HTMLButtonElement>>
+                        {baseProps => {
+                          const selectedTeam = selectableTeams?.find(
+                            team => team.slug === field.state.value
+                          );
+                          return (
+                            <StyledCompactSelect
+                              value={field.state.value ?? undefined}
+                              options={
+                                selectableTeams?.map(team => ({
+                                  value: team.slug,
+                                  label: `#${team.slug}`,
+                                  leadingItems: <IdBadge team={team} hideName />,
+                                  searchKey: team.slug,
+                                })) || []
+                              }
+                              trigger={triggerProps => (
+                                <OverlayTrigger.Button
+                                  {...triggerProps}
+                                  {...baseProps}
+                                  icon={
+                                    selectedTeam ? (
+                                      <IdBadge
+                                        avatarSize={16}
+                                        team={selectedTeam}
+                                        hideName
+                                      />
+                                    ) : null
+                                  }
+                                >
+                                  {selectedTeam
+                                    ? `#${selectedTeam.slug}`
+                                    : t('Select a team')}
+                                </OverlayTrigger.Button>
+                              )}
+                              onChange={({value}) => {
+                                field.handleChange(value as string);
+                              }}
+                            />
+                          );
+                        }}
+                      </field.Base>
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
+              </Grid>
             </Fragment>
           ))}
-        <SubmitButton
-          disabled={!isFormValid || isPending}
-          variant="primary"
-          type="submit"
-        >
-          {t('Continue')}
-        </SubmitButton>
+        <Flex justify="end" borderTop="secondary" paddingTop="xl">
+          <form.SubmitButton>{t('Continue')}</form.SubmitButton>
+        </Flex>
       </Stack>
-    </form>
+    </form.AppForm>
   );
 }
-
-const Heading = styled('h5')`
-  margin-bottom: ${p => p.theme.space.xs};
-`;
-
-function FieldWrapper(props: React.ComponentProps<typeof Stack>) {
-  return <Stack gap="xs" {...props} />;
-}
-
-const Columns = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 1fr;
-  }
-`;
 
 const StyledCompactSelect = styled(CompactSelect)`
   width: 100%;
@@ -480,19 +541,4 @@ const StyledCompactSelect = styled(CompactSelect)`
   & > button {
     width: 100%;
   }
-`;
-
-const SelectPlaceholder = styled('span')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: normal;
-  text-align: left;
-`;
-
-const SubmitButton = styled(Button)`
-  margin-top: ${p => p.theme.space.md};
 `;

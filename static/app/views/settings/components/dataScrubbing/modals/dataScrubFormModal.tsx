@@ -417,7 +417,7 @@ export function DataScrubFormModal({
                               onClick={() => setDisplayEventId(false)}
                             >
                               {t('Hide event ID field')}
-                              <IconChevron direction="up" size="xs" />
+                              <IconChevron size="xs" />
                             </Toggle>
                           ) : (
                             <Toggle
@@ -500,7 +500,7 @@ export function DataScrubFormModal({
                     {displayEventId ? (
                       <Toggle variant="link" onClick={() => setDisplayEventId(false)}>
                         {t('Hide event ID field')}
-                        <IconChevron direction="up" size="xs" />
+                        <IconChevron size="xs" />
                       </Toggle>
                     ) : (
                       <Toggle variant="link" onClick={() => setDisplayEventId(true)}>

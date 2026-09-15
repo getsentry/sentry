@@ -1,37 +1,34 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
 describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: {
-          datetime: {
-            period: '10d',
-            start: null,
-            end: null,
-            utc: false,
-          },
-          environments: ['prod'],
-          projects: [42],
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
         },
+        environments: ['prod'],
+        projects: [42],
       })
     );
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     jest.resetAllMocks();
   });
 

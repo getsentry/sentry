@@ -49,6 +49,17 @@ class ProjectRuleEnableTestCase(APITestCase):
             ),
         )
 
+    def test_deprecated_api_disabled(self) -> None:
+        with self.feature({"organizations:legacy-alerts-api": False}):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                self.rule.id,
+                status_code=status.HTTP_410_GONE,
+            )
+
+        assert response.data == {"detail": "This API no longer exists."}
+
     def test_rule_enabled(self) -> None:
         """Test that we do not accept an enabled rule"""
         response = self.get_error_response(

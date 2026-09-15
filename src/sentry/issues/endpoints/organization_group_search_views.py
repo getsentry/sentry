@@ -26,7 +26,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
@@ -73,13 +73,18 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
     createdBy = serializers.ChoiceField(
         choices=("me", "others"),
         required=False,
+        help_text="Whether to return issue views created by the current user or other members.",
     )
     sort = serializers.ListField(
         child=serializers.ChoiceField(choices=list(SORT_MAP.keys())),
         required=False,
         default=["-visited"],
+        help_text="The fields used to sort issue views, in order of precedence.",
     )
-    query = serializers.CharField(required=False)
+    query = serializers.CharField(
+        required=False,
+        help_text="A case-insensitive search against issue view names and queries.",
+    )
 
     def validate_query(self, value: str | None) -> str | None:
         return value.strip() if value else None
@@ -89,13 +94,37 @@ class OrganizationGroupSearchViewGetSerializer(serializers.Serializer[None]):
 @cell_silo_endpoint
 class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
     permission_classes = (MemberPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationIssueViews",
+        summary="List Issue Views",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationGroupSearchViewGetSerializer,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationIssueViewList", list[GroupSearchViewSerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[list[GroupSearchViewSerializerResponse]]
+        | Response[ValidationErrorResponse]
+        | Response[None]
+    ):
         """
         List the current organization member's custom views
         `````````````````````````````````````````
@@ -107,7 +136,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         serializer = OrganizationGroupSearchViewGetSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         starred_view_ids = GroupSearchViewStarred.objects.filter(
             organization=organization, user_id=request.user.id
@@ -177,17 +206,20 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         else:
             raise ValueError(f"Unexpected createdBy value: {createdBy}")
 
+        def serialize_views(
+            views: list[GroupSearchView],
+        ) -> list[GroupSearchViewSerializerResponse]:
+            return serialize(
+                views,
+                request.user,
+                serializer=GroupSearchViewSerializer(organization=organization),
+            )
+
         return self.paginate(
             request=request,
             sources=[starred_query, non_starred_query],
             paginator_cls=ChainPaginator,
-            on_results=lambda x: serialize(
-                x,
-                request.user,
-                serializer=GroupSearchViewSerializer(
-                    organization=organization,
-                ),
-            ),
+            on_results=serialize_views,
         )
 
     @extend_schema(

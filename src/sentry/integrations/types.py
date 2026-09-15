@@ -1,8 +1,31 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Generic, TypeVar
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
+
+
+class IntegrationIssueConfigField(TypedDict):
+    """JSON form field returned by an issue integration."""
+
+    name: str
+    label: str
+    type: str
+    default: NotRequired[Any]
+    defaultValue: NotRequired[Any]
+    required: NotRequired[bool]
+    choices: NotRequired[Sequence[tuple[Any, str]]]
+    url: NotRequired[str]
+    updatesForm: NotRequired[bool]
+    multiple: NotRequired[bool]
+    autosize: NotRequired[bool]
+    maxRows: NotRequired[int]
+    maxLength: NotRequired[int]
+    help: NotRequired[str]
+    placeholder: NotRequired[str]
+    prefetch: NotRequired[bool]
+    dependsOn: NotRequired[Sequence[str]]
 
 
 class ExternalProviders(ValueEqualityEnum):
@@ -43,6 +66,7 @@ class IntegrationProviderSlug(StrEnum):
     GITLAB = "gitlab"
     BITBUCKET = "bitbucket"
     BITBUCKET_SERVER = "bitbucket_server"
+    CURSOR_ORIGIN = "cursor_origin"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"

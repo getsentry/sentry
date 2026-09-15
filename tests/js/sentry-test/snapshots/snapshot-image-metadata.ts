@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 // Keep in sync with src/sentry/preprod/snapshots/manifest.py
 export interface SnapshotImageMetadata {
   display_name: string;

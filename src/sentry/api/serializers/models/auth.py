@@ -259,3 +259,67 @@ class AuthRecoveryAcceptedSerializer(Serializer[AuthRecoveryAcceptedSerializerRe
         **kwargs: Any,
     ) -> AuthRecoveryAcceptedSerializerResponse:
         return {"detail": "If an eligible account exists, a recovery email has been sent."}
+
+
+class AuthOrganizationConfigOrganization(TypedDict):
+    avatarUrl: str | None
+    name: str
+    slug: str
+
+
+class AuthOrganizationConfigProvider(TypedDict):
+    key: str
+    name: str
+
+
+# Serializer attribute maps use response objects as identity-keyed dictionary keys.
+@dataclass(eq=False)
+class AuthOrganizationConfig:
+    """Organization login configuration and the caller's authentication state."""
+
+    authenticated: bool
+    """Whether the caller has a global Sentry session."""
+
+    member_authenticated: bool
+    """Whether the caller can access this organization, including required SSO."""
+
+    can_register: bool
+    join_request_url: str | None
+    login_method: Literal["password", "sso"]
+    sso_required: bool
+    organization: AuthOrganizationConfigOrganization
+    provider: AuthOrganizationConfigProvider | None
+    warnings: list[str]
+
+
+class AuthOrganizationConfigSerializerResponse(TypedDict):
+    authenticated: bool
+    memberAuthenticated: bool
+    canRegister: bool
+    joinRequestUrl: str | None
+    loginMethod: Literal["password", "sso"]
+    ssoRequired: bool
+    organization: AuthOrganizationConfigOrganization
+    provider: AuthOrganizationConfigProvider | None
+    warnings: list[str]
+
+
+class AuthOrganizationConfigSerializer(Serializer[AuthOrganizationConfigSerializerResponse]):
+    def serialize(
+        self,
+        obj: AuthOrganizationConfig,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> AuthOrganizationConfigSerializerResponse:
+        return {
+            "authenticated": obj.authenticated,
+            "memberAuthenticated": obj.member_authenticated,
+            "canRegister": obj.can_register,
+            "joinRequestUrl": obj.join_request_url,
+            "loginMethod": obj.login_method,
+            "ssoRequired": obj.sso_required,
+            "organization": obj.organization,
+            "provider": obj.provider,
+            "warnings": obj.warnings,
+        }

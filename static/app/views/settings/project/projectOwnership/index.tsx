@@ -153,7 +153,6 @@ export default function ProjectOwnership() {
         </Access>
       )}
       <Button
-        type="button"
         size="md"
         icon={<IconEdit />}
         variant="primary"

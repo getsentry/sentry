@@ -73,6 +73,7 @@ function AccountClose() {
 
   // Load all organizations the current user is an owner of.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setIsLoading(true);
     fetchOrganizations(api, {owner: 1}).then((response: OwnedOrg[]) => {
       const singleOwnerOrgs = response
@@ -187,7 +188,6 @@ function AccountClose() {
                   {organization.slug}
                 </Text>
                 <Switch
-                  size="sm"
                   id={`delete-organization-${organization.slug}`}
                   checked={orgsToRemove.has(organization.slug)}
                   value={organization.slug}

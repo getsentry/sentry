@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/chat';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import type {SeerEmbedScope} from 'sentry/components/seer/markdown/embeds/renderTracking';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -20,10 +21,24 @@ export function AssistantBlock({
   runId,
   interactionPending,
   readOnly,
+  compact,
 }: AssistantBlockProps) {
   const organization = useOrganization();
   const content = block.message.content ?? '';
   const isStreamingEnabled = organization.features.includes('seer-explorer-stream');
+
+  // Only the settled render carries a scope. While `block.loading`, the id is
+  // still the optimistic client-side one (`loading-N-optimistic`), which the
+  // server replaces on the next poll -- tracking both would count one embed
+  // twice. The settled render fires immediately after, so nothing is lost.
+  const embedScope: SeerEmbedScope | null =
+    runId === undefined
+      ? null
+      : {
+          conversationId: String(runId),
+          messageId: block.id,
+          surface: 'seer_explorer',
+        };
 
   if (block.loading) {
     if (isStreamingEnabled && hasValidContent(content)) {
@@ -41,9 +56,9 @@ export function AssistantBlock({
   return (
     <Fragment>
       {hasValidContent(content) && (
-        <MessageRow from="assistant">
+        <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
           <AssistantMessage>
-            <SeerMarkdown raw={content} />
+            <SeerMarkdown raw={content} scope={embedScope} />
           </AssistantMessage>
         </MessageRow>
       )}

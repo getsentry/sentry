@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import logging
 import random
+import threading
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
-from concurrent.futures import wait
+from concurrent.futures import Future, wait
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from copy import deepcopy
 from datetime import UTC, datetime
 from functools import partial
@@ -81,6 +83,7 @@ from sentry.monitors.utils import (
     valid_duration,
 )
 from sentry.monitors.validators import ConfigValidator, MonitorCheckInValidator
+from sentry.options.rollout import in_rollout_group
 from sentry.types.actor import parse_and_validate_actor
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -93,6 +96,101 @@ logger = logging.getLogger(__name__)
 MONITOR_CODEC: Codec[IngestMonitorMessage] = get_topic_codec(Topic.INGEST_MONITORS)
 
 DROP_LOG_SAMPLE_RATE = 0.01
+
+# Shared pool for timing out quotas seat checks without creating an executor
+# per check-in. The check itself is expected to be cheap (Redis/local cache);
+# this only exists so a hung backend cannot block the consumer indefinitely.
+#
+# `future.result(timeout=...)` only stops waiting; timed-out work keeps running
+# until the backend returns. Bound outstanding hand-offs so a prolonged hang
+# cannot grow an unbounded queue of stale seat checks (and eventually OOM).
+_CHECK_ACCEPT_MAX_IN_FLIGHT = 1000
+_CHECK_ACCEPT_EXECUTOR = ContextPropagatingThreadPoolExecutor(
+    max_workers=8,
+    thread_name_prefix="monitors.check_accept",
+)
+_CHECK_ACCEPT_SLOTS = threading.BoundedSemaphore(_CHECK_ACCEPT_MAX_IN_FLIGHT)
+
+
+def _check_accept_monitor_checkin_with_timeout(
+    project_id: int,
+    monitor_slug: str,
+    metric_kwargs: dict[str, str],
+) -> PermitCheckInStatus:
+    """
+    Call quotas seat acceptance, optionally with a wall-clock timeout.
+
+    The timeout path is gated by
+    ``crons.check_accept_monitor_checkin.timeout_rollout_rate`` (deterministic
+    per project). Outside the rollout group the backend is called directly.
+
+    If the backend does not respond in time, or too many seat checks are already
+    in flight, fail open and ACCEPT the check-in so a slow or hung quotas path
+    cannot stall crons ingest or accumulate unbounded pending work.
+
+    Note: a timed-out worker keeps running until the underlying call returns;
+    the wait bound only limits how long ingest blocks before failing open. The
+    in-flight slot bound limits how many of those late calls can pile up.
+    """
+    if not in_rollout_group("crons.check_accept_monitor_checkin.timeout_rollout_rate", project_id):
+        return quotas.backend.check_accept_monitor_checkin(project_id, monitor_slug)
+
+    timeout_sec = options.get("crons.check_accept_monitor_checkin.timeout_sec")
+    if not timeout_sec or timeout_sec <= 0:
+        return quotas.backend.check_accept_monitor_checkin(project_id, monitor_slug)
+
+    if not _CHECK_ACCEPT_SLOTS.acquire(blocking=False):
+        metrics.incr(
+            "monitors.checkin.check_accept_shed",
+            tags=metric_kwargs,
+        )
+        logger.warning(
+            "monitors.consumer.check_accept_shed",
+            extra={
+                "project_id": project_id,
+                "slug": monitor_slug,
+                "max_in_flight": _CHECK_ACCEPT_MAX_IN_FLIGHT,
+            },
+        )
+        return PermitCheckInStatus.ACCEPT
+
+    def _done(f: Future[PermitCheckInStatus]) -> None:
+        _CHECK_ACCEPT_SLOTS.release()
+        # Drain late results/errors after we stop waiting so timed-out futures
+        # do not log "exception was never retrieved".
+        f.exception()
+
+    handed_off = False
+    try:
+        future = _CHECK_ACCEPT_EXECUTOR.submit(
+            quotas.backend.check_accept_monitor_checkin,
+            project_id,
+            monitor_slug,
+        )
+        # From here the future owns the permit and _done will release it.
+        future.add_done_callback(_done)
+        handed_off = True
+    finally:
+        if not handed_off:
+            _CHECK_ACCEPT_SLOTS.release()
+
+    try:
+        return future.result(timeout=timeout_sec)
+    except FuturesTimeoutError:
+        metrics.incr(
+            "monitors.checkin.check_accept_timeout",
+            tags=metric_kwargs,
+        )
+        logger.warning(
+            "monitors.consumer.check_accept_timeout",
+            extra={
+                "project_id": project_id,
+                "slug": monitor_slug,
+                "timeout_sec": timeout_sec,
+            },
+        )
+        # Fail open: prefer accepting a check-in over blocking ingest.
+        return PermitCheckInStatus.ACCEPT
 
 
 def _ensure_monitor_with_config(
@@ -544,8 +642,9 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
         raise ProcessingErrorsException([ratelimit_error])
 
     # Does quotas allow for this check-in to be accepted?
-    quotas_outcome: PermitCheckInStatus = quotas.backend.check_accept_monitor_checkin(
-        project.id, monitor_slug
+    # Bound the wait so a hung quotas backend cannot stall the consumer poll.
+    quotas_outcome: PermitCheckInStatus = _check_accept_monitor_checkin_with_timeout(
+        project.id, monitor_slug, metric_kwargs
     )
 
     if quotas_outcome == PermitCheckInStatus.DROP:
@@ -1113,7 +1212,12 @@ def process_batch(
     metrics.gauge("monitors.checkin.parallel_batch_groups", len(checkin_mapping))
 
     # Submit check-in groups for processing
-    with start_span(op="process_batch", name="monitors.monitor_consumer", transaction=True):
+    with start_span(
+        op="process_batch",
+        name="monitors.monitor_consumer",
+        transaction=True,
+        custom_sampling_context={"sample_rate": settings.SENTRY_MONITORS_CHECKIN_APM_SAMPLING},
+    ):
         futures = [
             executor.submit(process_checkin_group, group) for group in checkin_mapping.values()
         ]

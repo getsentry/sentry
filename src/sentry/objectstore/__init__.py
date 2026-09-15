@@ -88,7 +88,11 @@ class UsecaseId(Enum):
     ATTACHMENTS = "attachments"
     DEBUG_FILES = "debug_files"
     PROFILE_ATTACHMENTS = "profile_attachments"
+    # Deprecated: retained for migration compatibility only.
+    # Use PREPROD_SIZE or PREPROD_SNAPSHOTS for new code.
     PREPROD = "preprod"
+    PREPROD_SNAPSHOTS = "preprod_snapshots"
+    PREPROD_SIZE = "preprod_size"
 
     def create(self) -> ObjectstoreClientUsecase:
         match self:
@@ -100,7 +104,7 @@ class UsecaseId(Enum):
             case UsecaseId.DEBUG_FILES:
                 return ObjectstoreClientUsecase(
                     self.value,
-                    compression="none",
+                    compression="zstd",
                     expiration_policy=TimeToIdle(timedelta(days=90)),
                 )
             case UsecaseId.PROFILE_ATTACHMENTS:
@@ -108,7 +112,7 @@ class UsecaseId(Enum):
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
                 )
-            case UsecaseId.PREPROD:
+            case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToIdle(timedelta(days=30)),
@@ -130,7 +134,6 @@ def _create_client() -> Client:
     return Client(
         options["base_url"],
         metrics_backend=SentryMetricsBackend(),
-        propagate_traces=options.get("propagate_traces", False),
         retries=options.get("retries", None),
         timeout_ms=options.get("timeout_ms", None),
         connection_kwargs=options.get(

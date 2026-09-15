@@ -6,14 +6,12 @@ import {Alert} from '@sentry/scraps/alert';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ReplayTableColumn} from 'sentry/components/replays/table/replayTableColumns';
 import {ReplayTableHeader} from 'sentry/components/replays/table/replayTableHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {RequestError, ERROR_MAP} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
@@ -75,9 +73,7 @@ export function ReplayTable({
         ref={ref}
         style={{gridTemplateColumns}}
       >
-        <SimpleTable.Empty>
-          <LoadingIndicator />
-        </SimpleTable.Empty>
+        <SimpleTable.Loading />
       </StyledSimpleTable>
     );
   }

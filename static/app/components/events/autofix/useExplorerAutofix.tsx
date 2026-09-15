@@ -1,4 +1,4 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {useModal} from '@sentry/scraps/modal';
@@ -29,7 +29,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -89,7 +88,7 @@ export function isRootCauseArtifact(
   );
 }
 
-interface SolutionStep {
+export interface SolutionStep {
   description: string;
   title: string;
 }
@@ -155,6 +154,7 @@ interface GithubPrCommentFeedbackSource {
 
 interface GithubPrReviewCommentFeedbackSource {
   type: 'github-pr-review-comment';
+  author_is_bot?: boolean;
   comment?: {html_url?: string; user?: {login: string}};
   // The review this inline comment was submitted as part of. Shared with the
   // review body's `review_id` so the UI can group a review's body and its inline
@@ -212,6 +212,7 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
@@ -257,6 +258,38 @@ export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
 const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
   autofix: null,
 });
+
+/**
+ * Pulls a readable message out of an API error, falling back to `fallback`.
+ * Only `{detail: "..."}` is surfaced; serializer validation errors are for us,
+ * not for the user, so they fall back too.
+ */
+function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string {
+  const detail = (e as {responseJSON?: {detail?: unknown}} | null | undefined)
+    ?.responseJSON?.detail;
+  return isString(detail) ? detail : fallback;
+}
+
+/**
+ * A step refused because another one is still running on the same run.
+ *
+ * The endpoint returns two different 409s, and only this one is recoverable, so
+ * the machine-readable code decides — the detail text is free to be reworded.
+ * The body carries the live run's ids in the shape a success response uses.
+ */
+function isRunInFlightError(
+  e: unknown
+): e is {responseJSON: {run_id: number; sentry_run_id?: string | null}} {
+  const error = e as
+    | {responseJSON?: {code?: unknown; run_id?: unknown}; status?: number}
+    | null
+    | undefined;
+  return (
+    error?.status === 409 &&
+    error.responseJSON?.code === 'run_in_flight' &&
+    defined(error.responseJSON.run_id)
+  );
+}
 
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({
   autofix: {
@@ -520,6 +553,10 @@ export function isRunValidForPrIteration(organization: Organization): boolean {
   return organization.features.includes('autofix-pr-iteration-manual');
 }
 
+export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
+  return runState?.pr_iteration_paused === true;
+}
+
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
   // pr_iteration is always the last work to run, so if the most recent block
   // with a step came from one, the run is in the pr_iteration phase (whether it
@@ -528,6 +565,71 @@ export function isLastStepPrIteration(runState: ExplorerAutofixState | null): bo
     defined(block.message.metadata?.step)
   );
   return defined(lastBlock) && isPrIterationBlock(lastBlock);
+}
+
+function parseBlockFeedback(raw: string | undefined): RawFeedback[] {
+  if (!raw) {
+    return [];
+  }
+  try {
+    const parsed: RawFeedback | RawFeedback[] = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [];
+  }
+}
+
+// True when the last pr_iteration was driven only by failing check suites.
+// Bot reviews and human feedback (user-ui, comments) do not count.
+function lastPrIterationIsCheckSuite(blocks: Block[], start: number): boolean {
+  const items = blocks
+    .slice(start)
+    .flatMap(block => parseBlockFeedback(block.message.metadata?.feedback));
+  return items.length > 0 && items.every(item => item.source?.type === 'check-suite');
+}
+
+/**
+ * If the run died on a CI-driven PR iteration after a successful earlier
+ * step, drop that iteration and present the run as completed so the last
+ * good code changes stay on screen.
+ *
+ * Manual failures (user-ui, GitHub comments/reviews — including bots) and a
+ * failed PR push are left as `error`. A run whose only step is the failed
+ * iteration is also left alone — there is nothing earlier to fall back to.
+ */
+export function hideErroredPrIteration(
+  runState: ExplorerAutofixState | null
+): ExplorerAutofixState | null {
+  if (runState?.status !== 'error') {
+    return runState;
+  }
+
+  const pushFailed = Object.values(runState.repo_pr_states ?? {}).some(
+    prState => prState.pr_creation_status === 'error'
+  );
+  if (pushFailed) {
+    return runState;
+  }
+
+  const blocks = runState.blocks;
+  let start: number | null = null;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (!defined(blocks[i]!.message.metadata?.step)) {
+      continue;
+    }
+    start = isPrIterationBlock(blocks[i]!) ? i : null;
+    break;
+  }
+
+  if (start === null || start === 0) {
+    return runState;
+  }
+
+  if (!lastPrIterationIsCheckSuite(blocks, start)) {
+    return runState;
+  }
+
+  return {...runState, status: 'completed', blocks: blocks.slice(0, start)};
 }
 
 export type AutofixArtifact =
@@ -656,7 +758,10 @@ export function useExplorerAutofix(
     },
   });
 
-  const runState = apiData?.autofix ?? null;
+  const runState = useMemo(
+    () => hideErroredPrIteration(apiData?.autofix ?? null),
+    [apiData?.autofix]
+  );
 
   const startStep = useCallback(
     async (
@@ -767,16 +872,33 @@ export function useExplorerAutofix(
 
         return getAutofixRunId(response)!;
       } catch (e: any) {
+        const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
+
+        // The step lost a race against one that is already running. Nothing is
+        // wrong from the user's side, so say nothing: refetch and let the live
+        // run take the view over. Returning its id keeps the callers that await
+        // startStep on their success path, which is what stops them from
+        // undoing the UI they just put into a loading state.
+        if (isRunInFlightError(e)) {
+          await queryClient.invalidateQueries({queryKey});
+          queryClient.invalidateQueries({
+            queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
+          });
+          setWaitingForResponse(false);
+          return getAutofixRunId(e.responseJSON)!;
+        }
+
         setWaitingForResponse(false);
-        queryClient.setQueryData(
-          explorerAutofixApiOptions(orgSlug, groupId).queryKey,
-          prev => ({
+        const errorMessage = getApiErrorMessage(e);
+        // Replacing the cached run would wipe out the blocks of a run that already exists.
+        if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
+          addErrorMessage(errorMessage);
+        } else {
+          queryClient.setQueryData(queryKey, prev => ({
             headers: prev?.headers ?? {},
-            json: makeErrorExplorerAutofixData(
-              e?.responseJSON?.detail ?? 'An error occurred'
-            ),
-          })
-        );
+            json: makeErrorExplorerAutofixData(errorMessage),
+          }));
+        }
         throw e;
       }
     },
@@ -824,7 +946,7 @@ export function useExplorerAutofix(
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
       } catch (e: any) {
-        addErrorMessage(e?.responseJSON?.detail ?? 'Failed to create PR');
+        addErrorMessage(getApiErrorMessage(e, 'Failed to create PR'));
         throw e;
       }
     },
@@ -878,7 +1000,7 @@ export function useExplorerAutofix(
             error_message: string;
             repo_name: string;
             failure_type?: string;
-            github_installation_id?: string;
+            github_installation_url?: string;
           }>;
           successes: unknown[];
         } = await api.requestPromise(
@@ -911,10 +1033,7 @@ export function useExplorerAutofix(
           );
 
           if (permissionFailures.length > 0) {
-            const installationId = permissionFailures[0]?.github_installation_id;
-            const installationUrl = installationId
-              ? getGithubPermissionsUpdateUrl(installationId)
-              : undefined;
+            const installationUrl = permissionFailures[0]?.github_installation_url;
             openModal(deps => (
               <AutofixGithubAppPermissionsModal
                 {...deps}
@@ -948,9 +1067,7 @@ export function useExplorerAutofix(
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
           return;
         }
-        reportCodingAgentErrors([
-          e?.responseJSON?.detail ?? 'Failed to launch coding agent',
-        ]);
+        reportCodingAgentErrors([getApiErrorMessage(e, 'Failed to launch coding agent')]);
         throw e;
       } finally {
         clearIndicators();

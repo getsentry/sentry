@@ -1,6 +1,6 @@
 ---
 title: ToolCall
-description: A single agent tool call — its status, result, timing, and inputs.
+description: A single agent tool call — its status, result, and inputs.
 category: chat
 source: '@sentry/scraps/chat'
 resources:
@@ -20,14 +20,13 @@ The `ToolCall` renders a single step an agent took, within a `ThinkingBlock`.
 Unlike the collapsible `ThinkingBlock` it lives in, a tool call is **not** itself
 a disclosure — it has no chevron and its detail is always visible. A leading
 glyph communicates lifecycle `status` (a spinner while running, a semantic icon
-once settled — see `ToolCallIndicator`), an optional `reference` chip trails the
-title, and a `durationMs` reads right-aligned in the meta slot.
+once settled — see `ToolCallIndicator`), and an optional `reference` chip trails
+the title.
 
 ## Anatomy
 
-A tool call is a single title line: the status glyph, the `title`, an optional
-trailing `reference` chip pointing at the entity the call acted on, and the
-elapsed `durationMs`.
+A tool call is a single title line: the status glyph, the `title`, and an
+optional trailing `reference` chip pointing at the entity the call acted on.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md" padding="lg">
@@ -35,13 +34,11 @@ elapsed `durationMs`.
       title="Read trace waterfall"
       status="success"
       reference={{label: 'Trace', value: 'a3805648'}}
-      durationMs={6400}
     />
     <ToolCall
       title="Read trace with span details"
       status="success"
       reference={{label: 'Span', value: 'a469c305'}}
-      durationMs={6600}
     />
   </Container>
 </Storybook.Demo>
@@ -51,7 +48,6 @@ elapsed `durationMs`.
   title="Read trace waterfall"
   status="success"
   reference={{label: 'Trace', value: 'a3805648'}}
-  durationMs={6400}
 />
 ```
 
@@ -68,7 +64,6 @@ chips.
       title="Query spans"
       status="success"
       reference={{label: 'Trace', value: 'a3805648'}}
-      durationMs={9400}
       input={
         <Text size="sm" monospace>
           dataset:spans project:ml-service span.description:DSL
@@ -115,6 +110,68 @@ value, or on failure the error itself. Like `input`, it is a slot.
 />
 ```
 
+## Overflow
+
+`input` and `output` cap at a max height once their content grows past a few
+lines — a large JSON body should not push every later message off screen. A
+short value is unaffected: the cap (and its `Show More` affordance) only
+appears once content actually exceeds it, so it never adds an empty gap under
+a one-line result.
+
+<Storybook.Demo align="stretch">
+  <Container width="100%" background="secondary" radius="md" padding="lg">
+    <ToolCall
+      title="Render chart"
+      status="success"
+      output={
+        <Text size="sm" monospace wrap="pre-wrap">
+          {JSON.stringify(
+            {
+              title: 'p95 Span Duration',
+              subtitle: 'Open period vs. 7-day comparison',
+              visualization: 'line',
+              x_axis: 'time',
+              y_axis_unit: 'duration',
+              series: [
+                {
+                  name: 'Open Period (Aug 28)',
+                  data: [
+                    {x: '2026-08-28T14:00:00+00:00', y: 66},
+                    {x: '2026-08-28T15:00:00+00:00', y: 67.1},
+                    {x: '2026-08-28T16:00:00+00:00', y: 65.3},
+                  ],
+                },
+                {
+                  name: 'Comparison Week (Aug 21)',
+                  data: [
+                    {x: '2026-08-28T14:00:00+00:00', y: 64.3},
+                    {x: '2026-08-28T15:00:00+00:00', y: 62.2},
+                    {x: '2026-08-28T16:00:00+00:00', y: 62.7},
+                  ],
+                },
+              ],
+            },
+            null,
+            2
+          )}
+        </Text>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<ToolCall
+  title="Render chart"
+  status="success"
+  output={
+    <Text monospace wrap="pre-wrap">
+      {JSON.stringify(chartBody, null, 2)}
+    </Text>
+  }
+/>
+```
+
 ## Status
 
 The leading glyph reflects the call's lifecycle. A `failure` keeps that glyph and
@@ -127,13 +184,8 @@ small glyph on the far left.
   <Container width="100%" background="secondary" radius="md" padding="lg">
     <ToolCall title="Running query" status="loading" />
     <ToolCall title="Awaiting approval" status="pending" />
-    <ToolCall title="Query succeeded" status="success" durationMs={9400} />
-    <ToolCall
-      title="Query failed"
-      status="failure"
-      failureLabel="502"
-      durationMs={9400}
-    />
+    <ToolCall title="Query succeeded" status="success" />
+    <ToolCall title="Query failed" status="failure" failureLabel="502" />
   </Container>
 </Storybook.Demo>
 

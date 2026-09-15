@@ -7,6 +7,7 @@ from rest_framework.test import APIClient
 
 from sentry.objectstore import UsecaseId
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.options import override_options
 
 
 class ProjectPreprodUploadOptionsTest(APITestCase):
@@ -37,9 +38,54 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
 
         assert data["authToken"] == "fake-token"
 
-        assert data["expirationPolicy"] == "tti:30 days"
+        assert data["expirationPolicy"] == "tti:30d"
+
+        assert data["usecase"] == "preprod"
 
         mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
+    def test_auto_returns_preprod(self, mock_get_session) -> None:
+        mock_session = MagicMock()
+        mock_session.mint_token.return_value = "fake-token"
+        mock_get_session.return_value = mock_session
+
+        response = self.client.get(self.url, {"usecase": "auto"})
+
+        assert response.status_code == 200
+        assert response.data["objectstore"]["usecase"] == "preprod"
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
+    def test_auto_follows_option(self, mock_get_session) -> None:
+        mock_session = MagicMock()
+        mock_session.mint_token.return_value = "fake-token"
+        mock_get_session.return_value = mock_session
+
+        with override_options({"preprod.snapshots.objectstore.snapshots-usecase.enabled": True}):
+            response = self.client.get(self.url, {"usecase": "auto"})
+
+        assert response.status_code == 200
+        assert response.data["objectstore"]["usecase"] == "preprod_snapshots"
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD_SNAPSHOTS, self.project)
+
+    @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
+    def test_omitted_param_stays_preprod_after_flip(self, mock_get_session) -> None:
+        mock_session = MagicMock()
+        mock_session.mint_token.return_value = "fake-token"
+        mock_get_session.return_value = mock_session
+
+        with override_options({"preprod.snapshots.objectstore.snapshots-usecase.enabled": True}):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["objectstore"]["usecase"] == "preprod"
+        mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+
+    def test_rejects_explicit_usecase(self) -> None:
+        response = self.client.get(self.url, {"usecase": "preprod_snapshots"})
+
+        assert response.status_code == 400
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
     def test_objectstore_url_uses_region_endpoint(self, mock_get_session) -> None:
