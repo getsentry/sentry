@@ -469,7 +469,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         ingestion_delay_status.delay_seconds
                     )
                 if ingestion_delay_status.complete_through is not None:
-                    # Nanoseconds to milliseconds
+                    # Seconds to milliseconds
                     stats_meta["completeThrough"] = (
                         ingestion_delay_status.complete_through.timestamp() * 1000
                     )
