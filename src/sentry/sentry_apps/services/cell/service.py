@@ -71,6 +71,7 @@ class SentryAppCellService(RpcService):
         fields: dict[str, Any],
         uri: str,
         user: RpcUser,
+        expected_external_issue_url: str | None = None,
     ) -> RpcPlatformExternalIssueResult:
         """Invokes IssueLinkCreator to create an issue link."""
         pass
