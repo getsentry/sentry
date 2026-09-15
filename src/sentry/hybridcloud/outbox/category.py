@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import contextlib
-import time
 from collections.abc import Collection, Generator, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, cast
@@ -27,21 +26,18 @@ def _record_replication(category: OutboxCategory, direction: str) -> Generator[M
     the ones emitted, so the receiver can add ``action`` once it knows whether
     it is replicating or deleting.
     """
-    tags: MutableTags = {
+    base_tags = {
         "silo": SiloMode.get_current_mode().value.lower(),
         "category": category.name,
         "direction": direction,
     }
-    start = time.monotonic()
-    outcome = "error"
+    # metrics.timer yields a copy of the tags and sets result=success|failure on
+    # exit; the counter reuses that dict so both carry the receiver's action.
     try:
-        yield tags
-        outcome = "success"
+        with metrics.timer("hybridcloud.replication.handler.duration", tags=base_tags) as tags:
+            yield tags
     finally:
-        metrics.timing(
-            "hybridcloud.replication.handler.duration", time.monotonic() - start, tags=tags
-        )
-        metrics.incr("hybridcloud.replication.processed", tags={**tags, "outcome": outcome})
+        metrics.incr("hybridcloud.replication.processed", tags=tags)
 
 
 class OutboxCategory(IntEnum):
