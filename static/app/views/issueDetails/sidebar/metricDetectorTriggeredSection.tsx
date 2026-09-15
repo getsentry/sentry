@@ -61,7 +61,10 @@ import {
 } from 'sentry/views/investigations/api';
 import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
-import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
+import type {
+  InvestigationCandidate,
+  MetricOpenPeriodInvestigationSource,
+} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
@@ -566,6 +569,34 @@ const GroupListWrapper = styled('div')`
   margin-top: ${p => p.theme.space.md};
 `;
 
+/**
+ * Why the launch button is off, or undefined when it is available.
+ *
+ * Both queries have settled by the time the button renders — a pending one
+ * shows a placeholder instead — so this is never "not yet".
+ *
+ * `unavailable` covers several situations the server deliberately does not
+ * separate: an issue that cannot be investigated at all, an existing
+ * investigation in a project the viewer cannot see, and a viewer who may not
+ * create one. Saying which would reveal whether an issue the viewer has no
+ * access to exists, so that wording stays vague on purpose. A missing open
+ * period is safe to name: the page already lists them.
+ */
+function getLaunchDisabledReason(
+  source: MetricOpenPeriodInvestigationSource | null,
+  candidateStatus: InvestigationCandidate['status'] | undefined
+): string | undefined {
+  if (source === null) {
+    return t('This issue has no open period to investigate.');
+  }
+  if (candidateStatus === 'unavailable') {
+    return t(
+      'Seer cannot investigate this issue. It may not be linked to an active monitor, or you may not have access.'
+    );
+  }
+  return undefined;
+}
+
 function SeerInvestigationSection({
   eventId,
   groupId,
@@ -687,6 +718,8 @@ function SeerInvestigationSection({
         )
       : null;
 
+  const launchDisabledReason = getLaunchDisabledReason(source, candidate?.status);
+
   return (
     <FoldSection
       title={
@@ -732,7 +765,10 @@ function SeerInvestigationSection({
                 size="md"
                 variant="primary"
                 busy={launchMutation.isPending}
-                disabled={!source || candidate?.status === 'unavailable'}
+                disabled={Boolean(launchDisabledReason)}
+                // Button drops the tooltip when there is no title, so an
+                // available button carries none.
+                tooltipProps={{title: launchDisabledReason}}
                 onClick={() => source && launchMutation.mutate(source)}
               >
                 {t('Launch Investigation')}
