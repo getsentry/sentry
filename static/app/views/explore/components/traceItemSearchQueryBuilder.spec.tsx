@@ -114,7 +114,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
         screen.queryByRole('option', {name: 'custom.unique'})
       ).not.toBeInTheDocument()
     );
-    await act(async () => finishRequest());
+    act(() => finishRequest());
     await waitFor(() => expect(queryClient.isFetching()).toBe(0));
     expect(screen.queryByRole('option', {name: 'custom.unique'})).not.toBeInTheDocument();
 
