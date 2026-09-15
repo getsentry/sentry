@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import logging
+import shutil
+import tempfile
 import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
 from difflib import SequenceMatcher
+from pathlib import Path
 from typing import Any, Literal, NamedTuple
 
 import orjson
@@ -269,27 +272,38 @@ def _image_name_to_path_stem(name: str) -> str:
     return normalized.rsplit(".", 1)[0] if "." in normalized else normalized
 
 
+def _download_image(session: SnapshotStorage, key: str, destination: Path) -> None:
+    response = session.get(key)
+    if response is None:
+        raise FileNotFoundError("Object does not exist in objectstore")
+    with response.payload, destination.open("wb") as image_file:
+        shutil.copyfileobj(response.payload, image_file, length=1024 * 1024)
+
+
 def _fetch_batch_images(
     session: SnapshotStorage,
     key_prefix: str,
     hashes: set[str],
-) -> tuple[dict[str, bytes], set[str]]:
-    cache: dict[str, bytes] = {}
+    directory: Path,
+) -> tuple[dict[str, Path], set[str]]:
+    cache: dict[str, Path] = {}
     failed: set[str] = set()
     lock = threading.Lock()
 
-    def fetch(image_hash: str) -> None:
+    def fetch(index_and_hash: tuple[int, str]) -> None:
+        index, image_hash = index_and_hash
+        destination = directory / str(index)
         try:
             key = f"{key_prefix}/{image_hash}"
-            data = _retry_objectstore(lambda: _read_objectstore(session, key))
+            _retry_objectstore(lambda: _download_image(session, key, destination))
             with lock:
-                cache[image_hash] = data
+                cache[image_hash] = destination
         except Exception:
             with lock:
                 failed.add(image_hash)
 
     with ContextPropagatingThreadPoolExecutor(max_workers=8) as executor:
-        list(executor.map(fetch, hashes))
+        list(executor.map(fetch, enumerate(hashes)))
 
     return cache, failed
 
@@ -720,8 +734,8 @@ def _process_chunk(
     def results_for(candidate: ChunkCandidate) -> dict[str, ComparisonImageResult]:
         return sibling_images if candidate.kind == "sibling" else images
 
-    with OdiffServer() as server:
-        diff_pairs: list[tuple[bytes, bytes]] = []
+    with tempfile.TemporaryDirectory() as download_dir, OdiffServer() as server:
+        diff_pairs: list[tuple[Path, Path]] = []
         batch_candidates: list[ChunkCandidate] = []
 
         unique_hashes: set[str] = set()
@@ -729,12 +743,14 @@ def _process_chunk(
             unique_hashes.add(candidate.head_hash)
             unique_hashes.add(candidate.base_hash)
 
-        fetch_cache, failed_hashes = _fetch_batch_images(session, image_key_prefix, unique_hashes)
+        fetch_cache, failed_hashes = _fetch_batch_images(
+            session, image_key_prefix, unique_hashes, Path(download_dir)
+        )
 
         actual_sizes: dict[str, ImageSize | None] = {}
-        for image_hash, image_data in fetch_cache.items():
+        for image_hash, image_path in fetch_cache.items():
             try:
-                actual_sizes[image_hash] = read_image_size(image_data)
+                actual_sizes[image_hash] = read_image_size(image_path)
             except Exception as error:
                 actual_sizes[image_hash] = None
                 metrics.incr("preprod.snapshots.image_diff.header_read_failed")
@@ -764,8 +780,8 @@ def _process_chunk(
                 )
                 continue
 
-            head_data = fetch_cache[candidate.head_hash]
-            base_data = fetch_cache[candidate.base_hash]
+            head_path = fetch_cache[candidate.head_hash]
+            base_path = fetch_cache[candidate.base_hash]
             comparison_size = get_comparison_size(head_size, base_size)
             comparison_pixels = comparison_size.pixel_count
             if comparison_pixels > MAX_DIFF_PIXELS:
@@ -806,7 +822,7 @@ def _process_chunk(
                 continue
 
             current_batch_pixels = next_batch_pixels
-            diff_pairs.append((base_data, head_data))
+            diff_pairs.append((base_path, head_path))
             batch_candidates.append(candidate)
 
         diff_results = compare_images_batch(diff_pairs, server=server)

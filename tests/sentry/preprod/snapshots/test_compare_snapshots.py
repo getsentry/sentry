@@ -1991,7 +1991,7 @@ class EndToEndFanoutTest(TestCase):
             after_height=10,
         )
 
-    def _fake_fetch(self, session, key_prefix, hashes):
+    def _fake_fetch(self, session, key_prefix, hashes, directory):
         return {h: b"img" for h in hashes}, set()
 
     def test_full_flow_reaches_success(self):

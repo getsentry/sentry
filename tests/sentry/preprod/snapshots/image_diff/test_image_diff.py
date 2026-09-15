@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from PIL import Image, ImageDraw, PngImagePlugin
@@ -93,9 +94,21 @@ class TestCompareImages:
         assert result.changed_pixels == 0
         assert result.total_pixels == 30 * 30
 
-    def test_rejects_oversized_comparison_before_decoding(self) -> None:
-        before = io.BytesIO()
-        after = io.BytesIO()
+    def test_file_inputs_match_bytes(self, tmp_path: Path) -> None:
+        before = tmp_path / "before.png"
+        after = tmp_path / "after.png"
+        _make_solid_image(20, 30, (100, 100, 100, 255)).save(before)
+        _make_solid_image(30, 20, (200, 200, 200, 255)).save(after)
+
+        file_result = compare_images(before, after)
+        byte_result = compare_images(before.read_bytes(), after.read_bytes())
+
+        assert file_result is not None
+        assert file_result == byte_result
+
+    def test_rejects_oversized_comparison_before_decoding(self, tmp_path: Path) -> None:
+        before = tmp_path / "before.png"
+        after = tmp_path / "after.png"
         _make_solid_image(10, 1, (0, 0, 0, 255)).save(before, format="PNG")
         _make_solid_image(1, 10, (0, 0, 0, 255)).save(after, format="PNG")
         server = MagicMock()
@@ -104,7 +117,7 @@ class TestCompareImages:
             patch("sentry.preprod.snapshots.image_diff.compare.MAX_DIFF_PIXELS", 50),
             patch.object(PngImagePlugin.PngImageFile, "load") as load,
         ):
-            result = compare_images_batch([(before.getvalue(), after.getvalue())], server=server)[0]
+            result = compare_images_batch([(before, after)], server=server)[0]
 
         assert result is None
         load.assert_not_called()

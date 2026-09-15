@@ -28,14 +28,16 @@ DIFF_ALGORITHM_VERSION = 1
 MAX_DIFF_PIXELS = 40_000_000
 
 
-def _open_image(source: bytes | Image.Image) -> Image.Image:
+def _open_image(source: bytes | Path | Image.Image) -> Image.Image:
     if isinstance(source, bytes):
         return Image.open(io.BytesIO(source))
+    if isinstance(source, Path):
+        return Image.open(source)
     return source
 
 
-def read_image_size(source: bytes) -> ImageSize:
-    with Image.open(io.BytesIO(source)) as img:
+def read_image_size(source: bytes | Path) -> ImageSize:
+    with _open_image(source) as img:
         return ImageSize(width=img.width, height=img.height)
 
 
@@ -76,14 +78,14 @@ def _encode_mask_png(mask: Image.Image) -> bytes:
 
 
 def compare_images(
-    before: bytes | Image.Image,
-    after: bytes | Image.Image,
+    before: bytes | Path | Image.Image,
+    after: bytes | Path | Image.Image,
 ) -> DiffResult | None:
     return compare_images_batch([(before, after)])[0]
 
 
 def compare_images_batch(
-    pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
+    pairs: Sequence[tuple[bytes | Path | Image.Image, bytes | Path | Image.Image]],
     server: OdiffServer | None = None,
 ) -> list[DiffResult | None]:
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -95,7 +97,7 @@ def compare_images_batch(
 
 
 def _compare_pairs(
-    pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
+    pairs: Sequence[tuple[bytes | Path | Image.Image, bytes | Path | Image.Image]],
     server: OdiffServer,
     tmpdir_path: Path,
 ) -> list[DiffResult | None]:
@@ -107,8 +109,8 @@ def _compare_pairs(
 
 def _compare_single_pair(
     idx: int,
-    before: bytes | Image.Image,
-    after: bytes | Image.Image,
+    before: bytes | Path | Image.Image,
+    after: bytes | Path | Image.Image,
     server: OdiffServer,
     tmpdir_path: Path,
 ) -> DiffResult | None:
@@ -186,9 +188,9 @@ def _compare_single_pair(
             before_padded.close()
         if after_padded is not None and after_padded is not after_img:
             after_padded.close()
-        if before_img is not None and isinstance(before, bytes):
+        if before_img is not None and not isinstance(before, Image.Image):
             before_img.close()
-        if after_img is not None and isinstance(after, bytes):
+        if after_img is not None and not isinstance(after, Image.Image):
             after_img.close()
         if diff_mask is not None:
             diff_mask.close()

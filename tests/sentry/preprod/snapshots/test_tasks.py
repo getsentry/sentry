@@ -1,6 +1,9 @@
 import io
-from unittest.mock import MagicMock, patch
+from pathlib import Path
+from unittest.mock import MagicMock, call, patch
 
+import pytest
+from objectstore_client import RequestError
 from PIL import Image, PngImagePlugin
 
 from sentry.preprod.snapshots.image_diff.compare import get_comparison_size
@@ -21,6 +24,7 @@ from sentry.preprod.snapshots.tasks import (
     _comparison_key,
     _diff_mask_key,
     _effective_diff_threshold,
+    _fetch_batch_images,
     _plan_key,
     _process_chunk,
     categorize_image_diff,
@@ -436,6 +440,47 @@ def test_process_chunk_enforces_actual_batch_pixel_limit():
     load.assert_not_called()
 
 
+@pytest.mark.parametrize("status", [429, 503])
+def test_fetch_batch_images_truncates_partial_download_on_retry(tmp_path: Path, status: int):
+    partial = io.BytesIO()
+    complete = io.BytesIO(b"complete")
+    session = MagicMock()
+    session.get.side_effect = [MagicMock(payload=partial), MagicMock(payload=complete)]
+
+    with (
+        patch.object(
+            partial,
+            "read",
+            side_effect=[b"partial" * 100_000, RequestError("unavailable", status, "")],
+        ) as partial_read,
+        patch.object(complete, "read", wraps=complete.read) as complete_read,
+        patch("sentry.preprod.snapshots.tasks.time.sleep"),
+    ):
+        paths, failed = _fetch_batch_images(session, "1/2", {"hash"}, tmp_path)
+
+    assert failed == set()
+    assert paths["hash"].read_bytes() == b"complete"
+    assert partial.closed
+    assert complete.closed
+    assert partial_read.call_args_list == [call(1024 * 1024), call(1024 * 1024)]
+    assert complete_read.call_args_list == [call(1024 * 1024), call(1024 * 1024)]
+    assert session.get.call_args_list == [call("1/2/hash"), call("1/2/hash")]
+
+
+def test_fetch_batch_images_excludes_failed_downloads(tmp_path: Path):
+    partial = io.BytesIO()
+    session = MagicMock()
+    session.get.return_value.payload = partial
+
+    with patch.object(partial, "read", side_effect=[b"partial", OSError("connection lost")]):
+        paths, failed = _fetch_batch_images(session, "1/2", {"hash"}, tmp_path)
+
+    assert paths == {}
+    assert failed == {"hash"}
+    assert partial.closed
+    session.get.assert_called_once_with("1/2/hash")
+
+
 def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     assignment = ChunkAssignment(
         chunk_index=0,
@@ -459,7 +504,6 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     )
     buffer = io.BytesIO()
     Image.new("RGBA", (10, 10)).save(buffer, format="PNG")
-    fetched = {h: buffer.getvalue() for h in ("a-head", "a-base", "a-sib")}
     diff_result = DiffResult(
         diff_mask_png=b"png",
         changed_pixels=10,
@@ -471,12 +515,12 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
         after_height=10,
     )
     session = MagicMock()
+    session.get.side_effect = lambda key: MagicMock(payload=io.BytesIO(buffer.getvalue()))
     with (
-        patch("sentry.preprod.snapshots.tasks._fetch_batch_images", return_value=(fetched, set())),
         patch(
             "sentry.preprod.snapshots.tasks.compare_images_batch",
             return_value=[diff_result, diff_result],
-        ),
+        ) as compare,
         patch("sentry.preprod.snapshots.tasks.OdiffServer"),
         patch("sentry.preprod.snapshots.tasks._put_diff_mask") as put_mask,
     ):
@@ -493,6 +537,47 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     assert sibling.changed_pixels == 10
     assert sibling.diff_mask_key is None
     assert put_mask.call_count == 1
+    assert session.get.call_count == 3
+    assert {get_call.args[0] for get_call in session.get.call_args_list} == {
+        "1/2/a-head",
+        "1/2/a-base",
+        "1/2/a-sib",
+    }
+    base_pair, sibling_pair = compare.call_args.args[0]
+    assert base_pair[1] == sibling_pair[1]
+    assert not base_pair[0].parent.exists()
+
+
+def test_process_chunk_cleans_downloads_on_comparison_failure():
+    assignment = ChunkAssignment(
+        chunk_index=0,
+        candidates=[
+            ChunkCandidate(
+                name="image.png",
+                head_hash="head",
+                base_hash="base",
+                pixel_count=1,
+                diff_threshold=0,
+            )
+        ],
+    )
+    buffer = io.BytesIO()
+    Image.new("RGBA", (10, 10)).save(buffer, format="PNG")
+    session = MagicMock()
+    session.get.side_effect = lambda key: MagicMock(payload=io.BytesIO(buffer.getvalue()))
+    with (
+        patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+        patch(
+            "sentry.preprod.snapshots.tasks.compare_images_batch",
+            side_effect=RuntimeError("comparison failed"),
+        ) as compare,
+        pytest.raises(RuntimeError, match="comparison failed"),
+    ):
+        _process_chunk(session, assignment, 1, 2, 3, 4)
+
+    before, after = compare.call_args.args[0][0]
+    assert before.parent == after.parent
+    assert not before.parent.exists()
 
 
 def test_process_chunk_sibling_fetch_failure_is_errored_in_sibling_images() -> None:
