@@ -10,6 +10,8 @@ const productionEntryPoints = [
   // defined in rspack.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
   'static/app/serviceWorker/worker/worker.ts',
+  // Generated API schemas expose components for consumers to adopt incrementally.
+  'static/app/utils/api/apiContracts.generated.ts',
   // scripts are entry points
   'scripts/*.ts',
   // very dynamically imported
@@ -34,6 +36,8 @@ const testingEntryPoints = [
   'static/**/*.snapshots.tsx',
   'tests/js/**/*.spec.{js,ts,tsx}',
   'tests/js/test-balancer/*.ts',
+  // Generated examples validate response contracts through TypeScript's satisfies.
+  'tests/js/fixtures/generated/apiExamples.generated.ts',
 ];
 
 const storyBookEntryPoints = [
