@@ -127,6 +127,31 @@ describe('SeerWorkflows', () => {
     expect(await screen.findByText('No issues processed')).toBeInTheDocument();
   });
 
+  it('renders triage runs with a missing issues field as muted "No issues processed"', async () => {
+    // Regression test for JAVASCRIPT-3BWQ: the API can return a triage object
+    // whose `issues` field is absent (not just an empty array), which previously
+    // caused a TypeError because `triage?.issues.length` only guards against
+    // `triage` being nullish, not `triage.issues` being undefined.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          // `issues` is intentionally omitted to simulate the API response
+          // that triggered the crash.
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    expect(await screen.findByText('No issues processed')).toBeInTheDocument();
+  });
+
   it('expands a row to show the issue title, action, and a conversation link', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,

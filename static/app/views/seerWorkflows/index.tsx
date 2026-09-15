@@ -550,7 +550,7 @@ function getResultContent(row: WorkflowRow) {
       </Text>
     );
   }
-  const issueCount = triage?.issues.length ?? 0;
+  const issueCount = triage?.issues?.length ?? 0;
   if (issueCount === 0) {
     return (
       <Text variant="muted" size="sm">
