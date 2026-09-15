@@ -1,13 +1,15 @@
 from __future__ import annotations
 
 import datetime
+import operator
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
+from functools import reduce
 from typing import Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.db.models import Sum
+from django.db.models import Q, Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -17,6 +19,7 @@ from sentry.api.serializers.types import (
     ReleaseSerializerResponse,
 )
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE_VALUES
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -231,25 +234,40 @@ def get_author_users_by_external_actors(
 ) -> tuple[dict[CommitAuthor, str], list[CommitAuthor]]:
     found: dict[CommitAuthor, str] = {}
 
-    usernames_to_authors: dict[str, CommitAuthor] = {}
+    # An ExternalActor's "@login" is only unique within its provider, and a CommitAuthor's
+    # external_id is "<provider>:<login>", so a mapping only counts for the same provider.
+    authors_by_mapping: dict[tuple[int, str], CommitAuthor] = {}
     for author in authors:
+        provider_slug = author.get_provider_from_external_id()
         username = author.get_username_from_external_id()
-        if username:
-            # ExternalActor.external_name includes @ prefix
-            # (e.g., "@username") for GitHub and GitLab
-            usernames_to_authors[f"@{username}"] = author
+        if provider_slug is None or not username:
+            continue
+        provider = EXTERNAL_PROVIDERS_REVERSE_VALUES.get(provider_slug)
+        if provider is not None:
+            authors_by_mapping[(provider.value, f"@{username}")] = author
 
-    if not usernames_to_authors:
+    if not authors_by_mapping:
         return found, authors
+
+    names_by_provider: dict[int, list[str]] = defaultdict(list)
+    for provider_value, external_name in authors_by_mapping:
+        names_by_provider[provider_value].append(external_name)
+    mapping_filter = reduce(
+        operator.or_,
+        (
+            Q(provider=provider_value, external_name__in=names)
+            for provider_value, names in names_by_provider.items()
+        ),
+    )
 
     external_actors = (
         ExternalActor.objects.filter(
-            external_name__in=list(usernames_to_authors.keys()),
+            mapping_filter,
             organization_id=organization_id,
             user_id__isnull=False,  # excludes team mappings
         )
         .order_by("id")
-        .values_list("user_id", "external_name")
+        .values_list("user_id", "external_name", "provider")
     )
 
     if not external_actors:
@@ -257,9 +275,9 @@ def get_author_users_by_external_actors(
 
     missed: dict[int, CommitAuthor] = {a.id: a for a in authors}
 
-    for user_id, external_name in external_actors:
-        if external_name in usernames_to_authors:
-            found_author = usernames_to_authors[external_name]
+    for user_id, external_name, provider_value in external_actors:
+        found_author = authors_by_mapping.get((provider_value, external_name))
+        if found_author is not None:
             found[found_author] = str(user_id)
             missed.pop(found_author.id, None)
 
