@@ -107,7 +107,7 @@ describe('replays query embed', () => {
       'cell'
     );
 
-    // One cell carries both icons, the browser stacked behind the OS.
+    // One cell carries both icons, the OS then the browser it ran in.
     const [os, browser] = within(cells[1]!).getAllByRole('img');
 
     await userEvent.hover(os!);
