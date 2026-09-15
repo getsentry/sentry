@@ -3,7 +3,9 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 from sentry.spans.consumers.process_segments.types import Attributes
 
 
-def build_mock_span(project_id, *, span_op=None, is_segment=False, attributes=None, **kwargs):
+def build_mock_span(
+    project_id, *, span_op=None, is_segment=False, attributes=None, description=None, **kwargs
+):
     span_attributes: Attributes = {
         "sentry.duration": {"value": 0.107, "type": "double"},
         "sentry.environment": {"value": "development", "type": "string"},
