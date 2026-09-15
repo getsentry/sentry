@@ -30,6 +30,9 @@ class DetectorState(DefaultFieldsModel):
     # The detectors priority level from the last detector evaluation
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
+    # A UUID that rotates on each OK --> non-OK transition
+    activation_id = models.UUIDField(null=True)
+
     @property
     def priority_level(self) -> DetectorPriorityLevel:
         """Returns the state as a DetectorPriorityLevel enum."""
