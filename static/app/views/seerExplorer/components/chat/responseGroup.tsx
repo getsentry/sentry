@@ -183,10 +183,12 @@ export function ResponseGroup({
   });
 
   const startTime = new Date(group[0]!.timestamp);
-  // ponytail: settledAnswer is the stable "response is done" signal — block.loading
-  // flickers false between tool calls, but the answer only settles once.
+  // Keep ThinkingBlock expanded while the response is still in progress — either a tool is
+  // running, or the LLM is between tool calls (loading without tool_calls yet). Without
+  // this, the block collapses and reopens on each poll cycle when the agent retries a
+  // failing tool call, causing a visible flash.
   const endTime =
-    !settledAnswer || pendingInput
+    active || pendingInput
       ? undefined
       : new Date(group[group.length - 1]!.timestamp);
 
