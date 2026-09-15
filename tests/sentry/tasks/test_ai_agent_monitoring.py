@@ -620,7 +620,7 @@ class FetchAIModelMetadataTest(TestCase):
 
     def test_normalize_model_id(self) -> None:
         """Test model ID normalization with various date and version formats"""
-        from sentry.tasks.ai_agent_monitoring import _normalize_model_id
+        from sentry.relay.config.ai_model_costs import normalize_model_id
 
         # Test cases with expected outputs
         test_cases = [
@@ -638,14 +638,14 @@ class FetchAIModelMetadataTest(TestCase):
         ]
 
         for model_id, expected_normalized in test_cases:
-            actual_normalized = _normalize_model_id(model_id)
+            actual_normalized = normalize_model_id(model_id)
             assert actual_normalized == expected_normalized, (
                 f"Expected {expected_normalized} for {model_id}, got {actual_normalized}"
             )
 
     def test_create_prefix_glob_model_name(self) -> None:
         """Test prefix glob generation for model names"""
-        from sentry.tasks.ai_agent_monitoring import _create_prefix_glob_model_name
+        from sentry.relay.config.ai_model_costs import prefix_glob_model_name
 
         # Test cases with expected outputs
         test_cases = [
@@ -656,7 +656,7 @@ class FetchAIModelMetadataTest(TestCase):
         ]
 
         for model_id, expected_glob in test_cases:
-            actual_glob = _create_prefix_glob_model_name(model_id)
+            actual_glob = prefix_glob_model_name(model_id)
             assert actual_glob == expected_glob, (
                 f"Expected {expected_glob} for {model_id}, got {actual_glob}"
             )
