@@ -666,11 +666,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 # `!has:issue.id` as `issue.id = ''`. Filter out empty strings before
                 # casting to int so those queries don't raise a ValueError.
                 lambda ids: Q(
-                    id__in=[
-                        int(v)
-                        for v in (ids if isinstance(ids, list) else [ids])
-                        if v != ""
-                    ]
+                    id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids]) if v != ""]
                 )
             ),
         }
