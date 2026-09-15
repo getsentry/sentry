@@ -35,6 +35,7 @@ from sentry.issues.derived.features import (
     IS_ASSIGNED,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
+    MERGE_AWARE_STATUS,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
@@ -97,6 +98,47 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             current == IssueStatus.CLOSED
         ):
             return emit(STATUS.value(IssueStatus.OPEN))
+
+    return None
+
+
+@aggregator(
+    (MERGE_AWARE_STATUS,),
+    scope=(
+        ResolveAction,
+        SetResolvedInReleaseAction,
+        SetResolvedByAgeAction,
+        SetResolvedInCommitAction,
+        ArchiveAction,
+        UnresolveAction,
+        SetEscalatingAction,
+        SetRegressedAction,
+        ReconcileStatusAction,
+    ),
+)
+def track_merge_aware_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    if entry.original_group_id is not None:
+        return None
+
+    current = state[MERGE_AWARE_STATUS]
+
+    match entry.action:
+        case ReconcileStatusAction(status=raw_status):
+            new_status = IssueStatus(raw_status)
+            if new_status != current:
+                return emit(MERGE_AWARE_STATUS.value(new_status))
+        case (
+            ResolveAction()
+            | SetResolvedInReleaseAction()
+            | SetResolvedByAgeAction()
+            | SetResolvedInCommitAction()
+            | ArchiveAction()
+        ) if current == IssueStatus.OPEN:
+            return emit(MERGE_AWARE_STATUS.value(IssueStatus.CLOSED))
+        case UnresolveAction() | SetRegressedAction() | SetEscalatingAction() if (
+            current == IssueStatus.CLOSED
+        ):
+            return emit(MERGE_AWARE_STATUS.value(IssueStatus.OPEN))
 
     return None
 

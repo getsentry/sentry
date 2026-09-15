@@ -8,6 +8,7 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.derived.processing import PIPELINE, process_group_log
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -42,6 +43,7 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         assert response.data["computed"] is not None
         assert response.data["entryCount"] == 0
         assert response.data["truncated"] is False
+        assert response.data["pipeline"] == "live"
 
     def test_with_stored_and_computed(self) -> None:
         _publish(group=self.group, action=ViewAction())
@@ -58,6 +60,35 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         assert response.data["computed"]["status"] == "closed"
         assert response.data["entryCount"] == 3
         assert response.data["pipelineHash"] == PIPELINE.pipeline_hash
+
+    def test_merge_aware_pipeline_ignores_status_from_merged_group(self) -> None:
+        _publish(group=self.group, action=ResolveAction())
+        GroupActionLogEntry.objects.filter(group_id=self.group.id).update(original_group_id=123)
+        process_group_log(self.group.id)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.group.id,
+            qs_params={"pipeline": "merge_aware"},
+            status_code=200,
+        )
+
+        assert response.data["pipeline"] == "merge_aware"
+        assert response.data["stored"]["state"]["status"] == "closed"
+        assert response.data["computed"]["status"] == "closed"
+        assert response.data["computed"]["merge_aware_status"] == "open"
+
+    def test_invalid_pipeline(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.group.id,
+            qs_params={"pipeline": "unknown"},
+            status_code=400,
+        )
+
+        assert response.data == {
+            "detail": "Invalid pipeline: 'unknown'. Available pipelines: live, merge_aware"
+        }
 
     def test_truncated_when_over_limit(self) -> None:
         for _ in range(3):
