@@ -896,8 +896,16 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
-        detector_ids = {d["id"] for d in response.data}
+        detector_ids = [d["id"] for d in response.data]
         assert str(self.all_projects_detector.id) in detector_ids
+
+        # The Terraform provider requires that the project-specific detector be the first detector
+        project_detector_ids = [
+            d["id"] for d in response.data if d["id"] != str(self.all_projects_detector.id)
+        ]
+        all_projects_idx = detector_ids.index(str(self.all_projects_detector.id))
+        for pd_id in project_detector_ids:
+            assert detector_ids.index(pd_id) < all_projects_idx
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_has_null_project_id(self) -> None:

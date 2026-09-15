@@ -335,6 +335,14 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         order_by_field = [SORT_MAP[sort_by]]
 
+        # XXX: We have to do this to avoid breaking the Terraform provider.
+        # src: https://github.com/jianyuan/terraform-provider-sentry/blob/b59481f837cbeae74be2fe9883eab473fb63f3a1/internal/provider/data_source_project_issue_stream_monitor_impl.go#L29-L54
+        # When querying by a specific project, order project-scoped detectors before the all-projects
+        # detector (whose project_id is null). This makes sure that the first result that gets used
+        # by Terraform won't affect other projects when creating alerts.
+        if request.GET.get("project") or request.GET.get("projectSlug"):
+            order_by_field.append(F("project_id").desc(nulls_last=True))
+
         return self.paginate(
             request=request,
             paginator_cls=OffsetPaginator,
