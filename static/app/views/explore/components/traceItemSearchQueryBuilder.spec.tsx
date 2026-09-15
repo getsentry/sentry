@@ -86,14 +86,12 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
         },
       ],
     });
-    let finishRequest!: () => void;
+    const projectResponse = Promise.withResolvers<void>();
     const projectRequest = MockApiClient.addMockResponse({
       url,
       body: [],
       match: [MockApiClient.matchQuery({project: ['2']})],
-      asyncDelay: new Promise<void>(resolve => {
-        finishRequest = resolve;
-      }),
+      asyncDelay: projectResponse.promise,
     });
 
     render(<SpansSearchQueryBuilder />, {
@@ -114,7 +112,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
         screen.queryByRole('option', {name: 'custom.unique'})
       ).not.toBeInTheDocument()
     );
-    act(() => finishRequest());
+    act(() => projectResponse.resolve());
     await waitFor(() => expect(queryClient.isFetching()).toBe(0));
     expect(screen.queryByRole('option', {name: 'custom.unique'})).not.toBeInTheDocument();
 

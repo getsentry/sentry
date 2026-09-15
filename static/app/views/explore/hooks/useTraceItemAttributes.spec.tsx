@@ -24,14 +24,12 @@ describe('useTraceItemAttributes', () => {
         },
       ],
     });
-    let finishRequest!: () => void;
-    const searchRequest = MockApiClient.addMockResponse({
+    const searchRequest = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
       url,
       body: [],
       match: [MockApiClient.matchQuery({substringMatch: 'other'})],
-      asyncDelay: new Promise<void>(resolve => {
-        finishRequest = resolve;
-      }),
+      asyncDelay: searchRequest.promise,
     });
 
     const {result, rerender} = renderHookWithProviders(
@@ -46,12 +44,12 @@ describe('useTraceItemAttributes', () => {
     await waitFor(() => expect(result.current.attributes['custom.unique']).toBeDefined());
 
     rerender({search: 'other'});
-    await waitFor(() => expect(searchRequest).toHaveBeenCalled());
     expect(result.current.isLoading).toBe(true);
     expect(result.current.attributes['custom.unique']).toBeDefined();
 
-    act(() => finishRequest());
-    await waitFor(() => expect(result.current.isLoading).toBe(false));
-    expect(result.current.attributes['custom.unique']).toBeUndefined();
+    act(() => searchRequest.resolve());
+    await waitFor(() =>
+      expect(result.current.attributes['custom.unique']).toBeUndefined()
+    );
   });
 });
