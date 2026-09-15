@@ -29,7 +29,12 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.derived.features import (
+    _COUNTERFACTUAL_STATUS,
+    _MIRROR_STATUS,
+    _WATCHED_RECONCILE_ID,
     BLOCKER,
+    FIRST_NO_CHANGE_RECONCILE_ID,
+    FIRST_SUPERSEDED_RECONCILE_ID,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
@@ -58,19 +63,40 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 
+_STATUS_SCOPE = (
+    ResolveAction,
+    SetResolvedInReleaseAction,
+    SetResolvedByAgeAction,
+    SetResolvedInCommitAction,
+    ArchiveAction,
+    UnresolveAction,
+    SetEscalatingAction,
+    SetRegressedAction,
+    ReconcileStatusAction,
+)
+
+
+def _natural_status_transition(current: IssueStatus, entry: GroupActionLogEntry) -> IssueStatus:
+    """New status after a non-reconcile status action. Unchanged if the entry is a no-op."""
+    match entry.action:
+        case (
+            ResolveAction()
+            | SetResolvedInReleaseAction()
+            | SetResolvedByAgeAction()
+            | SetResolvedInCommitAction()
+            | ArchiveAction()
+        ) if current == IssueStatus.OPEN:
+            return IssueStatus.CLOSED
+        case UnresolveAction() | SetRegressedAction() | SetEscalatingAction() if (
+            current == IssueStatus.CLOSED
+        ):
+            return IssueStatus.OPEN
+    return current
+
+
 @aggregator(
-    (STATUS,),
-    scope=(
-        ResolveAction,
-        SetResolvedInReleaseAction,
-        SetResolvedByAgeAction,
-        SetResolvedInCommitAction,
-        ArchiveAction,
-        UnresolveAction,
-        SetEscalatingAction,
-        SetRegressedAction,
-        ReconcileStatusAction,
-    ),
+    (STATUS, FIRST_NO_CHANGE_RECONCILE_ID),
+    scope=_STATUS_SCOPE,
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     # A merge preserves the destination group's status. Ignore actions migrated
@@ -85,20 +111,81 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             new_status = IssueStatus(raw_status)
             if new_status != current:
                 return emit(STATUS.value(new_status))
-        case (
-            ResolveAction()
-            | SetResolvedInReleaseAction()
-            | SetResolvedByAgeAction()
-            | SetResolvedInCommitAction()
-            | ArchiveAction()
-        ) if current == IssueStatus.OPEN:
-            return emit(STATUS.value(IssueStatus.CLOSED))
-        case UnresolveAction() | SetRegressedAction() | SetEscalatingAction() if (
-            current == IssueStatus.CLOSED
-        ):
-            return emit(STATUS.value(IssueStatus.OPEN))
+            if state[FIRST_NO_CHANGE_RECONCILE_ID] is None:
+                return emit(FIRST_NO_CHANGE_RECONCILE_ID.value(entry.id))
+            return None
+        case _:
+            new_status = _natural_status_transition(current, entry)
+            if new_status != current:
+                return emit(STATUS.value(new_status))
 
     return None
+
+
+@aggregator(
+    (
+        FIRST_SUPERSEDED_RECONCILE_ID,
+        _MIRROR_STATUS,
+        _COUNTERFACTUAL_STATUS,
+        _WATCHED_RECONCILE_ID,
+    ),
+    scope=_STATUS_SCOPE,
+)
+def track_reconcile_redundancy(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    """Detect ReconcileStatusActions that a later natural event would have made redundant.
+
+    Maintains a self-contained STATUS mirror plus a counterfactual mirror that
+    ignores the currently-watched reconcile. When the two converge, the watched
+    reconcile is superseded. Any subsequent reconcile cancels an in-flight watch.
+    """
+    if state[FIRST_SUPERSEDED_RECONCILE_ID] is not None:
+        return None
+    if entry.original_group_id is not None:
+        return None
+
+    mirror = state[_MIRROR_STATUS]
+    counterfactual = state[_COUNTERFACTUAL_STATUS]
+    watched = state[_WATCHED_RECONCILE_ID]
+
+    match entry.action:
+        case ReconcileStatusAction(status=raw_status):
+            target = IssueStatus(raw_status)
+            # Any reconcile invalidates an in-flight watch; a status-changing
+            # reconcile then starts a fresh watch on itself.
+            if target != mirror:
+                return emit(
+                    _MIRROR_STATUS.value(target),
+                    _COUNTERFACTUAL_STATUS.value(mirror),
+                    _WATCHED_RECONCILE_ID.value(entry.id),
+                )
+            if watched is None:
+                return None
+            return emit(
+                _COUNTERFACTUAL_STATUS.value(None),
+                _WATCHED_RECONCILE_ID.value(None),
+            )
+        case _:
+            new_mirror = _natural_status_transition(mirror, entry)
+            if watched is None:
+                if new_mirror == mirror:
+                    return None
+                return emit(_MIRROR_STATUS.value(new_mirror))
+
+            assert counterfactual is not None
+            new_counterfactual = _natural_status_transition(counterfactual, entry)
+            if new_mirror == new_counterfactual:
+                return emit(
+                    FIRST_SUPERSEDED_RECONCILE_ID.value(watched),
+                    _MIRROR_STATUS.value(new_mirror),
+                    _COUNTERFACTUAL_STATUS.value(None),
+                    _WATCHED_RECONCILE_ID.value(None),
+                )
+            if new_mirror == mirror and new_counterfactual == counterfactual:
+                return None
+            return emit(
+                _MIRROR_STATUS.value(new_mirror),
+                _COUNTERFACTUAL_STATUS.value(new_counterfactual),
+            )
 
 
 # Progress for open issues (None when closed).
@@ -307,6 +394,7 @@ def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorRes
 AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_views,
     track_status,
+    track_reconcile_redundancy,
     track_assignment,
     track_root_cause,
     track_open_fix_prs,
