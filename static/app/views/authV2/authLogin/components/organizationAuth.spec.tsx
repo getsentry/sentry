@@ -26,7 +26,13 @@ const authOrganization: AuthOrganization = {
 describe('OrganizationAuth', () => {
   it('renders organization SSO and join request actions', async () => {
     const onClear = jest.fn();
-    render(<OrganizationAuth authOrganization={authOrganization} onClear={onClear} />);
+    render(
+      <OrganizationAuth
+        authOrganization={authOrganization}
+        onClear={onClear}
+        ssoFormAction="/auth/login/acme/?next=%2Forganizations%2Facme%2Fissues%2F"
+      />
+    );
 
     expect(screen.getByText('Acme')).toBeInTheDocument();
     expect(screen.getByText('Members sign in with SAML')).toBeInTheDocument();
@@ -38,6 +44,10 @@ describe('OrganizationAuth', () => {
       '/join-request/acme/'
     );
     expect(ssoForm).toHaveAttribute('method', 'POST');
+    expect(ssoForm).toHaveAttribute(
+      'action',
+      '/auth/login/acme/?next=%2Forganizations%2Facme%2Fissues%2F'
+    );
     expect(ssoForm).toHaveFormValues({init: '1'});
 
     ssoForm.addEventListener('submit', event => event.preventDefault());
