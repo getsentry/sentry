@@ -10,6 +10,7 @@ from typing import Any, Literal, NamedTuple
 from uuid import uuid4
 
 import orjson
+import urllib3
 from django.contrib.postgres.fields import ArrayField
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import F, Func, Value
@@ -54,10 +55,16 @@ from sentry.preprod.snapshots.runs import (
     FrozenChunkAssignment,
     FrozenChunkResult,
     FrozenComparisonPlan,
+    chunks_complete,
+    comparison_creation_defaults,
     run_prefix,
     run_queryset,
+    task_comparison,
     validate_chunk_result,
     validate_plan,
+)
+from sentry.preprod.snapshots.runs import (
+    ImageFingerprint as ImageFingerprint,
 )
 from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
@@ -324,13 +331,6 @@ def _create_pixel_batches(
     if current_batch:
         batches.append(current_batch)
     return batches
-
-
-class ImageFingerprint(NamedTuple):
-    name: str
-    status: str
-    head_hash: str | None = None
-    previous_image_file_name: str | None = None
 
 
 def _build_comparison_fingerprints(manifest: ComparisonManifest) -> set[ImageFingerprint]:
@@ -921,21 +921,12 @@ def process_snapshot_comparison_chunk(
     execution_id: str | None = None,
     **kwargs: Any,
 ) -> None:
-    comparison = (
-        run_queryset(comparison_id, execution_id)
-        .filter(
-            head_snapshot_metrics__preprod_artifact_id=head_artifact_id,
-            base_snapshot_metrics__preprod_artifact_id=base_artifact_id,
-            head_snapshot_metrics__preprod_artifact__project_id=project_id,
-            head_snapshot_metrics__preprod_artifact__project__organization_id=org_id,
-        )
-        .first()
+    comparison = task_comparison(
+        comparison_id, execution_id, org_id, project_id, head_artifact_id, base_artifact_id
     )
     if comparison is None:
         return
     if execution_id is not None and comparison.state != PreprodSnapshotComparison.State.PROCESSING:
-        return
-    if execution_id is None and (comparison.extras or {}).get("snapshot_protocol_version") == 2:
         return
     session = get_snapshot_storage(project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
@@ -964,7 +955,6 @@ def process_snapshot_comparison_chunk(
             plan = _get_json(session, plan_key, ComparisonPlan)
             assignment = next((c for c in plan.chunks if c.chunk_index == chunk_index), None)
         if assignment is not None:
-            mask_kwargs = {"mask_prefix": f"{prefix}/diff/{uuid4().hex}"} if prefix else {}
             result = _process_chunk(
                 session,
                 assignment,
@@ -972,7 +962,7 @@ def process_snapshot_comparison_chunk(
                 project_id,
                 head_artifact_id,
                 base_artifact_id,
-                **mask_kwargs,
+                mask_prefix=f"{prefix}/diff/{uuid4().hex}" if prefix is not None else None,
             )
             result_key = _chunk_result_key(
                 org_id, project_id, head_artifact_id, base_artifact_id, chunk_index
@@ -1215,14 +1205,11 @@ def compare_snapshots(
         return
 
     comparison: PreprodSnapshotComparison | None = None
-    comparison_defaults: dict[str, Any] = {"state": PreprodSnapshotComparison.State.PROCESSING}
-    if options.get("preprod.snapshots.versioned-comparison-plans.enabled"):
-        comparison_defaults["extras"] = {"snapshot_protocol_version": 2}
     try:
         comparison, created = PreprodSnapshotComparison.objects.get_or_create(
             head_snapshot_metrics=head_metrics,
             base_snapshot_metrics=base_metrics,
-            defaults=comparison_defaults,
+            defaults=comparison_creation_defaults(PreprodSnapshotComparison.State.PROCESSING),
         )
     except IntegrityError:
         comparison = PreprodSnapshotComparison.objects.filter(
@@ -1333,7 +1320,12 @@ def compare_snapshots(
         )
 
     try:
-        session = get_snapshot_storage(project_id, org=org_id)
+        storage_kwargs = (
+            {"socket_timeout": urllib3.Timeout(connect=5.0, read=30.0)}
+            if (comparison.extras or {}).get("snapshot_protocol_version") == 2
+            else {}
+        )
+        session = get_snapshot_storage(project_id, org=org_id, **storage_kwargs)
 
         if execution_id is not None:
             frozen_plan = _load_frozen_plan(
@@ -1535,13 +1527,7 @@ def _finalize_if_all_chunks_done(
     comparison = run_queryset(comparison_id, execution_id).first()
     if comparison is None or comparison.state != PreprodSnapshotComparison.State.PROCESSING:
         return
-    if comparison.chunks_total is None:
-        return
-    if len(comparison.chunks_done_indices) < comparison.chunks_total:
-        return
-    if execution_id is not None and not set(range(comparison.chunks_total)).issubset(
-        comparison.chunks_done_indices
-    ):
+    if not chunks_complete(comparison):
         return
     # Concurrent final chunks (or the orchestrator) may each pass this check and
     # dispatch a finalize; the PROCESSING->SUCCESS compare-and-swap in
@@ -1574,15 +1560,8 @@ def finalize_snapshot_comparison(
     execution_id: str | None = None,
     **kwargs: Any,
 ) -> None:
-    comparison = (
-        run_queryset(comparison_id, execution_id)
-        .filter(
-            head_snapshot_metrics__preprod_artifact_id=head_artifact_id,
-            base_snapshot_metrics__preprod_artifact_id=base_artifact_id,
-            head_snapshot_metrics__preprod_artifact__project_id=project_id,
-            head_snapshot_metrics__preprod_artifact__project__organization_id=org_id,
-        )
-        .first()
+    comparison = task_comparison(
+        comparison_id, execution_id, org_id, project_id, head_artifact_id, base_artifact_id
     )
     if comparison is None:
         return
@@ -1591,15 +1570,7 @@ def finalize_snapshot_comparison(
         PreprodSnapshotComparison.State.FAILED,
     ):
         return
-    if comparison.chunks_total is None:
-        return
-    if len(comparison.chunks_done_indices) < comparison.chunks_total:
-        return
-    if execution_id is not None and not set(range(comparison.chunks_total)).issubset(
-        comparison.chunks_done_indices
-    ):
-        return
-    if execution_id is None and (comparison.extras or {}).get("snapshot_protocol_version") == 2:
+    if not chunks_complete(comparison):
         return
     # Heartbeat before the (potentially slow) assembly so a finalize that was
     # queued near the reaper's staleness window is not failed out from under

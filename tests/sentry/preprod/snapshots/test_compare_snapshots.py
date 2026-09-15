@@ -19,6 +19,7 @@ from sentry.preprod.snapshots.tasks import (
     _load_frozen_plan,
     _mark_chunk_done,
     _publish_frozen_plan,
+    _put_json,
     _retry_objectstore,
     compare_snapshots,
     finalize_snapshot_comparison,
@@ -106,6 +107,7 @@ class TestFrozenComparison(BaseTestCase):
     def _start(self):
         compare_snapshots(**self.kwargs)
         comparison = PreprodSnapshotComparison.objects.get(head_snapshot_metrics=self.head_metrics)
+        assert comparison.extras is not None
         self.execution_id = comparison.extras["snapshot_execution_id"]
         self.prefix = run_prefix(**self.kwargs, execution_id=self.execution_id)
         self.plan = _load_frozen_plan(self.session, self.execution_id, **self.kwargs)
@@ -130,6 +132,65 @@ class TestFrozenComparison(BaseTestCase):
             image["diff_mask_key"].startswith(f"{self.prefix}/diff/")
             for image in report["images"].values()
         )
+
+    def test_losing_finalizer_cannot_overwrite_winning_report_or_masks(self):
+        comparison = self._start()
+        for call in self.chunks.call_args_list:
+            process_snapshot_comparison_chunk(**call.kwargs["kwargs"])
+        finalize_kwargs = self.finalizers.call_args.kwargs["kwargs"]
+        first_chunk_kwargs = self.chunks.call_args_list[0].kwargs["kwargs"]
+        publications = []
+        new_diff = DiffResult(
+            diff_mask_png=b"new-mask",
+            changed_pixels=0,
+            total_pixels=100,
+            aligned_height=10,
+            before_width=10,
+            before_height=10,
+            after_width=10,
+            after_height=10,
+        )
+
+        def publish_and_finish_competing_attempt(session, key, manifest):
+            _put_json(session, key, manifest)
+            with (
+                patch("sentry.preprod.snapshots.tasks._put_json", wraps=_put_json),
+                patch(
+                    "sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[new_diff]
+                ),
+            ):
+                process_snapshot_comparison_chunk(**first_chunk_kwargs)
+                finalize_snapshot_comparison(**finalize_kwargs)
+            comparison.refresh_from_db()
+            winning_key = comparison.extras["comparison_key"]
+            publications.append((key, winning_key, self.stored[winning_key]))
+
+        with (
+            patch(
+                "sentry.preprod.snapshots.tasks._put_json",
+                side_effect=publish_and_finish_competing_attempt,
+            ),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot") as approve,
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            finalize_snapshot_comparison(**finalize_kwargs)
+
+        losing_key, winning_key, winning_bytes = publications[0]
+        comparison.refresh_from_db()
+        assert comparison.extras["comparison_key"] == winning_key
+        assert losing_key != winning_key
+        assert self.stored[winning_key] == winning_bytes
+        winner = orjson.loads(winning_bytes)
+        loser = orjson.loads(self.stored[losing_key])
+        winning_mask = winner["images"]["first.png"]["diff_mask_key"]
+        losing_mask = loser["images"]["first.png"]["diff_mask_key"]
+        assert winning_mask != losing_mask
+        assert self.stored[winning_mask] == b"new-mask"
+        assert self.stored[losing_mask] == b"png"
+        assert comparison.images_changed == 1
+        assert comparison.images_unchanged == 1
+        approve.assert_called_once()
+        vcs.assert_called_once_with(preprod_artifact_id=self.head.id, caller="compare_completion")
 
     def test_retry_reuses_plan_and_completed_indices_after_option_disabled(self):
         comparison = self._start()
@@ -156,6 +217,7 @@ class TestFrozenComparison(BaseTestCase):
         with pytest.raises(RuntimeError, match="dispatch failed"):
             compare_snapshots(**self.kwargs)
         comparison = PreprodSnapshotComparison.objects.get(head_snapshot_metrics=self.head_metrics)
+        assert comparison.extras is not None
         execution_id = comparison.extras["snapshot_execution_id"]
         assert comparison.state == PreprodSnapshotComparison.State.FAILED
         assert comparison.chunks_total is None
@@ -236,8 +298,8 @@ class TestFrozenComparison(BaseTestCase):
         )
         compare_snapshots(**self.kwargs)
         comparison.refresh_from_db()
-        assert "snapshot_execution_id" not in comparison.extras
-        assert "snapshot_protocol_version" not in comparison.extras
+        assert "snapshot_execution_id" not in (comparison.extras or {})
+        assert "snapshot_protocol_version" not in (comparison.extras or {})
 
     @pytest.mark.parametrize(
         "missing_key,expected_state,changed,errored",

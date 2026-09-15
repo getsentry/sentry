@@ -78,6 +78,7 @@ from sentry.preprod.snapshots.precompute import (
     load_precomputed_head_images,
     refresh_manifest_expiration,
 )
+from sentry.preprod.snapshots.runs import comparison_creation_defaults
 from sentry.preprod.snapshots.storage import get_snapshot_storage
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import (
@@ -950,7 +951,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                             PreprodSnapshotComparison.objects.get_or_create(
                                 head_snapshot_metrics=snapshot_metrics,
                                 base_snapshot_metrics=base_metrics,
-                                defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                                defaults=comparison_creation_defaults(
+                                    PreprodSnapshotComparison.State.PENDING
+                                ),
                             )
                         except IntegrityError:
                             pass
@@ -1018,7 +1021,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         PreprodSnapshotComparison.objects.get_or_create(
                             head_snapshot_metrics=head_metrics,
                             base_snapshot_metrics=snapshot_metrics,
-                            defaults={"state": PreprodSnapshotComparison.State.PENDING},
+                            defaults=comparison_creation_defaults(
+                                PreprodSnapshotComparison.State.PENDING
+                            ),
                         )
                     except IntegrityError:
                         pass

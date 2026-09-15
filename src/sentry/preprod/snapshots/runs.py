@@ -1,13 +1,28 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from django.db import models
 from pydantic import Field
 
+from sentry import options
 from sentry.preprod.snapshots.image_diff.compare import DIFF_ALGORITHM_VERSION
 from sentry.preprod.snapshots.manifest import ChunkAssignment, ChunkResult, ComparisonPlan
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
+
+
+class ImageFingerprint(NamedTuple):
+    name: str
+    status: str
+    head_hash: str | None = None
+    previous_image_file_name: str | None = None
+
+
+def comparison_creation_defaults(state: PreprodSnapshotComparison.State) -> dict[str, object]:
+    defaults: dict[str, object] = {"state": state}
+    if options.get("preprod.snapshots.versioned-comparison-plans.enabled"):
+        defaults["extras"] = {"snapshot_protocol_version": 2}
+    return defaults
 
 
 class FrozenChunkAssignment(ChunkAssignment):
@@ -46,6 +61,41 @@ def run_prefix(
     execution_id: str,
 ) -> str:
     return f"{org_id}/{project_id}/{head_artifact_id}/{base_artifact_id}/runs/{execution_id}"
+
+
+def task_comparison(
+    comparison_id: int,
+    execution_id: str | None,
+    org_id: int,
+    project_id: int,
+    head_artifact_id: int,
+    base_artifact_id: int,
+) -> PreprodSnapshotComparison | None:
+    comparison = (
+        run_queryset(comparison_id, execution_id)
+        .filter(
+            head_snapshot_metrics__preprod_artifact_id=head_artifact_id,
+            base_snapshot_metrics__preprod_artifact_id=base_artifact_id,
+            head_snapshot_metrics__preprod_artifact__project_id=project_id,
+            head_snapshot_metrics__preprod_artifact__project__organization_id=org_id,
+        )
+        .first()
+    )
+    if (
+        comparison is not None
+        and execution_id is None
+        and (comparison.extras or {}).get("snapshot_protocol_version") == 2
+    ):
+        return None
+    return comparison
+
+
+def chunks_complete(comparison: PreprodSnapshotComparison) -> bool:
+    if comparison.chunks_total is None:
+        return False
+    if (comparison.extras or {}).get("snapshot_execution_id") is not None:
+        return set(range(comparison.chunks_total)).issubset(comparison.chunks_done_indices)
+    return len(comparison.chunks_done_indices) >= comparison.chunks_total
 
 
 def validate_plan(

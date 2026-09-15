@@ -222,6 +222,9 @@ class TryAutoApproveSnapshotTest(TestCase):
             diff_algorithm_version=DIFF_ALGORITHM_VERSION,
             sibling_fingerprints=[("screen.png", "changed", "same", None)],
         )
+        encoded = orjson.loads(orjson.dumps(plan.dict()))
+        assert encoded["sibling_fingerprints"] == [["screen.png", "changed", "same", None]]
+        plan = FrozenComparisonPlan(**encoded)
         session = MagicMock()
         session.get.side_effect = AssertionError("Frozen evidence must not be reloaded")
         self._approve(head, manifest, plan, session)
