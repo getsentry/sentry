@@ -2,7 +2,7 @@ import type {ComponentProps, ReactNode} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {SeerEmbedExample} from 'sentry/components/seer/markdown/embeds/schemas';
@@ -43,12 +43,17 @@ function getStoryExamples(
   });
 }
 
+/**
+ * The story's table of contents collects h2 through h6, so these read as
+ * subtitles without being headings -- otherwise every embed would add four
+ * entries to the right-hand nav.
+ */
 function LevelSection({title, children}: {children: ReactNode; title: string}) {
   return (
     <Stack gap="sm">
-      <Heading as="h5" size="xs" variant="muted">
+      <Text size="xs" bold uppercase variant="muted">
         {title}
-      </Heading>
+      </Text>
       {children}
     </Stack>
   );
@@ -56,9 +61,10 @@ function LevelSection({title, children}: {children: ReactNode; title: string}) {
 
 interface EmbedVariantProps {
   data: Record<string, unknown>;
-  label: string;
   name: EmbedName;
   demoProps?: Omit<ComponentProps<typeof Demo>, 'children'>;
+  /** Omitted when there is only one example, which the section already names. */
+  label?: string;
 }
 
 export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) {
@@ -77,9 +83,11 @@ export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) 
 
   return (
     <Stack gap="xl">
-      <Heading as="h4" size="sm">
-        {label}
-      </Heading>
+      {label ? (
+        <Text size="sm" bold>
+          {label}
+        </Text>
+      ) : null}
 
       <LevelSection title="Tag">
         <CodeBlock language="markdown" dark>
@@ -129,14 +137,13 @@ export function EmbedStory({children, name}: EmbedStoryProps) {
     <Stack gap="xl">
       <Stack gap="xs">
         <Text size="sm" variant="muted">
-          Level: {schema.level.join(', ')}
-          {'featureFlag' in schema
-            ? ` · Flag: ${[schema.featureFlag].flat().join(' or ')}`
-            : null}
-        </Text>
-        <Text size="sm" variant="muted">
           {schema.description}
         </Text>
+        {'featureFlag' in schema ? (
+          <Text size="sm" variant="muted">
+            Flag: {[schema.featureFlag].flat().join(' or ')}
+          </Text>
+        ) : null}
       </Stack>
       <Stack gap="2xl">
         {children ??
@@ -144,7 +151,7 @@ export function EmbedStory({children, name}: EmbedStoryProps) {
             <EmbedVariant
               key={example.label}
               name={name}
-              label={example.label}
+              label={examples.length > 1 ? example.label : undefined}
               data={example.data}
             />
           ))}
