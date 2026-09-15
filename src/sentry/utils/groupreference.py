@@ -21,6 +21,7 @@ _fixes_re = re.compile(
 )
 _short_id_re = re.compile(r"\b([A-Z0-9_-]+-[A-Z0-9]+)\b", re.I)
 _whitespace_re = re.compile(r"\s+")
+_narrative_punct_re = re.compile(r"[,:]")
 
 # Matches fix keywords followed by a URL
 _fixes_url_re = re.compile(
@@ -115,8 +116,10 @@ def _count_narrative_chars(line: str) -> int:
     # Strip markdown links the same way find_referenced_groups does, so a
     # "Fixes [SENTRY-123](url)" line doesn't count its URL as narrative.
     remainder = _markdown_strip_re.sub(r"\1", line)
+    remainder = _fixes_url_re.sub("", remainder)
     remainder = _fix_keyword_re.sub("", remainder)
     remainder = _short_id_re.sub("", remainder)
+    remainder = _narrative_punct_re.sub("", remainder)
     remainder = _whitespace_re.sub("", remainder)
     return len(remainder)
 
