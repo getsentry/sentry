@@ -721,7 +721,12 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       }
       return (
         <Container>
-          <Projects orgId={organization.slug} slugs={slugs} projectIds={projectIds}>
+          <Projects
+            key={data.project}
+            orgId={organization.slug}
+            slugs={slugs}
+            projectIds={projectIds}
+          >
             {({projects}) => {
               let project: Project | AvatarProject | undefined;
               if (typeof data.project === 'number') {

@@ -97,15 +97,10 @@ export function getSpanCategory(span: {
 export function getSpanInfoFromTransactionEvent(
   event: Pick<
     EventTransaction,
-    | 'entries'
-    | 'perfProblem'
-    | 'issueCategory'
-    | 'endTimestamp'
-    | 'contexts'
-    | 'occurrence'
+    'entries' | 'issueCategory' | 'endTimestamp' | 'contexts' | 'occurrence'
   >
 ) {
-  const perfEvidenceData = event.perfProblem ?? event?.occurrence?.evidenceData;
+  const perfEvidenceData = event?.occurrence?.evidenceData;
   if (!perfEvidenceData) {
     Sentry.captureException(new Error('Span Evidence missing for performance issue.'));
     return null;
@@ -147,11 +142,9 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
   affectedSpanIds: string[];
   focusedSpanIds: string[];
 } {
-  const perfEvidenceData = event.perfProblem ?? event?.occurrence?.evidenceData;
+  const perfEvidenceData = event?.occurrence?.evidenceData;
 
-  const issueType =
-    event.perfProblem?.issueType ??
-    getIssueTypeFromOccurrenceType(event?.occurrence?.type);
+  const issueType = getIssueTypeFromOccurrenceType(event?.occurrence?.type);
   const affectedSpanIds: string[] = [];
   const focusedSpanIds: string[] = [];
 

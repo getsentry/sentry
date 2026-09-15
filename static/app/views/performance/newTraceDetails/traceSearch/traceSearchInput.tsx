@@ -40,9 +40,11 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
 
   const timeoutRef = useRef<number | undefined>(undefined);
   const statusRef = useRef(status);
+  // oxlint-disable-next-line react/refs
   statusRef.current = status;
 
   const traceStateRef = useRef(traceState);
+  // oxlint-disable-next-line react/refs
   traceStateRef.current = traceState;
   const onTraceSearch = props.onTraceSearch;
 

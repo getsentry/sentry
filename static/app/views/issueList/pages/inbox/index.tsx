@@ -184,9 +184,13 @@ function useSelectFirstLoadedIssue({
   const hasFinished = useRef(disabled);
   const previousResetKey = useRef(resetKey);
 
+  // oxlint-disable-next-line react/refs
   if (previousResetKey.current !== resetKey) {
+    // oxlint-disable-next-line react/refs
     previousResetKey.current = resetKey;
+    // oxlint-disable-next-line react/refs
     sectionResults.current.clear();
+    // oxlint-disable-next-line react/refs
     hasFinished.current = disabled;
   }
 

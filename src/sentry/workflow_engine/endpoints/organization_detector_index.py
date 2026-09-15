@@ -75,6 +75,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -116,8 +117,8 @@ SORT_MAP = {
     "-type": "-type",
     "connectedWorkflows": "connected_workflows",
     "-connectedWorkflows": "-connected_workflows",
-    "latestGroup": F("latest_group_date_added").asc(nulls_first=True),
-    "-latestGroup": F("latest_group_date_added").desc(nulls_last=True),
+    "latestGroup": F("latest_group_last_seen").asc(nulls_first=True),
+    "-latestGroup": F("latest_group_last_seen").desc(nulls_last=True),
     "openIssues": F("open_issues_count").asc(nulls_first=True),
     "-openIssues": F("open_issues_count").desc(nulls_last=True),
 }
@@ -319,10 +320,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             latest_detector_group_subquery = (
                 DetectorGroup.objects.filter(detector=OuterRef("pk"))
                 .order_by("-date_added")
-                .values("date_added")[:1]
+                .values("group__last_seen")[:1]
             )
             queryset = queryset.annotate(
-                latest_group_date_added=Subquery(latest_detector_group_subquery)
+                latest_group_last_seen=Subquery(latest_detector_group_subquery)
             )
         elif sort_by_field == "openIssues":
             queryset = queryset.annotate(
@@ -399,6 +400,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
+        queryset = queryset.exclude(type=IssueStreamGroupType.slug)
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):

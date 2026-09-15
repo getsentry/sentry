@@ -59,6 +59,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.details_store import (
     count_iterations_before,
@@ -67,6 +68,8 @@ from sentry.seer.autofix.pr_iteration.details_store import (
 from sentry.seer.autofix.pr_iteration.emit import (
     bootstrap_iteration,
     discard_pr_iteration_details,
+    outcome_for_pause,
+    record_pr_iteration_blocked,
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
@@ -92,6 +95,7 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
 )
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
+    get_pause_reason,
     is_pr_iteration_paused,
     pause_pr_iteration,
     record_pause_blocked,
@@ -188,6 +192,19 @@ def trigger_consume_pr_iteration_feedback(
 ) -> None:
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
+        # The reason costs a second read, paid only on this branch. Nothing
+        # lifts a pause, so this batch is over: whether it was thrown away
+        # because someone stopped Seer or because the run before it broke is
+        # the difference between a feature working and a user losing work.
+        record_pr_iteration_blocked(
+            log_ctx=log_ctx,
+            run_state=run_state,
+            run_id=run_id,
+            organization_id=organization_id,
+            outcome=outcome_for_pause(
+                log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+            ),
+        )
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
             triggered_by=triggered_by,
@@ -319,7 +336,8 @@ def comment_on_missing_permissions(
     # it and could hand the identity over in the task args instead.
     try:
         state = fetch_run_status(run_id, organization)
-    except (SeerApiError, ValueError):
+    except (SeerApiError, ValueError) as e:
+        sentry_sdk.capture_exception(e)
         logger.warning(
             "autofix.pr_iteration.missing_permissions.run_state_not_found",
             extra={"run_id": run_id, "organization_id": organization_id},
@@ -390,21 +408,6 @@ def consume_queued_autofix_feedback(
     )
 
     with lock.acquire():
-        # A task with a countdown can start after the pause.
-        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
-            record_pause_blocked("consume")
-            clear_queued_autofix_feedback(run_id)
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.skipped",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization_id,
-                    "trigger_id": trigger_id,
-                    "reason": "paused",
-                },
-            )
-            return
-
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
@@ -416,7 +419,8 @@ def consume_queued_autofix_feedback(
 
         try:
             state = fetch_run_status(run_id, organization)
-        except (SeerApiError, ValueError):
+        except (SeerApiError, ValueError) as e:
+            sentry_sdk.capture_exception(e)
             logger.warning(
                 "autofix.pr_iteration.consume_feedback.run_state_not_found",
                 extra={"run_id": run_id, "organization_id": organization_id},
@@ -427,6 +431,27 @@ def consume_queued_autofix_feedback(
         log_ctx = PrIterationLogContext.for_run(
             logger, state, organization_id, group_id, iteration=LogCtxIteration.UNTRIGGERED
         )
+
+        # A task with a countdown can start after the pause.
+        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+            record_pause_blocked("consume")
+            record_pr_iteration_blocked(
+                log_ctx=log_ctx,
+                run_state=state,
+                run_id=run_id,
+                organization_id=organization_id,
+                outcome=outcome_for_pause(
+                    log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+                ),
+            )
+            clear_queued_autofix_feedback(run_id)
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                reason="paused",
+            )
+            return
+
         task_state = current_task()
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.started",
@@ -442,6 +467,13 @@ def consume_queued_autofix_feedback(
                 run_id=run_id,
                 organization_id=organization_id,
                 reason=PauseReason.PR_CLOSED,
+            )
+            record_pr_iteration_blocked(
+                log_ctx=log_ctx,
+                run_state=state,
+                run_id=run_id,
+                organization_id=organization_id,
+                outcome=outcome_for_pause(log_ctx, PauseReason.PR_CLOSED.value),
             )
             log_ctx.info(
                 "autofix.pr_iteration.consume_feedback.skipped",
@@ -633,6 +665,7 @@ def _drain_queued_autofix_feedback(
             queued_count=len(queued_items),
             dropped_count=len(dropped),
             automated_feedback_count=sum(1 for item in feedback_items if item.source.is_automated),
+            feedback_bot_logins=bot_logins_for_feedback([item.source for item in feedback_items]),
         )
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.

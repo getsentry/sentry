@@ -677,6 +677,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       )}
       <Container flex="1 1 0%" minHeight="0">
         <BaseChart
+          // oxlint-disable-next-line react/refs
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
           renderer="canvas"
@@ -715,6 +716,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           xAxis={xAxis}
           yAxes={chartYAxes}
           {...chartZoomProps}
+          // oxlint-disable-next-line react/refs
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
           brush={brush}

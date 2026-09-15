@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   useWidgetBuilderContext,
@@ -20,9 +19,6 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-
-jest.mock('sentry/utils/useNavigate');
-const mockedUseNavigate = jest.mocked(useNavigate);
 
 const EQUATION_FEATURES = ['tracemetrics-enabled'];
 
@@ -88,14 +84,15 @@ function makeEquationSnapshot(
   };
 }
 
+/**
+ * A query param holding a single value comes back as a string rather than a
+ * one-element array, so normalise before comparing to a serialized list.
+ */
+function queryList(value: string | string[] | undefined | null) {
+  return value === undefined || value === null ? [] : [value].flat();
+}
+
 describe('useTraceMetricsVisualizeModeState', () => {
-  let mockNavigate!: jest.Mock;
-
-  beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
-  });
-
   afterEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
@@ -190,7 +187,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
   });
 
   it('snapshots series state and restores it after a round-trip toggle', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -209,37 +206,23 @@ describe('useTraceMetricsVisualizeModeState', () => {
     act(() => {
       result.current.handleModeToggle(true);
     });
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: ['environment:prod'],
-          }),
-        }),
-        expect.anything()
-      );
+      expect(queryList(router.location.query.query)).toEqual(['environment:prod']);
     });
   });
 
@@ -286,7 +269,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
   });
 
   it('restores equation yAxis when toggling to equation mode with a cached snapshot', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -306,31 +289,24 @@ describe('useTraceMetricsVisualizeModeState', () => {
         selectedLabel: 'B',
       });
     });
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('restores equation query from the selected row', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -350,26 +326,17 @@ describe('useTraceMetricsVisualizeModeState', () => {
         selectedLabel: 'A',
       });
     });
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: ['environment:prod'],
-          }),
-        }),
-        expect.anything()
-      );
+      expect(queryList(router.location.query.query)).toEqual(['environment:prod']);
     });
   });
 
   it('falls back to first aggregate when selectedLabel does not match', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -392,26 +359,19 @@ describe('useTraceMetricsVisualizeModeState', () => {
         selectedLabel: 'NONEXISTENT',
       });
     });
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: ['sum(value,alpha_metric,counter,none)'],
-          }),
-        }),
-        expect.anything()
-      );
+      expect(queryList(router.location.query.yAxis)).toEqual([
+        'sum(value,alpha_metric,counter,none)',
+      ]);
     });
   });
 
   it('derives series fields from equation snapshot subcomponents when no series snapshot exists', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -433,35 +393,28 @@ describe('useTraceMetricsVisualizeModeState', () => {
     act(() => {
       result.current.equationSnapshot.current = makeEquationSnapshot();
     });
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-              },
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+          },
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('pushes subcomponents even when the equation row is selected', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -483,35 +436,28 @@ describe('useTraceMetricsVisualizeModeState', () => {
         selectedLabel: 'ƒ1',
       });
     });
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
-              },
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'alpha_metric', 'counter', 'none'],
+          },
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['avg', 'value', 'beta_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('falls back to default field when equation snapshot is empty', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -529,31 +475,24 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
 
     expect(result.current.isEquationMode).toBe(true);
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(false);
     });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', undefined, undefined],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', undefined, undefined],
+          },
+        ])
       );
     });
   });
 
   it('seeds snapshot and dispatches equation yAxis when toggling to equation mode without a cached snapshot', async () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
+    const {result, router} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
       organization: OrganizationFixture({features: EQUATION_FEATURES}),
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -567,8 +506,6 @@ describe('useTraceMetricsVisualizeModeState', () => {
         },
       },
     });
-
-    mockNavigate.mockClear();
     act(() => {
       result.current.handleModeToggle(true);
     });
@@ -578,14 +515,7 @@ describe('useTraceMetricsVisualizeModeState', () => {
     expect(result.current.equationSnapshot.current?.selectedLabel).toBe('ƒ1');
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: ['equation|'],
-          }),
-        }),
-        expect.anything()
-      );
+      expect(queryList(router.location.query.yAxis)).toEqual(['equation|']);
     });
   });
 });

@@ -19,6 +19,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -475,6 +476,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
+        DashboardHiddenUser,
         DashboardLastVisited,
         DashboardRevision,
         GroupAssignee,
@@ -519,6 +521,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
+        DashboardHiddenUser,
         DashboardLastVisited,
         DashboardRevision,
         GroupAssignee,

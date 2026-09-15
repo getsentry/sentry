@@ -316,10 +316,14 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
+    expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias');
+
     await userEvent.click(await screen.findByRole('button', {name: 'Transactions'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
-    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
+    });
   }, 10_000);
 
   it('clears the alias when display type changes', async () => {
@@ -356,13 +360,16 @@ describe('WidgetBuilderSlideout', () => {
       await screen.findByPlaceholderText('Add Alias'),
       'test alias again'
     );
+    expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias again');
 
     await userEvent.click(await screen.findByText('Table'));
     await userEvent.click(await screen.findByText('Area'));
     await userEvent.click(await screen.findByText('Area'));
     await userEvent.click(await screen.findByText('Table'));
 
-    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
+    });
   }, 10_000);
 
   it('only renders thresholds for big number widgets', async () => {

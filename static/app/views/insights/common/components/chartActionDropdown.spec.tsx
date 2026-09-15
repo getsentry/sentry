@@ -1,15 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
 beforeEach(() => {
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+  PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+});
+
+afterEach(() => {
+  PageFiltersStore.reset();
 });
 
 describe('BaseChartActionDropdown', () => {

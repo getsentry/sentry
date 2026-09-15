@@ -477,6 +477,7 @@ function SingleViewLayout({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const navStateRef = useRef({onNavigateSingleView, canNavigateNext, canNavigatePrev});
+  // oxlint-disable-next-line react/refs
   navStateRef.current = {onNavigateSingleView, canNavigateNext, canNavigatePrev};
 
   useEffect(() => {
@@ -593,6 +594,7 @@ function SingleViewLayout({
               </Tooltip>
               <Tooltip title={t('Next (↓)')} skipWrapper>
                 <Button
+                  // oxlint-disable-next-line react/refs
                   ref={navButtonRefs.next}
                   size="sm"
                   icon={<IconArrow direction="down" />}
