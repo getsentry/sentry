@@ -7,10 +7,11 @@ from collections.abc import Callable
 from datetime import datetime
 from difflib import SequenceMatcher
 from typing import Any, Literal, NamedTuple
+from uuid import uuid4
 
 import orjson
 from django.contrib.postgres.fields import ArrayField
-from django.db import IntegrityError, models
+from django.db import IntegrityError, models, router, transaction
 from django.db.models import F, Func, Value
 from django.utils import timezone
 from objectstore_client import RequestError
@@ -49,6 +50,15 @@ from sentry.preprod.snapshots.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.preprod.snapshots.reconstruction import reconstruct_base_manifest
+from sentry.preprod.snapshots.runs import (
+    FrozenChunkAssignment,
+    FrozenChunkResult,
+    FrozenComparisonPlan,
+    run_prefix,
+    run_queryset,
+    validate_chunk_result,
+    validate_plan,
+)
 from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
 from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.silo.base import SiloMode
@@ -142,13 +152,14 @@ def _errored_result(candidate: ChunkCandidate, reason: str) -> ComparisonImageRe
     )
 
 
-def _mark_chunk_done(comparison_id: int, chunk_index: int) -> None:
+def _mark_chunk_done(comparison_id: int, chunk_index: int, execution_id: str | None = None) -> None:
     # date_updated is the comparison's progress signal: the reaper
     # (detect_expired_preprod_artifacts) fails rows whose date_updated goes stale,
     # so bumping it per completed chunk makes "stuck" mean "no chunk progress".
-    PreprodSnapshotComparison.objects.filter(id=comparison_id).exclude(
-        chunks_done_indices__contains=[chunk_index]
-    ).update(
+    queryset = run_queryset(comparison_id, execution_id)
+    if execution_id is not None:
+        queryset = queryset.filter(state=PreprodSnapshotComparison.State.PROCESSING)
+    queryset.exclude(chunks_done_indices__contains=[chunk_index]).update(
         chunks_done_indices=Func(
             F("chunks_done_indices"),
             Value([chunk_index], output_field=ArrayField(models.IntegerField())),
@@ -489,16 +500,20 @@ def _try_auto_approve_snapshot(
         "head_artifact_id": head_artifact.id,
         "sibling_artifact_id": plan.sibling_artifact_id,
     }
-    try:
-        sibling_manifest = _get_json(session, plan.sibling_comparison_key, ComparisonManifest)
-    except Exception:
-        logger.exception(
-            "auto_approve: failed to load sibling comparison manifest",
-            extra={**log_extra, "comparison_key": plan.sibling_comparison_key},
-        )
-        return
+    if isinstance(plan, FrozenComparisonPlan):
+        sibling_fingerprints = {ImageFingerprint(*value) for value in plan.sibling_fingerprints}
+    else:
+        try:
+            sibling_manifest = _get_json(session, plan.sibling_comparison_key, ComparisonManifest)
+        except Exception:
+            logger.exception(
+                "auto_approve: failed to load sibling comparison manifest",
+                extra={**log_extra, "comparison_key": plan.sibling_comparison_key},
+            )
+            return
+        sibling_fingerprints = _build_comparison_fingerprints(sibling_manifest)
 
-    diffs = _hash_only_diffs(head_fingerprints, _build_comparison_fingerprints(sibling_manifest))
+    diffs = _hash_only_diffs(head_fingerprints, sibling_fingerprints)
     if diffs is None:
         logger.info("auto_approve: fingerprints do not match", extra=log_extra)
         return
@@ -712,6 +727,8 @@ def _process_chunk(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    *,
+    mask_prefix: str | None = None,
 ) -> ChunkResult:
     image_key_prefix = f"{org_id}/{project_id}"
     images: dict[str, ComparisonImageResult] = {}
@@ -844,10 +861,12 @@ def _process_chunk(
             diff_mask_key = _diff_mask_key(
                 org_id, project_id, head_artifact_id, base_artifact_id, stem
             )
+            if mask_prefix is not None:
+                diff_mask_key = f"{mask_prefix}/{stem}.png"
             diff_mask_bytes = diff_result.diff_mask_png
             _put_diff_mask(session, diff_mask_key, diff_mask_bytes)
 
-            diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"
+            diff_mask_image_id = diff_mask_key.removeprefix(f"{org_id}/{project_id}/")
 
             if not is_changed:
                 metrics.incr("preprod.snapshots.odiff.unchanged_with_diff_hash")
@@ -899,24 +918,72 @@ def process_snapshot_comparison_chunk(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    execution_id: str | None = None,
     **kwargs: Any,
 ) -> None:
+    comparison = (
+        run_queryset(comparison_id, execution_id)
+        .filter(
+            head_snapshot_metrics__preprod_artifact_id=head_artifact_id,
+            base_snapshot_metrics__preprod_artifact_id=base_artifact_id,
+            head_snapshot_metrics__preprod_artifact__project_id=project_id,
+            head_snapshot_metrics__preprod_artifact__project__organization_id=org_id,
+        )
+        .first()
+    )
+    if comparison is None:
+        return
+    if execution_id is not None and comparison.state != PreprodSnapshotComparison.State.PROCESSING:
+        return
+    if execution_id is None and (comparison.extras or {}).get("snapshot_protocol_version") == 2:
+        return
     session = get_snapshot_storage(project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
+    prefix = (
+        run_prefix(org_id, project_id, head_artifact_id, base_artifact_id, execution_id)
+        if execution_id is not None
+        else None
+    )
 
     try:
         # The plan read is inside the try so a missing/corrupt plan still marks the chunk
         # done (with no result blob), letting finalize degrade it to errored rather than
         # leaving the comparison stuck in PROCESSING for the reaper.
-        plan = _get_json(session, plan_key, ComparisonPlan)
-        assignment = next((c for c in plan.chunks if c.chunk_index == chunk_index), None)
+        assignment: ChunkAssignment | None
+        if prefix is not None:
+            assignment = _get_json(
+                session, f"{prefix}/assignments/{chunk_index}.json", FrozenChunkAssignment
+            )
+            if (
+                assignment.execution_id != execution_id
+                or assignment.chunk_index != chunk_index
+                or assignment.diff_algorithm_version != DIFF_ALGORITHM_VERSION
+            ):
+                raise ValueError("Chunk assignment does not match this execution")
+        else:
+            plan = _get_json(session, plan_key, ComparisonPlan)
+            assignment = next((c for c in plan.chunks if c.chunk_index == chunk_index), None)
         if assignment is not None:
+            mask_kwargs = {"mask_prefix": f"{prefix}/diff/{uuid4().hex}"} if prefix else {}
             result = _process_chunk(
-                session, assignment, org_id, project_id, head_artifact_id, base_artifact_id
+                session,
+                assignment,
+                org_id,
+                project_id,
+                head_artifact_id,
+                base_artifact_id,
+                **mask_kwargs,
             )
             result_key = _chunk_result_key(
                 org_id, project_id, head_artifact_id, base_artifact_id, chunk_index
             )
+            if prefix is not None:
+                result = FrozenChunkResult(
+                    **result.dict(),
+                    execution_id=execution_id,
+                    diff_algorithm_version=DIFF_ALGORITHM_VERSION,
+                )
+                result_key = f"{prefix}/chunks/{chunk_index}.json"
             _put_json(session, result_key, result)
     except Exception as e:
         # Record the chunk as terminally failed so the comparison can still
@@ -933,11 +1000,146 @@ def process_snapshot_comparison_chunk(
             },
         )
 
-    _mark_chunk_done(comparison_id, chunk_index)
+    _mark_chunk_done(comparison_id, chunk_index, execution_id)
 
     _finalize_if_all_chunks_done(
-        comparison_id, org_id, project_id, head_artifact_id, base_artifact_id
+        comparison_id, org_id, project_id, head_artifact_id, base_artifact_id, execution_id
     )
+
+
+def _load_frozen_plan(
+    session: SnapshotStorage,
+    execution_id: str,
+    org_id: int,
+    project_id: int,
+    head_artifact_id: int,
+    base_artifact_id: int,
+) -> FrozenComparisonPlan:
+    prefix = run_prefix(org_id, project_id, head_artifact_id, base_artifact_id, execution_id)
+    plan = _get_json(session, f"{prefix}/plan.json", FrozenComparisonPlan)
+    validate_plan(plan, execution_id, head_artifact_id, base_artifact_id)
+    return plan
+
+
+def _publish_frozen_plan(
+    session: SnapshotStorage,
+    comparison: PreprodSnapshotComparison,
+    plan: ComparisonPlan,
+    sibling: SiblingComparison | None,
+    org_id: int,
+    project_id: int,
+) -> FrozenComparisonPlan | None:
+    execution_id = uuid4().hex
+    frozen_plan = FrozenComparisonPlan(
+        **plan.dict(),
+        execution_id=execution_id,
+        diff_algorithm_version=DIFF_ALGORITHM_VERSION,
+        sibling_fingerprints=list(_build_comparison_fingerprints(sibling.manifest))
+        if sibling
+        else [],
+    )
+    validate_plan(frozen_plan, execution_id, plan.head_artifact_id, plan.base_artifact_id)
+    prefix = run_prefix(
+        org_id, project_id, plan.head_artifact_id, plan.base_artifact_id, execution_id
+    )
+
+    def publish_assignment(assignment: ChunkAssignment) -> None:
+        _put_json(
+            session,
+            f"{prefix}/assignments/{assignment.chunk_index}.json",
+            FrozenChunkAssignment(
+                **assignment.dict(),
+                execution_id=execution_id,
+                diff_algorithm_version=DIFF_ALGORITHM_VERSION,
+            ),
+        )
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=8) as executor:
+        for start in range(0, len(plan.chunks), 8):
+            list(executor.map(publish_assignment, plan.chunks[start : start + 8]))
+    _put_json(session, f"{prefix}/plan.json", frozen_plan)
+
+    with transaction.atomic(using=router.db_for_write(PreprodSnapshotComparison)):
+        current = (
+            PreprodSnapshotComparison.objects.select_for_update()
+            .filter(id=comparison.id, state=PreprodSnapshotComparison.State.PROCESSING)
+            .first()
+        )
+        if current is None:
+            return None
+        extras = current.extras or {}
+        winning_id = extras.get("snapshot_execution_id")
+        if winning_id is None:
+            if extras.get("snapshot_protocol_version") != 2:
+                raise ValueError("Cannot replace a legacy comparison plan")
+            winning_id = execution_id
+            current.extras = {**extras, "snapshot_execution_id": execution_id}
+            current.save(update_fields=["extras", "date_updated"])
+        comparison.extras = current.extras
+        comparison.chunks_done_indices = current.chunks_done_indices
+
+    if winning_id == execution_id:
+        return frozen_plan
+    return _load_frozen_plan(
+        session, winning_id, org_id, project_id, plan.head_artifact_id, plan.base_artifact_id
+    )
+
+
+def _dispatch_comparison_plan(
+    comparison: PreprodSnapshotComparison,
+    plan: ComparisonPlan,
+    org_id: int,
+    project_id: int,
+    started_at: datetime,
+) -> None:
+    execution_id = plan.execution_id if isinstance(plan, FrozenComparisonPlan) else None
+    completed = set(comparison.chunks_done_indices) if execution_id else set()
+    execution_kwargs = {"execution_id": execution_id} if execution_id else {}
+    for assignment in plan.chunks:
+        if assignment.chunk_index in completed:
+            continue
+        process_snapshot_comparison_chunk.apply_async(
+            kwargs={
+                "comparison_id": comparison.id,
+                "chunk_index": assignment.chunk_index,
+                "org_id": org_id,
+                "project_id": project_id,
+                "head_artifact_id": plan.head_artifact_id,
+                "base_artifact_id": plan.base_artifact_id,
+                **execution_kwargs,
+            }
+        )
+
+    extras = {**(comparison.extras or {})}
+    extras.setdefault("diff_processing_started_at", started_at.isoformat())
+    updated = (
+        run_queryset(comparison.id, execution_id)
+        .filter(state=PreprodSnapshotComparison.State.PROCESSING)
+        .update(chunks_total=len(plan.chunks), extras=extras, date_updated=timezone.now())
+    )
+    if updated:
+        logger.info(
+            "compare_snapshots: orchestration dispatched",
+            extra={
+                "head_artifact_id": plan.head_artifact_id,
+                "base_artifact_id": plan.base_artifact_id,
+                "chunks_total": len(plan.chunks),
+            },
+        )
+
+        # A chunk finalizes when it records the last completion, but the chunks
+        # dispatched above may have already finished while chunks_total was still
+        # None (and so skipped finalize), and a plan with no diff chunks never
+        # triggers one at all. Now that chunks_total is set, close both gaps here;
+        # the finalize gate is idempotent.
+        _finalize_if_all_chunks_done(
+            comparison.id,
+            org_id,
+            project_id,
+            plan.head_artifact_id,
+            plan.base_artifact_id,
+            execution_id,
+        )
 
 
 def _base_manifest_missing_message(head_artifact: PreprodArtifact) -> str:
@@ -1013,11 +1215,14 @@ def compare_snapshots(
         return
 
     comparison: PreprodSnapshotComparison | None = None
+    comparison_defaults: dict[str, Any] = {"state": PreprodSnapshotComparison.State.PROCESSING}
+    if options.get("preprod.snapshots.versioned-comparison-plans.enabled"):
+        comparison_defaults["extras"] = {"snapshot_protocol_version": 2}
     try:
         comparison, created = PreprodSnapshotComparison.objects.get_or_create(
             head_snapshot_metrics=head_metrics,
             base_snapshot_metrics=base_metrics,
-            defaults={"state": PreprodSnapshotComparison.State.PROCESSING},
+            defaults=comparison_defaults,
         )
     except IntegrityError:
         comparison = PreprodSnapshotComparison.objects.filter(
@@ -1092,15 +1297,21 @@ def compare_snapshots(
             update_pr_comment=False,
         )
 
+    comparison.refresh_from_db(fields=["extras", "chunks_done_indices"])
+    execution_id = (comparison.extras or {}).get("snapshot_execution_id")
+
     def _fail_comparison(error_code: PreprodSnapshotComparison.ErrorCode, message: str) -> None:
-        failed = PreprodSnapshotComparison.objects.filter(
-            id=comparison.id,
-            state=PreprodSnapshotComparison.State.PROCESSING,
-        ).update(
-            state=PreprodSnapshotComparison.State.FAILED,
-            error_code=error_code,
-            error_message=message,
-            date_updated=timezone.now(),
+        failed = (
+            run_queryset(comparison.id, execution_id)
+            .filter(
+                state=PreprodSnapshotComparison.State.PROCESSING,
+            )
+            .update(
+                state=PreprodSnapshotComparison.State.FAILED,
+                error_code=error_code,
+                error_message=message,
+                date_updated=timezone.now(),
+            )
         )
         if failed:
             update_preprod_snapshot_vcs(
@@ -1123,6 +1334,13 @@ def compare_snapshots(
 
     try:
         session = get_snapshot_storage(project_id, org=org_id)
+
+        if execution_id is not None:
+            frozen_plan = _load_frozen_plan(
+                session, execution_id, org_id, project_id, head_artifact_id, base_artifact_id
+            )
+            _dispatch_comparison_plan(comparison, frozen_plan, org_id, project_id, task_start_time)
+            return
 
         head_manifest_key = (head_metrics.extras or {}).get("manifest_key")
         base_manifest_key = (base_metrics.extras or {}).get("manifest_key")
@@ -1200,8 +1418,7 @@ def compare_snapshots(
                             "comparison_id": comparison.id,
                         },
                     )
-                    PreprodSnapshotComparison.objects.filter(
-                        id=comparison.id,
+                    run_queryset(comparison.id, execution_id).filter(
                         state=PreprodSnapshotComparison.State.PROCESSING,
                     ).update(
                         state=PreprodSnapshotComparison.State.PENDING,
@@ -1257,45 +1474,18 @@ def compare_snapshots(
             diff_sibling_images=diff_sibling_images,
         )
 
-        plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
-        _put_json(session, plan_key, plan)
-
-        for assignment in plan.chunks:
-            process_snapshot_comparison_chunk.apply_async(
-                kwargs={
-                    "comparison_id": comparison.id,
-                    "chunk_index": assignment.chunk_index,
-                    "org_id": org_id,
-                    "project_id": project_id,
-                    "head_artifact_id": head_artifact_id,
-                    "base_artifact_id": base_artifact_id,
-                }
+        if (comparison.extras or {}).get("snapshot_protocol_version") == 2:
+            published_plan = _publish_frozen_plan(
+                session, comparison, plan, sibling, org_id, project_id
             )
-
-        comparison.extras = {
-            **(comparison.extras or {}),
-            "diff_processing_started_at": task_start_time.isoformat(),
-        }
-        comparison.chunks_total = len(plan.chunks)
-        comparison.save(update_fields=["chunks_total", "extras", "date_updated"])
-
-        logger.info(
-            "compare_snapshots: orchestration dispatched",
-            extra={
-                "head_artifact_id": head_artifact_id,
-                "base_artifact_id": base_artifact_id,
-                "chunks_total": len(plan.chunks),
-            },
-        )
-
-        # A chunk finalizes when it records the last completion, but the chunks
-        # dispatched above may have already finished while chunks_total was still
-        # None (and so skipped finalize), and a plan with no diff chunks never
-        # triggers one at all. Now that chunks_total is set, close both gaps here;
-        # the finalize gate is idempotent.
-        _finalize_if_all_chunks_done(
-            comparison.id, org_id, project_id, head_artifact_id, base_artifact_id
-        )
+            if published_plan is None:
+                return
+            plan = published_plan
+            execution_id = published_plan.execution_id
+        else:
+            plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
+            _put_json(session, plan_key, plan)
+        _dispatch_comparison_plan(comparison, plan, org_id, project_id, task_start_time)
 
     except BaseException:
         logger.exception(
@@ -1309,13 +1499,16 @@ def compare_snapshots(
         failed = 0
         if comparison is not None:
             try:
-                failed = PreprodSnapshotComparison.objects.filter(
-                    id=comparison.id,
-                    state=PreprodSnapshotComparison.State.PROCESSING,
-                ).update(
-                    state=PreprodSnapshotComparison.State.FAILED,
-                    error_code=PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                    date_updated=timezone.now(),
+                failed = (
+                    run_queryset(comparison.id, execution_id)
+                    .filter(
+                        state=PreprodSnapshotComparison.State.PROCESSING,
+                    )
+                    .update(
+                        state=PreprodSnapshotComparison.State.FAILED,
+                        error_code=PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+                        date_updated=timezone.now(),
+                    )
                 )
             except Exception:
                 logger.exception(
@@ -1337,13 +1530,18 @@ def _finalize_if_all_chunks_done(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    execution_id: str | None = None,
 ) -> None:
-    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
+    comparison = run_queryset(comparison_id, execution_id).first()
     if comparison is None or comparison.state != PreprodSnapshotComparison.State.PROCESSING:
         return
     if comparison.chunks_total is None:
         return
     if len(comparison.chunks_done_indices) < comparison.chunks_total:
+        return
+    if execution_id is not None and not set(range(comparison.chunks_total)).issubset(
+        comparison.chunks_done_indices
+    ):
         return
     # Concurrent final chunks (or the orchestrator) may each pass this check and
     # dispatch a finalize; the PROCESSING->SUCCESS compare-and-swap in
@@ -1355,6 +1553,7 @@ def _finalize_if_all_chunks_done(
             "project_id": project_id,
             "head_artifact_id": head_artifact_id,
             "base_artifact_id": base_artifact_id,
+            **({"execution_id": execution_id} if execution_id else {}),
         }
     )
 
@@ -1372,9 +1571,19 @@ def finalize_snapshot_comparison(
     project_id: int,
     head_artifact_id: int,
     base_artifact_id: int,
+    execution_id: str | None = None,
     **kwargs: Any,
 ) -> None:
-    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
+    comparison = (
+        run_queryset(comparison_id, execution_id)
+        .filter(
+            head_snapshot_metrics__preprod_artifact_id=head_artifact_id,
+            base_snapshot_metrics__preprod_artifact_id=base_artifact_id,
+            head_snapshot_metrics__preprod_artifact__project_id=project_id,
+            head_snapshot_metrics__preprod_artifact__project__organization_id=org_id,
+        )
+        .first()
+    )
     if comparison is None:
         return
     if comparison.state in (
@@ -1386,19 +1595,38 @@ def finalize_snapshot_comparison(
         return
     if len(comparison.chunks_done_indices) < comparison.chunks_total:
         return
+    if execution_id is not None and not set(range(comparison.chunks_total)).issubset(
+        comparison.chunks_done_indices
+    ):
+        return
+    if execution_id is None and (comparison.extras or {}).get("snapshot_protocol_version") == 2:
+        return
     # Heartbeat before the (potentially slow) assembly so a finalize that was
     # queued near the reaper's staleness window is not failed out from under
     # itself mid-run.
-    PreprodSnapshotComparison.objects.filter(
-        id=comparison.id, state=PreprodSnapshotComparison.State.PROCESSING
+    run_queryset(comparison.id, execution_id).filter(
+        state=PreprodSnapshotComparison.State.PROCESSING
     ).update(date_updated=timezone.now())
 
     comparison.refresh_from_db(fields=["chunks_done_indices"])
     session = get_snapshot_storage(project_id, org=org_id)
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
+    prefix = (
+        run_prefix(org_id, project_id, head_artifact_id, base_artifact_id, execution_id)
+        if execution_id is not None
+        else None
+    )
     try:
-        plan = _get_json(session, plan_key, ComparisonPlan)
-    except (orjson.JSONDecodeError, FileNotFoundError, RequestError, ValidationError, TypeError):
+        plan: ComparisonPlan
+        if execution_id is not None:
+            plan = _load_frozen_plan(
+                session, execution_id, org_id, project_id, head_artifact_id, base_artifact_id
+            )
+            if len(plan.chunks) != comparison.chunks_total:
+                raise ValueError("Comparison plan does not match its dispatched chunk count")
+        else:
+            plan = _get_json(session, plan_key, ComparisonPlan)
+    except (ValueError, FileNotFoundError, RequestError, TypeError):
         # Without the plan there are no chunks to assemble, so this is unrecoverable.
         # Fail the row cleanly instead of leaving it PROCESSING for the reaper to sweep
         # ~30min later (the chunk-result read below degrades for the same reason).
@@ -1406,12 +1634,14 @@ def finalize_snapshot_comparison(
             "finalize: failed to read comparison plan, failing comparison",
             extra={"comparison_id": comparison.id},
         )
-        failed = PreprodSnapshotComparison.objects.filter(
-            id=comparison.id, state=PreprodSnapshotComparison.State.PROCESSING
-        ).update(
-            state=PreprodSnapshotComparison.State.FAILED,
-            error_code=PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-            date_updated=timezone.now(),
+        failed = (
+            run_queryset(comparison.id, execution_id)
+            .filter(state=PreprodSnapshotComparison.State.PROCESSING)
+            .update(
+                state=PreprodSnapshotComparison.State.FAILED,
+                error_code=PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+                date_updated=timezone.now(),
+            )
         )
         if failed:
             update_preprod_snapshot_vcs(
@@ -1431,12 +1661,19 @@ def finalize_snapshot_comparison(
                 org_id, project_id, head_artifact_id, base_artifact_id, idx
             )
             try:
-                result = _get_json(session, chunk_result_key, ChunkResult)
+                result: ChunkResult
+                if isinstance(plan, FrozenComparisonPlan):
+                    frozen_result = _get_json(
+                        session, f"{prefix}/chunks/{idx}.json", FrozenChunkResult
+                    )
+                    validate_chunk_result(frozen_result, assignment, plan)
+                    result = frozen_result
+                else:
+                    result = _get_json(session, chunk_result_key, ChunkResult)
             except (
-                orjson.JSONDecodeError,
+                ValueError,
                 FileNotFoundError,
                 RequestError,
-                ValidationError,
                 TypeError,
             ):
                 # A done chunk whose result blob is missing/evicted/corrupt must not crash
@@ -1471,25 +1708,33 @@ def finalize_snapshot_comparison(
         images=images,
     )
     comparison_key = _comparison_key(org_id, project_id, head_artifact_id, base_artifact_id)
+    if prefix is not None:
+        comparison_key = f"{prefix}/reports/{uuid4().hex}.json"
     _put_json(session, comparison_key, comparison_manifest)
 
     extras = comparison.extras or {}
     extras["comparison_key"] = comparison_key
-    extras["diff_algorithm_version"] = DIFF_ALGORITHM_VERSION
-    updated = PreprodSnapshotComparison.objects.filter(
-        id=comparison.id, state=PreprodSnapshotComparison.State.PROCESSING
-    ).update(
-        state=PreprodSnapshotComparison.State.SUCCESS,
-        error_code=None,
-        images_changed=counts["changed"],
-        images_unchanged=counts["unchanged"],
-        images_added=counts["added"],
-        images_removed=counts["removed"],
-        images_renamed=counts["renamed"],
-        images_skipped=counts["skipped"],
-        images_errored=counts["errored"],
-        extras=extras,
-        date_updated=timezone.now(),
+    extras["diff_algorithm_version"] = (
+        plan.diff_algorithm_version
+        if isinstance(plan, FrozenComparisonPlan)
+        else DIFF_ALGORITHM_VERSION
+    )
+    updated = (
+        run_queryset(comparison.id, execution_id)
+        .filter(state=PreprodSnapshotComparison.State.PROCESSING)
+        .update(
+            state=PreprodSnapshotComparison.State.SUCCESS,
+            error_code=None,
+            images_changed=counts["changed"],
+            images_unchanged=counts["unchanged"],
+            images_added=counts["added"],
+            images_removed=counts["removed"],
+            images_renamed=counts["renamed"],
+            images_skipped=counts["skipped"],
+            images_errored=counts["errored"],
+            extras=extras,
+            date_updated=timezone.now(),
+        )
     )
     if updated:
         try:
