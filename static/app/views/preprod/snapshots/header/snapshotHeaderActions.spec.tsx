@@ -180,3 +180,60 @@ describe('SnapshotHeaderActions re-approve', () => {
     expect(screen.queryByText('Re-approve')).not.toBeInTheDocument();
   });
 });
+
+describe('SnapshotHeaderActions force approve', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('force approves a failed comparison after confirmation', async () => {
+    const approveMock = MockApiClient.addMockResponse({
+      url: APPROVE_URL,
+      method: 'POST',
+      match: [MockApiClient.matchData({feature_type: 'snapshots'})],
+      statusCode: 201,
+      body: {detail: 'Approved'},
+    });
+
+    renderActions({comparison_state: 'failed', approval_status: null});
+    renderGlobalModal();
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    await userEvent.click(await screen.findByText('Force Approve'));
+
+    expect(await screen.findByText('Force approve snapshots')).toBeInTheDocument();
+    expect(approveMock).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Force approve'}));
+
+    await waitFor(() => expect(approveMock).toHaveBeenCalledTimes(1));
+  });
+
+  it('offers force approve for a no-base build', async () => {
+    renderActions({comparison_state: 'no_base_build', approval_status: null});
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    expect(await screen.findByText('Force Approve')).toBeInTheDocument();
+  });
+
+  it('does not offer force approve for a successful comparison', async () => {
+    renderActions({comparison_state: 'success', approval_status: 'requires_approval'});
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    expect(await screen.findByText('Rerun Status Checks')).toBeInTheDocument();
+    expect(screen.queryByText('Force Approve')).not.toBeInTheDocument();
+  });
+
+  it('does not offer force approve while waiting for base', async () => {
+    renderActions({comparison_state: 'waiting_for_base', approval_status: null});
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    expect(await screen.findByText('Rerun Status Checks')).toBeInTheDocument();
+    expect(screen.queryByText('Force Approve')).not.toBeInTheDocument();
+  });
+
+  it('shows Approved instead of Failed once force approved', async () => {
+    renderActions({comparison_state: 'failed', approval_status: 'approved'});
+    expect(screen.getByText('Approved')).toBeInTheDocument();
+    expect(screen.queryByText('Failed')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    expect(await screen.findByText('Re-approve')).toBeInTheDocument();
+    expect(screen.queryByText('Force Approve')).not.toBeInTheDocument();
+  });
+});
