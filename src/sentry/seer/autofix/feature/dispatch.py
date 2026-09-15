@@ -9,7 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
-from sentry.seer.agent.client import SeerAgentClient, SeerRunWithAgent
+from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     collect_user_org_context,
@@ -25,7 +25,7 @@ from sentry.seer.autofix.feature.models import (
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -122,21 +122,20 @@ def trigger_autofix_feature(
             extras=extras,
         )
     elif args.existing_run_id is not None:
-        existing_run = (
-            SeerRun.objects.select_related("agent")
+        existing_agent_run = (
+            SeerAgentRun.objects.select_related("run")
             .filter(
-                organization_id=group.organization.id,
-                seer_run_state_id=args.existing_run_id,
-                agent__isnull=False,
+                run__organization_id=group.organization.id,
+                run__seer_run_state_id=args.existing_run_id,
             )
             .first()
         )
 
-        if existing_run is None:
+        if existing_agent_run is None or existing_agent_run.run is None:
             raise Exception(f"Run with ID {args.existing_run_id} not found")
 
         run = client.continue_feature_run(
-            existing_run=SeerRunWithAgent(run=existing_run, agent=existing_run.agent),
+            existing_agent_run=existing_agent_run,
             payload=payload.dict(),
             referrer=args.referrer.value,
             user_org_context=user_org_context,
@@ -154,7 +153,9 @@ def trigger_autofix_feature(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
 
-    metrics.incr("autofix_feature.trigger", tags={"referrer": args.referrer.value})
+    metrics.incr(
+        "autofix_feature.trigger", tags={"referrer": args.referrer.value, "step": args.step.value}
+    )
 
     logger.info(
         "autofix_feature.dispatch.started",

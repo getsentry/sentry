@@ -73,8 +73,8 @@ class TestTriggerAutofixFeature(TestCase):
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
-        assert run_kwargs["existing_run"].run == fake_run
-        assert run_kwargs["existing_run"].agent.source == LEGACY_FEATURE_ID
+        assert run_kwargs["existing_agent_run"].run == fake_run
+        assert run_kwargs["existing_agent_run"].source == LEGACY_FEATURE_ID
         assert "flush" not in run_kwargs
         payload = run_kwargs["payload"]
         assert payload["group_id"] == self.group.id
