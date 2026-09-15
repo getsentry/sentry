@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import asdict
+from datetime import timedelta
 
 import pytest
 
@@ -10,6 +11,7 @@ from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.typings.metric_detector import MetricIssueContext, OpenPeriodContext
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
+from sentry.models.groupopenperiod import create_open_period
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
@@ -159,19 +161,59 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
         ctx = self._make_context()
         assert ctx.trigger_status == TriggerStatus.ACTIVE
 
-    def test_trigger_status_resolved(self) -> None:
+    def test_triggered_event_stays_active_after_group_resolves(self) -> None:
         self.group.status = GroupStatus.RESOLVED
-        self.group.save()
 
         ctx = self._make_context()
-        assert ctx.trigger_status == TriggerStatus.RESOLVED
+        assert ctx.trigger_status == TriggerStatus.ACTIVE
+        assert ctx.metric_issue_context.new_status == IncidentStatus.CRITICAL
+        assert ctx.alert_context.alert_threshold == 123
+        assert ctx.alert_context.resolve_threshold is None
+        assert self.group.status == GroupStatus.RESOLVED
 
-    def test_trigger_status_ignored(self) -> None:
+    def test_triggered_event_stays_active_after_group_is_ignored(self) -> None:
         self.group.status = GroupStatus.IGNORED
-        self.group.save()
 
         ctx = self._make_context()
+        assert ctx.trigger_status == TriggerStatus.ACTIVE
+
+    def test_resolution_uses_linked_period_even_when_activity_time_is_later(self) -> None:
+        start = self.open_period.date_started
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data=asdict(self.evidence_data),
+            datetime=start + timedelta(minutes=3),
+        )
+        self.open_period.update(
+            date_ended=start + timedelta(minutes=1), resolution_activity=activity
+        )
+        create_open_period(self.group, start + timedelta(minutes=2))
+
+        ctx = self._make_context(event_data=WorkflowEventData(event=activity, group=self.group))
+        assert ctx.open_period == self.open_period
+        assert ctx.open_period_context.date_closed == start + timedelta(minutes=1)
+        assert ctx.metric_issue_context.open_period_identifier == self.open_period.id
+        assert ctx.metric_issue_context.new_status == IncidentStatus.CLOSED
         assert ctx.trigger_status == TriggerStatus.RESOLVED
+        assert ctx.alert_context.resolve_threshold == 100
+        assert ctx.alert_context.alert_threshold is None
+        assert self.group.status == GroupStatus.UNRESOLVED
+
+    def test_event_outside_any_period_does_not_fall_back_to_latest(self) -> None:
+        start = self.open_period.date_started
+        self.open_period.update(date_ended=start + timedelta(minutes=1))
+        create_open_period(self.group, start + timedelta(minutes=3))
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SET_RESOLVED.value,
+            data=asdict(self.evidence_data),
+            datetime=start + timedelta(minutes=2),
+        )
+
+        ctx = self._make_context(event_data=WorkflowEventData(event=activity, group=self.group))
+        with pytest.raises(ValueError, match="No open period found for notification event"):
+            ctx.open_period
 
     def test_metric_issue_context(self) -> None:
         ctx = self._make_context()

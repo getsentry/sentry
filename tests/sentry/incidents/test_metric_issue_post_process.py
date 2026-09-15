@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import orjson
 from django.utils import timezone
 
 from sentry.eventstream.types import EventStreamEventType
@@ -8,12 +9,15 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentStatus, TriggerStatus
 from sentry.incidents.subscription_processor import SubscriptionProcessor
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_consumer import update_status
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.notifications.notification_action.metric_alert_registry.handlers.slack_metric_alert_handler import (
     SlackMetricAlertHandler,
 )
@@ -100,7 +104,6 @@ class MetricIssueWorkflowTestCase(BaseWorkflowTest, BaseMetricIssueTest):
         )
 
 
-@patch.object(SlackMetricAlertHandler, "send_alert")
 class MetricIssueSubscriptionIntegrationTest(MetricIssueWorkflowTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -120,9 +123,9 @@ class MetricIssueSubscriptionIntegrationTest(MetricIssueWorkflowTestCase):
             "values": {"data": [{"value": value}]},
             "timestamp": timestamp,
         }
-        # Keep the production consumer, occurrence ingestion, status activities,
-        # post-processing, workflow filters and action tasks real. Only Slack delivery
-        # is mocked. The local eventstream dispatches post-processing synchronously.
+        # Start at the subscription processor, without Snuba or Kafka. The local
+        # eventstream and eager tasks run ingestion and workflows synchronously,
+        # except for task boundaries explicitly held by the individual test.
         with (
             freeze_time(timestamp),
             self.tasks(),
@@ -132,6 +135,7 @@ class MetricIssueSubscriptionIntegrationTest(MetricIssueWorkflowTestCase):
 
         return Group.objects.get(project=self.project, type=MetricIssue.type_id)
 
+    @patch.object(SlackMetricAlertHandler, "send_alert")
     def test_opens_and_resolves_on_every_subscription_evaluation(
         self, mock_send_alert: MagicMock
     ) -> None:
@@ -187,6 +191,7 @@ class MetricIssueSubscriptionIntegrationTest(MetricIssueWorkflowTestCase):
             (TriggerStatus.RESOLVED, IncidentStatus.CLOSED, 5, second_period.id),
         ]
 
+    @patch.object(SlackMetricAlertHandler, "send_alert")
     def test_delayed_resolution_action_keeps_its_original_open_period(
         self, mock_send_alert: MagicMock
     ) -> None:
@@ -236,6 +241,84 @@ class MetricIssueSubscriptionIntegrationTest(MetricIssueWorkflowTestCase):
             (TriggerStatus.ACTIVE, IncidentStatus.CRITICAL, second_period.id),
         ]
 
+    @patch.object(SlackSdkClient, "chat_postMessage")
+    def test_delayed_resolution_does_not_start_reopened_slack_thread(
+        self, mock_post_message: MagicMock
+    ) -> None:
+        # Exercise the legacy Slack path (notification-platform flags are off),
+        # including rendering and thread persistence. Only the Slack API is mocked.
+        integration, _ = self.create_provider_integration_for(
+            provider=IntegrationProviderSlug.SLACK,
+            organization=self.organization,
+            user=self.user,
+            name="test-slack",
+            metadata={"access_token": "test-token"},
+        )
+        self.critical_action.update(integration_id=integration.id)
+        mock_post_message.side_effect = [
+            {"ok": True, "ts": "1000.000001"},
+            {"ok": True, "ts": "1000.000002"},
+            {"ok": True, "ts": "1000.000003"},
+        ]
+
+        group = self.process_subscription_update(6, self.start)
+        first_period = GroupOpenPeriod.objects.get(group=group)
+        assert mock_post_message.call_count == 1
+        original_notification = NotificationMessage.objects.get(
+            action=self.critical_action, group=group
+        )
+        assert original_notification.message_identifier == "1000.000001"
+        assert original_notification.open_period_start == first_period.date_started
+        assert original_notification.parent_notification_message_id is None
+
+        with patch.object(trigger_action, "apply_async") as queued_actions:
+            self.process_subscription_update(5, self.start + timedelta(minutes=1))
+            group = self.process_subscription_update(6, self.start + timedelta(minutes=2))
+
+        first_period.refresh_from_db()
+        second_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
+        assert first_period.date_ended == self.start + timedelta(minutes=1)
+        assert second_period.date_started == self.start + timedelta(minutes=2)
+        assert group.status == GroupStatus.UNRESOLVED
+        assert queued_actions.call_count == 2
+        resolution_kwargs = queued_actions.call_args_list[0].kwargs["kwargs"]
+        reopening_kwargs = queued_actions.call_args_list[1].kwargs["kwargs"]
+        assert resolution_kwargs["activity_id"] == first_period.resolution_activity_id
+        assert reopening_kwargs["event_id"] is not None
+        assert mock_post_message.call_count == 1
+
+        # Drain in FIFO order, not reverse order. The old recovery should reply to
+        # the old critical message; the new critical should start its own thread.
+        with freeze_time(self.start + timedelta(minutes=2, seconds=5)):
+            trigger_action(**resolution_kwargs)
+            trigger_action(**reopening_kwargs)
+
+        assert mock_post_message.call_count == 3
+        initial, recovery, reopened = [call.kwargs for call in mock_post_message.call_args_list]
+        assert "|*Critical:" in initial["text"]
+        assert "|*Resolved:" in recovery["text"]
+        assert "|*Critical:" in reopened["text"]
+        assert [
+            (message["thread_ts"], message["reply_broadcast"])
+            for message in (initial, recovery, reopened)
+        ] == [(None, False), ("1000.000001", False), (None, False)]
+
+        assert list(
+            NotificationMessage.objects.filter(action=self.critical_action, group=group)
+            .order_by("id")
+            .values_list("open_period_start", "parent_notification_message_id")
+        ) == [
+            (first_period.date_started, None),
+            (first_period.date_started, original_notification.id),
+            (second_period.date_started, None),
+        ]
+        recovery_attachment = orjson.loads(recovery["attachments"])[0]
+        assert (
+            f"<!date^{int(first_period.date_started.timestamp())}^Started:"
+            in recovery_attachment["blocks"][0]["text"]["text"]
+        )
+
+    @patch.object(SlackMetricAlertHandler, "send_alert")
     def test_delayed_resolution_workflow_uses_the_closed_period_priority(
         self, mock_send_alert: MagicMock
     ) -> None:
@@ -258,11 +341,15 @@ class MetricIssueSubscriptionIntegrationTest(MetricIssueWorkflowTestCase):
         resolution_kwargs = queued_workflows.call_args.kwargs
         first_period.refresh_from_db()
         assert resolution_kwargs["activity_id"] == first_period.resolution_activity_id
+        assert first_period.date_ended == self.start + timedelta(minutes=1)
+        assert first_period.data["highest_seen_priority"] == DetectorPriorityLevel.HIGH
 
         group = self.process_subscription_update(4, self.start + timedelta(minutes=2))
         second_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
         assert second_period.id != first_period.id
+        assert group.status == GroupStatus.UNRESOLVED
         assert group.priority == DetectorPriorityLevel.MEDIUM
+        assert second_period.data["highest_seen_priority"] == DetectorPriorityLevel.MEDIUM
         assert mock_send_alert.call_count == 1  # Critical-only action must not fire for warning.
 
         with freeze_time(self.start + timedelta(minutes=2, seconds=5)), self.tasks():
@@ -273,6 +360,69 @@ class MetricIssueSubscriptionIntegrationTest(MetricIssueWorkflowTestCase):
         recovery = mock_send_alert.call_args.kwargs
         assert recovery["trigger_status"] == TriggerStatus.RESOLVED
         assert recovery["open_period_context"].id == first_period.id
+
+    @patch.object(SlackMetricAlertHandler, "send_alert")
+    def test_delayed_actions_keep_both_closed_periods_and_transition_statuses(
+        self, mock_send_alert: MagicMock
+    ) -> None:
+        with patch.object(trigger_action, "apply_async") as queued_actions:
+            group = self.process_subscription_update(6, self.start)
+            first_period = GroupOpenPeriod.objects.get(group=group)
+            self.process_subscription_update(5, self.start + timedelta(minutes=1))
+            group = self.process_subscription_update(6, self.start + timedelta(minutes=2))
+            second_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
+            group = self.process_subscription_update(5, self.start + timedelta(minutes=3))
+
+        assert group.status == GroupStatus.RESOLVED
+        assert queued_actions.call_count == 4
+        mock_send_alert.assert_not_called()
+        with freeze_time(self.start + timedelta(minutes=3, seconds=5)):
+            for call in queued_actions.call_args_list:
+                trigger_action(**call.kwargs["kwargs"])
+
+        assert [
+            (
+                call.kwargs["trigger_status"],
+                call.kwargs["metric_issue_context"].new_status,
+                call.kwargs["open_period_context"].id,
+            )
+            for call in mock_send_alert.call_args_list
+        ] == [
+            (TriggerStatus.ACTIVE, IncidentStatus.CRITICAL, first_period.id),
+            (TriggerStatus.RESOLVED, IncidentStatus.CLOSED, first_period.id),
+            (TriggerStatus.ACTIVE, IncidentStatus.CRITICAL, second_period.id),
+            (TriggerStatus.RESOLVED, IncidentStatus.CLOSED, second_period.id),
+        ]
+
+    @patch.object(SlackMetricAlertHandler, "send_alert")
+    def test_delayed_warning_resolution_does_not_recover_later_critical_period(
+        self, mock_send_alert: MagicMock
+    ) -> None:
+        self.create_data_condition(
+            comparison=3,
+            type=Condition.GREATER,
+            condition_result=DetectorPriorityLevel.MEDIUM,
+            condition_group=self.detector.workflow_condition_group,
+        )
+        self.resolve_detector_trigger.update(comparison=3)
+        group = self.process_subscription_update(4, self.start)
+        first_period = GroupOpenPeriod.objects.get(group=group)
+        with patch.object(process_workflow_activity, "delay") as queued_workflows:
+            self.process_subscription_update(2, self.start + timedelta(minutes=1))
+        queued_workflows.assert_called_once()
+        mock_send_alert.assert_not_called()
+
+        group = self.process_subscription_update(6, self.start + timedelta(minutes=2))
+        second_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
+        assert second_period.id != first_period.id
+        mock_send_alert.assert_called_once()
+        with freeze_time(self.start + timedelta(minutes=2, seconds=5)), self.tasks():
+            process_workflow_activity(**queued_workflows.call_args.kwargs)
+
+        # Only the new critical period should notify this critical-only action.
+        mock_send_alert.assert_called_once()
+        assert mock_send_alert.call_args.kwargs["trigger_status"] == TriggerStatus.ACTIVE
+        assert mock_send_alert.call_args.kwargs["open_period_context"].id == second_period.id
 
 
 @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")

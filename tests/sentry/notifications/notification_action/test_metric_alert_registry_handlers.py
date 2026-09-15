@@ -154,6 +154,10 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             project=self.project,
             date_started=self.group_event.group.first_seen,
         )
+        # The fixture creates the group after its event; in production the event
+        # belongs to the period that starts with that event.
+        self.group.update(first_seen=self.group_event.datetime)
+        self.open_period.update(date_started=self.group_event.datetime)
         self.event_data = WorkflowEventData(
             event=self.group_event,
             workflow_env=self.workflow.environment,
@@ -516,8 +520,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             detection_type=AlertRuleDetectionType.STATIC,
             comparison_delta=None,
             sensitivity=None,
-            resolve_threshold=None,
-            alert_threshold=self.evidence_data.conditions[2]["comparison"],
+            resolve_threshold=self.evidence_data.conditions[2]["comparison"],
+            alert_threshold=None,
         )
         self.assert_metric_issue_context(
             metric_issue_context,

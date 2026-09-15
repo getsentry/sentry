@@ -12,6 +12,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.notifications.utils.open_period import get_open_period_for_event
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Detector
@@ -78,9 +79,16 @@ class IssueNotificationContext:
         return self._invocation.event_data.group
 
     @cached_property
+    def group_status(self) -> int:
+        # The group may have resolved or reopened since this event was produced.
+        _, priority = self.evidence_data_and_priority
+        return (
+            GroupStatus.RESOLVED if priority == DetectorPriorityLevel.OK else GroupStatus.UNRESOLVED
+        )
+
+    @cached_property
     def trigger_status(self) -> TriggerStatus:
-        group_status = self._invocation.event_data.group.status
-        if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
+        if self.group_status == GroupStatus.RESOLVED:
             return TriggerStatus.RESOLVED
         return TriggerStatus.ACTIVE
 
@@ -95,7 +103,7 @@ class IssueNotificationContext:
         return AlertContext.from_workflow_engine_models(
             detector=self._invocation.detector,
             evidence_data=evidence_data,
-            group_status=self.group.status,
+            group_status=self.group_status,
             detector_priority_level=priority,
         )
 
@@ -106,11 +114,13 @@ class IssueNotificationContext:
             group=self.group,
             evidence_data=evidence_data,
             detector_priority_level=priority,
+            open_period=self.open_period,
+            group_status=self.group_status,
         )
 
     @cached_property
     def open_period_context(self) -> OpenPeriodContext:
-        return OpenPeriodContext.from_group(self.group)
+        return OpenPeriodContext.from_open_period(self.open_period)
 
     @cached_property
     def organization(self) -> Organization:
@@ -118,7 +128,10 @@ class IssueNotificationContext:
 
     @cached_property
     def open_period(self) -> GroupOpenPeriod:
-        return GroupOpenPeriod.objects.get(id=self.metric_issue_context.open_period_identifier)
+        open_period = get_open_period_for_event(self.group, self._invocation.event_data.event)
+        if open_period is None:
+            raise ValueError("No open period found for notification event")
+        return open_period
 
     @cached_property
     def notification_uuid(self) -> str:
