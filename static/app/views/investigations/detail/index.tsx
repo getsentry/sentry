@@ -334,7 +334,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
           </HeaderBreadcrumbs>
         </Layout.Title>
         <InvestigationHeader as="header" width="100%" padding="xl">
-          <Grid columns="minmax(0, 1fr) auto" align="start" gap="lg" width="100%">
+          <Grid
+            columns="minmax(0, 1fr) auto"
+            align="start"
+            gap="lg"
+            width="100%"
+            maxWidth="885px"
+            margin="0 auto"
+          >
             <Stack gap="xs" minWidth={0}>
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
@@ -375,7 +382,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         </InvestigationHeader>
         <Layout.Body>
           <Layout.Main width="full">
-            <Stack width="100%">
+            <InvestigationCanvas>
               <NotebookSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
@@ -388,12 +395,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                * 404s.
                */}
               {investigation.orchestration ? (
-                <Stack paddingBottom="xl">
+                <Stack width="min(100%, 884px)" margin="0 auto" paddingBottom="xl">
                   <InvestigationHypotheses investigationId={investigation.id} />
                 </Stack>
               ) : null}
 
-              <Stack>
+              <Stack width="min(100%, 884px)" margin="0 auto">
                 {visibleSummaryBlock ? (
                   <InvestigationCell
                     block={visibleSummaryBlock}
@@ -413,7 +420,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   ))}
                 </Stack>
               </Stack>
-            </Stack>
+            </InvestigationCanvas>
           </Layout.Main>
         </Layout.Body>
       </Stack>
@@ -444,6 +451,11 @@ function formatSourceType(sourceType: string) {
 function formatNotebookDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
+
+const InvestigationCanvas = styled(Stack)`
+  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
+  margin: 0 auto;
+`;
 
 const InvestigationHeader = styled(Container)`
   position: relative;
