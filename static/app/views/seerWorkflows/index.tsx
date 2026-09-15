@@ -489,14 +489,18 @@ const SOURCE_ICONS: Record<
 
 function getSourceLabel(source: WorkflowRunSource | null): string {
   if (!source) {
-    return '-';
+    return '--';
   }
   return SOURCE_LABELS[source] ?? source;
 }
 
 function SourceIcon({source}: {source: WorkflowRunSource | null}) {
   if (!source) {
-    return null;
+    return (
+      <Text size="sm" variant="muted">
+        {getSourceLabel(source)}
+      </Text>
+    );
   }
   const Icon = SOURCE_ICONS[source];
   if (!Icon) {

@@ -42,7 +42,7 @@ describe('SeerWorkflows', () => {
       id: '1',
       seerRunId: '45e94493-c356-4d2b-bb26-ae4e2e508a74',
       strategy: 'duplicate_monitors',
-      source: 'manual',
+      source: null,
       dateAdded: '2026-09-09T00:00:00Z',
       extras: {status: 'complete'},
       results: [],
@@ -69,6 +69,7 @@ describe('SeerWorkflows', () => {
     const runningRun = {
       ...previousRun,
       id: '2',
+      source: 'manual',
       seerRunId: '09a15703-bf37-4208-bd90-c57013c9694b',
       extras: {status: 'running'},
     };
@@ -79,7 +80,8 @@ describe('SeerWorkflows', () => {
 
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.getAllByText('Scanning monitors…')).not.toHaveLength(0);
-    expect(screen.getAllByLabelText('Manual')).toHaveLength(2);
+    expect(screen.getByLabelText('Manual')).toBeInTheDocument();
+    expect(screen.getByText('--')).toBeInTheDocument();
     expect(startScan).toHaveBeenCalledTimes(1);
     expect(startScan).toHaveBeenCalledWith(
       url,

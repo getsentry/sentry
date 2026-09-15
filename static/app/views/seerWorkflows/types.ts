@@ -12,7 +12,7 @@ type SeerWorkflowRunBase = {
   errorMessage: string | null;
   id: string;
   results: SeerWorkflowResult[];
-  source: WorkflowRunSource;
+  source: WorkflowRunSource | null;
   seerRunId?: string;
 };
 
