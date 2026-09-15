@@ -660,6 +660,43 @@ describe('VirtualizedViewManger', () => {
     });
 
     describe('onWheel (timeline/span durations)', () => {
+      it.each([{deltaX: -100}, {shiftKey: true, deltaY: -100}])(
+        'preserves compressed zoom at a boundary with %j',
+        wheelOptions => {
+          const scheduler = new TraceScheduler();
+          const manager = new VirtualizedViewManager(
+            {
+              list: {width: 0.5},
+              span_list: {width: 0.5},
+            },
+            scheduler,
+            new TraceView(),
+            ThemeFixture()
+          );
+          manager.view.setTraceSpace([0, 0, 1000, 1]);
+          manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+          manager.time_compression = TraceTimeCompression.FromVisibleItems({
+            enabled: true,
+            traceSpace: [0, 1000],
+            physicalWidth: 1000,
+            nodes: [
+              {type: 'span', space: [0, 100]} as BaseNode,
+              {type: 'span', space: [900, 100]} as BaseNode,
+            ],
+            indicators: [],
+          });
+          manager.view.setTraceView({x: 0, width: 500});
+          scheduler.on('set trace view', view => manager.view.setTraceView(view));
+          const compressedWidth = manager.getCompressedView().width;
+
+          manager.onWheel(new WheelEvent('wheel', wheelOptions));
+
+          expect(manager.view.trace_view.x).toBeCloseTo(0);
+          expect(manager.view.trace_view.width).toBeCloseTo(500);
+          expect(manager.getCompressedView().width).toBeCloseTo(compressedWidth);
+        }
+      );
+
       it('keeps the cursor anchored when zooming a compressed timeline', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(

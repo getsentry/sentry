@@ -1,5 +1,6 @@
 import {mat3, vec2} from 'gl-matrix';
 
+import {clamp} from 'sentry/utils/number/clamp';
 import {TraceTimeCompression} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceTimeCompression';
 import type {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 
@@ -252,7 +253,12 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
     physicalDeltaPct: number
   ): {width: number; x: number} {
     const compressedView = context.getCompressedView();
-    const compressedDelta = physicalDeltaPct * compressedView.width;
+    // Clamping after conversion to real time would change the compressed viewport width.
+    const compressedDelta = clamp(
+      physicalDeltaPct * compressedView.width,
+      -compressedView.left,
+      context.timeCompression.compressedDuration - compressedView.right
+    );
     const nextCompressedLeft = compressedView.left + compressedDelta;
     const nextCompressedRight = compressedView.right + compressedDelta;
     const nextRealLeft = context.timeCompression.toRealTimestamp(nextCompressedLeft);

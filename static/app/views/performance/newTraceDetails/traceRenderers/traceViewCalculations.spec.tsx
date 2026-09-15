@@ -80,6 +80,64 @@ describe('TraceViewCalculations', () => {
   });
 
   describe('CompressedTraceViewCalculations', () => {
+    describe.each([0, 10_000])('horizontal panning with trace origin %s', origin => {
+      let context: TraceViewCalculationContext;
+      const calculations = new CompressedTraceViewCalculations();
+
+      beforeEach(() => {
+        context = makeCalculationContext({
+          timeCompression: TraceTimeCompression.FromVisibleItems({
+            enabled: true,
+            traceSpace: [origin, 1000],
+            physicalWidth: 1000,
+            nodes: [
+              {type: 'span', space: [origin, 100]} as BaseNode,
+              {type: 'span', space: [origin + 900, 100]} as BaseNode,
+            ],
+            indicators: [],
+          }),
+        });
+        context.view.setTraceSpace([origin, 0, 1000, 1]);
+      });
+
+      it.each([
+        {name: 'at the left boundary', x: 0, width: 500, delta: -0.1},
+        {name: 'at the right boundary', x: 500, width: 500, delta: 0.1},
+        {name: 'past the left boundary', x: 100, width: 400, delta: -10},
+        {name: 'past the right boundary', x: 500, width: 400, delta: 10},
+        {name: 'left with the full trace visible', x: 0, width: 1000, delta: -0.1},
+        {name: 'right with the full trace visible', x: 0, width: 1000, delta: 0.1},
+      ])('preserves zoom when panning $name', ({x, width, delta}) => {
+        context.view.setTraceView({x, width});
+        const compressedWidth = context.getCompressedView().width;
+
+        for (let pan = 0; pan < 2; pan++) {
+          context.view.setTraceView(calculations.computeWheelPanView(context, delta));
+
+          expect(context.getCompressedView().width).toBeCloseTo(compressedWidth);
+          if (delta < 0) {
+            expect(context.view.trace_view.x).toBeCloseTo(0);
+          } else {
+            expect(context.view.trace_view.right).toBeCloseTo(1000);
+          }
+        }
+      });
+
+      it.each([
+        {x: 100, delta: 0.1},
+        {x: 500, delta: -0.1},
+      ])('preserves zoom when panning within bounds from $x', ({x, delta}) => {
+        context.view.setTraceView({x, width: 400});
+        const before = context.getCompressedView();
+
+        context.view.setTraceView(calculations.computeWheelPanView(context, delta));
+
+        const after = context.getCompressedView();
+        expect(after.width).toBeCloseTo(before.width);
+        expect(after.left).toBeCloseTo(before.left + delta * before.width);
+      });
+    });
+
     it('keeps the cursor anchored when zooming through compressed time', () => {
       const calculations = new CompressedTraceViewCalculations();
       const context = makeCompressedContext();
