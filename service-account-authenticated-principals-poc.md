@@ -1,26 +1,27 @@
 # Service Account Authenticated Identity Boundary Proof of Concept
 
-| Field                  | Value                                      |
-| ---------------------- | ------------------------------------------ |
-| Status                 | Experimental proof of concept              |
-| Linear                 | ENG-8596                                   |
-| Branch                 | `feat/eng-8596-service-account-principals` |
-| Date                   | September 15, 2026                         |
-| Current code term      | `AuthenticatedPrincipal`                   |
-| Recommended production | `ActorRef` + `AuthenticatedActor`          |
+| Field                     | Value                                      |
+| ------------------------- | ------------------------------------------ |
+| Status                    | Experimental proof of concept              |
+| Linear                    | ENG-8596                                   |
+| Branch                    | `feat/eng-8596-service-account-principals` |
+| Date                      | September 15, 2026                         |
+| This experiment           | Authenticated Identity Boundary PoC        |
+| Implementation term       | `AuthenticatedPrincipal`                   |
+| Production recommendation | `ActorRef` + `AuthenticatedActor`          |
 
 ## Summary
 
-The existing compatibility prototype is sufficient to implement service accounts. It proves that
+The earlier **Compatibility PoC** is sufficient to implement service accounts. It proves that
 an organization-scoped, non-human identity can authenticate, hold an organization membership,
 join teams, and receive ordinary Sentry permissions without being stored as a `User`.
 
-This proof of concept tests a narrower architectural question: is it safer and less costly to
+This **Boundary PoC** tests a narrower architectural question: is it safer and less costly to
 expand the semantic contract of `request.user` to include non-users, then defend that change
 throughout the application, or to add one explicit boundary for the identity established by
 authentication?
 
-The central design choice is a typed **authenticated identity boundary**. The current branch
+The central design choice is a typed **authenticated identity boundary**. The Boundary PoC
 implements that boundary using security-domain “principal” terminology. Authentication validates
 a credential, such as an API token, and produces one of these explicit implementation types:
 
@@ -32,18 +33,26 @@ authentication deliberately leaves `request.user` anonymous and stores the servi
 the typed authenticated identity instead. Code that supports service accounts must therefore ask
 for that identity rather than assuming every authenticated identity is a user.
 
-The recommendation from this document is to call the production abstraction
+The **Production Recommendation** is to call the abstraction
 `AuthenticatedActor`, containing an `ActorRef`. “Principal” remains useful for describing the
-current code and is a standard authentication term, but this proposal does not require Sentry to
-adopt it as application-wide vocabulary.
+Boundary PoC implementation and is a standard authentication term, but this proposal does not
+require Sentry to adopt it as application-wide vocabulary.
 
 > **Recommendation:** use `ActorRef` and `AuthenticatedActor` in the production API. Do not
 > introduce a separate application-wide principal concept. Treat the principal names on this
 > branch as PoC implementation terminology.
 
+## Names Used in This Document
+
+| Name                      | Refers to                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------- |
+| Compatibility PoC         | Earlier experiment at `6a9928ddc54`, placing `RpcServiceAccount` in `request.user`. |
+| Boundary PoC              | This document's branch, `feat/eng-8596-service-account-principals`.                 |
+| Production Recommendation | `ActorRef` plus `AuthenticatedActor`, combining lessons from both PoCs.             |
+
 This separates five concepts that have historically been easy to conflate:
 
-| Concept             | Meaning in this proof of concept                                                |
+| Concept             | Meaning in the Boundary PoC                                                     |
 | ------------------- | ------------------------------------------------------------------------------- |
 | Credential          | Secret presented by the caller, currently an API token.                         |
 | Authenticated actor | Authentication invariant: the typed identity proven by authentication.          |
@@ -51,7 +60,7 @@ This separates five concepts that have historically been easy to conflate:
 | Actor reference     | Identity value: a typed reference to the entity responsible for an action.      |
 | ViewerContext       | Context transport: ambient actor and tenancy data for the current unit of work. |
 
-## What the Current PoC Calls a “Principal”
+## “Principal” in the Boundary PoC
 
 In authentication terminology, a principal is the answer to the question:
 
@@ -70,7 +79,7 @@ Membership: organization 12, role "member", team "deploys"
 Actor:      service_account:481
 ```
 
-The current implementation type definition is intentionally small:
+The Boundary PoC's implementation type definition is intentionally small:
 
 ```python
 AuthenticatedPrincipal = AuthenticatedUserPrincipal | AuthenticatedServiceAccountPrincipal
@@ -105,7 +114,7 @@ ActorRef             A namespaced identity value, such as service_account:481.
 ViewerContext        The ambient execution context carrying actor and tenancy information.
 ```
 
-The current PoC names the authenticated wrapper `AuthenticatedPrincipal` and represents
+The Boundary PoC names the authenticated wrapper `AuthenticatedPrincipal` and represents
 `ActorRef` as separate kind and ID fields. Authentication produces the authenticated wrapper,
 and its actor reference can be carried in `ViewerContext`:
 
@@ -149,13 +158,12 @@ class ViewerContext:
     project_id: int | None
 ```
 
-The current proof of concept uses principal-named classes and stores `actor_type` and `actor_id`
-directly in `ViewerContext`. That is sufficient to prove the authentication boundary and non-user
-propagation. It does not mean the document recommends those names or flattened fields for
-production.
+The Boundary PoC uses principal-named classes and stores `actor_type` and `actor_id` directly in
+`ViewerContext`. That is sufficient to prove the authentication boundary and non-user
+propagation. It does not mean the Production Recommendation uses those names or flattened fields.
 
-Sentry's existing `sentry.types.actor.Actor` is not used for this purpose in the proof of
-concept. It currently represents assignable users and teams and has broad owner, assignee, and
+Sentry's existing `sentry.types.actor.Actor` is not used for this purpose in the Boundary PoC. It
+currently represents assignable users and teams and has broad owner, assignee, and
 recipient usage. Expanding it into a general authentication actor would be a separate migration
 with a substantially larger compatibility surface.
 
@@ -170,11 +178,11 @@ The two proofs of concept agree on most of the product and data model:
 The disagreement is primarily where the authenticated identity enters application code.
 
 ```text
-Compatibility prototype: credential -> RpcServiceAccount -> request.user
-Typed-boundary prototype: credential -> AuthenticatedActor -> request.authenticated_actor
+Compatibility PoC: credential -> RpcServiceAccount -> request.user
+Boundary PoC:      credential -> AuthenticatedActor -> request.authenticated_actor
 ```
 
-The compatibility prototype deliberately redefines `request.user` from “the authenticated
+The Compatibility PoC deliberately redefines `request.user` from “the authenticated
 Sentry user” to “any authenticated entity.” That can be a valid design, but it changes the
 meaning of a mature interface used by many call sites. For example:
 
@@ -216,7 +224,7 @@ authentication boundary that makes non-user support explicit. The comparison is 
 If the team chooses to redefine the request identity field to mean any authenticated entity,
 that can still be sufficient. The safer version would be a typed `request.actor` or
 `request.authenticated_actor`, rather than a duck-typed non-user stored in a user-named field.
-At that point, the design is structurally close to this proof of concept; the remaining
+At that point, the design is structurally close to the Boundary PoC; the remaining
 difference is mostly naming and compatibility strategy.
 
 ## Architecture
@@ -245,8 +253,8 @@ flowchart TD
 ```
 
 The important boundary is that authentication produces an `AuthenticatedActor`, while
-authorization uses the actor's organization membership plus the credential's scopes. The current
-implementation names that wrapper `AuthenticatedPrincipal`.
+authorization uses the actor's organization membership plus the credential's scopes. The Boundary
+PoC implementation names that wrapper `AuthenticatedPrincipal`.
 
 For the proof-of-concept endpoint, the reported effective scopes are:
 
@@ -325,7 +333,7 @@ organization membership and team assignments in the cell.
 ```mermaid
 sequenceDiagram
     actor Admin as Human administrator
-    participant API as PoC endpoint in cell
+    participant API as Boundary PoC endpoint in cell
     participant SA as ServiceAccount RPC service
     participant Control as Control database
     participant Cell as Cell database
@@ -359,7 +367,7 @@ sequenceDiagram
     participant SA as ServiceAccount RPC service
     participant Request as DRF request
     participant Context as ViewerContext
-    participant API as PoC endpoint
+    participant API as Boundary PoC endpoint
 
     Client->>Auth: GET with Bearer token
     Auth->>Replica: Resolve token identity IDs
@@ -375,7 +383,7 @@ sequenceDiagram
     API-->>Client: Identity, membership, scopes, and actor context
 ```
 
-The proof of concept intentionally rejects service-account tokens on unrelated endpoints. This
+The Boundary PoC intentionally rejects service-account tokens on unrelated endpoints. This
 contains the experiment and prevents existing endpoints from accidentally treating an anonymous
 `request.user` as a fully supported machine identity.
 
@@ -390,7 +398,7 @@ an `AuthenticatedActor`, while a task, consumer, webhook, or system operation ca
 context directly without an external credential.
 
 `ViewerContext` previously carried a `user_id` and an actor type, which is insufficient for an
-actor that is not a user. The proof of concept adds an independent `actor_id`.
+actor that is not a user. The Boundary PoC adds an independent `actor_id`.
 
 For a human request:
 
@@ -414,8 +422,8 @@ Keeping `actor_id` separate from `user_id` avoids making every actor pretend to 
 still providing one consistent identity for telemetry, auditing, background work, and future RPC
 propagation.
 
-For the proof of concept, the authenticated identity and actor reference identify the same
-entity. The current code calls the former a principal:
+In the Boundary PoC, the authenticated identity and actor reference identify the same
+entity. The Boundary PoC implementation calls the former a principal:
 
 ```text
 authenticated identity = service_account:481
@@ -431,7 +439,7 @@ effective actor         = user:42
 
 For that reason, endpoint authentication should read `request.authenticated_actor` in the
 recommended design. It should not infer authentication from the presence of a `ViewerContext`
-actor. The current PoC uses its principal-named request helper for this purpose.
+actor. The Boundary PoC uses its principal-named request helper for this purpose.
 
 ## Why Not Expose the Service Account Through `request.user`?
 
@@ -448,31 +456,31 @@ authenticated representation should implement enough of the user interface to oc
 | Requires actor-aware changes across authentication, authorization, audit, and RPC boundaries. | Risks long-term ambiguity about whether a “user” is a person or automation.          |
 | Exposes migration work early, which is useful for sizing the real implementation.             | May defer migration cost but spread service-account exceptions throughout user code. |
 
-This proof of concept is designed to measure whether the additional explicitness is worth the
+The Boundary PoC is designed to measure whether the additional explicitness is worth the
 compatibility work, not to claim that all endpoint migration has already been solved.
 
-## Comparison With the Existing Prototype
+## Comparison Between the PoCs
 
-The comparison baseline is the existing service-account prototype at
+The Compatibility PoC baseline is
 [`6a9928ddc54`](https://github.com/getsentry/sentry/commit/6a9928ddc54bddee1b1bb9097bceaf20ad3dc93d),
-created on August 28, 2026. That prototype uses the same separate `ServiceAccount` model but
-makes `RpcServiceAccount` implement enough of the user interface to become `request.user`.
+created on August 28, 2026. It uses the same separate `ServiceAccount` model but makes
+`RpcServiceAccount` implement enough of the user interface to become `request.user`.
 
-This typed-boundary proof of concept was based on `acca281e47c` from September 11, 2026. The
-branches therefore have different baselines, and the existing prototype deliberately implements
-far more product behavior. Raw size is useful for understanding migration surface but is not a
-feature-for-feature productivity comparison.
+The Boundary PoC was based on `acca281e47c` from September 11, 2026. The branches therefore have
+different baselines, and the Compatibility PoC deliberately implements far more product behavior.
+Raw size is useful for understanding migration surface but is not a feature-for-feature
+productivity comparison.
 
 ```mermaid
 flowchart LR
-    subgraph Compatibility[Existing request.user compatibility prototype]
+    subgraph Compatibility[Compatibility PoC]
         CT[Service-account token] --> CR[RpcServiceAccount]
         CR --> CU[request.user]
         CU --> CE[Existing endpoints]
         CE --> CG[Human-only is_interactive guards]
     end
 
-    subgraph Typed[Typed-boundary prototype]
+    subgraph Typed[Boundary PoC]
         TT[Service-account token] --> TP[AuthenticatedServiceAccountPrincipal]
         TP --> TR[Authenticated request identity]
         TP --> TA[Anonymous request.user]
@@ -482,55 +490,55 @@ flowchart LR
 
 ### Quantitative Scope
 
-| Measurement                                    | Existing compatibility prototype |    Typed-boundary prototype |
-| ---------------------------------------------- | -------------------------------: | --------------------------: |
-| Total changed files                            |                              162 | 33, including this document |
-| Insertions and deletions                       |                    +5,653 / -329 |                +1,559 / -25 |
-| Implementation changes excluding this document |                    +5,653 / -329 |                +1,132 / -25 |
-| Files under `src/`                             |                              116 |                          29 |
-| Test files                                     |                               38 |                           2 |
-| Frontend files                                 |                                7 |                           0 |
-| Files common to both approaches                |                               26 |                          26 |
-| Approach-specific files                        |                              136 |                           7 |
+| Measurement                                    | Compatibility PoC |                Boundary PoC |
+| ---------------------------------------------- | ----------------: | --------------------------: |
+| Total changed files                            |               162 | 33, including this document |
+| Insertions and deletions                       |     +5,653 / -329 |                +1,559 / -25 |
+| Implementation changes excluding this document |     +5,653 / -329 |                +1,132 / -25 |
+| Files under `src/`                             |               116 |                          29 |
+| Test files                                     |                38 |                           2 |
+| Frontend files                                 |                 7 |                           0 |
+| Files common to both approaches                |                26 |                          26 |
+| Approach-specific files                        |               136 |                           7 |
 
 The 26 common files are primarily the schema, migrations, service-account RPC, token replication,
 organization-member mapping, authentication plumbing, fixtures, backups, and ViewerContext.
 This indicates that most persistence and hybrid-cloud work is required regardless of how the
 authenticated identity is exposed to application code.
 
-The existing prototype adds `is_interactive` references in 56 source files and direct
+The Compatibility PoC adds `is_interactive` references in 56 source files and direct
 service-account branching in approximately 50 source files. This buys substantial endpoint
 coverage, but it also demonstrates the compatibility surface created by placing a non-user object
 in `request.user`.
 
 ### Comparison by Ticket Criterion
 
-| Criterion                                       | Existing compatibility prototype                                                                                                                                                                                                                                                      | Typed-boundary prototype                                                                                                                                                                                                                                                             | Assessment                                                                                                                                                                                                            |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schema and migration complexity                 | Adds `ServiceAccount`, nullable service-account ownership to `OrganizationMember`, `OrganizationMemberMapping`, `ApiToken`, and `ApiTokenReplica`, plus exclusivity constraints and a mapping index.                                                                                  | Uses essentially the same schema. It additionally prevents service-account memberships from carrying invitation email state.                                                                                                                                                         | The core schema cost is nearly identical and does not decide between the approaches. The typed branch has a slightly stronger membership invariant; the existing prototype has an additional composite mapping index. |
-| Number of files and call sites                  | 162 files because it implements management APIs, UI, lifecycle operations, broad endpoint compatibility, durable attribution, and extensive tests.                                                                                                                                    | 33 files because it intentionally enables only one private endpoint and no UI.                                                                                                                                                                                                       | The large difference primarily measures feature breadth. However, the 56 files requiring new `is_interactive` handling are direct evidence of user-emulation migration cost.                                          |
-| Authentication and permission-layer complexity  | Authentication returns `RpcServiceAccount` as `request.user`. `AuthenticatedToken` carries actor type and ID. Central `auth.access` resolves the service-account membership and caps access with token scopes.                                                                        | Authentication returns an explicit service-account identity while leaving `request.user` anonymous. The PoC endpoint uses the current `require_user_principal` and `require_service_account_principal` helpers. It has not integrated the typed identity into central `auth.access`. | The typed boundary is clearer and safer by default. The existing prototype is substantially more complete in centralized authorization. A production design should combine these properties.                          |
-| Compatibility with existing user-only endpoints | High compatibility. Service accounts can use representative organization, project, team, issue, dashboard, discover, and explore paths after targeted changes.                                                                                                                        | Deliberately rejects service-account tokens on every unrelated endpoint.                                                                                                                                                                                                             | The compatibility prototype proves utility sooner. The typed prototype makes unsupported behavior explicit and avoids accidentally entering user-only paths.                                                          |
-| Organization role, teams, and token scopes      | Uses the ordinary access layer. Tests demonstrate team-limited projects, open membership, scope-based write denial, team creation, and project creation.                                                                                                                              | Creates ordinary membership and team rows and reports token scopes, member scopes, and their intersection. Central endpoint authorization is not yet derived from that intersection.                                                                                                 | Existing prototype meets this requirement more completely. The typed prototype still needs actor-aware integration with `auth.access`.                                                                                |
-| Audit and activity attribution                  | Adds a typed `ViewerActor`, writes service-account type and ID into audit data, leaves the user foreign key empty, and adds service-account action-log attribution for issue changes.                                                                                                 | Propagates a namespaced actor through ViewerContext and exposes it from the inspection endpoint, but does not write a durable audit or activity record.                                                                                                                              | Existing prototype is stronger. Durable attribution remains an acceptance gap in the typed branch.                                                                                                                    |
-| Hybrid-cloud ownership and replication          | Control-silo account and tokens, cell membership, token replica, organization-member mapping, actor-aware organization RPC context, and stale-replica lifecycle tests.                                                                                                                | Same fundamental control/cell ownership and token replication. It revalidates the account and token through the service-account RPC but does not propagate the authenticated identity through the organization access RPC.                                                           | Persistence topology is aligned. Existing prototype has more complete cross-silo authorization and lifecycle coverage.                                                                                                |
-| Creation, deletion, and failure recovery        | Creation uses compensating deletion if cell membership creation fails. It implements update, disable, token rotation, revocation, and deletion. Updates and deletion span control and cell writes without a distributed transaction, so later failures can still leave partial state. | Creation uses the same compensating deletion pattern. The RPC has deletion support, but the private endpoint does not expose lifecycle operations.                                                                                                                                   | Both need an outbox or explicit reconciliation strategy for production. Existing prototype exercises more failure modes; neither makes multi-silo lifecycle atomic.                                                   |
-| Risk of entering human workflows                | Higher inherent risk because `RpcServiceAccount` implements user-like properties such as `is_authenticated`, `email`, `has_2fa`, and `get_username`, and is placed in `request.user`. The prototype adds `is_interactive` guards and tests representative personal workflows.         | Lower default risk because `request.user` stays anonymous and endpoints must explicitly accept a service-account authenticated identity.                                                                                                                                             | The typed boundary is safer for SSO, SCIM, email, 2FA, notification, merge, and account-settings boundaries. Its cost is explicit endpoint migration.                                                                 |
-| Incremental rollout and maintenance             | Can deliver broad compatibility quickly behind one feature flag, but long-term correctness depends on finding and maintaining every user-only assumption and compatibility guard.                                                                                                     | Can roll out endpoint families explicitly and centralize human-only rejection, but initially supports little existing functionality.                                                                                                                                                 | Prefer explicit capability rollout over global user emulation. Add central actor-aware authorization to avoid duplicating membership logic per endpoint.                                                              |
+| Criterion                                       | Compatibility PoC                                                                                                                                                                                                                                                                     | Boundary PoC                                                                                                                                                                                                                                                 | Assessment                                                                                                                                                                                                           |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema and migration complexity                 | Adds `ServiceAccount`, nullable service-account ownership to `OrganizationMember`, `OrganizationMemberMapping`, `ApiToken`, and `ApiTokenReplica`, plus exclusivity constraints and a mapping index.                                                                                  | Uses essentially the same schema. It additionally prevents service-account memberships from carrying invitation email state.                                                                                                                                 | The core schema cost is nearly identical and does not decide between the approaches. The Boundary PoC has a slightly stronger membership invariant; the Compatibility PoC has an additional composite mapping index. |
+| Number of files and call sites                  | 162 files because it implements management APIs, UI, lifecycle operations, broad endpoint compatibility, durable attribution, and extensive tests.                                                                                                                                    | 33 files because it intentionally enables only one private endpoint and no UI.                                                                                                                                                                               | The large difference primarily measures feature breadth. However, the 56 files requiring new `is_interactive` handling are direct evidence of user-emulation migration cost.                                         |
+| Authentication and permission-layer complexity  | Authentication returns `RpcServiceAccount` as `request.user`. `AuthenticatedToken` carries actor type and ID. Central `auth.access` resolves the service-account membership and caps access with token scopes.                                                                        | Authentication returns an explicit service-account identity while leaving `request.user` anonymous. Its endpoint uses `require_user_principal` and `require_service_account_principal`. It has not integrated the typed identity into central `auth.access`. | The Boundary PoC is clearer and safer by default. The Compatibility PoC is substantially more complete in centralized authorization. The Production Recommendation should combine these properties.                  |
+| Compatibility with existing user-only endpoints | High compatibility. Service accounts can use representative organization, project, team, issue, dashboard, discover, and explore paths after targeted changes.                                                                                                                        | Deliberately rejects service-account tokens on every unrelated endpoint.                                                                                                                                                                                     | The Compatibility PoC proves utility sooner. The Boundary PoC makes unsupported behavior explicit and avoids accidentally entering user-only paths.                                                                  |
+| Organization role, teams, and token scopes      | Uses the ordinary access layer. Tests demonstrate team-limited projects, open membership, scope-based write denial, team creation, and project creation.                                                                                                                              | Creates ordinary membership and team rows and reports token scopes, member scopes, and their intersection. Central endpoint authorization is not yet derived from that intersection.                                                                         | The Compatibility PoC meets this requirement more completely. The Boundary PoC still needs actor-aware integration with `auth.access`.                                                                               |
+| Audit and activity attribution                  | Adds a typed `ViewerActor`, writes service-account type and ID into audit data, leaves the user foreign key empty, and adds service-account action-log attribution for issue changes.                                                                                                 | Propagates a namespaced actor through ViewerContext and exposes it from the inspection endpoint, but does not write a durable audit or activity record.                                                                                                      | The Compatibility PoC is stronger. Durable attribution remains an acceptance gap in the Boundary PoC.                                                                                                                |
+| Hybrid-cloud ownership and replication          | Control-silo account and tokens, cell membership, token replica, organization-member mapping, actor-aware organization RPC context, and stale-replica lifecycle tests.                                                                                                                | Same fundamental control/cell ownership and token replication. It revalidates the account and token through the service-account RPC but does not propagate the authenticated identity through the organization access RPC.                                   | Persistence topology is aligned. The Compatibility PoC has more complete cross-silo authorization and lifecycle coverage.                                                                                            |
+| Creation, deletion, and failure recovery        | Creation uses compensating deletion if cell membership creation fails. It implements update, disable, token rotation, revocation, and deletion. Updates and deletion span control and cell writes without a distributed transaction, so later failures can still leave partial state. | Creation uses the same compensating deletion pattern. The RPC has deletion support, but the private endpoint does not expose lifecycle operations.                                                                                                           | Both need an outbox or explicit reconciliation strategy for production. The Compatibility PoC exercises more failure modes; neither makes multi-silo lifecycle atomic.                                               |
+| Risk of entering human workflows                | Higher inherent risk because `RpcServiceAccount` implements user-like properties such as `is_authenticated`, `email`, `has_2fa`, and `get_username`, and is placed in `request.user`. The Compatibility PoC adds `is_interactive` guards and tests representative personal workflows. | Lower default risk because `request.user` stays anonymous and endpoints must explicitly accept a service-account authenticated identity.                                                                                                                     | The Boundary PoC is safer for SSO, SCIM, email, 2FA, notification, merge, and account-settings boundaries. Its cost is explicit endpoint migration.                                                                  |
+| Incremental rollout and maintenance             | Can deliver broad compatibility quickly behind one feature flag, but long-term correctness depends on finding and maintaining every user-only assumption and compatibility guard.                                                                                                     | Can roll out endpoint families explicitly and centralize human-only rejection, but initially supports little existing functionality.                                                                                                                         | Prefer explicit capability rollout over global user emulation. Add central actor-aware authorization to avoid duplicating membership logic per endpoint.                                                             |
 
 ### Acceptance Criteria Status
 
-| Acceptance criterion                                                  | Status                          | Evidence or remaining work                                                                                                      |
-| --------------------------------------------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Experimental branch is based on current `origin/master`               | Met for the experiment baseline | Based on `acca281e47c` from September 11, 2026.                                                                                 |
-| User and service-account identities are statically distinguishable    | Met                             | The current `AuthenticatedPrincipal` union has distinct user and service-account dataclasses.                                   |
-| Actor identifiers are namespaced and round-trip through serialization | Partial                         | Namespaced identifiers and ViewerContext serialization exist. Add a dedicated service-account serialization round-trip test.    |
-| A service-account token authenticates without a synthetic `User`      | Met                             | Authentication leaves `request.user` anonymous and sets the typed authenticated identity.                                       |
-| Effective access is bounded by membership and credential scopes       | Partial                         | The endpoint reports the intersection and rejects every other endpoint, but central access enforcement has not been integrated. |
-| A human-only action rejects through a shared identity helper          | Met, with a test gap            | `POST` uses the current `require_user_principal` helper; add a sufficiently scoped service-account token test.                  |
-| A durable action preserves typed service-account attribution          | Not met                         | ViewerContext propagation is demonstrated, but no audit, activity, or action-log record is written.                             |
-| Existing user authentication uses the same typed boundary             | Met for the PoC endpoint        | Authenticated users are wrapped as `AuthenticatedUserPrincipal`; broad endpoint migration is outside this PoC.                  |
-| Findings compare both prototypes and recommend a production direction | Met by this document            | Recommendation follows below.                                                                                                   |
+| Acceptance criterion                                                  | Status                            | Evidence or remaining work                                                                                                      |
+| --------------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Experimental branch is based on current `origin/master`               | Met for the experiment baseline   | Based on `acca281e47c` from September 11, 2026.                                                                                 |
+| User and service-account identities are statically distinguishable    | Met                               | The Boundary PoC's `AuthenticatedPrincipal` union has distinct user and service-account dataclasses.                            |
+| Actor identifiers are namespaced and round-trip through serialization | Partial                           | Namespaced identifiers and ViewerContext serialization exist. Add a dedicated service-account serialization round-trip test.    |
+| A service-account token authenticates without a synthetic `User`      | Met                               | Authentication leaves `request.user` anonymous and sets the typed authenticated identity.                                       |
+| Effective access is bounded by membership and credential scopes       | Partial                           | The endpoint reports the intersection and rejects every other endpoint, but central access enforcement has not been integrated. |
+| A human-only action rejects through a shared identity helper          | Met, with a test gap              | `POST` uses the Boundary PoC's `require_user_principal` helper; add a sufficiently scoped service-account token test.           |
+| A durable action preserves typed service-account attribution          | Not met                           | ViewerContext propagation is demonstrated, but no audit, activity, or action-log record is written.                             |
+| Human authentication uses the Boundary PoC's typed boundary           | Met for the Boundary PoC endpoint | Authenticated users are wrapped as `AuthenticatedUserPrincipal`; broad endpoint migration is outside the Boundary PoC.          |
+| Findings compare both PoCs and recommend a production direction       | Met by this document              | The Production Recommendation follows below.                                                                                    |
 
 The ticket should remain in progress until the partial and unmet items that materially affect the
 architecture have either been implemented or explicitly removed from the experiment's acceptance
@@ -538,10 +546,10 @@ criteria.
 
 ### Recommended Production Direction
 
-Use the existing compatibility prototype's product and authorization work with the smallest
+Use the Compatibility PoC's product and authorization work with the smallest
 useful typed authentication boundary. This document recommends actor terminology for the
 production API: `ActorRef` for the identity value and `AuthenticatedActor` for the authenticated
-wrapper. The principal names remain an implementation detail of the current experiment.
+wrapper. The principal names remain an implementation detail of the Boundary PoC.
 
 ```python
 @dataclass(frozen=True)
@@ -562,14 +570,14 @@ Then:
    `OrganizationMember`, and exactly-one-identity `ApiToken` ownership.
 2. Keep `request.user` reserved for humans and place the authenticated identity in
    `request.authenticated_actor`.
-3. Adapt the existing prototype's central `auth.access` work to accept `AuthenticatedActor` and
+3. Adapt the Compatibility PoC's central `auth.access` work to accept `AuthenticatedActor` and
    resolve role, team access, and token-scope narrowing in one place.
 4. Carry the same `ActorRef` in `ViewerContext`; it transports identity and tenancy context but
    does not itself prove authentication.
 5. Add centralized endpoint capabilities such as `requires_user` or
    `allows_service_account`, backed by shared authenticated-identity helpers, instead of
    scattering `getattr(request.user, "is_interactive", ...)` guards.
-6. Reuse the existing prototype's management API, lifecycle service methods, UI, stale-replica
+6. Reuse the Compatibility PoC's management API, lifecycle service methods, UI, stale-replica
    validation, and broader behavioral test matrix after the authentication boundary is changed.
 7. Store durable attribution as actor type and actor ID while retaining nullable legacy user
    foreign keys during migration.
@@ -589,7 +597,7 @@ flowchart TD
     AC --> E[Explicitly enabled endpoint families]
 ```
 
-This direction preserves the existing prototype's strongest result—ordinary Sentry permissions
+This direction preserves the Compatibility PoC's strongest result—ordinary Sentry permissions
 can work for service accounts—while limiting the new abstraction to an authenticated identity
 wrapper and a shared namespaced actor value. It does not require a parallel identity system or a
 broad “principal” vocabulary migration.
@@ -598,7 +606,7 @@ broad “principal” vocabulary migration.
 
 To complete the architectural comparison rather than only the minimal authentication demo:
 
-1. Integrate the current `AuthenticatedPrincipal` implementation with `auth.access` and enable
+1. Integrate the Boundary PoC's `AuthenticatedPrincipal` implementation with `auth.access` and enable
    one representative project listing endpoint.
 2. Demonstrate that team membership and token scopes jointly limit that endpoint.
 3. Add one human-only endpoint test where a sufficiently scoped service-account token reaches the
@@ -606,9 +614,9 @@ To complete the architectural comparison rather than only the minimal authentica
 4. Write one durable audit or action-log record using the namespaced service-account actor.
 5. Add ViewerContext serialization round-trip and stale-token-replica tests.
 6. Recalculate the diff after those shared capabilities are present; that will be a more useful
-   estimate of architectural overhead than the current raw branch-size comparison.
+   estimate of architectural overhead than the Boundary PoC's raw branch-size comparison.
 
-## Current Proof-of-Concept Scope
+## Boundary PoC Scope
 
 Implemented:
 
@@ -647,20 +655,20 @@ Deliberately not solved yet:
 5. Does explicit failure on unsupported endpoints produce a safer migration than making service
    accounts user-compatible from the beginning?
 6. What additional cross-silo lifecycle and consistency behavior is required for production?
-7. How does the total implementation and migration cost compare with the existing prototype?
+7. How does the total implementation and migration cost compare with the Compatibility PoC?
 
 ## Implementation Map
 
-| Area                                         | File                                                                            |
-| -------------------------------------------- | ------------------------------------------------------------------------------- |
-| Current authenticated identity types/helpers | `src/sentry/auth/principal.py`                                                  |
-| Token authentication                         | `src/sentry/api/authentication.py`                                              |
-| Viewer actor representation                  | `src/sentry/viewer_context.py`                                                  |
-| Request ViewerContext middleware             | `src/sentry/middleware/viewer_context.py`                                       |
-| Service-account model                        | `src/sentry/models/serviceaccount.py`                                           |
-| Organization membership                      | `src/sentry/models/organizationmember.py`                                       |
-| API-token ownership                          | `src/sentry/models/apitoken.py`                                                 |
-| Service-account RPC                          | `src/sentry/auth/services/service_account/`                                     |
-| Private experiment endpoint                  | `src/sentry/api/endpoints/organization_service_account_principal_poc.py`        |
-| Endpoint integration test                    | `tests/sentry/api/endpoints/test_organization_service_account_principal_poc.py` |
-| Authenticated identity test                  | `tests/sentry/auth/test_principal.py`                                           |
+| Area                                        | File                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------- |
+| Boundary PoC authenticated identity helpers | `src/sentry/auth/principal.py`                                                  |
+| Token authentication                        | `src/sentry/api/authentication.py`                                              |
+| Viewer actor representation                 | `src/sentry/viewer_context.py`                                                  |
+| Request ViewerContext middleware            | `src/sentry/middleware/viewer_context.py`                                       |
+| Service-account model                       | `src/sentry/models/serviceaccount.py`                                           |
+| Organization membership                     | `src/sentry/models/organizationmember.py`                                       |
+| API-token ownership                         | `src/sentry/models/apitoken.py`                                                 |
+| Service-account RPC                         | `src/sentry/auth/services/service_account/`                                     |
+| Private experiment endpoint                 | `src/sentry/api/endpoints/organization_service_account_principal_poc.py`        |
+| Endpoint integration test                   | `tests/sentry/api/endpoints/test_organization_service_account_principal_poc.py` |
+| Authenticated identity test                 | `tests/sentry/auth/test_principal.py`                                           |
