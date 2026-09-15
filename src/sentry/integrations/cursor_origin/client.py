@@ -98,8 +98,6 @@ class CursorOriginApiClient(IntegrationProxyClient):
         expires_at = data.get("expiresAt") if isinstance(data, dict) else None
         if not isinstance(token, str) or not isinstance(expires_at, str):
             raise ApiError("unexpected access_tokens response from Cursor Origin")
-        # Storing an expiry we cannot read would refresh on every later request, quietly
-        # and forever. Fail once here instead.
         if _parse_expires_at(expires_at) is None:
             raise ApiError(f"unparseable expiresAt from Cursor Origin: {expires_at!r}")
 
@@ -122,8 +120,6 @@ class CursorOriginApiClient(IntegrationProxyClient):
         if not isinstance(access_token, str) or not isinstance(raw_expires_at, str):
             return self._refresh_access_token()
 
-        # An unparseable expiry refreshes rather than being treated as valid: Origin
-        # invalidates tokens on uninstall, so a token we cannot date is not safe to reuse.
         expires_at = _parse_expires_at(raw_expires_at)
         if expires_at is None or expires_at < datetime.now(UTC) + token_minimum_validity_time:
             return self._refresh_access_token()
