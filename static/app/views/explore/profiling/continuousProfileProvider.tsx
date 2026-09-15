@@ -3,7 +3,7 @@ import {Outlet} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
+import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import type {RequestState} from 'sentry/types/core';
 import {useTransactionAsSpans} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -11,6 +11,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {SpanFields} from 'sentry/views/insights/types';
 
 import {ContinuousProfileProvider, ProfileTransactionContext} from './profilesProvider';
 
@@ -80,10 +81,15 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       <ProfileTransactionContext value={transactionResult}>
         <Stack flex={1}>
           {profileMeta && (
-            <ContinuousProfileHeader
-              profilerId={profileMeta.profiler_id}
+            <ProfileHeader
+              profileId={profileMeta.profiler_id}
               projectId={projectSlug}
+              transactionName={
+                transactionResult.data.transactionSpan?.[SpanFields.SPAN_DESCRIPTION] ??
+                ''
+              }
               transactionSpan={transactionResult.data.transactionSpan}
+              variant="continuous"
             />
           )}
           <Outlet />
