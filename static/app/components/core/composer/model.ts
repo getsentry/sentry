@@ -11,7 +11,7 @@ export interface Mention {
   text: string;
 }
 
-export interface MentionInputValue {
+export interface ComposerValue {
   mentions: readonly Mention[];
   text: string;
 }
