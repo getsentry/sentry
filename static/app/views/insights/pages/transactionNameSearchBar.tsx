@@ -170,11 +170,6 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
     handleSearch(transactionName, false);
   };
 
-  const handleClickItemIcon = (value: string) => {
-    const item = decodeValueToItem(value);
-    navigateToItemTransactionSummary(item);
-  };
-
   const handleSearch = (query: string, asRawText: boolean) => {
     setSearchString(query);
     const formattedQuery = new MutableSearch(query).formatString();
@@ -184,8 +179,8 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
     closeDropdown();
   };
 
-  const navigateToItemTransactionSummary = (item: DataItem) => {
-    const {transaction} = item;
+  const handleClickItemIcon = (value: string) => {
+    const transaction = value.slice(0, value.lastIndexOf(':'));
     closeDropdown();
 
     const next = transactionSummaryRouteWithQuery({
@@ -209,7 +204,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
 
   return (
     <Container
-      className={className || ''}
+      className={className}
       data-test-id="transaction-search-bar"
       ref={containerRef}
     >
@@ -232,18 +227,6 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
       )}
     </Container>
   );
-}
-
-const decodeValueToItem = (value: string): DataItem => {
-  const lastIndex = value.lastIndexOf(':');
-
-  return {
-    transaction: value.slice(0, lastIndex),
-  };
-};
-
-interface DataItem {
-  transaction: string;
 }
 
 const Container = styled('div')`

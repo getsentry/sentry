@@ -1,4 +1,3 @@
-import {StrictMode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -33,14 +32,12 @@ describe('TransactionNameSearchBar', () => {
     const onSearch = jest.fn();
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     render(
-      <StrictMode>
-        <TransactionNameSearchBar
-          organization={organization}
-          projectIds={[]}
-          query=""
-          onSearch={onSearch}
-        />
-      </StrictMode>
+      <TransactionNameSearchBar
+        organization={organization}
+        projectIds={[]}
+        query=""
+        onSearch={onSearch}
+      />
     );
     return {user, input: screen.getByRole('textbox'), onSearch};
   }
@@ -51,7 +48,6 @@ describe('TransactionNameSearchBar', () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
-    jest.clearAllMocks();
   });
 
   afterEach(() => {
