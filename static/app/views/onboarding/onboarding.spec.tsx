@@ -729,11 +729,15 @@ describe('Onboarding', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
+    it('fires SCM welcome and agentic setup view events on welcome mount', () => {
       renderOnboarding('welcome');
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_step_viewed',
+        expect.objectContaining({organization: scmOrganization})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
         expect.objectContaining({organization: scmOrganization})
       );
       expect(trackAnalytics).not.toHaveBeenCalledWith(
@@ -781,6 +785,11 @@ describe('Onboarding', () => {
         features: ['onboarding-scm-experiment'],
       });
       const {router} = renderFlow(organization, 'welcome');
+
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
+        expect.anything()
+      );
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 

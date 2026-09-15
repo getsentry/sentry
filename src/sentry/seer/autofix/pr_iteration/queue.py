@@ -8,6 +8,7 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.utils import metrics
 from sentry.utils.redis import load_redis_script, redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,12 @@ def try_enqueue_autofix_feedback(
             pipe.rpush(key, item.json())
             pipe.expire(key, _QUEUE_TTL_SECONDS)
             pipe.execute()
+
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={"checkpoint": "enqueued", "referrer": referrer.value},
+            sample_rate=1.0,
+        )
 
     # One log name for both branches, emitted after the push so ``queued`` means
     # the feedback is actually in Redis: ``outcome`` says which way it went and

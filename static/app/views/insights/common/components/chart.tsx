@@ -110,6 +110,7 @@ export function Chart({
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = ref || defaultRef;
 
+  // oxlint-disable-next-line react/refs
   const echartsInstance = chartRef?.current?.getEchartsInstance?.();
   if (echartsInstance && !echartsInstance.group) {
     echartsInstance.group = STARFISH_CHART_GROUP;

@@ -59,6 +59,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.details_store import (
     count_iterations_before,
@@ -158,6 +159,14 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     if len(referrers) == 1:
         return referrers.pop()
     return AutofixReferrer.UNKNOWN
+
+
+def _get_feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether the batch is manual, automated, or both."""
+    kinds = {item.source.is_automated for item in items}
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
 
 
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
@@ -638,6 +647,17 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
+    feedback_kind = _get_feedback_kind(feedback_items)
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        amount=len(feedback_items),
+        tags={
+            "checkpoint": "consumed",
+            "referrer": referrer.value,
+            "feedback_kind": feedback_kind,
+        },
+        sample_rate=1.0,
+    )
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.drain",
         outcome="drained",
@@ -664,10 +684,20 @@ def _drain_queued_autofix_feedback(
             queued_count=len(queued_items),
             dropped_count=len(dropped),
             automated_feedback_count=sum(1 for item in feedback_items if item.source.is_automated),
+            feedback_bot_logins=bot_logins_for_feedback([item.source for item in feedback_items]),
         )
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "sent_to_seer",
+                "referrer": referrer.value,
+                "feedback_kind": feedback_kind,
+            },
+            sample_rate=1.0,
+        )
         trigger_autofix_agent(
             group=group,
             step=AutofixStep.PR_ITERATION,

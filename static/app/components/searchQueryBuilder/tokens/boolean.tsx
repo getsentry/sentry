@@ -88,6 +88,7 @@ export function SearchQueryBuilderBoolean({
     }
   };
 
+  // oxlint-disable-next-line react/refs
   const modifiedRowProps = mergeProps(rowProps, {
     tabIndex: item.key === state.selectionManager.focusedKey ? 0 : -1,
     onKeyDown,

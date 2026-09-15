@@ -160,10 +160,13 @@ export function useVirtualizedTree<T extends TreeLike>(
 
   // Keep a ref to latest state to avoid re-rendering
   const latestStateRef = useRef(state);
+  // oxlint-disable-next-line react/refs
   latestStateRef.current = state;
   const latestTreeRef = useRef(tree);
+  // oxlint-disable-next-line react/refs
   latestTreeRef.current = tree;
   const latestItemsRef = useRef(items);
+  // oxlint-disable-next-line react/refs
   latestItemsRef.current = items;
 
   // On scroll, we update scrollTop position.
@@ -842,8 +845,10 @@ export function useVirtualizedTree<T extends TreeLike>(
     // It is important that we do not create a copy of item
     // because refs will assign the dom node to the item.
     // If we map, we get a new object that our internals will not be able to access.
+    // oxlint-disable-next-line react/refs
     for (const item of latestItemsRef.current) {
       renderered.push(
+        // oxlint-disable-next-line react/refs
         renderRow(item, {
           handleRowClick: handleRowClick(item.key),
           handleExpandTreeNode,

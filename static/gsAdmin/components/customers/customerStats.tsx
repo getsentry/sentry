@@ -465,17 +465,12 @@ export const CustomerStats = memo(function CustomerStatsComponent({
     }
 
     if (start && end) {
-      return utc
-        ? {
-            start: moment.utc(start).format(),
-            end: moment.utc(end).format(),
-            utc,
-          }
-        : {
-            start: moment(start).utc().format(),
-            end: moment(end).utc().format(),
-            utc,
-          };
+      // URL start/end params are always UTC, regardless of the `utc` display flag
+      return {
+        start: moment.utc(start).format(),
+        end: moment.utc(end).format(),
+        utc,
+      };
     }
 
     return {
@@ -558,6 +553,7 @@ export const CustomerStats = memo(function CustomerStatsComponent({
   const abuseMarkArea = useAbuseMarkAreaSeries(abuseData.regions, abuseData.intervalMs);
 
   const abuseDataRef = useRef(abuseData);
+  // oxlint-disable-next-line react/refs
   abuseDataRef.current = abuseData;
 
   const activeAbuseRegionRef = useRef<number | null>(null);

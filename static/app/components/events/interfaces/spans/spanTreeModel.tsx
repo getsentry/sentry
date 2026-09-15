@@ -15,7 +15,6 @@ import type {
   SpanChildrenLookupType,
   SpanType,
   TraceBound,
-  TraceInfo,
   TreeDepthType,
 } from './types';
 import type {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
@@ -54,19 +53,15 @@ export class SpanTreeModel {
   // An entry in this set indicates that all siblings with the op and description should be left ungrouped
   expandedSiblingGroups = new Set<string>();
 
-  traceInfo: TraceInfo | undefined = undefined;
-
   constructor(
     parentSpan: SpanType,
     childSpans: SpanChildrenLookupType,
     api: Client,
-    isRoot = false,
-    traceInfo?: TraceInfo
+    isRoot = false
   ) {
     this.api = api;
     this.span = parentSpan;
     this.isRoot = isRoot;
-    this.traceInfo = traceInfo;
     const spanID = getSpanID(parentSpan);
     const spanChildren = childSpans?.[spanID] ?? [];
 
@@ -78,7 +73,7 @@ export class SpanTreeModel {
     delete childSpans[spanID];
 
     this.children = spanChildren.map(span => {
-      return new SpanTreeModel(span, childSpans, api, false, this.traceInfo);
+      return new SpanTreeModel(span, childSpans, api);
     });
 
     makeObservable(this, {
@@ -781,10 +776,9 @@ export class SpanTreeModel {
                 SpanSubTimingMark.HTTP_RESPONSE_START
               ); // Response start is a better approximation
 
-              const spanTimeOffset =
-                responseStart && !this.traceInfo
-                  ? responseStart - parsedTrace.traceEndTimestamp
-                  : this.span.start_timestamp - parsedTrace.traceStartTimestamp;
+              const spanTimeOffset = responseStart
+                ? responseStart - parsedTrace.traceEndTimestamp
+                : this.span.start_timestamp - parsedTrace.traceStartTimestamp;
 
               parsedTrace.traceStartTimestamp += spanTimeOffset;
               parsedTrace.traceEndTimestamp += spanTimeOffset;
@@ -801,9 +795,7 @@ export class SpanTreeModel {
             const parsedRootSpan = new SpanTreeModel(
               rootSpan,
               parsedTrace.childSpans,
-              this.api,
-              false,
-              this.traceInfo
+              this.api
             );
             this.embeddedChildren.push(parsedRootSpan);
             this.fetchEmbeddedChildrenState = 'idle';
@@ -838,12 +830,8 @@ export class SpanTreeModel {
   generateTraceBounds = (): TraceBound => {
     return {
       spanId: this.span.span_id,
-      traceStartTimestamp: this.traceInfo
-        ? this.traceInfo.startTimestamp
-        : this.span.start_timestamp,
-      traceEndTimestamp: this.traceInfo
-        ? this.traceInfo.endTimestamp
-        : this.span.timestamp,
+      traceStartTimestamp: this.span.start_timestamp,
+      traceEndTimestamp: this.span.timestamp,
     };
   };
 }

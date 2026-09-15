@@ -231,6 +231,7 @@ export function DropdownMenuItem({
     hoverProps,
     keyboardProps,
     makeInnerWrapProps(),
+    // oxlint-disable-next-line react/refs
     {ref: innerWrapRef, 'data-test-id': key}
   );
   const itemLabel = node.rendered ?? label;
