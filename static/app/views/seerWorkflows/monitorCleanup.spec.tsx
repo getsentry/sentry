@@ -38,14 +38,56 @@ describe('MonitorCleanupResults', () => {
     ],
   };
 
-  it('handles unknown output versions', () => {
+  it('renders compatible output changes and reports malformed results', () => {
+    const {rerender} = render(
+      <MonitorCleanupResults
+        organizationSlug="org-slug"
+        runStatus="complete"
+        results={[
+          {
+            id: '1',
+            kind: 'duplicate_monitors',
+            seerRunId: null,
+            extras: {
+              schemaVersion: 99,
+              projectId: output.projectId,
+              projectSlug: output.projectSlug,
+              scan: output.scan,
+              findings: [
+                {
+                  kind: 'new_finding_kind',
+                  monitors: output.findings[0]!.monitors,
+                  newDetail: 'Additional context',
+                },
+              ],
+            },
+          },
+        ]}
+      />
+    );
+    expect(screen.getByRole('heading', {name: 'Monitor finding'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Checkout errors'})).toBeInTheDocument();
+    expect(screen.getByText('2 monitors inspected across 1 project')).toBeInTheDocument();
+    expect(screen.queryByText('Suggested keep')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('This monitor scan output is not supported.')
+    ).not.toBeInTheDocument();
+
     const unsupportedResult = {
       id: '1',
       kind: 'duplicate_monitors',
       seerRunId: null,
-      extras: {...output, schemaVersion: 99},
+      extras: {
+        ...output,
+        findings: [
+          {
+            ...output.findings[0],
+            monitors: [{id: '../invalid', name: 'Invalid monitor'}],
+          },
+        ],
+      },
     };
-    const {rerender} = render(
+    rerender(
       <MonitorCleanupResults
         organizationSlug="org-slug"
         runStatus="complete"
@@ -76,7 +118,7 @@ describe('MonitorCleanupResults', () => {
     expect(screen.queryByText(/monitors inspected/)).not.toBeInTheDocument();
   });
 
-  it('does not claim a partial empty scan found no duplicates', () => {
+  it('treats an unknown scan status as incomplete', () => {
     render(
       <MonitorCleanupResults
         organizationSlug="org-slug"
@@ -88,7 +130,7 @@ describe('MonitorCleanupResults', () => {
             extras: {
               ...output,
               findings: [],
-              scan: {status: 'partial', monitorsScanned: 0},
+              scan: {status: 'timed_out', monitorsScanned: 0},
             },
           },
         ]}
@@ -97,6 +139,7 @@ describe('MonitorCleanupResults', () => {
     expect(
       screen.getByText('No candidates returned from the inspected monitors.')
     ).toBeInTheDocument();
+    expect(screen.getByText(/Some inspection is incomplete/)).toBeInTheDocument();
   });
   it('distinguishes overlaps and notification risks', () => {
     const overlap = {

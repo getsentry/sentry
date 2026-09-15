@@ -1,5 +1,3 @@
-import {z} from 'zod';
-
 import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -11,43 +9,13 @@ import {IconProject} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
-import type {
-  SeerWorkflowResult,
-  WorkflowRunStatus,
-  WorkflowRow,
+import {
+  monitorCleanupOutputSchema,
+  type MonitorCleanupFinding,
+  type SeerWorkflowResult,
+  type WorkflowRunStatus,
+  type WorkflowRow,
 } from 'sentry/views/seerWorkflows/types';
-
-const resourceSchema = z.object({
-  id: z.string().regex(/^\d+$/),
-  name: z.string(),
-});
-const comparisonSchema = z.array(
-  z.object({
-    property: z.string(),
-    values: z.array(z.object({monitorId: z.string(), value: z.string()})),
-  })
-);
-const findingSchema = z.object({
-  reason: z.string(),
-  comparison: comparisonSchema.default([]),
-  kind: z.enum(['exact_duplicate', 'overlapping_coverage', 'duplicate_notifications']),
-  monitors: z.array(resourceSchema).min(2),
-  suggestedKeepId: z.string().nullable(),
-  alerts: z.array(resourceSchema),
-});
-const outputSchema = z.object({
-  schemaVersion: z.literal(1),
-  findings: z.array(findingSchema),
-  outputKind: z.literal('monitor_cleanup'),
-  projectId: z.string(),
-  projectSlug: z.string(),
-  scan: z.object({
-    status: z.enum(['complete', 'partial']),
-    monitorsScanned: z.number().int().nonnegative(),
-  }),
-  summary: z.string(),
-});
-type Finding = z.infer<typeof outputSchema>['findings'][number];
 
 export function MonitorCleanupRunResults({
   row,
@@ -86,14 +54,23 @@ function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
     exact_duplicate: 0,
     overlapping_coverage: 0,
     duplicate_notifications: 0,
+    other: 0,
   };
   let supported = 0;
   for (const result of results) {
-    const parsed = outputSchema.safeParse(result.extras);
+    const parsed = monitorCleanupOutputSchema.safeParse(result.extras);
     if (parsed.success) {
       supported++;
       for (const item of parsed.data.findings) {
-        counts[item.kind]++;
+        switch (item.kind) {
+          case 'exact_duplicate':
+          case 'overlapping_coverage':
+          case 'duplicate_notifications':
+            counts[item.kind]++;
+            break;
+          default:
+            counts.other++;
+        }
       }
     }
   }
@@ -118,11 +95,12 @@ function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
           counts.duplicate_notifications
         )
       : null,
+    counts.other ? tn('%s other finding', '%s other findings', counts.other) : null,
   ].filter(Boolean);
   return labels.length ? labels.join(' · ') : t('No findings');
 }
 
-function findingLabel(kind: Finding['kind']) {
+function findingLabel(kind: string) {
   switch (kind) {
     case 'exact_duplicate':
       return t('Exact duplicates');
@@ -131,12 +109,12 @@ function findingLabel(kind: Finding['kind']) {
     case 'duplicate_notifications':
       return t('Potential duplicate notifications');
     default:
-      return kind satisfies never;
+      return t('Monitor finding');
   }
 }
 
-function PropertyComparison({item}: {item: Finding}) {
-  const rows = item.comparison;
+function PropertyComparison({item}: {item: MonitorCleanupFinding}) {
+  const rows = item.comparison ?? [];
   if (rows.length === 0) {
     return (
       <Text size="sm" variant="muted">
@@ -202,7 +180,7 @@ function FindingCard({
   item,
   organizationSlug,
 }: {
-  item: Finding;
+  item: MonitorCleanupFinding;
   organizationSlug: string;
 }) {
   const canSuggestKeep = item.kind === 'exact_duplicate';
@@ -232,10 +210,12 @@ function FindingCard({
           </Flex>
         ))}
       </Stack>
-      <Text size="sm" wrap="normal" wordBreak="break-word">
-        {item.reason}
-      </Text>
-      {item.alerts.map(alert => (
+      {item.reason && (
+        <Text size="sm" wrap="normal" wordBreak="break-word">
+          {item.reason}
+        </Text>
+      )}
+      {(item.alerts ?? []).map(alert => (
         <Flex key={alert.id} gap="sm" align="center" wrap="wrap">
           <Text size="xs" variant="muted">
             {t('Alert')}
@@ -268,7 +248,9 @@ export function MonitorCleanupResults({
   results: SeerWorkflowResult[];
   runStatus?: WorkflowRunStatus;
 }) {
-  const parsed = results.map(result => outputSchema.safeParse(result.extras));
+  const parsed = results.map(result =>
+    monitorCleanupOutputSchema.safeParse(result.extras)
+  );
   const hasUnsupportedResults = parsed.some(output => !output.success);
   const projects = new Map(
     parsed.flatMap(output =>
@@ -281,7 +263,7 @@ export function MonitorCleanupResults({
   );
   const incomplete =
     runStatus === 'partial' ||
-    parsed.some(output => output.success && output.data.scan.status === 'partial');
+    parsed.some(output => output.success && output.data.scan.status !== 'complete');
   return (
     <Stack gap="xl" containerType="inline-size">
       {!hasUnsupportedResults &&
@@ -314,7 +296,7 @@ export function MonitorCleanupResults({
               {output.projectSlug}
             </Heading>
           </Flex>
-          {output.scan.status === 'partial' && (
+          {output.scan.status !== 'complete' && (
             <Container padding="md" border="warning" radius="md">
               <Text variant="warning">
                 {t('This scan is incomplete. Some monitors may not have been inspected.')}

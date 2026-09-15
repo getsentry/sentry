@@ -1,3 +1,5 @@
+import {z} from 'zod';
+
 import type {NightShiftRow} from 'sentry/views/seerWorkflows/nightShift';
 
 export type WorkflowRunStatus = 'running' | 'complete' | 'partial' | 'failed';
@@ -46,3 +48,39 @@ export type WorkflowRow = {
   source?: string;
   triage?: NightShiftRow;
 };
+
+const monitorCleanupResourceSchema = z.object({
+  id: z.string().regex(/^\d+$/),
+  name: z.string(),
+});
+
+// Validate the fields this UI reads, allowing compatible additions to the output.
+export const monitorCleanupOutputSchema = z.object({
+  projectId: z.string(),
+  projectSlug: z.string(),
+  scan: z.object({
+    status: z.string(),
+    monitorsScanned: z.number().int().nonnegative(),
+  }),
+  findings: z.array(
+    z.object({
+      kind: z.string(),
+      monitors: z.array(monitorCleanupResourceSchema),
+      reason: z.string().nullish(),
+      suggestedKeepId: z.string().nullish(),
+      alerts: z.array(monitorCleanupResourceSchema).nullish(),
+      comparison: z
+        .array(
+          z.object({
+            property: z.string(),
+            values: z.array(z.object({monitorId: z.string(), value: z.string()})),
+          })
+        )
+        .nullish(),
+    })
+  ),
+});
+
+export type MonitorCleanupFinding = z.infer<
+  typeof monitorCleanupOutputSchema
+>['findings'][number];

@@ -216,6 +216,10 @@ describe('SeerWorkflows', () => {
                     comparison: [],
                     reason: 'Matching thresholds',
                   },
+                  {
+                    kind: 'new_finding_kind',
+                    monitors: [{id: '12', name: 'Payment errors'}],
+                  },
                 ],
               },
             },
@@ -225,7 +229,9 @@ describe('SeerWorkflows', () => {
     });
     render(<SeerWorkflows />, {organization});
     expect(await screen.findByText('Duplicate monitors')).toBeInTheDocument();
-    expect(screen.getByText('1 exact duplicate group')).toBeInTheDocument();
+    expect(
+      screen.getByText('1 exact duplicate group · 1 other finding')
+    ).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
     expect(screen.getByRole('link', {name: 'Checkout errors'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
