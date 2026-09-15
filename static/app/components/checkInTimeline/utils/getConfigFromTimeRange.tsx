@@ -235,10 +235,10 @@ export function getConfigFromTimeRange(
     .subtract(rollupConfig.underscanBuckets * rollupConfig.interval, 'seconds')
     .toDate();
 
-  // Display only the time (no date) when the start and end times are the same day
-  const timeOnly =
-    elapsedSeconds <= ONE_DAY_SECS &&
-    moment.tz(start, timezone).isSame(moment.tz(end, timezone), 'day');
+  // Display only the time (no date) when the start and end times are the same
+  // day in the configured timezone. No elapsed bound: a fall-back DST day lasts
+  // 25 hours but still never leaves the calendar day.
+  const timeOnly = moment.tz(start, timezone).isSame(moment.tz(end, timezone), 'day');
 
   // When one pixel represents less than at least one minute we also want to
   // display second values on our labels.

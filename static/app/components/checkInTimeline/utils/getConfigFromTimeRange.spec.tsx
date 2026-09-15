@@ -79,6 +79,21 @@ describe('getConfigFromTimeRange', () => {
     expect(config.dateTimeProps).toEqual({timeOnly: false});
   });
 
+  it('displays only the time when the window stays within a long DST day', () => {
+    // 2026-11-01 is a 25 hour day in America/New_York. A window spanning the
+    // whole day exceeds 24 elapsed hours, but since it never leaves that
+    // calendar day the labels should still show only the time.
+    const start = new Date('2026-11-01T04:00:00Z'); // 2026-11-01 00:00 EDT
+    const end = new Date('2026-11-02T04:30:00Z'); // 2026-11-01 23:30 EST
+    const config = getConfigFromTimeRange(
+      start,
+      end,
+      timelineWidth,
+      'America/New_York'
+    );
+    expect(config.dateTimeProps).toEqual({timeOnly: true});
+  });
+
   it('displays dates when more than 1 day window size', () => {
     const start = new Date('2023-06-15T11:00:00Z');
     const end = new Date('2023-06-16T11:05:00Z');
