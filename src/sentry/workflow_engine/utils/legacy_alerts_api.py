@@ -12,11 +12,11 @@ class AlertsApiGone(APIException):
 
 
 def enforce_alerts_api_deprecation(organization: Organization) -> None:
-    impact = not features.has("organizations:legacy-alerts-api", organization)
+    blocked = not features.has("organizations:legacy-alerts-api", organization)
     metrics.incr(
         "workflow_engine.legacy_alerts_api_deprecation",
-        tags={"impact": impact},
+        tags={"blocked": blocked},
         sample_rate=1.0,
     )
-    if impact:
+    if blocked:
         raise AlertsApiGone
