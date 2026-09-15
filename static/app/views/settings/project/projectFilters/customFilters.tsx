@@ -50,7 +50,8 @@ type ConditionType =
   | 'error_type'
   | 'metric_name'
   | 'log_message'
-  | 'release';
+  | 'release'
+  | 'ip_address';
 
 type CustomInboundFilterCondition = {
   type: ConditionType;
@@ -121,7 +122,9 @@ type ConditionSpec = {
 };
 
 // Declaration order is the order of the property dropdown, and the first
-// condition of a data type is the one a new row starts with. Keep `release` last.
+// condition of a data type is the one a new row starts with. Keep the conditions
+// every data type carries last, `release` first among them: it is the default
+// for the catch-all.
 const CONDITIONS: Record<ConditionType, ConditionSpec> = {
   error_message: {
     dataType: 'error',
@@ -161,6 +164,13 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
       metric: t('Matches the release attribute of the metric.'),
       span: t('Matches the release attribute of the span.'),
     },
+  },
+  ip_address: {
+    label: t('IP Address'),
+    placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
+    description: t(
+      'Matches the IP address the data was sent from. Takes single addresses and CIDR ranges, not glob patterns.'
+    ),
   },
 };
 
@@ -220,15 +230,52 @@ function emptyCondition(property: ConditionType): ConditionFormValue {
   return {property, value: ''};
 }
 
+const IPV4_ADDRESS =
+  /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+// Loose on purpose. The API validates strictly; this only catches glob patterns
+// and obvious typos before the request.
+const IPV6_ADDRESS = /^[0-9a-f:.]*:[0-9a-f:.]*$/i;
+
+function isIpAddressOrRange(value: string): boolean {
+  const [address, prefix, ...rest] = value.split('/');
+  if (rest.length > 0 || !address) {
+    return false;
+  }
+  const maxPrefix = IPV4_ADDRESS.test(address)
+    ? 32
+    : IPV6_ADDRESS.test(address)
+      ? 128
+      : null;
+  if (maxPrefix === null) {
+    return false;
+  }
+  return (
+    prefix === undefined || (/^\d{1,3}$/.test(prefix) && Number(prefix) <= maxPrefix)
+  );
+}
+
 const filterSchema = z.object({
   name: z.string().trim().min(1, t('Give the filter a name')),
   dataType: z.enum(FILTER_DATA_TYPES),
   conditions: z
     .array(
-      z.object({
-        property: z.enum(CONDITION_TYPES),
-        value: z.string().trim().min(1, t('Enter a value to match')),
-      })
+      z
+        .object({
+          property: z.enum(CONDITION_TYPES),
+          value: z.string().trim().min(1, t('Enter a value to match')),
+        })
+        .superRefine((condition, ctx) => {
+          if (
+            condition.property === 'ip_address' &&
+            !isIpAddressOrRange(condition.value)
+          ) {
+            ctx.addIssue({
+              code: 'custom',
+              path: ['value'],
+              message: t('%s is not an IP address or CIDR range', condition.value),
+            });
+          }
+        })
     )
     .min(1),
 });
