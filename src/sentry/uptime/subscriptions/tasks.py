@@ -1,22 +1,30 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from collections.abc import Collection
 from datetime import timedelta
 from uuid import uuid4
 
+from django.conf import settings
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import audit_log
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import uptime_tasks
-from sentry.uptime.config_drift import check_config_drift
+from sentry.uptime.config_drift import (
+    check_config_drift,
+    iter_null_subscription_rows,
+    missing_config_pairs,
+)
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import (
     UptimeRegionScheduleMode,
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
+from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.types import CheckConfig
 from sentry.utils import metrics
 from sentry.utils.audit import create_system_audit_entry
@@ -27,6 +35,8 @@ logger = logging.getLogger(__name__)
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
+# After a wiped cluster the missing set is the whole cluster, so bound the tasks one run can queue.
+CONFIG_REPAIR_MAX_TASKS = 1000
 
 
 @instrumented_task(
@@ -59,10 +69,28 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     namespace=uptime_tasks,
     retry=Retry(times=5, delay=5),
 )
-def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
+def update_remote_uptime_subscription(
+    uptime_subscription_id, region_slugs: list[str] | None = None, **kwargs
+):
     """
-    Pushes details of an uptime subscription to uptime subscription regions.
+    Pushes details of an uptime subscription to uptime subscription regions. When
+    ``region_slugs`` is given, only those regions are pushed to.
     """
+    if region_slugs is not None:
+        unknown = [slug for slug in region_slugs if get_region_config(slug) is None]
+        if unknown or not region_slugs:
+            # An empty filter would silently publish nothing, and _send_to_redis only logs and
+            # skips an unknown slug, so reject both up front.
+            logger.error(
+                "uptime.subscriptions.update_remote_uptime_subscription.invalid_region_filter",
+                extra={
+                    "uptime_subscription_id": uptime_subscription_id,
+                    "region_slugs": region_slugs,
+                    "unknown": unknown,
+                },
+            )
+            metrics.incr("uptime.subscriptions.update.invalid_region_filter", sample_rate=1.0)
+            return
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
     except UptimeSubscription.DoesNotExist:
@@ -82,12 +110,17 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         metrics.incr("uptime.subscriptions.update.incorrect_status", sample_rate=1.0)
         return
 
-    for region in subscription.regions.all():
+    regions = subscription.regions.all()
+    if region_slugs is not None:
+        regions = regions.filter(region_slug__in=region_slugs)
+    for region in regions:
         send_uptime_subscription_config(region, subscription)
-    subscription.update(
-        status=UptimeSubscription.Status.ACTIVE.value,
-        subscription_id=subscription.subscription_id,
+    # A filtered publish is a repair, not a state transition: leave a concurrent edit's
+    # UPDATING for its own task (or subscription_checker) to finish.
+    status = (
+        subscription.status if region_slugs is not None else UptimeSubscription.Status.ACTIVE.value
     )
+    subscription.update(status=status, subscription_id=subscription.subscription_id)
 
 
 @instrumented_task(
@@ -273,3 +306,99 @@ def config_drift_checker(**kwargs):
                 "null_subscription_ids": reading.null_subscription_ids,
             },
         )
+
+
+def repair_missing_configs(
+    missing: Collection[tuple[str, str]],
+    *,
+    limit: int = CONFIG_REPAIR_MAX_TASKS,
+    dry_run: bool = False,
+) -> int:
+    """
+    Queues a region-scoped update for each missing (subscription_id, cluster) pair, at most
+    ``limit`` per call. Returns the number queued (or reported, in dry run).
+    """
+    if limit < 0:
+        raise ValueError(f"limit must be non-negative, got {limit}")
+    slugs_by_cluster: dict[str, set[str]] = defaultdict(set)
+    for region in settings.UPTIME_REGIONS:
+        slugs_by_cluster[region.config_redis_cluster].add(region.slug)
+    unknown = {cluster for _, cluster in missing} - slugs_by_cluster.keys()
+    if unknown:
+        raise ValueError(f"Unknown config redis clusters: {sorted(unknown)}")
+
+    pairs = sorted(set(missing))[:limit]
+    pk_by_subscription_id: dict[str, int] = {}
+    slugs_by_subscription_id: dict[str, set[str]] = defaultdict(set)
+    for subscription_id, pk, region_slug in UptimeSubscriptionRegion.objects.filter(
+        uptime_subscription__subscription_id__in={sid for sid, _ in pairs}
+    ).values_list("uptime_subscription__subscription_id", "uptime_subscription_id", "region_slug"):
+        assert subscription_id is not None
+        pk_by_subscription_id[subscription_id] = pk
+        slugs_by_subscription_id[subscription_id].add(region_slug)
+
+    queued = 0
+    for subscription_id, cluster in pairs:
+        region_slugs = sorted(slugs_by_subscription_id[subscription_id] & slugs_by_cluster[cluster])
+        if not region_slugs:
+            # Deleted, or no longer on this cluster, since the diff was taken.
+            metrics.incr("uptime.config_repair.skipped", tags={"cluster": cluster}, sample_rate=1.0)
+            continue
+        if not dry_run:
+            update_remote_uptime_subscription.delay(
+                uptime_subscription_id=pk_by_subscription_id[subscription_id],
+                region_slugs=region_slugs,
+            )
+            metrics.incr("uptime.config_repair.queued", tags={"cluster": cluster}, sample_rate=1.0)
+        queued += 1
+        logger.info(
+            "uptime.config_repair.queued",
+            extra={
+                "subscription_id": subscription_id,
+                "cluster": cluster,
+                "region_slugs": region_slugs,
+                "dry_run": dry_run,
+            },
+        )
+    return queued
+
+
+@instrumented_task(
+    name="sentry.uptime.tasks.config_drift_repair",
+    namespace=uptime_tasks,
+    processing_deadline_duration=60 * 10,
+)
+def config_drift_repair(
+    dry_run: bool = False, limit: int = CONFIG_REPAIR_MAX_TASKS, **kwargs
+) -> None:
+    """
+    Republishes checker configs that Postgres expects but a config redis cluster is missing.
+    Manual only; not scheduled. Dry run first from a shell, inline with
+    ``config_drift_repair(dry_run=True)`` or on a worker with
+    ``config_drift_repair.delay(dry_run=True)``, then repeat without ``dry_run``.
+    """
+    missing = missing_config_pairs(check_config_drift())
+    queued = repair_missing_configs(missing, limit=limit, dry_run=dry_run)
+
+    # Rows with no subscription_id have no redis key, so the diff can never report them
+    # missing. Queue them unfiltered; the task mints an id and its trailing update saves it.
+    null_pks = sorted({pk for pk, _ in iter_null_subscription_rows()})[: limit - queued]
+    if not dry_run:
+        for pk in null_pks:
+            update_remote_uptime_subscription.delay(uptime_subscription_id=pk)
+        metrics.incr(
+            "uptime.config_repair.null_subscription_id_queued",
+            amount=len(null_pks),
+            sample_rate=1.0,
+        )
+
+    logger.info(
+        "uptime.config_drift_repair.done",
+        extra={
+            "missing": len(missing),
+            "queued": queued,
+            "null_subscription_id_queued": len(null_pks),
+            "limit": limit,
+            "dry_run": dry_run,
+        },
+    )
