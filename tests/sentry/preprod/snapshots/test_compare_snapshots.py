@@ -2029,7 +2029,9 @@ class EndToEndFanoutTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
-                side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],
+                side_effect=lambda pairs, server, include_masks: [
+                    self._diff_result() for _ in pairs
+                ],
             ),
             patch("sentry.preprod.snapshots.tasks.OdiffServer"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
@@ -2192,7 +2194,7 @@ class EndToEndFanoutTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
-                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+                side_effect=lambda pairs, server, include_masks: [unchanged_diff for _ in pairs],
             ),
             patch("sentry.preprod.snapshots.tasks.OdiffServer"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
@@ -2333,7 +2335,7 @@ class EndToEndFanoutTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
-                side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
+                side_effect=lambda pairs, server, include_masks: [unchanged_diff for _ in pairs],
             ),
             patch("sentry.preprod.snapshots.tasks.OdiffServer"),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
