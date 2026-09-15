@@ -74,7 +74,9 @@ def _capture_autofix_issue_data(
     verdicts: list[TriageVerdict],
     groups_by_id: Mapping[int, Group],
     log_extra: Mapping[str, object],
-) -> None:
+) -> dict[int, str]:
+    event_ids: dict[int, str] = {}
+    rows: list[SeerAutofixIssueData] = []
     for verdict in verdicts:
         group = groups_by_id[verdict.group_id]
         try:
@@ -104,20 +106,29 @@ def _capture_autofix_issue_data(
                     "data": group.data,
                 },
             }
-            SeerAutofixIssueData.objects.update_or_create(
-                group=group,
-                defaults={
-                    "organization_id": organization.id,
-                    "project_id": group.project_id,
-                    "source": "night_shift",
-                    "raw_issue_data": json.loads(json.dumps(raw_issue_data)),
-                },
+            rows.append(
+                SeerAutofixIssueData(
+                    group=group,
+                    organization_id=organization.id,
+                    project_id=group.project_id,
+                    source="night_shift",
+                    raw_issue_data=json.loads(json.dumps(raw_issue_data)),
+                )
             )
+            event_ids[group.id] = event_id
         except Exception:
             logger.exception(
                 "night_shift.autofix_issue_data.capture_failed",
                 extra={**log_extra, "group_id": group.id},
             )
+
+    SeerAutofixIssueData.objects.bulk_create(
+        rows,
+        update_conflicts=True,
+        unique_fields=["group"],
+        update_fields=["organization", "project", "source", "raw_issue_data", "date_updated"],
+    )
+    return event_ids
 
 
 def deliver_night_shift_result(
@@ -380,9 +391,10 @@ def _process_verdicts(
     # ignore_conflicts: concurrent redeliveries can race past the recorded-rows check.
     SeerNightShiftRunResult.objects.bulk_create(rows, ignore_conflicts=True)
 
+    captured_event_ids: dict[int, str] = {}
     try:
         if features.has("organizations:seer-fixability-training-data", organization):
-            _capture_autofix_issue_data(
+            captured_event_ids = _capture_autofix_issue_data(
                 organization=organization,
                 verdicts=verdicts,
                 groups_by_id=groups_by_id,
@@ -402,6 +414,7 @@ def _process_verdicts(
                 {
                     "group_id": v.group_id,
                     "action": v.action,
+                    "event_id": captured_event_ids.get(v.group_id),
                     "seer_run_id": (
                         str(r.seer_run_state_id)
                         if (r := run_by_group.get(v.group_id)) is not None
