@@ -16,9 +16,8 @@ const BLOCK_COLUMNS: GroupListColumn[] = [
   'firstSeen',
   'lastSeen',
   'event',
-  'users',
   'priority',
-  'assignee',
+  'assigneeAvatar',
 ];
 
 function SingleIssueBlock({id}: {id: string}) {
