@@ -38,6 +38,13 @@ FEATURE_FLAG = "organizations:seer-smart-assignment-run"
 _RATE_LIMIT_WINDOW = 86400
 
 
+def is_smart_assignment_enabled(organization: Organization) -> bool:
+    return features.has(FEATURE_FLAG, organization) and (
+        features.has("organizations:seer-added", organization)
+        or features.has("organizations:seat-based-seer-enabled", organization)
+    )
+
+
 def trigger_smart_assignment(
     group: Group,
     activity_type: ActivityType,
@@ -63,13 +70,7 @@ def trigger_smart_assignment(
     """
     organization = group.organization
 
-    if not (
-        features.has(FEATURE_FLAG, organization)
-        and (
-            features.has("organizations:seer-added", organization)
-            or features.has("organizations:seat-based-seer-enabled", organization)
-        )
-    ):
+    if not is_smart_assignment_enabled(organization):
         return
 
     if activity_type in RESOLUTION_ACTIVITIES and resolver_user_id(activity) is None:

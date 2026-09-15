@@ -11,7 +11,6 @@ from sentry.seer.smart_assignment.models import SEER_FEATURE_ID, SmartAssignment
 from sentry.seer.smart_assignment.scoring import record_prediction
 from sentry.seer.smart_assignment.trigger import trigger_smart_assignment
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
 CLIENT_PATH = "sentry.seer.smart_assignment.trigger.SeerAgentClient"
@@ -29,10 +28,12 @@ SEER_START_ACTIVITY_TYPES = (
 )
 
 
-@override_options({"seer.smart_assignment.prefetch_sample_rate": 0.0})
 class TriggerSmartAssignmentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
+        self._options_ctx = self.options({"seer.smart_assignment.prefetch_sample_rate": 0.0})
+        self._options_ctx.__enter__()
+        self.addCleanup(lambda: self._options_ctx.__exit__(None, None, None))
         self.group = self.create_group()
 
     def _wire_client(self, mock_client_cls: MagicMock) -> None:
