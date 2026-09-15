@@ -14,15 +14,15 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Duration} from 'sentry/components/duration/duration';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
+import {ReplayActivityScore} from 'sentry/components/replays/replayActivityScore';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
+import {ReplayErrorCount} from 'sentry/components/replays/replayErrorCount';
 import {ReplayPlatformIcon} from 'sentry/components/replays/replayPlatformIcon';
 import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
 import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
-import {ScoreBar} from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
-import {IconFire} from 'sentry/icons/iconFire';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
@@ -107,22 +107,12 @@ export const ReplayActivityColumn: ReplayTableColumn = {
   interactive: false,
   sortKey: 'activity',
   Component: ({replay, showDropdownFilters}) => {
-    const theme = useTheme();
-
     if (replay.is_archived) {
       return null;
     }
-    const colors = theme.chart.getColorPalette(0);
-    const scoreBarPalette = Array.from<string[]>({length: 10}).fill([colors[0]]);
     return (
       <DropdownContainer key="activity">
-        <ScoreBar
-          size={20}
-          score={replay?.activity ?? 1}
-          // @ts-expect-error -- TODO: Resolve this mismatch
-          palette={scoreBarPalette}
-          radius={0}
-        />
+        <ReplayActivityScore score={replay?.activity ?? null} />
         {showDropdownFilters ? (
           <NumericDropdownFilter type="activity" val={replay?.activity ?? 0} />
         ) : null}
@@ -230,16 +220,7 @@ export const ReplayCountErrorsColumn: ReplayTableColumn = {
         key="countErrors"
         data-test-id="replay-table-column-count-errors"
       >
-        <TabularNumber>
-          {replay.count_errors ? (
-            <Flex gap="xs">
-              <IconFire variant="danger" />
-              {replay.count_errors}
-            </Flex>
-          ) : (
-            0
-          )}
-        </TabularNumber>
+        <ReplayErrorCount count={replay.count_errors} />
         {showDropdownFilters ? (
           <NumericDropdownFilter type="count_errors" val={replay.count_errors ?? 0} />
         ) : null}

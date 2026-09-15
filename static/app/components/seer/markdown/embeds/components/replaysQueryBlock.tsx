@@ -3,8 +3,10 @@ import {useQuery} from '@tanstack/react-query';
 import {Text} from '@sentry/scraps/text';
 
 import {Duration} from 'sentry/components/duration/duration';
+import {ReplayActivityScore} from 'sentry/components/replays/replayActivityScore';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
-import {ReplayPlatformIcon} from 'sentry/components/replays/replayPlatformIcon';
+import {ReplayErrorCount} from 'sentry/components/replays/replayErrorCount';
+import {ReplayPlatformIconStack} from 'sentry/components/replays/replayPlatformIcon';
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {
@@ -13,7 +15,6 @@ import {
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {formatNumber} from 'sentry/utils/number/formatNumber';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -41,25 +42,14 @@ const COLUMNS: Array<QueryEmbedColumn<ReplayListRecord>> = [
     render: replay => <ReplayBadge replay={replay} />,
   },
   {
-    key: 'os',
-    label: t('OS'),
+    key: 'platform',
+    label: t('Platform'),
     width: 'max-content',
     render: replay =>
       replay.is_archived ? (
         archivedFallback()
       ) : (
-        <ReplayPlatformIcon name={replay.os.name} version={replay.os.version} />
-      ),
-  },
-  {
-    key: 'browser',
-    label: t('Browser'),
-    width: 'max-content',
-    render: replay =>
-      replay.is_archived ? (
-        archivedFallback()
-      ) : (
-        <ReplayPlatformIcon name={replay.browser.name} version={replay.browser.version} />
+        <ReplayPlatformIconStack browser={replay.browser} os={replay.os} />
       ),
   },
   {
@@ -79,7 +69,18 @@ const COLUMNS: Array<QueryEmbedColumn<ReplayListRecord>> = [
       replay.is_archived ? (
         archivedFallback()
       ) : (
-        <Text ellipsis>{formatNumber(replay.count_errors ?? 0)}</Text>
+        <ReplayErrorCount count={replay.count_errors} />
+      ),
+  },
+  {
+    key: 'activity',
+    label: t('Activity'),
+    width: 'max-content',
+    render: replay =>
+      replay.is_archived ? (
+        archivedFallback()
+      ) : (
+        <ReplayActivityScore score={replay.activity} />
       ),
   },
 ];

@@ -86,7 +86,7 @@ describe('replays query embed', () => {
     });
   });
 
-  it('shows the OS and browser the replays list shows, not rage clicks', async () => {
+  it('shows platform and activity instead of rage clicks', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replays/',
       body: {data: [rawReplay()]},
@@ -96,22 +96,25 @@ describe('replays query embed', () => {
 
     expect(await screen.findByText('Test User')).toBeInTheDocument();
 
-    expect(screen.getByText('OS')).toBeInTheDocument();
-    expect(screen.getByText('Browser')).toBeInTheDocument();
-    // Rage clicks lost its column to these two; the count is still queryable,
-    // it just isn't one of the five columns the preview has room for.
+    expect(screen.getByText('Platform')).toBeInTheDocument();
+    expect(screen.getByText('Activity')).toBeInTheDocument();
+    // Rage clicks lost its column to these; the count is still queryable, it
+    // just isn't one of the five columns the preview has room for.
     expect(screen.queryByText('Rage clicks')).not.toBeInTheDocument();
 
-    // Replay, OS, Browser, Duration, Errors — the order the replays list uses.
+    // Replay, Platform, Duration, Errors, Activity.
     const cells = within(screen.getByRole('row', {name: /Test User/})).getAllByRole(
       'cell'
     );
 
-    await userEvent.hover(within(cells[1]!).getByRole('img'));
-    expect(await screen.findByText('Mac OS X 10.15.7')).toBeInTheDocument();
+    // One cell carries both icons, the browser stacked behind the OS.
+    const [browser, os] = within(cells[1]!).getAllByRole('img');
 
-    await userEvent.hover(within(cells[2]!).getByRole('img'));
+    await userEvent.hover(browser!);
     expect(await screen.findByText('Chrome 103.0.0')).toBeInTheDocument();
+
+    await userEvent.hover(os!);
+    expect(await screen.findByText('Mac OS X 10.15.7')).toBeInTheDocument();
   });
 
   it('renders an archived replay without its measurements', async () => {
