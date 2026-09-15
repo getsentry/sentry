@@ -249,11 +249,9 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
     onComplete: handleComplete,
   });
 
-  const submitTooltipText = form.submitTooltipText;
-
   // A real form so Enter in the project name field submits through the
-  // Create project button (implicit submission), which stays a no-op while
-  // the button is disabled.
+  // Create project button (implicit submission). form.submit() is a no-op
+  // while canSubmit is false.
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     form.submit();
@@ -374,11 +372,6 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
                   />
                 </MotionContainer>
               </MotionStack>
-              {/* Page-level CTA: aria-disabled (not natively disabled) until a
-              platform and project details are ready, so it stays focusable and
-              the tooltip that says what is missing opens on keyboard focus.
-              Activating it submits the form, which form.submit() ignores while
-              canSubmit is false. */}
               <MotionStack
                 gap="md"
                 maxWidth={CREATE_PROJECT_MAX_WIDTH}
@@ -387,16 +380,16 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
               >
                 <ProjectCreationErrorAlert error={form.error} />
                 <Flex justify="end">
+                  {/* aria-disabled rather than disabled so the CTA stays
+                  focusable and the tooltip that says what is missing opens on
+                  keyboard focus. */}
                   <Button
                     type="submit"
                     variant="primary"
                     aria-disabled={!form.canSubmit}
                     busy={form.isBusy}
                     icon={<IconProject />}
-                    tooltipProps={{
-                      title: submitTooltipText,
-                      disabled: !submitTooltipText,
-                    }}
+                    tooltipProps={{title: form.submitTooltipText}}
                   >
                     {t('Create project')}
                   </Button>

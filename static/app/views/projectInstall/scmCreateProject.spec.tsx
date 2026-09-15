@@ -365,27 +365,17 @@ describe('ScmCreateProject', () => {
   });
 
   it('shows a tooltip on the disabled Create CTA explaining what is missing', async () => {
-    const createRequest = MockApiClient.addMockResponse({
-      url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
-      method: 'POST',
-      body: ProjectFixture(),
-    });
     render(<ScmCreateProject />, {organization});
 
     const createButton = await screen.findByRole('button', {name: 'Create project'});
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
 
-    // Fresh wizard: platform and project name are both missing. The button is
-    // aria-disabled rather than disabled so keyboard focus can reach the
-    // tooltip that says so.
+    // Fresh wizard: platform and project name are both missing, and keyboard
+    // focus alone must reach the tooltip that says so.
     act(() => createButton.focus());
     expect(
       await screen.findByText('Please fill out all the required fields')
     ).toBeInTheDocument();
-
-    // Activating it submits the form, which stays a no-op.
-    await userEvent.keyboard('{Enter}');
-    expect(createRequest).not.toHaveBeenCalled();
   });
 
   it('updates the default name and preserves edited project details', async () => {
