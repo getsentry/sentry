@@ -8,6 +8,15 @@ import {EventEmbedStory} from './eventEmbedStory';
 jest.mock('sentry/components/seer/markdown', () => ({
   SeerMarkdown: ({raw}: {raw: string}) => <div aria-label="Rendered markdown">{raw}</div>,
 }));
+/**
+ * One element per example. Each variant renders its embed once per level it
+ * declares, so the block demo -- whose raw is the bare tag -- is the one that
+ * carries the data the story chose.
+ */
+async function findExampleTags() {
+  const demos = await screen.findAllByLabelText('Rendered markdown');
+  return demos.filter(demo => demo.textContent?.startsWith('{%'));
+}
 
 const EVENT_ID = '8f2c1a9d7e6b4f30a1b2c3d4e5f60718';
 
@@ -43,7 +52,7 @@ describe('EventEmbedStory', () => {
 
     render(<EventEmbedStory />);
 
-    const variants = await screen.findAllByLabelText('Rendered markdown');
+    const variants = await findExampleTags();
     expect(variants).toHaveLength(4);
 
     for (const variant of variants) {
@@ -80,7 +89,7 @@ describe('EventEmbedStory', () => {
 
     render(<EventEmbedStory />);
 
-    const variants = await screen.findAllByLabelText('Rendered markdown');
+    const variants = await findExampleTags();
     expect(variants).toHaveLength(3);
     expect(variants[2]).toHaveTextContent('"view":"tag","tagKeys":["browser"]');
   });

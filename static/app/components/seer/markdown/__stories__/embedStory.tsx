@@ -1,9 +1,8 @@
 import type {ComponentProps, ReactNode} from 'react';
-import {Fragment} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {SeerEmbedExample} from 'sentry/components/seer/markdown/embeds/schemas';
@@ -44,20 +43,15 @@ function getStoryExamples(
   });
 }
 
-function formatVariant(
-  name: EmbedName,
-  levels: readonly EmbedLevel[],
-  data: Record<string, unknown>
-): string {
-  const tag = formatTag(name, data);
-
-  return levels
-    .map(level =>
-      level === 'inline'
-        ? `Inline: Lorem ipsum ${tag} dolor sit amet.`
-        : `Block:\n\n${tag}`
-    )
-    .join('\n\n');
+function LevelSection({title, children}: {children: ReactNode; title: string}) {
+  return (
+    <Stack gap="sm">
+      <Heading as="h5" size="xs" variant="muted">
+        {title}
+      </Heading>
+      {children}
+    </Stack>
+  );
 }
 
 interface EmbedVariantProps {
@@ -68,41 +62,56 @@ interface EmbedVariantProps {
 }
 
 export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) {
-  const source = formatVariant(name, SEER_EMBED_SCHEMAS[name].level, data);
-  // The same serialization the copy button performs, so the page shows what
-  // copying this example would produce.
-  const {node: markdownNode, text: markdown} = useSeerMarkdownText(source);
+  const levels: readonly EmbedLevel[] = SEER_EMBED_SCHEMAS[name].level;
+  const tag = formatTag(name, data);
+  // Serialized from the tag alone, so the demo prose around the inline example
+  // does not end up in the copied text.
+  const {node, text: markdown} = useSeerMarkdownText(tag);
+
+  const demo = {
+    minHeight: undefined,
+    maxHeight: undefined,
+    overflow: undefined,
+    ...demoProps,
+  };
 
   return (
-    <Stack gap="sm">
-      <Text size="sm" bold>
+    <Stack gap="xl">
+      <Heading as="h4" size="sm">
         {label}
-      </Text>
-      <Demo
-        minHeight={undefined}
-        maxHeight={undefined}
-        overflow={undefined}
-        {...demoProps}
-      >
-        <SeerMarkdown raw={source} />
-      </Demo>
-      <Text size="sm" variant="muted">
-        Tag
-      </Text>
-      <CodeBlock language="markdown" dark>
-        {source}
-      </CodeBlock>
+      </Heading>
+
+      <LevelSection title="Tag">
+        <CodeBlock language="markdown" dark>
+          {tag}
+        </CodeBlock>
+      </LevelSection>
+
+      {levels.includes('inline') ? (
+        <LevelSection title="Inline">
+          <Demo {...demo}>
+            <SeerMarkdown raw={`Lorem ipsum ${tag} dolor sit amet.`} />
+          </Demo>
+        </LevelSection>
+      ) : null}
+
+      {levels.includes('block') ? (
+        <LevelSection title="Block">
+          <Demo {...demo}>
+            <SeerMarkdown raw={tag} />
+          </Demo>
+        </LevelSection>
+      ) : null}
+
       {markdown ? (
-        <Fragment>
-          <Text size="sm" variant="muted">
-            Copied as markdown
-          </Text>
+        <LevelSection title="Markdown">
           <CodeBlock language="markdown" dark>
             {markdown}
           </CodeBlock>
-        </Fragment>
+        </LevelSection>
       ) : null}
-      {markdownNode}
+
+      {node}
     </Stack>
   );
 }
@@ -117,17 +126,19 @@ export function EmbedStory({children, name}: EmbedStoryProps) {
   const examples = getStoryExamples(name, schema.examples);
 
   return (
-    <Stack gap="md">
-      <Text size="sm" variant="muted">
-        Level: {schema.level.join(', ')}
-        {'featureFlag' in schema
-          ? ` · Flag: ${[schema.featureFlag].flat().join(' or ')}`
-          : null}
-      </Text>
-      <Text size="sm" variant="muted">
-        {schema.description}
-      </Text>
-      <Stack gap="lg">
+    <Stack gap="xl">
+      <Stack gap="xs">
+        <Text size="sm" variant="muted">
+          Level: {schema.level.join(', ')}
+          {'featureFlag' in schema
+            ? ` · Flag: ${[schema.featureFlag].flat().join(' or ')}`
+            : null}
+        </Text>
+        <Text size="sm" variant="muted">
+          {schema.description}
+        </Text>
+      </Stack>
+      <Stack gap="2xl">
         {children ??
           examples.map(example => (
             <EmbedVariant

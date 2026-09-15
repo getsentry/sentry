@@ -9,6 +9,15 @@ import {LogEmbedStory} from './logEmbedStory';
 jest.mock('sentry/components/seer/markdown', () => ({
   SeerMarkdown: ({raw}: {raw: string}) => <div aria-label="Rendered markdown">{raw}</div>,
 }));
+/**
+ * One element per example. Each variant renders its embed once per level it
+ * declares, so the block demo -- whose raw is the bare tag -- is the one that
+ * carries the data the story chose.
+ */
+async function findExampleTags() {
+  const demos = await screen.findAllByLabelText('Rendered markdown');
+  return demos.filter(demo => demo.textContent?.startsWith('{%'));
+}
 
 const TIMESTAMP_MS = Date.UTC(2026, 7, 28, 16, 37, 12);
 
@@ -46,7 +55,7 @@ describe('LogEmbedStory', () => {
 
     render(<LogEmbedStory />);
 
-    const variants = await screen.findAllByLabelText('Rendered markdown');
+    const variants = await findExampleTags();
     expect(variants).toHaveLength(4);
     expect(eventsRequest).toHaveBeenCalled();
 
