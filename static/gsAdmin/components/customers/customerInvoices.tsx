@@ -11,9 +11,9 @@ type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
   region: string;
 };
 
-const getRow = (orgId: string, region: string, row: any) => [
+const getRow = (region: string, row: any) => [
   <td key="name">
-    <Link to={`/_admin/customers/${orgId}/invoices/${region}/${row.id}/`}>
+    <Link to={`/_admin/invoices/${region}/${row.id}/`}>
       {moment(row.dateCreated).format('ll')}
     </Link>
   </td>,
@@ -47,7 +47,7 @@ export function CustomerInvoices({orgId, region, ...props}: Props) {
           Amount
         </th>,
       ]}
-      columnsForRow={row => getRow(orgId, region, row)}
+      columnsForRow={row => getRow(region, row)}
       {...props}
     />
   );

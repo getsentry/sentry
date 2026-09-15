@@ -25,19 +25,17 @@ export function computeBuckets(data: HistogramData) {
 export function formatHistogramData(
   data: HistogramData,
   {
-    precision,
     type,
     additionalFieldsFn,
   }: {
     additionalFieldsFn?: any;
-    precision?: number;
     type?: ColumnType;
   } = {}
 ) {
   const formatter = (value: number): string => {
     switch (type) {
       case 'duration': {
-        const decimalPlaces = precision ?? (value < 1000 ? 0 : 3);
+        const decimalPlaces = value < 1000 ? 0 : 3;
         return getDuration(value / 1000, decimalPlaces, true);
       }
       case 'number': {
@@ -45,7 +43,7 @@ export function formatHistogramData(
         // have the same label, if the number of bins doesn't visually match what is
         // expected, check that this rounding is correct. If this issue persists,
         // consider formatting the bin as a string in the response
-        const factor = 10 ** (precision ?? 0);
+        const factor = 10 ** 0;
         return (Math.round((value + Number.EPSILON) * factor) / factor).toLocaleString();
       }
       default:

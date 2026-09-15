@@ -1,6 +1,8 @@
+import {useId} from 'react';
+
 import {Input} from '@sentry/scraps/input';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
@@ -29,15 +31,21 @@ export function ScmProjectDetailsCore({
   projectName,
   teamSlug,
 }: ScmProjectDetailsCoreProps) {
+  const projectNameId = useId();
+  const teamId = useId();
+
   return (
     <Grid width="100%" columns={{zero: '1fr', '3xl': '1fr 1fr'}} gap="xl">
       <Stack gap="md">
         <Container>
-          <Heading as="h4">{t('Project name')}</Heading>
+          <Text as="label" htmlFor={projectNameId} bold size="md">
+            {t('Project name')}
+          </Text>
         </Container>
 
         <Stack gap="xs">
           <Input
+            id={projectNameId}
             type="text"
             placeholder={t('project-name')}
             value={projectName}
@@ -55,14 +63,16 @@ export function ScmProjectDetailsCore({
       {!isOrgMemberWithNoAccess && (
         <Stack gap="md">
           <Container>
-            <Heading as="h4">{t('Team')}</Heading>
+            <Text as="label" htmlFor={teamId} bold size="md">
+              {t('Team')}
+            </Text>
           </Container>
 
           <Stack gap="xs">
             <TeamSelector
               allowCreate
+              inputId={teamId}
               name="team"
-              aria-label={t('Select a Team')}
               clearable={false}
               placeholder={t('Select a Team')}
               teamFilter={(tm: Team) => tm.access.includes('team:admin')}

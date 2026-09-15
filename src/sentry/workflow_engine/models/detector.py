@@ -29,7 +29,7 @@ from .json_config import JSONConfigBase
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
-    from sentry.workflow_engine.handlers.detector import DetectorHandler
+    from sentry.workflow_engine.handlers.detector import BaseDetectorHandler
     from sentry.workflow_engine.models.data_condition_group import DataConditionGroupSnapshot
 
 logger = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         return group_type
 
     @property
-    def detector_handler(self) -> DetectorHandler[Any] | None:
+    def detector_handler(self) -> BaseDetectorHandler[Any] | None:
         group_type = self.group_type
 
         if self.settings.handler is None:

@@ -15,23 +15,23 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.seer.agent.types import FeatureRunStatus
-from sentry.seer.autofix.autofix_agent import AutofixStep, trigger_autofix_agent
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.issue_summary import referrer_map
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
     is_seer_seat_based_tier_enabled,
 )
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunErrorType,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.night_shift import SeerNightShiftRunErrorType, SeerNightShiftRunResult
 from sentry.seer.models.run import SeerRun
-from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
@@ -53,7 +53,7 @@ def deliver_night_shift_result(
 ) -> None:
     """Process a night_shift result from Seer."""
     shard = (
-        SeerNightShiftRunShard.objects.filter(
+        SeerWorkflowRunExecution.objects.filter(
             seer_run__uuid=run_uuid, run__organization_id=organization_id
         )
         .select_related("run", "run__organization", "seer_run")
@@ -128,7 +128,7 @@ def deliver_night_shift_result(
 
 def _process_verdicts(
     *,
-    run: SeerNightShiftRun,
+    run: SeerWorkflowRun,
     organization: Organization,
     triage_response: TriageResponse,
     dry_run: bool,

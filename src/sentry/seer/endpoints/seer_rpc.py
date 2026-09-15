@@ -39,6 +39,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
+from sentry.api.client_kind import ClientKind, client_kind_scope
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -93,6 +94,7 @@ from sentry.seer.agent.tools import (
     get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
+    get_project_members,
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
@@ -393,7 +395,8 @@ class SeerRpcServiceEndpoint(Endpoint):
         self._enforce_investigation_event_viewer_context(request, method_name, arguments)
 
         try:
-            result = self._dispatch_to_local_method(method_name, arguments)
+            with client_kind_scope(ClientKind.SEER):
+                result = self._dispatch_to_local_method(method_name, arguments)
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e
@@ -1081,6 +1084,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
     "get_team_members": seer_rpc(get_team_members),
+    "get_project_members": seer_rpc(get_project_members),
     "get_group_assignees": seer_rpc(get_group_assignees),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),

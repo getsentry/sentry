@@ -897,6 +897,36 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
         assert activity.data["commit"] == commit.id
 
+    def test_set_resolved_in_explicit_commit_with_duplicate_repository_name(self) -> None:
+        repo = self.create_repo(project=self.project, name=self.project.name)
+        commit = self.create_commit(project=self.project, repo=repo)
+        self.create_repo(
+            project=self.project,
+            name=repo.name,
+            provider="integrations:github",
+            external_id="duplicate-repository",
+        )
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        self.login_as(user=self.user)
+
+        url = f"{self.path}?id={group.id}"
+        response = self.client.put(
+            url,
+            data={
+                "status": "resolved",
+                "statusDetails": {"inCommit": {"commit": commit.key, "repository": repo.name}},
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data["status"] == "resolved"
+        assert response.data["statusDetails"]["inCommit"]["id"] == commit.key
+
+        link = GroupLink.objects.get(group_id=group.id)
+        assert link.linked_id == commit.id
+
     def test_set_resolved_in_explicit_commit_released(self) -> None:
         release = self.create_release(project=self.project)
         repo = self.create_repo(project=self.project, name=self.project.name)

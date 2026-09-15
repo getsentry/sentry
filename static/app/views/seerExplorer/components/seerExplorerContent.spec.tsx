@@ -81,6 +81,88 @@ describe('SeerExplorerContent', () => {
     jest.restoreAllMocks();
   });
 
+  describe('Show thinking', () => {
+    it('renders thinking traces when code mode tools is enabled', async () => {
+      const codeModeOrganization = OrganizationFixture({
+        openMembership: true,
+        features: ['seer-explorer', 'gen-ai-features', 'seer-explorer-code-mode-tools'],
+        hideAiFeatures: false,
+      });
+
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: [
+            {
+              id: 'msg-1',
+              message: {role: 'user', content: 'What is this error?'},
+              timestamp: '2024-01-01T00:00:00Z',
+              loading: false,
+            },
+            {
+              id: 'tool-1',
+              message: {
+                role: 'tool_use',
+                content: null,
+                thinking_content: 'Let me search for issues...',
+                tool_calls: [
+                  {
+                    id: 'call-1',
+                    function: 'telemetry_live_search',
+                    args: '{"question":"errors"}',
+                  },
+                ],
+              },
+              timestamp: '2024-01-01T00:01:00Z',
+              loading: false,
+              tool_results: [
+                {
+                  tool_call_id: 'call-1',
+                  tool_call_function: 'telemetry_live_search',
+                  content: '{}',
+                },
+              ],
+              tool_links: [{kind: 'telemetry_live_search', params: {}}],
+            },
+            {
+              id: 'msg-2',
+              message: {
+                role: 'assistant',
+                content: 'This is a null pointer exception.',
+              },
+              timestamp: '2024-01-01T00:02:00Z',
+              loading: false,
+            },
+          ],
+          run_id: 123,
+          status: 'completed',
+          updated_at: '2024-01-01T00:02:00Z',
+        } as SeerExplorerResponse['session'],
+      });
+
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {
+          organization: codeModeOrganization,
+        }
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: /See thinking and tool calls/})
+      );
+
+      expect(screen.getByText('Let me search for issues...')).toBeVisible();
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
+  });
+
   describe('Empty State', () => {
     it('renders the drawer root element', async () => {
       render(

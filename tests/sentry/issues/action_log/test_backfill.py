@@ -29,6 +29,7 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 
 
@@ -156,6 +157,7 @@ class BackfillActionsTest(TestCase):
         mock_invalidate.assert_not_called()
 
 
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class BackfillGroupActivitiesTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

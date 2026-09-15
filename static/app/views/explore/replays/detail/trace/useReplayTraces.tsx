@@ -154,6 +154,7 @@ export function useReplayTraces({
 
   useEffect(() => {
     if (!state.indexComplete) {
+      // oxlint-disable-next-line react/set-state-in-effect
       fetchTransactionData();
     }
   }, [fetchTransactionData, state.indexComplete]);
