@@ -307,13 +307,18 @@ export type InvestigationHypothesis = {
   rationale: string;
   statement: string;
   status: InvestigationOrchestrationWorkStatus;
-  verificationSteps: InvestigationVerificationStep[];
   agentVerdict?: InvestigationAgentVerdict | null;
   attempt?: number;
   automaticRetryCount?: number;
   heartbeatAt?: string | null;
   investigatorRunId?: number | null;
   toolActivity?: InvestigationToolActivity[];
+  /**
+   * Absent, not empty, until the agent has planned any checks: the contract
+   * declares this `required=False` with no default, so DRF omits the key
+   * entirely rather than sending `[]`.
+   */
+  verificationSteps?: InvestigationVerificationStep[];
 };
 
 type InvestigationOrchestrationReport = {

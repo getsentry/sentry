@@ -21,7 +21,8 @@ function countCompletedChecks(projection: InvestigationOrchestration): number {
   return projection.hypotheses.reduce(
     (total, hypothesis) =>
       total +
-      hypothesis.verificationSteps.filter(step => step.result || step.error).length,
+      (hypothesis.verificationSteps ?? []).filter(step => step.result || step.error)
+        .length,
     0
   );
 }

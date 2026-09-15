@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
@@ -20,6 +21,21 @@ import type {
 
 /** How often to re-read the projection while a workflow is still moving. */
 const POLL_INTERVAL_MS = 2000;
+
+/**
+ * How long to keep re-reading a settled run after a command was accepted.
+ *
+ * Sentry only queues a command: the response carries the *existing* projection
+ * with nothing but `workflowVersion` bumped, and Seer rewrites the projection
+ * when it actually applies the decision. On a run that has already finished
+ * polling is off, so without this the card would keep the old disposition until
+ * someone reloaded the page — and accepting or rejecting a hypothesis on a
+ * finished run is the main reason to touch that menu at all.
+ *
+ * Bounded rather than open-ended: if Seer never applies the command, this stops
+ * asking instead of polling a stopped run forever.
+ */
+const COMMAND_SETTLE_MS = 30_000;
 
 /**
  * Whether a workflow has stopped moving on its own.
@@ -64,16 +80,28 @@ export function InvestigationHypotheses({
   investigationId,
 }: InvestigationHypothesesProps) {
   const organization = useOrganization();
+  // When the last accepted command was sent, or null if none has been. A
+  // command makes a settled run interesting again, because Seer is about to
+  // rewrite the projection behind it.
+  const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
+
   const {data: projection} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
-    refetchInterval: query =>
-      isInvestigationRunSettled(query.state.data?.json.status) ? false : POLL_INTERVAL_MS,
+    refetchInterval: query => {
+      if (!isInvestigationRunSettled(query.state.data?.json.status)) {
+        return POLL_INTERVAL_MS;
+      }
+      const waitingOnCommand =
+        commandSentAt !== null && Date.now() - commandSentAt < COMMAND_SETTLE_MS;
+      return waitingOnCommand ? POLL_INTERVAL_MS : false;
+    },
   });
 
   const commandMutation = useInvestigationOrchestrationCommandMutation(
     organization.slug,
-    investigationId
+    investigationId,
+    {onSuccess: () => setCommandSentAt(Date.now())}
   );
 
   // The status block is the run talking, so it appears as soon as there is a

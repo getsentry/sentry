@@ -645,7 +645,7 @@ function applyFixtureCommandToHypothesis(
       decisionSource: 'none',
       confidence: null,
       agentVerdict: null,
-      verificationSteps: hypothesis.verificationSteps.map(step => ({
+      verificationSteps: (hypothesis.verificationSteps ?? []).map(step => ({
         ...step,
         status: 'queued',
         result: null,

@@ -100,7 +100,7 @@ function getHypothesisStatusDisplay(
       return {label: humanize(status), variant: 'muted', inFlight: false};
   }
 
-  const steps = hypothesis.verificationSteps;
+  const steps = hypothesis.verificationSteps ?? [];
   if (steps.length === 0) {
     // Proposed, with nothing planned to test it yet.
     return {label: t('Formed'), variant: 'muted', inFlight: false};
