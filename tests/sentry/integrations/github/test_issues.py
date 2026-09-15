@@ -500,6 +500,38 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             "repo": "Given repository, different-org/different-repo does not belong to this installation"
         }
 
+    def test_issue_url_uses_installed_repository(self) -> None:
+        self.install.model.metadata["domain_name"] = "github.com/getsentry"
+        self.create_repo(
+            name="getsentry/sentry", project=self.project, integration_id=self.integration.id
+        )
+        for path in (
+            "issues/321",
+            "pull/321",
+            "pull/321/files",
+            "pull/321/changes",
+            "pull/321/commits",
+            "pull/321/checks",
+        ):
+            assert self.install.get_issue_link_data(
+                f"https://github.com/GETSENTRY/Sentry/{path}?view=1#comment"
+            ) == {"repo": "getsentry/sentry", "externalIssue": "321"}
+
+    def test_issue_url_rejects_invalid_targets(self) -> None:
+        self.install.model.metadata["domain_name"] = "github.com/getsentry"
+        for url in (
+            "https://github.example.org/getsentry/sentry/issues/321",
+            "https://github.com/another-org/sentry/issues/321",
+            "https://github.com/getsentry/unregistered/issues/321",
+        ):
+            with pytest.raises(IntegrationFormError):
+                self.install.get_issue_link_data(url)
+
+        for path in ("pull/321/unknown", "issues/321/files", "issues/321/changes"):
+            with pytest.raises(IntegrationFormError) as exc:
+                self.install.get_issue_link_data(f"https://github.com/getsentry/sentry/{path}")
+            assert exc.value.field_errors == {"externalIssue": "Invalid GitHub issue URL"}
+
     @responses.activate
     def test_get_issue_with_valid_repo_ownership(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
