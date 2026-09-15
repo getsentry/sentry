@@ -92,31 +92,40 @@ function findTagStart(src: string): number | undefined {
   return undefined;
 }
 
-function tokenize(src: string, level: 'block' | 'inline'): Tokens.Generic | undefined {
-  let match = BLOCK_RE.exec(src);
-  if (match) {
-    const [raw, name, attrStr = '', body = ''] = match;
-    return {
-      type: 'tag',
-      raw,
-      level,
-      name,
-      attrs: parseAttrs(attrStr),
-      data: parseBody(body),
-    };
+function tokenize(src: string, level: 'block' | 'inline'): TagToken | undefined {
+  // The name group is mandatory in both patterns, so these guards never fire at
+  // runtime -- they are what lets the return type say `TagToken` rather than a
+  // generic token the callers have to assert their way out of.
+  const blockMatch = BLOCK_RE.exec(src);
+  if (blockMatch) {
+    const [raw, name, attrStr = '', body = ''] = blockMatch;
+    if (raw !== undefined && name !== undefined) {
+      return {
+        type: 'tag',
+        raw,
+        level,
+        name,
+        attrs: parseAttrs(attrStr),
+        data: parseBody(body),
+      };
+    }
   }
-  match = SELF_CLOSING_RE.exec(src);
-  if (match) {
-    const [raw, name, attrStr = ''] = match;
-    return {
-      type: 'tag',
-      raw,
-      level,
-      name,
-      attrs: parseAttrs(attrStr),
-      data: undefined,
-    };
+
+  const selfClosingMatch = SELF_CLOSING_RE.exec(src);
+  if (selfClosingMatch) {
+    const [raw, name, attrStr = ''] = selfClosingMatch;
+    if (raw !== undefined && name !== undefined) {
+      return {
+        type: 'tag',
+        raw,
+        level,
+        name,
+        attrs: parseAttrs(attrStr),
+        data: undefined,
+      };
+    }
   }
+
   return undefined;
 }
 
@@ -141,7 +150,7 @@ export function splitTags(src: string): TagSegment[] {
       break;
     }
 
-    const token = tokenize(rest.slice(start), 'block') as TagToken | undefined;
+    const token = tokenize(rest.slice(start), 'block');
     if (!token) {
       break;
     }
