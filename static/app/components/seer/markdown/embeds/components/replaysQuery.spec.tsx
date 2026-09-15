@@ -1,6 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -19,6 +19,8 @@ function rawReplay(overrides: Record<string, unknown> = {}) {
     count_errors: 4,
     count_dead_clicks: 0,
     count_rage_clicks: 7,
+    os: {name: 'Mac OS X', version: '10.15.7'},
+    browser: {name: 'Chrome', version: '103.0.0'},
     user: {
       id: '1',
       display_name: 'Test User',
@@ -66,7 +68,6 @@ describe('replays query embed', () => {
     // renderable after `mapResponseToReplayRecord` turns it into a Duration.
     expect(within(row).getByText('00:30')).toBeInTheDocument();
     expect(within(row).getByText('4')).toBeInTheDocument();
-    expect(within(row).getByText('7')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(request).toHaveBeenCalledWith(
@@ -83,6 +84,34 @@ describe('replays query embed', () => {
         })
       );
     });
+  });
+
+  it('shows the OS and browser the replays list shows, not rage clicks', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {data: [rawReplay()]},
+    });
+
+    renderEmbed({name: 'replaysQuery', data: {query: ''}});
+
+    expect(await screen.findByText('Test User')).toBeInTheDocument();
+
+    expect(screen.getByText('OS')).toBeInTheDocument();
+    expect(screen.getByText('Browser')).toBeInTheDocument();
+    // Rage clicks lost its column to these two; the count is still queryable,
+    // it just isn't one of the five columns the preview has room for.
+    expect(screen.queryByText('Rage clicks')).not.toBeInTheDocument();
+
+    // Replay, OS, Browser, Duration, Errors — the order the replays list uses.
+    const cells = within(screen.getByRole('row', {name: /Test User/})).getAllByRole(
+      'cell'
+    );
+
+    await userEvent.hover(within(cells[1]!).getByRole('img'));
+    expect(await screen.findByText('Mac OS X 10.15.7')).toBeInTheDocument();
+
+    await userEvent.hover(within(cells[2]!).getByRole('img'));
+    expect(await screen.findByText('Chrome 103.0.0')).toBeInTheDocument();
   });
 
   it('renders an archived replay without its measurements', async () => {

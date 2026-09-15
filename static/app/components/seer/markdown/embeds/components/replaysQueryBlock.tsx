@@ -4,6 +4,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {Duration} from 'sentry/components/duration/duration';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
+import {ReplayPlatformIcon} from 'sentry/components/replays/replayPlatformIcon';
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {
@@ -40,6 +41,28 @@ const COLUMNS: Array<QueryEmbedColumn<ReplayListRecord>> = [
     render: replay => <ReplayBadge replay={replay} />,
   },
   {
+    key: 'os',
+    label: t('OS'),
+    width: 'max-content',
+    render: replay =>
+      replay.is_archived ? (
+        archivedFallback()
+      ) : (
+        <ReplayPlatformIcon name={replay.os.name} version={replay.os.version} />
+      ),
+  },
+  {
+    key: 'browser',
+    label: t('Browser'),
+    width: 'max-content',
+    render: replay =>
+      replay.is_archived ? (
+        archivedFallback()
+      ) : (
+        <ReplayPlatformIcon name={replay.browser.name} version={replay.browser.version} />
+      ),
+  },
+  {
     key: 'duration',
     label: t('Duration'),
     render: replay =>
@@ -57,16 +80,6 @@ const COLUMNS: Array<QueryEmbedColumn<ReplayListRecord>> = [
         archivedFallback()
       ) : (
         <Text ellipsis>{formatNumber(replay.count_errors ?? 0)}</Text>
-      ),
-  },
-  {
-    key: 'count_rage_clicks',
-    label: t('Rage clicks'),
-    render: replay =>
-      replay.is_archived ? (
-        archivedFallback()
-      ) : (
-        <Text ellipsis>{formatNumber(replay.count_rage_clicks ?? 0)}</Text>
       ),
   },
 ];
