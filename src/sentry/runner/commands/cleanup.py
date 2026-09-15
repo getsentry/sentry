@@ -5,7 +5,7 @@ import logging
 import os
 import time
 from collections.abc import Callable
-from concurrent.futures import Executor, Future, ProcessPoolExecutor
+from concurrent.futures import FIRST_COMPLETED, Executor, Future, ProcessPoolExecutor
 from concurrent.futures import wait as future_wait
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -264,6 +264,26 @@ def cleanup(
     )
 
 
+class FutureScheduler:
+    def __init__(self, executor: Executor, pending_future_limit: int) -> None:
+        self.executor = executor
+        self._pending_future_limit = pending_future_limit
+        self._futures: set[Future[None]] = set()
+
+    def put(self, model_name: str, chunk: tuple[int, ...], project_id: int | None = None) -> None:
+        self._futures.add(self.executor.submit(task_execution, model_name, chunk, project_id))
+        if len(self._futures) >= self._pending_future_limit:
+            # clear some completed futures to make room.
+            _done, self._futures = future_wait(self._futures, return_when=FIRST_COMPLETED)
+            del _done
+
+    def join(self) -> None:
+        future_wait(self._futures)
+
+    def shutdown(self) -> None:
+        self.executor.shutdown()
+
+
 def _cleanup(
     model: tuple[str, ...],
     days: int,
@@ -303,8 +323,11 @@ def _cleanup(
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     # Using a fairly low tasks per child to control memory usage
-    executor = ProcessPoolExecutor(
-        max_workers=concurrency, initializer=_worker_initializer, max_tasks_per_child=100
+    scheduler = FutureScheduler(
+        ProcessPoolExecutor(
+            max_workers=concurrency, initializer=_worker_initializer, max_tasks_per_child=100
+        ),
+        concurrency * 2,
     )
 
     from sentry.runner import configure
@@ -370,7 +393,7 @@ def _cleanup(
             )
 
             run_bulk_deletes_in_deletes(
-                executor,
+                scheduler,
                 deletes,
                 is_filtered,
                 days,
@@ -382,7 +405,7 @@ def _cleanup(
             # Expiry-based models always use days=0 so records are deleted exactly
             # when they expire, regardless of the --days flag.
             run_bulk_deletes_in_deletes(
-                executor,
+                scheduler,
                 expiry_deletes,
                 is_filtered,
                 0,
@@ -392,11 +415,11 @@ def _cleanup(
             )
 
             run_bulk_deletes_by_project(
-                executor, project_id, start_from_project_id, is_filtered, days, models_attempted
+                scheduler, project_id, start_from_project_id, is_filtered, days, models_attempted
             )
 
             run_bulk_deletes_by_organization(
-                executor, organization_id, is_filtered, days, models_attempted
+                scheduler, organization_id, is_filtered, days, models_attempted
             )
 
             remove_file_blobs(is_filtered, models_attempted)
@@ -416,7 +439,7 @@ def _cleanup(
 
         finally:
             # Shut down our pool
-            executor.shutdown()
+            scheduler.shutdown()
 
             duration = int(time.time() - start_time)
             metrics.timing(
@@ -812,12 +835,12 @@ def run_bulk_query_deletes(
 
 
 def _schedule_bulk_delete_chunks(
-    executor: Executor,
+    scheduler: FutureScheduler,
     q: BulkDeleteQuery,  # Imported locally in functions that use it
     model_tp: type[BaseModel],
     project_id: int | None,
     context_str: str = "",
-) -> list[Future[None]]:
+) -> tuple[int, int]:
     """
     Schedule chunks from a BulkDeleteQuery into the task queue.
 
@@ -826,13 +849,13 @@ def _schedule_bulk_delete_chunks(
     """
     imp = ".".join((model_tp.__module__, model_tp.__name__))
     total_objects = 0
-    futures = []
+    chunk_count = 0
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
-        futures.append(executor.submit(task_execution, imp, chunk, project_id))
+        chunk_count += 1
         total_objects += len(chunk)
+        scheduler.put(imp, chunk, project_id)
 
-    chunk_count = len(futures)
     if chunk_count > 0:
         debug_output(
             f"[SCHEDULED] {chunk_count} chunks ({total_objects} total {model_tp.__name__} objects project_id={project_id}{context_str})"
@@ -842,11 +865,11 @@ def _schedule_bulk_delete_chunks(
             f"[SCHEDULED] No {model_tp.__name__} objects found to delete (project_id={project_id}{context_str})"
         )
 
-    return futures
+    return chunk_count, total_objects
 
 
 def run_bulk_deletes_in_deletes(
-    executor: Executor,
+    scheduler: FutureScheduler,
     deletes: list[tuple[type[BaseModel], str, str]],
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
@@ -862,7 +885,6 @@ def run_bulk_deletes_in_deletes(
         raise CleanupExecutionAborted()
 
     debug_output("Running bulk deletes in DELETES")
-    futures = []
     for model_tp, dtfield, order_by in deletes:
         if is_filtered(model_tp):
             debug_output(">> Skipping %s" % model_tp.__name__)
@@ -877,7 +899,7 @@ def run_bulk_deletes_in_deletes(
                     project_id=project_id,
                     order_by=order_by,
                 )
-                futures.extend(_schedule_bulk_delete_chunks(executor, q, model_tp, project_id))
+                _schedule_bulk_delete_chunks(scheduler, q, model_tp, project_id)
 
             except Exception:
                 capture_exception(tags={"model": model_tp.__name__})
@@ -889,11 +911,11 @@ def run_bulk_deletes_in_deletes(
                 )
 
     # Ensure all tasks are completed before exiting
-    future_wait(futures)
+    scheduler.join()
 
 
 def run_bulk_deletes_by_project(
-    executor: Executor,
+    scheduler: FutureScheduler,
     project_id: int | None,
     start_from_project_id: int | None,
     is_filtered: Callable[[type[BaseModel]], bool],
@@ -912,7 +934,6 @@ def run_bulk_deletes_by_project(
         is_filtered, project_id, start_from_project_id
     )
 
-    futures = []
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
 
@@ -934,10 +955,7 @@ def run_bulk_deletes_by_project(
                         project_id=project_id_for_deletion,
                         order_by=order_by,
                     )
-
-                    futures.extend(
-                        _schedule_bulk_delete_chunks(executor, q, model_tp, project_id_for_deletion)
-                    )
+                    _schedule_bulk_delete_chunks(scheduler, q, model_tp, project_id_for_deletion)
                 except Exception:
                     capture_exception(
                         tags={"model": model_tp.__name__, "project_id": project_id_for_deletion}
@@ -950,11 +968,11 @@ def run_bulk_deletes_by_project(
                     )
 
     # Ensure all tasks are completed before exiting
-    future_wait(futures)
+    scheduler.join()
 
 
 def run_bulk_deletes_by_organization(
-    executor: Executor,
+    scheduler: FutureScheduler,
     organization_id: int | None,
     is_filtered: Callable[[type[BaseModel]], bool],
     days: int,
@@ -972,7 +990,6 @@ def run_bulk_deletes_by_organization(
         organization_id, is_filtered
     )
 
-    futures = []
     if organization_deletion_query is not None and len(to_delete_by_organization):
         debug_output("Running bulk deletes in DELETES_BY_ORGANIZATION")
         for organization_id_for_deletion in RangeQuerySetWrapper(
@@ -992,14 +1009,12 @@ def run_bulk_deletes_by_organization(
                         organization_id=organization_id_for_deletion,
                         order_by=order_by,
                     )
-                    futures.extend(
-                        _schedule_bulk_delete_chunks(
-                            executor,
-                            q,
-                            model_tp,
-                            None,
-                            context_str=f" organization_id={organization_id_for_deletion}",
-                        )
+                    _schedule_bulk_delete_chunks(
+                        scheduler,
+                        q,
+                        model_tp,
+                        None,
+                        context_str=f" organization_id={organization_id_for_deletion}",
                     )
                 except Exception:
                     capture_exception(
@@ -1016,7 +1031,7 @@ def run_bulk_deletes_by_organization(
                     )
 
     # Ensure all tasks are completed before exiting
-    future_wait(futures)
+    scheduler.join()
 
 
 def prepare_deletes_by_project(
