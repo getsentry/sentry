@@ -55,6 +55,7 @@ seer_grouping_default_connection_pool = connection_from_url(
 
 def _resolve_viewer_context(
     explicit: SeerViewerContext | None = None,
+    endpoint: str | None = None,
 ) -> ViewerContext | None:
     """Merge explicit SeerViewerContext with the contextvar.
 
@@ -80,11 +81,12 @@ def _resolve_viewer_context(
             extra={
                 "explicit_org_id": explicit_vc.organization_id,
                 "explicit_user_id": explicit_vc.user_id,
+                "endpoint": endpoint,
             },
         )
         metrics.incr(
             "seer.viewer_context_resolution",
-            tags={"outcome": "contextvar_missing"},
+            tags={"outcome": "contextvar_missing", "endpoint": endpoint or "unknown"},
         )
         return explicit_vc
 
@@ -100,6 +102,7 @@ def _resolve_viewer_context(
                     "field": "organization_id",
                     "contextvar": org_id,
                     "explicit": explicit_vc.organization_id,
+                    "endpoint": endpoint,
                 },
             )
             has_mismatch = True
@@ -113,6 +116,7 @@ def _resolve_viewer_context(
                     "field": "user_id",
                     "contextvar": user_id,
                     "explicit": explicit_vc.user_id,
+                    "endpoint": endpoint,
                 },
             )
             has_mismatch = True
@@ -123,6 +127,7 @@ def _resolve_viewer_context(
         tags={
             "outcome": "mismatch" if has_mismatch else "match",
             "has_project": str(vc.project_id is not None).lower(),
+            "endpoint": endpoint or "unknown",
         },
     )
 
@@ -145,7 +150,9 @@ def make_signed_seer_api_request(
     metric_tags: dict[str, Any] | None = None,
     method: str = "POST",
     viewer_context: SeerViewerContext | None = None,
+    metrics_endpoint: str | None = None,
 ) -> BaseHTTPResponse:
+    """Use metrics_endpoint as a low-cardinality endpoint tag when the request path varies."""
     host = connection_pool.host
     if connection_pool.port:
         host += ":" + str(connection_pool.port)
@@ -160,7 +167,7 @@ def make_signed_seer_api_request(
         **auth_headers,
     }
 
-    resolved = _resolve_viewer_context(viewer_context)
+    resolved = _resolve_viewer_context(viewer_context, endpoint=metrics_endpoint or parsed.path)
     observe_viewer_context_propagation("seer_rpc_out", ctx=resolved)
     if resolved:
         try:
@@ -181,10 +188,14 @@ def make_signed_seer_api_request(
 
     request_target = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
 
+    timer_tags = {"endpoint": parsed.path, **(metric_tags or {})}
+    if metrics_endpoint is not None:
+        timer_tags["endpoint"] = metrics_endpoint
+
     with metrics.timer(
         "seer.request_to_seer",
         sample_rate=1.0,
-        tags={"endpoint": parsed.path, **(metric_tags or {})},
+        tags=timer_tags,
     ):
         return connection_pool.urlopen(
             method,
@@ -751,6 +762,7 @@ def make_delete_grouping_records_by_project_request(
         seer_grouping_default_connection_pool,
         f"/v0/issues/similar-issues/grouping-record/delete/{project_id}",
         body=b"",
+        metrics_endpoint="/v0/issues/similar-issues/grouping-record/delete/:project_id",
         method="GET",
         timeout=timeout,
         viewer_context=viewer_context,

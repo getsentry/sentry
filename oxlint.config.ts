@@ -548,6 +548,7 @@ const config = defineConfig({
     '@sentry/no-unnecessary-use-callback': 'error',
     '@sentry/scraps/no-core-import': 'error',
     '@sentry/scraps/no-double-dollar-interpolation': 'error',
+    '@sentry/scraps/no-restricted-module-mocks': 'error',
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
@@ -667,7 +668,7 @@ const config = defineConfig({
     'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/preserve-manual-memoization': 'error',
     'react/purity': 'error',
-    'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/refs': 'error',
     'react/require-render-return': 'error',
     'react/rule-suppression': 'off',
     'react/set-state-in-effect': 'error',
@@ -1367,18 +1368,6 @@ const config = defineConfig({
       {
         selector: "JSXMemberExpression[object.name='React'][property.name='Fragment']",
         message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
-        message:
-          'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
-        message:
-          'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
       },
       {
         // Require an annotation for uninitialized let declarations, except in

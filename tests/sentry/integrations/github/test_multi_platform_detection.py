@@ -19,7 +19,6 @@ from sentry.integrations.github.multi_platform_detection import (
     _parse_package_manifest,
     _parse_pubspec_yaml,
     _rule_parent_dirs,
-    _segments_are_ignored,
     _select_active_platforms,
     detect_platforms_multi,
 )
@@ -663,28 +662,6 @@ class TestSelectActivePlatforms:
         # dict preserves insertion order; first key is the top platform.
         first_platform = next(iter(result))
         assert first_platform == "python"
-
-
-class TestSegmentsAreIgnored:
-    def test_node_modules_segment_ignored(self) -> None:
-        assert _segments_are_ignored(["node_modules", "react", "index.js"]) is True
-
-    def test_nested_ignored_segment(self) -> None:
-        assert _segments_are_ignored(["a", "b", "vendor", "c", "util.py"]) is True
-
-    def test_build_gradle_file_not_ignored(self) -> None:
-        # "build" is an ignored *directory* segment, but "build.gradle" as a
-        # single segment is not the bare string "build", so must NOT be ignored.
-        assert _segments_are_ignored(["build.gradle"]) is False
-
-    def test_clean_path_not_ignored(self) -> None:
-        assert _segments_are_ignored(["src", "app", "main.py"]) is False
-
-    def test_root_level_file_not_ignored(self) -> None:
-        assert _segments_are_ignored(["manage.py"]) is False
-
-    def test_dist_dir_ignored(self) -> None:
-        assert _segments_are_ignored(["dist", "bundle.js"]) is True
 
 
 class TestDetectPlatformsMultiConcurrency:

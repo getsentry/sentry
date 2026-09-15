@@ -75,6 +75,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -187,7 +188,21 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization)
         detector_q = Q(project_id__in=projects)
-        if all_projects_detector and should_include_all_projects_detector(request, organization):
+
+        # XXX: We have to do this to avoid breaking the Terraform provider.
+        # src: https://github.com/jianyuan/terraform-provider-sentry/blob/b59481f837cbeae74be2fe9883eab473fb63f3a1/internal/provider/data_source_project_issue_stream_monitor_impl.go#L29-L54
+        # We exclude the all projects detector when the request filters to specific projects.
+        # However, if the all projects sentinel is used, we do add it into the response.
+        project_params_unchecked = self.get_requested_project_params_unchecked(request)
+        project_params_include_all_projects = (
+            not project_params_unchecked.has_values
+            or project_params_unchecked.has_all_projects_sentinel
+        )
+        if (
+            all_projects_detector
+            and should_include_all_projects_detector(request, organization)
+            and project_params_include_all_projects
+        ):
             detector_q |= Q(id__in=[all_projects_detector.id])
 
         queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(detector_q)
@@ -399,6 +414,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
+        queryset = queryset.exclude(type=IssueStreamGroupType.slug)
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):

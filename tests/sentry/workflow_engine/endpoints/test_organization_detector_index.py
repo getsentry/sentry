@@ -892,18 +892,28 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
-    def test_all_projects_detector_included_in_list(self) -> None:
+    def test_all_projects_detector_excluded_with_specific_project(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) not in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_with_all_projects_sentinel(self) -> None:
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_without_project_filter(self) -> None:
+        response = self.get_success_response(self.organization.slug)
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) in detector_ids
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_has_null_project_id(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id}
-        )
+        response = self.get_success_response(self.organization.slug)
         all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
         assert all_proj["projectId"] is None
 
@@ -1375,6 +1385,59 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         self.error_detector.refresh_from_db()
         assert self.user_detector.enabled is True
         assert self.error_detector.enabled is True
+
+    def test_cannot_update_detectors_issue_stream(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": str(self.issue_stream_detector.id)},
+            enabled=False,
+            status_code=400,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+
+    def test_update_detectors_issue_stream_skipped_in_mixed_batch(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.get_error_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.issue_stream_detector.id)),
+                ("id", str(self.detector.id)),
+            ],
+            enabled=False,
+            status_code=400,
+        )
+
+        self.issue_stream_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is True
+        assert self.detector.enabled is True
+
+    def test_update_detectors_project_filter_skips_issue_stream(self) -> None:
+        self.login_as(user=self.org_manager_user)
+
+        self.issue_stream_detector.update(enabled=False)
+        self.detector.update(enabled=False)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id},
+            enabled=True,
+            status_code=200,
+        )
+
+        response_ids = {d["id"] for d in response.data}
+        assert str(self.detector.id) in response_ids
+        assert str(self.issue_stream_detector.id) not in response_ids
+
+        self.issue_stream_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert self.issue_stream_detector.enabled is False
+        assert self.detector.enabled is True
 
 
 @cell_silo_test

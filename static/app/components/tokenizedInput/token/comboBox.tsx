@@ -228,7 +228,9 @@ export function ComboBox({
     shouldCloseOnBlur: false,
     ...comboBoxProps,
   });
+  // oxlint-disable-next-line react/refs
   openMenuRef.current = () => state.open();
+  // oxlint-disable-next-line react/refs
   closeMenuRef.current = () => state.close();
 
   const handleComboBoxFocus: FocusEventHandler<HTMLInputElement> = useCallback(
@@ -438,7 +440,9 @@ function useUpdateOverlayPositionOnContentChange({
   // Keep a ref to the updateOverlayPosition function so that we can
   // access the latest value in the resize observer callback.
   const updateOverlayPositionRef = useRef(updateOverlayPosition);
+  // oxlint-disable-next-line react/refs
   if (updateOverlayPositionRef.current !== updateOverlayPosition) {
+    // oxlint-disable-next-line react/refs
     updateOverlayPositionRef.current = updateOverlayPosition;
   }
 

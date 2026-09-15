@@ -99,6 +99,7 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
             )
         return iteration_id
 
@@ -137,6 +138,7 @@ class PrIterationDetailsTest(TestCase):
         assert row.data["queued_count"] == 3
         assert row.data["dropped_count"] == 1
         assert row.data["automated_feedback_count"] == 1
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
 
     @freeze_time("2024-01-01 00:00:00")
     def test_the_iteration_it_opened_is_emitted_when_it_completes(self) -> None:
@@ -162,6 +164,7 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
                 outcome="already_pushed",
             ),
         )
@@ -304,6 +307,7 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
                 outcome="no_code_changes",
             ),
         )
@@ -428,6 +432,7 @@ class RecordPrIterationBlockedTest(TestCase):
             queued_count=3,
             dropped_count=1,
             automated_feedback_count=1,
+            feedback_bot_logins=[],
         )
         return iteration_id
 
