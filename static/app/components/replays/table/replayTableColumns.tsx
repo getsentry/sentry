@@ -4,7 +4,6 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import invariant from 'invariant';
-import {PlatformIcon} from 'platformicons';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -16,12 +15,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Duration} from 'sentry/components/duration/duration';
 import {useSelectedReplayIndex} from 'sentry/components/replays/queryParams/selectedReplayIndex';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
+import {ReplayPlatformIcon} from 'sentry/components/replays/replayPlatformIcon';
 import {ReplayPlayPauseButton} from 'sentry/components/replays/replayPlayPauseButton';
 import {NumericDropdownFilter} from 'sentry/components/replays/table/filters/numericDropdownFilter';
 import {OSBrowserDropdownFilter} from 'sentry/components/replays/table/filters/osBrowserDropdownFilter';
 import {ScoreBar} from 'sentry/components/scoreBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconNot} from 'sentry/icons';
 import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconFire} from 'sentry/icons/iconFire';
 import {IconOpen} from 'sentry/icons/iconOpen';
@@ -34,7 +33,6 @@ import {
   useListItemCheckboxContext,
   type ListItemCheckboxState,
 } from 'sentry/utils/list/useListItemCheckboxState';
-import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {MIN_DEAD_RAGE_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -142,31 +140,14 @@ export const ReplayBrowserColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.browser;
-    if (!name && !version) {
-      return (
-        <DropdownContainer>
-          <Tooltip title={t('N/A')}>
-            <Flex justify="center" width="20px">
-              <IconNot size="xs" variant="muted" />
-            </Flex>
-          </Tooltip>
-        </DropdownContainer>
-      );
-    }
-
-    const icon = generatePlatformIconName(name ?? '', version ?? undefined);
-
-    const nameOrUnknown = name ?? t('Unknown');
-    const versionOrBlank = version ?? '';
 
     return (
       <DropdownContainer key="browser">
-        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
-          <PlatformIcon platform={icon} size="20px" />
+        <ReplayPlatformIcon name={name} version={version}>
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="browser" name={name} version={version} />
           ) : null}
-        </Tooltip>
+        </ReplayPlatformIcon>
       </DropdownContainer>
     );
   },
@@ -362,19 +343,14 @@ export const ReplayOSColumn: ReplayTableColumn = {
       return null;
     }
     const {name, version} = replay.os;
-    const icon = generatePlatformIconName(name ?? '', version ?? undefined);
-
-    const nameOrUnknown = name ?? t('Unknown');
-    const versionOrBlank = version ?? '';
 
     return (
       <DropdownContainer key="os">
-        <Tooltip title={`${nameOrUnknown} ${versionOrBlank}`.trim()}>
-          <PlatformIcon platform={icon} size="20px" />
+        <ReplayPlatformIcon name={name} version={version}>
           {showDropdownFilters ? (
             <OSBrowserDropdownFilter type="os" name={name} version={version} />
           ) : null}
-        </Tooltip>
+        </ReplayPlatformIcon>
       </DropdownContainer>
     );
   },
