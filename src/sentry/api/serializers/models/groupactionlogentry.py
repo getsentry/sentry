@@ -136,8 +136,8 @@ def get_serialized_activity_items(
     """
     Activity-shaped items for a group, read from the action log.
 
-    Comment edits and deletes are folded into the comments they supersede, so the window
-    reads the way Activity's mutable rows would.
+    Comment edits and deletes are folded into the comments they supersede. Expand the fetch
+    window as needed to fill the page with surviving entries, then append first-seen.
 
     Returns None when the log can't back the response — either the gate is closed or it's
     open and the log is empty — and the caller should fall back to Activity. Reports the
@@ -146,7 +146,9 @@ def get_serialized_activity_items(
     if not should_serve_action_log_activity(group.project, user, endpoint=endpoint):
         return None
 
-    action_log = GroupActionLogEntry.objects.get_actions_for_group(group, limit)
+    # Start with 25% headroom to absorb a few mutations without a refetch.
+    fetch_limit = limit + (limit // 4)
+    action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
     if not action_log:
         record_activity_read(
             endpoint, ActivityReadResult.FELL_BACK, ActivityReadFallbackReason.EMPTY_LOG
@@ -158,6 +160,15 @@ def get_serialized_activity_items(
         return None
 
     entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+    while len(entries) < limit and len(action_log) == fetch_limit:
+        # A full raw window may have displaced entries with mutations that the fold
+        # drops. Refetch a larger window until the page is full or history is exhausted.
+        # Refold the entire window rather than combining rows from separate reads.
+        fetch_limit *= 2
+        action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)
+        entries, latest_text_by_comment = _fold_comment_mutations(action_log)
+    entries = entries[:limit]
+
     items = serialize(entries, user)
     for entry, item in zip(entries, items):
         if entry.id in latest_text_by_comment:
