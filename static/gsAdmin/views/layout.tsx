@@ -1,5 +1,5 @@
 import type React from 'react';
-import {useEffect, useState} from 'react';
+import {useEffect, useLayoutEffect, useState} from 'react';
 import {Outlet, useLocation} from 'react-router-dom';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -14,6 +14,7 @@ import {ListLink} from 'sentry/components/links/listLink';
 import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
@@ -51,6 +52,25 @@ export function Layout() {
     () => localStorageWrapper.getItem(ADMIN_SIDEBAR_COLLAPSED_KEY) === 'true'
   );
   const location = useLocation();
+
+  // The SPA bootstrap applies the account theme to the body before the admin app
+  // renders. Keep that class aligned with the admin-specific theme toggle so the
+  // higher-specificity legacy body styles do not override the admin canvas.
+  useLayoutEffect(() => {
+    const previousThemeClass = ['theme-light', 'theme-dark', 'theme-system'].find(
+      className => document.body.classList.contains(className)
+    );
+
+    removeBodyTheme();
+    document.body.classList.add(isDark ? 'theme-dark' : 'theme-light');
+
+    return () => {
+      removeBodyTheme();
+      if (previousThemeClass) {
+        document.body.classList.add(previousThemeClass);
+      }
+    };
+  }, [isDark]);
 
   const closeSidebar = () => setSidebarOpen(false);
 
