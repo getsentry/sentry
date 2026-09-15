@@ -75,9 +75,14 @@ def _missing_partitions(partition_clocks: list[tuple[str, float]]) -> frozenset[
     )
 
 
-def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> None:
+def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> float | None:
+    """
+    Reports the missing partition count and the stall gap. Returns the stall
+    gap, the seconds the set has been continuously short in this process, or
+    None when this process has not seen a pulse.
+    """
     if missing_partitions is None:
-        return
+        return None
 
     missing_count = len(missing_partitions)
 
@@ -92,6 +97,27 @@ def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> 
 
     metrics.gauge("monitors.task.clock_missing_partitions", missing_count, sample_rate=1.0)
     metrics.gauge("monitors.task.clock_stall_gap", stall_gap, sample_rate=1.0)
+
+    return stall_gap
+
+
+def _hold_clock_tick(missing_partitions: frozenset[int] | None, stall_gap: float | None) -> bool:
+    """
+    Decides whether the clock holds on this call. The clock holds while the
+    partition clock set is short of the list learned from the clock pulse, and
+    the hold option is on. A hold bound of zero seconds means no bound.
+    """
+    if not missing_partitions or stall_gap is None:
+        return False
+
+    if not options.get("crons.clock_tick.hold_on_missing_partitions"):
+        return False
+
+    hold_max_seconds = options.get("crons.clock_tick.hold_max_seconds")
+    if hold_max_seconds > 0 and stall_gap >= hold_max_seconds:
+        return False
+
+    return True
 
 
 def _dispatch_tick(ts: datetime):
@@ -152,11 +178,9 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
     )
 
     missing_partitions = _missing_partitions(partition_clocks)
-    _record_partition_set_metrics(missing_partitions)
+    stall_gap = _record_partition_set_metrics(missing_partitions)
 
-    # Hold the clock while the partition clock set is short of the list we
-    # learned from the clock pulse. The clock holds for as long as the set is short
-    if missing_partitions and options.get("crons.clock_tick.hold_on_missing_partitions"):
+    if _hold_clock_tick(missing_partitions, stall_gap):
         return
 
     # the first tuple is the slowest (part-<id>, score), the score is the
