@@ -142,6 +142,7 @@ function PipelineModal<
           {pipeline.error && (
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
                 <Alert.Button onClick={pipeline.restart}>{t('Start over')}</Alert.Button>
               }
@@ -196,6 +197,8 @@ export function openPipelineModal<
         description={description}
       />
     ),
-    {onClose, closeEvents: 'none'}
+    // Escape closes like any other modal; a backdrop click still does not, so
+    // a half-finished install flow is not lost by accident.
+    {onClose, closeEvents: 'escape-key'}
   );
 }

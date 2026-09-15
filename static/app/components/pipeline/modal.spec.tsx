@@ -1,6 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {openPipelineModal} from './modal';
 
@@ -67,5 +73,28 @@ describe('PipelineModal', () => {
     act(() => openPipelineModal({type: 'integration', provider: 'dummy', onError}));
 
     await waitFor(() => expect(onError).toHaveBeenCalledWith('Installation failed'));
+  });
+
+  it('closes on Escape', async () => {
+    MockApiClient.addMockResponse({
+      url: API_URL,
+      method: 'POST',
+      body: {
+        step: 'step_one',
+        stepIndex: 0,
+        totalSteps: 1,
+        provider: 'dummy',
+        data: {message: 'Hello!'},
+      },
+      match: [MockApiClient.matchData({action: 'initialize', provider: 'dummy'})],
+    });
+
+    renderGlobalModal({organization});
+
+    act(() => openPipelineModal({type: 'integration', provider: 'dummy'}));
+
+    expect(await screen.findByText('Hello!')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(screen.queryByText('Hello!')).not.toBeInTheDocument());
   });
 });
