@@ -14,9 +14,20 @@ import {TracesTable} from 'sentry/views/insights/pages/agents/components/tracesT
 import {useCombinedQuery} from 'sentry/views/insights/pages/agents/hooks/useCombinedQuery';
 import {Onboarding as AgentMonitoringOnboarding} from 'sentry/views/insights/pages/agents/onboarding';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
+import {SpanFields} from 'sentry/views/insights/types';
 
 export const AGENTS_TABLE_TABS = ['conversations', 'traces', 'spans'] as const;
 export type AgentsTableTab = (typeof AGENTS_TABLE_TABS)[number];
+
+const LLM_CALLS_SAVED_QUERY_PARAMS = {
+  fields: [
+    SpanFields.ID,
+    SpanFields.GEN_AI_OUTPUT_MESSAGES,
+    SpanFields.GEN_AI_RESPONSE_MODEL,
+    SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+    SpanFields.TIMESTAMP,
+  ],
+};
 
 interface AgentsTableProps {
   activeTab: AgentsTableTab;
@@ -62,7 +73,7 @@ export function AgentsTable({
 
 function AgentsSpansTable() {
   return (
-    <SpansQueryParamsProvider>
+    <SpansQueryParamsProvider frozenParams={LLM_CALLS_SAVED_QUERY_PARAMS}>
       <AgentsSpansTableContent />
     </SpansQueryParamsProvider>
   );
