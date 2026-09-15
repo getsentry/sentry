@@ -13,6 +13,7 @@ from sentry.tasks.llm_issue_detection import (
     detect_llm_issues_for_org,
 )
 from sentry.tasks.llm_issue_detection.detection import (
+    SEER_CHECK_BUDGET_ENDPOINT_PATH,
     START_TIME_DELTA_MINUTES,
     TRANSACTION_BATCH_SIZE,
     TraceMetadataWithSpanCount,
@@ -324,6 +325,10 @@ class LLMIssueDetectionTest(TestCase):
 
         budget_url = mock_budget_request.call_args[0][1]
         assert "plan_tier=team" in budget_url
+        assert (
+            mock_budget_request.call_args.kwargs["metrics_endpoint"]
+            == f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id"
+        )
 
     @with_feature("organizations:gen-ai-features")
     @patch("sentry.tasks.llm_issue_detection.detection.make_issue_detection_request")

@@ -41,6 +41,7 @@ export function ExploreLocationQueryParamsProvider({
   // it in the dependency array. This makes setWritableQueryParams stable and
   // prevents unnecessary context updates.
   const locationRef = useRef(location);
+  // oxlint-disable-next-line react/refs
   locationRef.current = location;
 
   const _readableQueryParams = useMemo(

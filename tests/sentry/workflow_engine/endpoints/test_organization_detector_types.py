@@ -14,7 +14,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.workflow_engine.handlers.detector import (
-    BaseDetectorHandler,
+    DetectorHandler,
     DetectorOccurrence,
     GroupedDetectorEvaluationResult,
 )
@@ -42,8 +42,8 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         )
         self.registry_patcher.start()
 
-        class MockDetectorHandler(BaseDetectorHandler[dict[Never, Never], bool]):
-            def evaluate_impl(
+        class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
+            def evaluate(
                 self, data_packet: DataPacket[dict[Never, Never]]
             ) -> GroupedDetectorEvaluationResult:
                 return GroupedDetectorEvaluationResult(
@@ -68,9 +68,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
             def extract_value(self, data_packet: DataPacket[dict[Never, Never]]) -> bool:
                 return True
-
-            def extract_dedupe_value(self, data_packet: DataPacket[dict[Never, Never]]) -> int:
-                return 1
 
             def create_occurrence(
                 self,

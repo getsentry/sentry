@@ -48,6 +48,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
+from sentry.tasks.scim.privilege_sync import SUPERUSER_WRITE_PERMISSION
 from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
@@ -216,21 +217,27 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             )
 
         # In SaaS mode with the default organization, revoke superuser/staff privileges
-        # in addition to removing the membership.
+        # and any SCIM-managed permissions in addition to removing the membership.
         if (
             settings.SENTRY_MODE == SentryMode.SAAS
             and organization.id == settings.SUPERUSER_ORG_ID
             and user_id is not None
         ):
             user = user_service.get_user(user_id=user_id)
-            if user and (user.is_superuser or user.is_staff):
-                user_service.update_user(
-                    user_id=user.id,
-                    attrs={
-                        "is_superuser": False,
-                        "is_staff": False,
-                    },
+            if user:
+                if user.is_superuser or user.is_staff:
+                    user_service.update_user(
+                        user_id=user.id,
+                        attrs={
+                            "is_superuser": False,
+                            "is_staff": False,
+                        },
+                    )
+                user_service.remove_permission(
+                    user_id=user.id, permission=SUPERUSER_WRITE_PERMISSION
                 )
+                for permission in settings.SENTRY_SCIM_PERMISSION_TEAM_SLUGS:
+                    user_service.remove_permission(user_id=user.id, permission=permission)
 
     def _should_delete_member(self, operation):
         if operation.get("op").lower() == MemberPatchOps.REPLACE:

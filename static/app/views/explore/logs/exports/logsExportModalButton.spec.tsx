@@ -61,7 +61,7 @@ describe('LogsExportModalButton', () => {
       {organization}
     );
     renderGlobalModal();
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   }
 

@@ -1,4 +1,22 @@
+from dataclasses import field
+from typing import Literal
+
 from sentry import analytics
+
+
+@analytics.eventclass("ai.autofix.pr_iteration.missing_permissions")
+class AiAutofixPrIterationMissingPermissionsEvent(analytics.Event):
+    """A missing-permissions warning was shown, or the app was updated.
+
+    IDs only — no slugs or names. ``repository_id`` is set when we posted a
+    comment on a specific repo; it is None on ``permissions_accepted`` because
+    GitHub App permissions are installation-wide.
+    """
+
+    action: Literal["comment_posted", "permissions_accepted"]
+    organization_id: int
+    integration_id: int
+    repository_id: int | None = None
 
 
 @analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.completed")
@@ -19,15 +37,52 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     referrer: str | None
     iteration_index: int
 
+    # Why the drain that claimed this iteration ran, written at claim time.
+    trigger_source: str | None
+
     # Queue counts, written by the drain.
     feedback_count: int
     queued_count: int
     dropped_count: int
     automated_feedback_count: int
 
-    # Outcome, written when the iteration ends.
+    # Outcome, written when the iteration ends. See ``PrIterationOutcome`` for
+    # the values Sentry knows about.
+    outcome: str
+
+    # Review bots behind the feedback the drain consumed, sorted and deduped.
+    feedback_bot_logins: list[str] = field(default_factory=list)
+
+
+@analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.blocked")
+class AiAutofixPrIterationFeedbackBatchBlockedEvent(analytics.Event):
+    """One batch of PR feedback that a gate stopped before any drain took it.
+
+    Separate from the completed event because the fields are: everything the
+    drain writes — the referrer, the trigger source and the queue counts — is
+    written when a drain claims the row, and no drain ever claimed this one.
+    An event carrying those as nulls would be a batch that ran and reported
+    nothing, which is not what happened.
+
+    A batch is blocked at most once per outcome, but blocked is not ended.
+    Some outcomes lift, and that batch also reports a completed event when it
+    finally runs; the ones that do not lift report only this. ``outcome`` says
+    which — see ``PrIterationOutcome``.
+    """
+
+    iteration_id: int
+
+    organization_id: int
+    project_id: int
+    group_id: int
+    run_id: int
+    iteration_index: int
+
+    # How long the batch had been waiting when the gate stopped it.
     duration_ms: int
-    pushed_changes: bool
+    outcome: str
 
 
+analytics.register(AiAutofixPrIterationMissingPermissionsEvent)
 analytics.register(AiAutofixPrIterationFeedbackBatchCompletedEvent)
+analytics.register(AiAutofixPrIterationFeedbackBatchBlockedEvent)

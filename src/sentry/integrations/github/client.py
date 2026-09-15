@@ -175,7 +175,6 @@ class GitHubApiRequestType(StrEnum):
     CREATE_ISSUE_REACTION = "create_issue_reaction"
     DELETE_ISSUE_REACTION = "delete_issue_reaction"
     GET_ARCHIVE_LINK = "get_archive_link"
-    GET_ASSIGNEES = "get_assignees"
     GET_BLAME_FOR_FILES = "get_blame_for_files"
     GET_CHECK_RUN = "get_check_run"
     GET_CHECK_RUNS = "get_check_runs"
@@ -344,11 +343,13 @@ class GithubProxyClient(IntegrationProxyClient):
         access_token = data["token"]
         expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
         permissions = data.get("permissions")
+        last_refresh_at = deprecated_utcnow().isoformat()
         integration.metadata.update(
             {
                 "access_token": access_token,
                 "expires_at": expires_at,
                 "permissions": permissions,
+                "last_refresh_at": last_refresh_at,
             }
         )
 
@@ -359,7 +360,7 @@ class GithubProxyClient(IntegrationProxyClient):
             {
                 "permissions": permissions,
                 "expires_at": expires_at,
-                "last_refresh_at": deprecated_utcnow().isoformat(),
+                "last_refresh_at": last_refresh_at,
             }
         )
 
@@ -816,16 +817,6 @@ class GitHubBaseClient(
             "/search/repositories",
             params={"q": query},
             api_request_type=GitHubApiRequestType.SEARCH_REPOSITORIES,
-        )
-
-    def get_assignees(self, repo: str, page_number_limit: int | None = None) -> Sequence[Any]:
-        """
-        https://docs.github.com/en/rest/issues/assignees#list-assignees
-        """
-        return self._get_with_pagination(
-            f"/repos/{repo}/assignees",
-            page_number_limit=page_number_limit,
-            api_request_type=GitHubApiRequestType.GET_ASSIGNEES,
         )
 
     def search_issue_assignees(self, repo: str, query: str) -> list[Any]:

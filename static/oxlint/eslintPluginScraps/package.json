@@ -1,0 +1,16 @@
+{
+  "name": "@sentry-internal/eslint-plugin-scraps",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@oxlint/plugins": "1.81.0"
+  },
+  "devDependencies": {
+    "oxlint": "1.82.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  }
+}

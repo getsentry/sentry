@@ -175,6 +175,7 @@ export function useChartXRangeSelection({
 
     setSelectionState(null);
 
+    // oxlint-disable-next-line react/immutability
     onClearSelection?.({selectionState, setSelectionState, clearSelection});
   }, [chartRef, onClearSelection, selectionState]);
 
@@ -507,6 +508,7 @@ export function useChartXRangeSelection({
           zIndex: 1000,
         }}
       >
+        {/* oxlint-disable-next-line react/refs */}
         {actionMenuRenderer(callbackParams)}
       </div>,
       document.body

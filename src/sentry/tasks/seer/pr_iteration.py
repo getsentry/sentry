@@ -54,19 +54,22 @@ from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import fetch_run_status, get_agent_state_from_pr_id
 from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
     PrIterationNoPullRequestException,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.commit_author import commit_author_for_feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedback
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.details_store import (
     count_iterations_before,
     remove_iterations_before,
 )
 from sentry.seer.autofix.pr_iteration.emit import (
+    bootstrap_iteration,
     discard_pr_iteration_details,
+    outcome_for_pause,
+    record_pr_iteration_blocked,
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
@@ -85,16 +88,21 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
 )
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
     post_missing_permissions_comment,
 )
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
+    get_pause_reason,
     is_pr_iteration_paused,
     pause_pr_iteration,
     record_pause_blocked,
+)
+from sentry.seer.autofix.pr_iteration.pr_state import (
+    iteration_prs_any_closed,
+    record_pr_closed,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
@@ -103,12 +111,15 @@ from sentry.seer.autofix.pr_iteration.queue import (
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +163,14 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
+def _get_feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether the batch is manual, automated, or both."""
+    kinds = {item.source.is_automated for item in items}
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
+
+
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
     actor_user_ids = {item.actor_user_id for item in items}
     if len(actor_user_ids) == 1:
@@ -170,6 +189,7 @@ def _organization_for_gate(run_id: int, organization_id: int) -> Organization | 
         return None
 
 
+@trace
 def trigger_consume_pr_iteration_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -181,8 +201,27 @@ def trigger_consume_pr_iteration_feedback(
     delay: int | None = None,
     triggered_by: str = "feedback",
 ) -> None:
+    set_pr_iteration_attributes(
+        run_id=run_id,
+        organization_id=organization_id,
+        group_id=run_state.metadata.get("group_id") if run_state.metadata else None,
+    )
+
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
+        # The reason costs a second read, paid only on this branch. Nothing
+        # lifts a pause, so this batch is over: whether it was thrown away
+        # because someone stopped Seer or because the run before it broke is
+        # the difference between a feature working and a user losing work.
+        record_pr_iteration_blocked(
+            log_ctx=log_ctx,
+            run_state=run_state,
+            run_id=run_id,
+            organization_id=organization_id,
+            outcome=outcome_for_pause(
+                log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+            ),
+        )
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
             triggered_by=triggered_by,
@@ -239,6 +278,9 @@ def trigger_consume_pr_iteration_feedback(
     if decision.task is not None:
         countdown = delay if delay is not None else decision.task.countdown()
         trigger_id = uuid4().hex
+        set_pr_iteration_attributes(
+            trigger_id=trigger_id,
+        )
         consume_queued_autofix_feedback.apply_async(
             kwargs={
                 "run_id": run_id,
@@ -290,6 +332,7 @@ def comment_on_missing_permissions(
     pr_number: int,
     pr_id: int | None,
     integration_id: int,
+    repository_id: int | None = None,
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -299,6 +342,10 @@ def comment_on_missing_permissions(
     GitHub call never runs inside a webhook task's deadline or the synchronous
     autofix endpoint. Retries on ``UnableToAcquireLock`` instead of waiting on
     the lock, so a losing activation requeues rather than parking a worker.
+
+    ``repository_id`` is what the gate resolved and defaults to None so
+    activations queued by an older deploy still run; the comment path resolves
+    the repo again and only uses this to notice a change in between.
     """
     organization = _organization_for_gate(run_id, organization_id)
     if organization is None:
@@ -309,7 +356,8 @@ def comment_on_missing_permissions(
     # it and could hand the identity over in the task args instead.
     try:
         state = fetch_run_status(run_id, organization)
-    except (SeerApiError, ValueError):
+    except (SeerApiError, ValueError) as e:
+        sentry_sdk.capture_exception(e)
         logger.warning(
             "autofix.pr_iteration.missing_permissions.run_state_not_found",
             extra={"run_id": run_id, "organization_id": organization_id},
@@ -317,6 +365,9 @@ def comment_on_missing_permissions(
         return
 
     group_id = state.metadata.get("group_id") if state.metadata else None
+    if group_id is None:
+        raise ValueError(f"Missing group id in agent run {state.run_id}")
+
     post_missing_permissions_comment(
         organization=organization,
         run_id=run_id,
@@ -324,7 +375,16 @@ def comment_on_missing_permissions(
         pr_number=pr_number,
         pr_id=pr_id,
         integration_id=integration_id,
-        log_ctx=PrIterationLogContext.for_run(logger, state, organization_id, group_id),
+        queued_repository_id=repository_id,
+        # The iteration this comment is about is the one the gate blocked, which
+        # is still waiting in the queue -- never claimed, so never triggered.
+        log_ctx=bootstrap_iteration(
+            logger=logger,
+            run_state=state,
+            organization_id=organization_id,
+            group_id=group_id,
+            create=False,
+        ),
     )
 
 
@@ -368,20 +428,11 @@ def consume_queued_autofix_feedback(
     )
 
     with lock.acquire():
-        # A task with a countdown can start after the pause.
-        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
-            record_pause_blocked("consume")
-            clear_queued_autofix_feedback(run_id)
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.skipped",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization_id,
-                    "trigger_id": trigger_id,
-                    "reason": "paused",
-                },
-            )
-            return
+        set_pr_iteration_attributes(
+            run_id=run_id,
+            organization_id=organization_id,
+            trigger_id=trigger_id,
+        )
 
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
@@ -394,7 +445,8 @@ def consume_queued_autofix_feedback(
 
         try:
             state = fetch_run_status(run_id, organization)
-        except (SeerApiError, ValueError):
+        except (SeerApiError, ValueError) as e:
+            sentry_sdk.capture_exception(e)
             logger.warning(
                 "autofix.pr_iteration.consume_feedback.run_state_not_found",
                 extra={"run_id": run_id, "organization_id": organization_id},
@@ -402,7 +454,32 @@ def consume_queued_autofix_feedback(
             return
 
         group_id = state.metadata.get("group_id") if state.metadata else None
-        log_ctx = PrIterationLogContext.for_run(logger, state, organization_id, group_id)
+        set_pr_iteration_attributes(group_id=group_id)
+
+        log_ctx = PrIterationLogContext.for_run(
+            logger, state, organization_id, group_id, iteration=LogCtxIteration.UNTRIGGERED
+        )
+
+        # A task with a countdown can start after the pause.
+        if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
+            record_pause_blocked("consume")
+            record_pr_iteration_blocked(
+                log_ctx=log_ctx,
+                run_state=state,
+                run_id=run_id,
+                organization_id=organization_id,
+                outcome=outcome_for_pause(
+                    log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+                ),
+            )
+            clear_queued_autofix_feedback(run_id)
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                reason="paused",
+            )
+            return
+
         task_state = current_task()
         log_ctx.info(
             "autofix.pr_iteration.consume_feedback.started",
@@ -411,6 +488,27 @@ def consume_queued_autofix_feedback(
             trigger_source=trigger_source,
             activation_id=task_state.id if task_state else None,
         )
+
+        if iteration_prs_any_closed(organization, state):
+            record_pr_closed("consume")
+            pause_pr_iteration(
+                run_id=run_id,
+                organization_id=organization_id,
+                reason=PauseReason.PR_CLOSED,
+            )
+            record_pr_iteration_blocked(
+                log_ctx=log_ctx,
+                run_state=state,
+                run_id=run_id,
+                organization_id=organization_id,
+                outcome=outcome_for_pause(log_ctx, PauseReason.PR_CLOSED.value),
+            )
+            log_ctx.info(
+                "autofix.pr_iteration.consume_feedback.skipped",
+                trigger_id=trigger_id,
+                reason="pr_closed",
+            )
+            return
 
         try:
             _drain_queued_autofix_feedback(
@@ -442,6 +540,7 @@ def _discard_iteration(
         )
 
 
+@trace
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -474,9 +573,30 @@ def _drain_queued_autofix_feedback(
         )
         return
 
+    # The previous iteration's push (triggered separately, from the
+    # on_completion_hook) races this drain. If it left unpushed changes
+    # behind, wait for it rather than starting a new iteration against a PR
+    # that's about to change underneath it. has_code_changes() reports
+    # synced when there was nothing to push, so that case is unaffected.
+    _, all_changes_pushed = state.has_code_changes()
+    if not all_changes_pushed:
+        log_ctx.info(
+            "autofix.pr_iteration.consume_feedback.drain",
+            outcome="skipped",
+            reason="push_pending",
+            run_status=state.status,
+            trigger_id=trigger_id,
+            trigger_source=trigger_source,
+            left_queued_count=count_queued_autofix_feedback(run_id),
+        )
+        return
+
     # Claim before the pop, so feedback arriving mid-drain opens its own row.
     iteration_id = trigger_pr_iteration_details(
-        log_ctx=log_ctx, run_id=run_id, organization_id=organization_id
+        log_ctx=log_ctx,
+        run_id=run_id,
+        organization_id=organization_id,
+        trigger_source=trigger_source,
     )
 
     queued_items = pop_queued_autofix_feedback(run_id)
@@ -548,6 +668,17 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
+    feedback_kind = _get_feedback_kind(feedback_items)
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        amount=len(feedback_items),
+        tags={
+            "checkpoint": "consumed",
+            "referrer": referrer.value,
+            "feedback_kind": feedback_kind,
+        },
+        sample_rate=1.0,
+    )
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.drain",
         outcome="drained",
@@ -574,10 +705,20 @@ def _drain_queued_autofix_feedback(
             queued_count=len(queued_items),
             dropped_count=len(dropped),
             automated_feedback_count=sum(1 for item in feedback_items if item.source.is_automated),
+            feedback_bot_logins=bot_logins_for_feedback([item.source for item in feedback_items]),
         )
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "sent_to_seer",
+                "referrer": referrer.value,
+                "feedback_kind": feedback_kind,
+            },
+            sample_rate=1.0,
+        )
         trigger_autofix_agent(
             group=group,
             step=AutofixStep.PR_ITERATION,
@@ -1114,6 +1255,38 @@ def trigger_pr_iteration_from_comment(
     """
     Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
 
+    The body runs under its own isolation scope and trace: this stage is one of
+    four the flow is followed by, and it is joined to the others by the ids in
+    ``pr_iteration.tracing`` rather than by the trace it was queued from.
+    """
+    with (
+        sentry_sdk.isolation_scope(),
+        start_span(
+            name="pr_iteration.trigger_from_comment",
+            op="function",
+            transaction=True,
+        ),
+    ):
+        _trigger_pr_iteration_from_comment(
+            organization_id=organization_id,
+            repo_id=repo_id,
+            integration_id=integration_id,
+            pr_number=pr_number,
+            feedback=feedback,
+        )
+
+
+def _trigger_pr_iteration_from_comment(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    feedback: str,
+) -> None:
+    """
+    Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
+
     Runs async because it makes external GitHub and Seer calls: it fetches the
     PR to recover its GitHub id, looks up the agent run state keyed on that id,
     and triggers the iteration with the comment as feedback.
@@ -1173,7 +1346,12 @@ def trigger_pr_iteration_from_comment(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
+    log_ctx = bootstrap_iteration(
+        logger=logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=group_id,
+    )
     try_enqueue_autofix_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
@@ -1453,6 +1631,46 @@ def trigger_pr_iteration_from_review(
     """
     Resolve the Autofix run behind a submitted PR review and kick off an iteration.
 
+    The body runs under its own isolation scope and trace: this stage is one of
+    four the flow is followed by, and it is joined to the others by the ids in
+    ``pr_iteration.tracing`` rather than by the trace it was queued from.
+    """
+    with (
+        sentry_sdk.isolation_scope(),
+        start_span(
+            name="pr_iteration.trigger_from_review",
+            op="function",
+            transaction=True,
+        ),
+    ):
+        _trigger_pr_iteration_from_review(
+            organization_id=organization_id,
+            repo_id=repo_id,
+            integration_id=integration_id,
+            pr_number=pr_number,
+            review_id=review_id,
+            author_username=author_username,
+            author_external_id=author_external_id,
+            author_is_bot=author_is_bot,
+            delivery_authenticated=delivery_authenticated,
+        )
+
+
+def _trigger_pr_iteration_from_review(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    review_id: int,
+    author_username: str | None = None,
+    author_external_id: str | int | None = None,
+    author_is_bot: bool = False,
+    delivery_authenticated: bool = True,
+) -> None:
+    """
+    Resolve the Autofix run behind a submitted PR review and kick off an iteration.
+
     Runs async because it makes external GitHub and Seer calls: it fetches the PR
     to recover its GitHub id, looks up the agent run keyed on that id, fetches the
     review's inline comments and summary body, and triggers the iteration with the
@@ -1461,9 +1679,9 @@ def trigger_pr_iteration_from_review(
     review author must have repo write/admin access, so an untrusted reviewer can't
     spend Autofix quota or inject feedback that rewrites the PR.
 
-    ``author_is_bot`` reviews (test-coverage bots and the like) count toward the
-    automated-iteration streak cap and are dropped once it's reached; human
-    reviews always drive an iteration and reset that streak.
+    ``author_is_bot`` reviews (test-coverage bots and the like) are dropped when
+    they have no inline comments, and count toward the automated-iteration streak
+    cap. Human reviews always drive an iteration and reset that streak.
     """
     log_extra = {
         "organization_id": organization_id,
@@ -1569,6 +1787,16 @@ def trigger_pr_iteration_from_review(
         )
 
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
+
+    # A bot review with no inline comments has nothing to act on; a human summary does.
+    if author_is_bot and not inline_comments:
+        metrics.incr("autofix.pr_iteration.review_trigger.bot_review_no_inline_comments")
+        logger.info(
+            "autofix.pr_iteration.review_trigger.bot_review_no_inline_comments",
+            extra=log_extra,
+        )
+        return None
+
     review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
     review_body = (review.get("body") or "").strip() if review else None
     review_html_url = review.get("html_url") if review else None
@@ -1599,7 +1827,12 @@ def trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
-    log_ctx = PrIterationLogContext.for_run(logger, agent_state, organization_id, group_id)
+    log_ctx = bootstrap_iteration(
+        logger=logger,
+        run_state=agent_state,
+        organization_id=organization_id,
+        group_id=group_id,
+    )
     for feedback_obj in feedback_items:
         try_enqueue_autofix_feedback(
             log_ctx=log_ctx,

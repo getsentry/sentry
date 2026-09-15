@@ -5,6 +5,7 @@ from typing import Any
 
 from django.http.response import HttpResponseBase
 
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.bitbucket.webhook import BitbucketWebhookEndpoint
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
@@ -54,7 +55,7 @@ class BitbucketRequestParser(BaseRequestParser):
             logger.info("%s.no_region", self.provider, extra=logging_extra)
             return self.get_response_from_control_silo()
         return self.get_response_from_webhookpayload(
-            cells=[cell], identifier=mapping.organization_id
+            cells=[cell], mailbox=MailboxName(self.provider, str(mapping.organization_id))
         )
 
     def get_response(self) -> HttpResponseBase:

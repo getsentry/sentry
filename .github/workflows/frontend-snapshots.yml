@@ -14,16 +14,13 @@ concurrency:
 env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
+  VCS_METADATA_FILE: .artifacts/vcs-metadata.json
 jobs:
   snapshots:
     name: snapshot tests
     # Skip 'edited' events that aren't a base branch change (e.g. title/body edits).
     # When the base branch changes, the diff target changes so we need a fresh run.
-    # Skip external fork PRs — snapshot upload needs secrets forks can't access.
-    if: >-
-      (github.event.action != 'edited' || github.event.changes.base != '') &&
-      (github.event_name != 'pull_request' ||
-       github.event.pull_request.head.repo.owner.login == 'getsentry')
+    if: github.event.action != 'edited' || github.event.changes.base != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -102,38 +99,40 @@ jobs:
       - name: Compute merge base SHA
         if: github.event_name == 'pull_request' && !cancelled()
         id: merge-base
+        # A failed build would suppress the upload workflow entirely; an empty
+        # base_sha only drops the comparison.
+        continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           MERGE_BASE=$(gh api repos/${{ github.repository }}/compare/${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }} --jq '.merge_base_commit.sha')
           echo "sha=$MERGE_BASE" >> "$GITHUB_OUTPUT"
 
-      - name: Install sentry-cli
+      # PR context the upload workflow can't read from the workflow_run event.
+      - name: Write VCS metadata
         if: ${{ !cancelled() }}
-        uses: getsentry/action-setup-cli@70d7e587b84c2e78cf4d37cd33d7b74fb3729c1b # v1
-        with:
-          version: '3.5.0'
-
-      - name: Upload snapshots
-        id: upload
-        if: ${{ success() }}
         env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_SNAPSHOTS_AUTH_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
           BASE_SHA: ${{ steps.merge-base.outputs.sha }}
         run: |
-          sentry-cli \
-            --log-level=debug \
-            snapshots upload "$SNAPSHOT_OUTPUT_DIR" \
-            --app-id sentry-frontend \
-            --project sentry-frontend \
-            ${BASE_SHA:+--base-sha "$BASE_SHA"}
+          set -euo pipefail
+          mkdir -p "$(dirname "$VCS_METADATA_FILE")"
+          jq -n \
+            --arg pr_number "$PR_NUMBER" \
+            --arg base_ref "$BASE_REF" \
+            --arg base_sha "$BASE_SHA" \
+            '{pr_number: $pr_number, base_ref: $base_ref, base_sha: $base_sha}' \
+            > "$VCS_METADATA_FILE"
+          cat "$VCS_METADATA_FILE"
 
-      - name: Report upload failure to Sentry
-        if: ${{ failure() && steps.upload.outcome == 'failure' }}
-        env:
-          SENTRY_DSN: ${{ secrets.SENTRY_SNAPSHOTS_DSN }}
-        run: |
-          sentry-cli send-event \
-            --message "Frontend snapshot upload failed" \
-            --tag workflow:frontend-snapshots \
-            --tag commit:"${{ github.sha }}"
+      - name: Upload snapshots artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: frontend-snapshots-${{ github.run_id }}
+          path: .artifacts
+          retention-days: 1
+          if-no-files-found: error
+          # .artifacts is a dot-directory, so its contents count as hidden.
+          include-hidden-files: true

@@ -43,6 +43,7 @@ export function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
   });
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setIsLoading(true);
     loadSetupIntentData();
   }, [loadSetupIntentData]);

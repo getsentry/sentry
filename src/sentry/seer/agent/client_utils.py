@@ -132,6 +132,7 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
+    enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
     enable_bash_mode: NotRequired[bool]
@@ -147,6 +148,8 @@ class SeerFeatureRunRequest(TypedDict):
     payload: dict[str, Any]
     agent_run_options: NotRequired[AgentRunOptions]
     user_org_context: NotRequired[UserOrgContext]
+    proxy_headers: NotRequired[dict[str, str] | None]
+    referrer: str
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):

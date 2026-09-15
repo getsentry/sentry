@@ -7,7 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
 import {
   isPrIterationPaused,
   type useExplorerAutofix,
@@ -19,6 +19,10 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+export const PR_ITERATION_PAUSED_TOOLTIP = t(
+  'PR iteration has been stopped for this Autofix run'
+);
 
 interface PrIterationFeedbackFormProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -45,7 +49,7 @@ export function PrIterationFeedbackForm({
   const prompt = t('Anything else you want to see on your PR?');
   // A disabled control fires no pointer events, so the tooltip hangs off the
   // wrapper element rather than the control itself.
-  const pausedTooltip = t('PR iteration has been stopped for this Autofix run');
+  const pausedTooltip = PR_ITERATION_PAUSED_TOOLTIP;
 
   const handleSubmit = async () => {
     // Also guards the Enter hotkey, which clicks the button directly.
@@ -59,8 +63,8 @@ export function PrIterationFeedbackForm({
     try {
       await startStep('pr_iteration', {runId, userContext: feedback});
     } catch {
+      // startStep already reports why the request failed.
       setIsSubmitting(false);
-      addErrorMessage(t('Failed to submit feedback. Please try again.'));
       return;
     }
     trackAnalytics('autofix.pr_iteration.feedback', {
@@ -88,6 +92,7 @@ export function PrIterationFeedbackForm({
           <InputGroup.TextArea
             autosize
             rows={2}
+            maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
             placeholder={t(
               'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
             )}

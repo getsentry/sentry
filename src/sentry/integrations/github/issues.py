@@ -13,6 +13,7 @@ from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
@@ -194,7 +195,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             labels: Sequence[tuple[str, str]] = []
         else:
             default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
-            assignees = self.get_allowed_assignees(default_repo, PAGE_LIMIT) if default_repo else []
+            assignees = self.get_allowed_assignees(default_repo) if default_repo else []
             labels = []
             if default_repo:
                 owner, repo = default_repo.split("/")
@@ -344,6 +345,29 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             },
         ]
 
+    def get_issue_link_data(self, url: str) -> dict[str, str]:
+        domain, account = self.model.metadata["domain_name"].split("/", 1)
+        path = get_issue_url_path(url, f"https://{domain}")
+        match = re.fullmatch(
+            r"/([^/]+/[^/]+)/(issues|pull)/(\d+)(?:/(files|changes|commits|checks))?", path
+        )
+        if not match or (match[2] == "issues" and match[4]):
+            raise IntegrationFormError({"externalIssue": "Invalid GitHub issue URL"})
+        if match[1].split("/")[0].casefold() != account.casefold():
+            raise IntegrationFormError(
+                {"externalIssue": "Issue URL does not belong to this installation"}
+            )
+        repositories = Repository.objects.filter(
+            name__iexact=match[1],
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+        repo = repositories.first()
+        if repo is None:
+            raise IntegrationFormError({"repo": "Repository does not belong to this installation"})
+        return {"repo": repo.name, "externalIssue": match[3]}
+
     def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
         data = kwargs["data"]
         repo = data.get("repo")
@@ -379,28 +403,15 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             "repo": repo,
         }
 
-    def get_allowed_assignees(
-        self, repo: str, page_number_limit: int | None = None
-    ) -> Sequence[tuple[str, str]]:
-        client = self.get_client()
-        try:
-            response = client.get_assignees(repo, page_number_limit=page_number_limit)
-        except Exception as e:
-            self.raise_error(e)
-
-        users = tuple(self._format_assignee(user) for user in response)
-
-        return (("", "Unassigned"),) + users
-
-    def search_allowed_assignees(self, repo: str, query: str) -> Sequence[tuple[str, str]]:
+    def get_allowed_assignees(self, repo: str, query: str = "") -> Sequence[tuple[str, str]]:
         client = self.get_client()
         try:
             response = client.search_issue_assignees(repo, query)
         except Exception as e:
             self.raise_error(e)
 
-        user_choices = tuple(self._format_assignee(user) for user in response)
-        return user_choices if query else (("", "Unassigned"),) + user_choices
+        users = tuple(self._format_assignee(user) for user in response)
+        return users if query else (("", "Unassigned"),) + users
 
     def get_repo_labels(
         self, owner: str, repo: str, page_number_limit: int | None = None

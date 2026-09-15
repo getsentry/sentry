@@ -36,9 +36,6 @@ from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
 )
-from sentry.api.endpoints.organization_sampling_admin_metrics import (
-    OrganizationDynamicSamplingAdminMetricsEndpoint,
-)
 from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
     OrganizationSamplingEffectiveSampleRateEndpoint,
 )
@@ -142,6 +139,7 @@ from sentry.core.endpoints.team_unresolved_issue_age import TeamUnresolvedIssueA
 from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
+    OrganizationDashboardHiddenEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboard_generate import (
@@ -1661,6 +1659,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboard-favorite",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/hidden/$",
+        OrganizationDashboardHiddenEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-hidden",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/revisions/$",
         OrganizationDashboardRevisionsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-revisions",
@@ -1759,11 +1762,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
         OrganizationSamplingEffectiveSampleRateEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-effective-sample-rate",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/admin-metrics/$",
-        OrganizationDynamicSamplingAdminMetricsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-admin-metrics",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sdk-updates/$",

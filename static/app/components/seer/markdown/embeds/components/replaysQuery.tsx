@@ -1,45 +1,18 @@
-import queryString from 'query-string';
+import {lazy} from 'react';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {
-  defineSeerEmbed,
-  type EmbedOutput,
-} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconPlay} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 
-function ReplaysQueryLink({
-  query,
-  sort,
-  title,
-  projects,
-  environments,
-  statsPeriod,
-  start,
-  end,
-}: EmbedOutput<'replaysQuery'>) {
-  const organization = useOrganization();
-  const href = queryString.stringifyUrl({
-    url: makeReplaysPathname({organization, path: '/'}),
-    query: {
-      query,
-      sort,
-      project: projects,
-      environment: environments,
-      statsPeriod,
-      start,
-      end,
-    },
-  });
+import {ReplaysQueryLink} from './replaysQueryLink';
 
-  return <ResourceLink icon={IconPlay} href={href} title={title ?? t('Replay search')} />;
-}
+const LazyReplaysQueryBlock = lazy(() => import('./replaysQueryBlock'));
 
 export const ReplaysQuery = defineSeerEmbed({
   name: 'replaysQuery',
-  render(props) {
-    return <ReplaysQueryLink {...props} />;
+  render(props, level) {
+    if (level === 'block') {
+      return <LazyLoad LazyComponent={LazyReplaysQueryBlock} data={props} />;
+    }
+    return <ReplaysQueryLink data={props} />;
   },
 });
