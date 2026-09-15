@@ -422,6 +422,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
 
             if values_list:
                 if field == "timestamp" or field.startswith("timestamp.to_"):
+                    # Parse timestamps so the Snuba SDK emits them in its expected UTC format.
                     values_list = [datetime.fromisoformat(value) for value in values_list]
                     if not other:
                         # timestamp fields needs special handling, creating a big OR instead
