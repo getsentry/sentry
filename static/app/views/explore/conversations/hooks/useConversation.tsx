@@ -330,22 +330,21 @@ export function useConversation(
   const {selection} = usePageFilters();
 
   const ONE_HOUR_MS = 60 * 60 * 1000;
-  const hasConversationTimestamps =
-    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
     selection.datetime.start !== null ||
     (selection.datetime.period !== null && selection.datetime.period !== defaultPeriod);
 
-  const datetimeParams = hasConversationTimestamps
-    ? {
-        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
-        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
-      }
-    : hasExplicitDatetime
-      ? normalizeDateTimeParams(selection.datetime)
-      : {};
+  const datetimeParams =
+    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
+      ? {
+          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
+          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
+        }
+      : hasExplicitDatetime
+        ? normalizeDateTimeParams(selection.datetime)
+        : {};
 
   const selectedProjects = conversation.projects ?? selection.projects;
   const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
