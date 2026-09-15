@@ -31,6 +31,12 @@ describe('resourceLinkMarkdown', () => {
     );
   });
 
+  it('qualifies a same-origin absolute href rather than leaving it relative', () => {
+    expect(resourceLinkMarkdown(`${window.location.origin}/issues/`, 'Issues')).toBe(
+      `[Issues](${window.location.origin}/issues/)`
+    );
+  });
+
   it('keeps the query string and fragment the rendered link would navigate to', () => {
     expect(resourceLinkMarkdown('/issues/?query=is%3Aunresolved#top', 'Unresolved')).toBe(
       `[Unresolved](${window.location.origin}/issues/?query=is%3Aunresolved#top)`
@@ -65,6 +71,24 @@ describe('ResourceLink', () => {
     expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute(
       'href',
       '/issues/'
+    );
+  });
+
+  it('keeps the anchor relative while the markdown beside it is absolute', () => {
+    render(
+      <ResourceLink
+        icon={IconDocs}
+        href={`${window.location.origin}/issues/`}
+        title="Issues"
+      />
+    );
+
+    expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute(
+      'href',
+      '/issues/'
+    );
+    expect(renderMarkdown(`${window.location.origin}/issues/`, 'Issues')).toBe(
+      `[Issues](${window.location.origin}/issues/)`
     );
   });
 
