@@ -314,9 +314,15 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
         if isinstance(request.user, AnonymousUser):
             raise TypeError("Cannot link identity without a logged-in user")
         try:
-            identities = Identity.objects.filter(external_id=external_id)
             if idp is not None:
-                identities = identities.filter(idp=idp)
+                identities = Identity.objects.filter(external_id=external_id, idp=idp)
+            else:
+                # MS Teams signs no integration_id, so the provider type is the narrowest
+                # scope left. Only here: a resolved idp may be a variant such as
+                # `slack_staging`, which the view's spec slug would not match.
+                identities = Identity.objects.filter(
+                    external_id=external_id, idp__type=self.provider_slug
+                )
             if self.filter_by_user_id:
                 identities = identities.filter(user_id=request.user.id)
             if self.no_identity_template and not identities:
