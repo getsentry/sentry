@@ -83,10 +83,10 @@ export const preferInfoText = defineRule({
     let tooltipNames: string[] = [];
     let textNames: string[] = [];
 
-    function isLocaleCall(node: TSESTree.Expression): boolean {
+    function isLocaleCall(node: ESTree.Expression): boolean {
       return (
-        node.type === AST_NODE_TYPES.CallExpression &&
-        node.callee.type === AST_NODE_TYPES.Identifier &&
+        node.type === 'CallExpression' &&
+        node.callee.type === 'Identifier' &&
         importTracker.resolve(node.callee.name)?.source === LOCALE_SOURCE
       );
     }
