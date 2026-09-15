@@ -27,6 +27,18 @@ def remove_null(value: str) -> str:
     return value.replace("\x00", "")
 
 
+def _clean_param(param: object) -> object:
+    if isinstance(param, str):
+        return remove_null(strip_lone_surrogates(param))
+    # Django's bulk inserts bind arrays, so sanitize their elements too.
+    if isinstance(param, list):
+        return [_clean_param(value) for value in param]
+    # Preserve tuples: psycopg2 adapts them as records/IN lists, not arrays.
+    if isinstance(param, tuple):
+        return tuple(_clean_param(value) for value in param)
+    return param
+
+
 def clean_bad_params(
     params: dict[str, object] | Iterable[object] | None,
 ) -> dict[str, object] | list[object] | None:
@@ -36,14 +48,12 @@ def clean_bad_params(
     # in raw SQL queries.
     elif isinstance(params, dict):
         for key, param in params.items():
-            if isinstance(param, str):
-                params[key] = remove_null(strip_lone_surrogates(param))
+            params[key] = _clean_param(param)
         return params
     else:
         params = list(params)
         for idx, param in enumerate(params):
-            if isinstance(param, str):
-                params[idx] = remove_null(strip_lone_surrogates(param))
+            params[idx] = _clean_param(param)
         return params
 
 
