@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from typing import Any
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, urlparse
 
 from sentry.integrations.cursor_origin.client import CursorOriginApiClient
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
@@ -54,25 +54,29 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         The remaining keyword arguments exist for base-class compatibility. Origin has no
         search endpoint, so `query` filters locally.
         """
+
+        def to_repository_info(raw: list[dict[str, Any]]) -> list[RepositoryInfo]:
+            return [
+                {
+                    "name": repo["fullName"],
+                    "identifier": repo["fullName"],
+                    "external_id": self.get_repo_external_id(repo),
+                    "default_branch": repo["defaultBranch"],
+                }
+                for repo in raw
+            ]
+
         try:
             raw_repos = self.get_client().get_repositories()
         except ApiPaginationTruncated as e:
             if raise_on_page_limit:
-                raise
+                raise ApiPaginationTruncated(to_repository_info(e.partial_data)) from e
             raw_repos = e.partial_data
         except ApiError as e:
             logger.info("cursor_origin.get_repositories.error", extra={"error": str(e)})
             self.raise_error(e)
 
-        repos: list[RepositoryInfo] = [
-            {
-                "name": repo["fullName"],
-                "identifier": repo["fullName"],
-                "external_id": self.get_repo_external_id(repo),
-                "default_branch": repo["defaultBranch"],
-            }
-            for repo in raw_repos
-        ]
+        repos = to_repository_info(raw_repos)
 
         if query:
             lowered = query.lower()
@@ -100,7 +104,8 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         return super().is_broken_integration_error(exc)
 
     def source_url_matches(self, url: str) -> bool:
-        return url.startswith(self.model.metadata["domain_name"])
+        domain = self.model.metadata["domain_name"]
+        return url == domain or url.startswith(f"{domain}/")
 
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         branch = branch or repo.config["default_branch"]
@@ -116,8 +121,9 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         return unquote(self._split_blob_url(repo, url)[1])
 
     def _split_blob_url(self, repo: Repository, url: str) -> tuple[str, str]:
-        prefix = f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/blob/"
-        if not url.startswith(prefix):
+        prefix = f"{urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path}/{repo.name}/blob/"
+        path = urlparse(url).path
+        if not path.startswith(prefix):
             return "", ""
-        branch, _, path = url[len(prefix) :].partition("/")
-        return branch, path
+        branch, _, filepath = path[len(prefix) :].partition("/")
+        return branch, filepath

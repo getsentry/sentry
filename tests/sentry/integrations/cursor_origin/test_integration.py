@@ -96,8 +96,18 @@ class CursorOriginIntegrationTest(TestCase):
             side_effect=ApiPaginationTruncated(partial),
         ):
             assert len(self.install.get_repositories()) == 1
-            with pytest.raises(ApiPaginationTruncated):
+            with pytest.raises(ApiPaginationTruncated) as excinfo:
                 self.install.get_repositories(raise_on_page_limit=True)
+
+        # Callers read partial_data as RepositoryInfo, not as raw Origin dicts.
+        assert excinfo.value.partial_data == [
+            {
+                "name": REPO,
+                "identifier": REPO,
+                "external_id": "repo_1",
+                "default_branch": "main",
+            }
+        ]
 
     def test_rate_limit_is_recognised(self) -> None:
         assert self.install.is_rate_limited_error(ApiError("slow down", code=429)) is True
@@ -152,6 +162,21 @@ class CursorOriginIntegrationTest(TestCase):
 
         assert url == f"{WEB}/{REPO}/blob/trunk/a.py"
 
+    def test_a_line_anchor_is_not_part_of_the_path(self) -> None:
+        """Origin file URLs carry #L5, which must not reach the code mapping."""
+        repo = self._repo()
+        url = f"{WEB}/{REPO}/blob/main/src/app.py#L5"
+
+        assert self.install.extract_source_path_from_source_url(repo, url) == "src/app.py"
+        assert self.install.extract_branch_from_source_url(repo, url) == "main"
+
+    def test_a_decoded_slashed_branch_reads_as_its_first_segment(self) -> None:
+        """The code mapping endpoint unquotes the path first, as GitHub also sees."""
+        repo = self._repo()
+        url = f"{WEB}/{REPO}/blob/danf/test-branch/AGENTS.md"
+
+        assert self.install.extract_branch_from_source_url(repo, url) == "danf"
+
     def test_an_unrecognised_url_extracts_nothing(self) -> None:
         repo = self._repo()
 
@@ -161,3 +186,7 @@ class CursorOriginIntegrationTest(TestCase):
     def test_source_url_matches_this_installation_only(self) -> None:
         assert self.install.source_url_matches(f"{WEB}/acme/rocket/blob/main/a.py") is True
         assert self.install.source_url_matches(f"{WEB}/other-org/repo/blob/main/a.py") is False
+
+    def test_a_longer_org_name_is_not_a_match(self) -> None:
+        """An install on "acme" must not claim URLs owned by "acme-corp"."""
+        assert self.install.source_url_matches(f"{WEB}/acme-corp/repo/blob/main/a.py") is False
