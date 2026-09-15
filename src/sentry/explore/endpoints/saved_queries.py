@@ -217,8 +217,7 @@ def build_combined_queryset(
                 order_by.append("my_queries")
 
             elif sort_by == "mostStarred":
-                # Unstarring keeps the row around to hold its position, so only
-                # count the rows that are actually starred.
+                # Unstarring sets starred to false, doesn't necessarily deletes the row
                 discover_queryset = discover_queryset.annotate(
                     starred_count=Count(
                         "discoversavedquerystarred",
