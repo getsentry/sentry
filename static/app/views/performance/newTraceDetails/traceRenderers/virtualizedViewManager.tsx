@@ -10,6 +10,10 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
   getRenderableTraceIssues,
   getTraceIconGroupWidth,
   getTraceIssueTimestamp,
@@ -2147,6 +2151,20 @@ export class VirtualizedViewManager {
           // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
           isNaN(inverseScale) ? 1 : inverseScale
         );
+
+        const node = this.columns.list.column_nodes[i];
+        if (node && (isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node))) {
+          node.autogroupedSegments.forEach((space, index) => {
+            const bar = invisible_bar.ref.children[index];
+            if (!(bar instanceof HTMLElement)) {
+              return;
+            }
+            bar.style.left = `${
+              this.computeRelativeLeftPositionFromOrigin(space[0], node.space) * 100
+            }%`;
+            bar.style.width = `${this.computeRelativeWidth(space, node.space) * 100}%`;
+          });
+        }
       }
 
       if (text) {
