@@ -15,6 +15,21 @@ from sentry.web.frontend.auth_login import additional_context
 
 
 @control_silo_test
+class AuthConfigClearOrganizationEndpointTest(APITestCase):
+    path = "/api/0/auth/config/clear-organization/"
+
+    def test_clear_active_organization(self) -> None:
+        session = self.client.session
+        session["activeorg"] = "previous-org"
+        session.save()
+
+        response = self.client.post(self.path)
+
+        assert response.status_code == 204
+        assert "activeorg" not in self.client.session
+
+
+@control_silo_test
 class AuthConfigEndpointTest(APITestCase):
     path = "/api/0/auth/config/"
 
