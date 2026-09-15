@@ -39,6 +39,7 @@ from sentry.utils import metrics
 from sentry.utils.dates import ensure_aware
 from sentry.workflow_engine.models import AlertRuleDetector, DataSourceDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 from .utils import parse_team_params
@@ -62,6 +63,7 @@ class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
+        enforce_alerts_api_deprecation(organization)
         # Parse query parameters (shared between both implementations)
         projects = self.get_projects(request, organization)
         envs = self.get_environments(request, organization)
