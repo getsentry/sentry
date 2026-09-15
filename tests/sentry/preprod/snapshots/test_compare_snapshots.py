@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from threading import Event
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
@@ -699,6 +700,71 @@ class FinalizeSnapshotComparisonTest(TestCase):
         assert called_head_artifact.id == h.id
         assert called_manifest.head_artifact_id == h.id
         assert called_session is session
+
+    def test_finalize_reads_chunks_concurrently_and_merges_in_plan_order(self):
+        from sentry.preprod.snapshots.manifest import (
+            ChunkResult,
+            ComparisonImageResult,
+        )
+        from sentry.preprod.snapshots.tasks import _get_json, finalize_snapshot_comparison
+
+        comparison, head, base = self._comparison(3, done_indices=[0, 1, 2])
+        prefix = f"{self.organization.id}/{self.project.id}/{head.id}/{base.id}"
+        plan = self._single_chunk_plan(head, base)
+        plan.chunks = [plan.chunks[0].copy(update={"chunk_index": index}) for index in range(3)]
+        stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
+        for index, name in enumerate(["a.png", "a.png", "b.png"]):
+            result = ChunkResult(
+                chunk_index=index,
+                images={name: ComparisonImageResult(status="changed", head_hash=f"head-{index}")},
+            )
+            stored[f"{prefix}/chunks/{index}.json"] = orjson.dumps(result.dict())
+        session = _dict_backed_session(stored)
+        second_finished = Event()
+        first_finished = Event()
+        read_order = []
+
+        def read_first():
+            assert second_finished.wait(timeout=5)
+            result = _get_json(session, f"{prefix}/chunks/0.json", ChunkResult)
+            read_order.append(0)
+            first_finished.set()
+            return result
+
+        def read_second():
+            result = _get_json(session, f"{prefix}/chunks/1.json", ChunkResult)
+            read_order.append(1)
+            second_finished.set()
+            return result
+
+        def read_third():
+            assert first_finished.is_set()
+            return _get_json(session, f"{prefix}/chunks/2.json", ChunkResult)
+
+        readers = {
+            f"{prefix}/plan.json": lambda: plan,
+            f"{prefix}/chunks/0.json": read_first,
+            f"{prefix}/chunks/1.json": read_second,
+            f"{prefix}/chunks/2.json": read_third,
+        }
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks._CHUNK_RESULT_READ_CONCURRENCY", 2),
+            patch(
+                "sentry.preprod.snapshots.tasks._get_json",
+                side_effect=lambda session, key, model_cls: readers[key](),
+            ),
+            patch("sentry.preprod.snapshots.tasks._try_auto_approve_snapshot"),
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, head, base))
+
+        assert read_order == [1, 0]
+        comparison.refresh_from_db()
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
+        assert manifest["images"]["a.png"]["head_hash"] == "head-1"
+        assert manifest["images"]["b.png"]["head_hash"] == "head-2"
+        assert manifest["summary"]["changed"] == 2
 
     def test_finalize_passes_sibling_results_to_auto_approve(self):
         from sentry.preprod.snapshots.manifest import (

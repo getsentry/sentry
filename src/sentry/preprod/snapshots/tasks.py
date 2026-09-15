@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 from difflib import SequenceMatcher
+from itertools import batched
 from typing import Any, Literal, NamedTuple
 
 import orjson
@@ -68,6 +69,7 @@ CHUNK_PROCESSING_DEADLINE = 120  # seconds; one ~40M-px batch finishes well unde
 _RETRYABLE_OBJECTSTORE_STATUSES = frozenset({429, 503})
 _OBJECTSTORE_MAX_ATTEMPTS = 2
 _OBJECTSTORE_RETRY_DELAY_S = 0.5
+_CHUNK_RESULT_READ_CONCURRENCY = 4
 
 
 def _comparison_prefix(
@@ -1424,38 +1426,57 @@ def finalize_snapshot_comparison(
     sibling_images: dict[str, ComparisonImageResult] = {}
     done_set = set(comparison.chunks_done_indices)
 
-    for assignment in plan.chunks:
-        idx = assignment.chunk_index
-        if idx in done_set:
-            chunk_result_key = _chunk_result_key(
-                org_id, project_id, head_artifact_id, base_artifact_id, idx
-            )
-            try:
-                result = _get_json(session, chunk_result_key, ChunkResult)
-            except (
-                orjson.JSONDecodeError,
-                FileNotFoundError,
-                RequestError,
-                ValidationError,
-                TypeError,
-            ):
-                # A done chunk whose result blob is missing/evicted/corrupt must not crash
-                # finalize, otherwise the comparison stays PROCESSING forever and every retry
-                # re-raises. Degrade its candidates to errored, mirroring the failed branch.
-                logger.exception(
-                    "finalize: failed to read done chunk result, degrading to errored",
-                    extra={"comparison_id": comparison.id, "chunk_index": idx},
+    with ContextPropagatingThreadPoolExecutor(
+        max_workers=_CHUNK_RESULT_READ_CONCURRENCY
+    ) as executor:
+        for assignments in batched(plan.chunks, _CHUNK_RESULT_READ_CONCURRENCY):
+            pending = {
+                assignment.chunk_index: executor.submit(
+                    _get_json,
+                    session,
+                    _chunk_result_key(
+                        org_id,
+                        project_id,
+                        head_artifact_id,
+                        base_artifact_id,
+                        assignment.chunk_index,
+                    ),
+                    ChunkResult,
                 )
-                for candidate in assignment.candidates:
-                    target = sibling_images if candidate.kind == "sibling" else images
-                    target[candidate.name] = _errored_result(candidate, "chunk_result_unreadable")
-                continue
-            images.update(result.images)
-            sibling_images.update(result.sibling_images)
-        else:
-            for candidate in assignment.candidates:
-                target = sibling_images if candidate.kind == "sibling" else images
-                target[candidate.name] = _errored_result(candidate, "chunk_failed")
+                for assignment in assignments
+                if assignment.chunk_index in done_set
+            }
+            for assignment in assignments:
+                idx = assignment.chunk_index
+                if idx in done_set:
+                    try:
+                        result = pending.pop(idx).result()
+                    except (
+                        orjson.JSONDecodeError,
+                        FileNotFoundError,
+                        RequestError,
+                        ValidationError,
+                        TypeError,
+                    ):
+                        # A done chunk whose result blob is missing/evicted/corrupt must not crash
+                        # finalize, otherwise the comparison stays PROCESSING forever and every retry
+                        # re-raises. Degrade its candidates to errored, mirroring the failed branch.
+                        logger.exception(
+                            "finalize: failed to read done chunk result, degrading to errored",
+                            extra={"comparison_id": comparison.id, "chunk_index": idx},
+                        )
+                        for candidate in assignment.candidates:
+                            target = sibling_images if candidate.kind == "sibling" else images
+                            target[candidate.name] = _errored_result(
+                                candidate, "chunk_result_unreadable"
+                            )
+                        continue
+                    images.update(result.images)
+                    sibling_images.update(result.sibling_images)
+                else:
+                    for candidate in assignment.candidates:
+                        target = sibling_images if candidate.kind == "sibling" else images
+                        target[candidate.name] = _errored_result(candidate, "chunk_failed")
 
     counts = {
         s: 0 for s in ("changed", "unchanged", "added", "removed", "errored", "renamed", "skipped")
