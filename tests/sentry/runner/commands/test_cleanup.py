@@ -50,9 +50,9 @@ class SynchronousTaskQueue:
         # You can use this to inspect the calls to the queue.
         self.put_calls: list[tuple[str, tuple[int, ...], int | None]] = []
 
-    def put(self, item: tuple[str, tuple[int, ...], int | None]) -> None:
-        self.put_calls.append(item)
-        task_execution(item[0], item[1], item[2])
+    def put(self, model_name: str, chunk: tuple[int, ...], project_id: int | None = None) -> None:
+        self.put_calls.append((model_name, chunk, project_id))
+        task_execution(model_name, chunk, project_id)
 
     def join(self) -> None:
         pass
