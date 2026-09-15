@@ -229,6 +229,71 @@ function generateSortField(aggregates: Column[], aggregateIndex: number): string
     : generateFieldAsString(target);
 }
 
+function getSortYAxisIndex(sort: Sort[] | undefined, yAxis: Column[] = []): number {
+  const sortValue = sort?.[0]?.field;
+  if (!sortValue) {
+    return -1;
+  }
+  return yAxis.findIndex(
+    (field, index) =>
+      generateFieldAsString(field) === sortValue ||
+      generateSortField(yAxis, index) === sortValue
+  );
+}
+
+/**
+ * When a y-axis edit/delete removes the current sort field, keep the sort on
+ * the same series index (shifted down if an earlier series was deleted).
+ */
+function retargetYAxisSort(
+  nextYAxis: Column[],
+  previousYAxis: Column[] | undefined,
+  sort: Sort[],
+  deletedIndex?: number
+): Sort[] {
+  if (nextYAxis.length === 0) {
+    return [];
+  }
+  const oldIndex = getSortYAxisIndex(sort, previousYAxis ?? []);
+  let nextIndex = oldIndex < 0 ? 0 : oldIndex;
+  if (deletedIndex !== undefined && deletedIndex < nextIndex) {
+    nextIndex -= 1;
+  }
+  if (nextIndex >= nextYAxis.length) {
+    nextIndex = nextYAxis.length - 1;
+  }
+  return [
+    {
+      kind: sort[0]?.kind ?? 'desc',
+      field: generateSortField(nextYAxis, Math.max(0, nextIndex)),
+    },
+  ];
+}
+
+function getUpdatedTimeseriesSort(
+  nextYAxis: Column[],
+  previousYAxis: Column[] | undefined,
+  fields: Column[] | undefined,
+  dataset: WidgetType | undefined,
+  sort: Sort[] | undefined,
+  deletedIndex?: number
+): Sort[] | null {
+  if (nextYAxis.length === 0) {
+    return null;
+  }
+  if (!fields?.length) {
+    return [];
+  }
+  if (
+    (dataset === WidgetType.TRACEMETRICS || dataset === WidgetType.SPANS) &&
+    sort?.length &&
+    !isSortFieldStillAvailable(sort, nextYAxis, fields)
+  ) {
+    return retargetYAxisSort(nextYAxis, previousYAxis, sort, deletedIndex);
+  }
+  return null;
+}
+
 /**
  * Validate the current sort against a new set of aggregates for categorical
  * bar charts. Returns the corrected sort if the current sort field is invalid,
@@ -927,24 +992,15 @@ export function useWidgetBuilderState(): {
             }
           }
 
-          // If there are yAxis fields but no groupings, clear the sort
-          if (action.payload.length > 0 && (!fields || fields.length === 0)) {
-            setSort([], options);
-          } else if (
-            action.payload.length > 0 &&
-            (dataset === WidgetType.TRACEMETRICS || dataset === WidgetType.SPANS) &&
-            sort?.length &&
-            !isSortFieldStillAvailable(sort, action.payload, fields)
-          ) {
-            setSort(
-              [
-                {
-                  kind: 'desc',
-                  field: generateSortField(action.payload, 0),
-                },
-              ],
-              options
-            );
+          const nextSort = getUpdatedTimeseriesSort(
+            action.payload,
+            yAxis,
+            fields,
+            dataset,
+            sort
+          );
+          if (nextSort) {
+            setSort(nextSort, options);
           }
           break;
         }
@@ -1164,24 +1220,16 @@ export function useWidgetBuilderState(): {
               }
             }
 
-            // Replicate SET_Y_AXIS sort reconciliation
-            if (newYAxis.length > 0 && (!fields || fields.length === 0)) {
-              setSort([], options);
-            } else if (
-              newYAxis.length > 0 &&
-              (dataset === WidgetType.TRACEMETRICS || dataset === WidgetType.SPANS) &&
-              sort?.length &&
-              !isSortFieldStillAvailable(sort, newYAxis, fields)
-            ) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: generateFieldAsString(newYAxis[0]!),
-                  },
-                ],
-                options
-              );
+            const nextSort = getUpdatedTimeseriesSort(
+              newYAxis,
+              yAxis,
+              fields,
+              dataset,
+              sort,
+              deleteIndex
+            );
+            if (nextSort) {
+              setSort(nextSort, options);
             }
           } else {
             // Table / other: fields list is flat, delete by index
@@ -1506,10 +1554,5 @@ function isSortFieldStillAvailable(
 ): boolean {
   const sortValue = sort[0]?.field;
   const sortInFields = fields?.some(field => generateFieldAsString(field) === sortValue);
-  const sortInYAxis = yAxis?.some(
-    (field, i) =>
-      generateFieldAsString(field) === sortValue ||
-      generateSortField(yAxis, i) === sortValue
-  );
-  return sortInFields || sortInYAxis;
+  return sortInFields || getSortYAxisIndex(sort, yAxis) >= 0;
 }

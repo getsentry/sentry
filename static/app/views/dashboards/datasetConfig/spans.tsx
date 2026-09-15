@@ -72,7 +72,10 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {withBaseConditionalAggregateField} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  hasConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
@@ -421,7 +424,8 @@ function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (
       option.value.kind === FieldValueKind.FUNCTION ||
-      option.value.kind === FieldValueKind.EQUATION
+      option.value.kind === FieldValueKind.EQUATION ||
+      hasConditionalAggregateFilter(option.value.meta.name)
     ) {
       return true;
     }

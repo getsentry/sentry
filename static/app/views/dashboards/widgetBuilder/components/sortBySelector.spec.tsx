@@ -223,6 +223,65 @@ describe('WidgetBuilderSortBySelector', () => {
     });
   });
 
+  it('sorts by Explore _if combinators on line charts', async () => {
+    const combinator = 'avg_if(`span.op:db`,span.duration)';
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSortBySelector />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {
+              displayType: 'line',
+              dataset: 'spans',
+              fields: ['transaction'],
+              yAxis: ['avg(span.duration)', combinator],
+              sort: ['-avg(span.duration)'],
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByText('(Required)'));
+    await userEvent.click(await screen.findByText(combinator));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({sort: `-${combinator}`})
+      );
+    });
+  });
+
+  it('shows the selected Explore _if combinator in sort by', async () => {
+    const combinator = 'avg_if(`span.op:db`,span.duration)';
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSortBySelector />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/dashboard/1/',
+            query: {
+              displayType: 'line',
+              dataset: 'spans',
+              fields: ['transaction'],
+              yAxis: ['avg(span.duration)', combinator],
+              sort: [`-${combinator}`],
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByText(combinator)).toBeInTheDocument();
+  });
+
   it('sorts by equations line chart', async () => {
     const organizationWithFlag = OrganizationFixture({
       features: ['open-membership', 'visibility-explore-view'],
