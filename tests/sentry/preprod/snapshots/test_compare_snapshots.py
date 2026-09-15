@@ -5,6 +5,7 @@ from unittest.mock import ANY, MagicMock, patch
 import orjson
 import pytest
 from objectstore_client import RequestError
+from urllib3.exceptions import ReadTimeoutError
 
 from sentry.preprod.snapshots.image_diff.types import ImageSize
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
@@ -948,6 +949,41 @@ class FinalizeSnapshotComparisonTest(TestCase):
         comparison_manifest = orjson.loads(stored[f"{prefix}/comparison.json"])
         assert comparison_manifest["summary"]["errored"] == 1
         assert comparison_manifest["images"]["a.png"]["status"] == "errored"
+
+    def _finalize_with_socket_read_timeout(self, key_suffix):
+        from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison
+
+        comparison, head, base = self._comparison(1, done_indices=[0])
+        prefix = f"{self.organization.id}/{self.project.id}/{head.id}/{base.id}"
+        stored = {
+            f"{prefix}/plan.json": orjson.dumps(self._single_chunk_plan(head, base).dict()),
+            f"{prefix}/chunks/0.json": orjson.dumps(self._changed_chunk_result().dict()),
+        }
+        session = _dict_backed_session(stored)
+        responses = {key: session.get(key) for key in stored}
+        responses[f"{prefix}/{key_suffix}"].payload.read.side_effect = ReadTimeoutError(
+            None, None, "socket read timed out"
+        )
+        session.get.side_effect = responses.get
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            finalize_snapshot_comparison(**self._kwargs(comparison, head, base))
+
+        comparison.refresh_from_db()
+        vcs.assert_called_once()
+        return comparison
+
+    def test_finalize_fails_on_plan_socket_read_timeout(self):
+        comparison = self._finalize_with_socket_read_timeout("plan.json")
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR
+
+    def test_finalize_degrades_chunk_socket_read_timeout(self):
+        comparison = self._finalize_with_socket_read_timeout("chunks/0.json")
+        assert comparison.state == PreprodSnapshotComparison.State.SUCCESS
+        assert comparison.images_errored == 1
 
     def test_finalize_fails_when_plan_unreadable(self):
         from sentry.preprod.snapshots.tasks import finalize_snapshot_comparison

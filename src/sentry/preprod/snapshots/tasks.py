@@ -18,6 +18,7 @@ from django.utils import timezone
 from objectstore_client import RequestError
 from pydantic import BaseModel, ValidationError
 from taskbroker_client.retry import Retry
+from urllib3.exceptions import HTTPError
 
 from sentry import analytics, options
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
@@ -1403,7 +1404,14 @@ def finalize_snapshot_comparison(
     plan_key = _plan_key(org_id, project_id, head_artifact_id, base_artifact_id)
     try:
         plan = _get_json(session, plan_key, ComparisonPlan)
-    except (orjson.JSONDecodeError, FileNotFoundError, RequestError, ValidationError, TypeError):
+    except (
+        orjson.JSONDecodeError,
+        FileNotFoundError,
+        RequestError,
+        HTTPError,
+        ValidationError,
+        TypeError,
+    ):
         # Without the plan there are no chunks to assemble, so this is unrecoverable.
         # Fail the row cleanly instead of leaving it PROCESSING for the reaper to sweep
         # ~30min later (the chunk-result read below degrades for the same reason).
@@ -1442,6 +1450,7 @@ def finalize_snapshot_comparison(
                 orjson.JSONDecodeError,
                 FileNotFoundError,
                 RequestError,
+                HTTPError,
                 ValidationError,
                 TypeError,
             ):
