@@ -238,7 +238,7 @@ function SpecificMonitorsSection({
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const [projectIds, setProjectIds] = useQueryState(
+  const [, setProjectIds] = useQueryState(
     'project',
     parseAsNativeArrayOf(parseAsInteger)
   );
@@ -251,7 +251,7 @@ function SpecificMonitorsSection({
 
     // For users which only have access to writable projects, preset the project filter
     // to the correct project list.
-    if (!hasOrganizationAutomationWriteAccess(organization) && projectIds.length === 0) {
+    if (!hasOrganizationAutomationWriteAccess(organization)) {
       setProjectIds(
         projects
           .filter(project => hasAutomationWriteAccess({organization, project}))
