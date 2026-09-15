@@ -997,6 +997,9 @@ if (env.RSPACK_STATS) {
   for (const config of configs) {
     config.stats = {
       all: false,
+      modules: true,
+      nestedModules: true,
+      source: false,
       assets: true,
       chunks: true,
       chunkRelations: true,
