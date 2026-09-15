@@ -1,9 +1,11 @@
 import {useState} from 'react';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as pipelineModal from 'sentry/components/pipeline/modal';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import * as analytics from 'sentry/utils/analytics';
 
@@ -120,6 +122,43 @@ describe('ScmIntegrationConnect', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
+  });
+
+  it('focuses the repo search once an install completes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [GitHubIntegrationProviderFixture()]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/1/repos/`,
+      body: {repos: []},
+    });
+    const openPipelineModalSpy = jest
+      .spyOn(pipelineModal, 'openPipelineModal')
+      .mockImplementation(() => {});
+
+    render(
+      <Harness
+        onClearDerivedState={jest.fn()}
+        onIntegrationChange={jest.fn()}
+        onRepositoryChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    // The pill that opened the install modal unmounts when the repo selector
+    // replaces it, so the selector takes focus instead of the body.
+    await userEvent.click(await screen.findByText('GitHub'));
+    const {onComplete} = openPipelineModalSpy.mock.calls[0]![0];
+    act(() => onComplete?.(githubGetsentry));
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Search repositories'})
+    ).toHaveFocus();
   });
 
   it('fires scm_connect_integration_selected with source=default for the auto-selected integration', async () => {

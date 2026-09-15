@@ -75,7 +75,7 @@ describe('ScmRepoSelector', () => {
     mockScrollToIndex.mockClear();
   });
 
-  it('renders search placeholder', () => {
+  it('renders a labelled search field', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
       body: {repos: []},
@@ -86,6 +86,9 @@ describe('ScmRepoSelector', () => {
     });
 
     expect(screen.getByText('Search repositories')).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: 'Search repositories'})
+    ).toBeInTheDocument();
   });
 
   it('shows empty state message when no repos are available', async () => {
@@ -353,6 +356,50 @@ describe('ScmRepoSelector', () => {
     expect(onRepositoryChange).toHaveBeenCalled();
   });
 
+  it('keeps focus in the search field after a keyboard selection', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
+      body: {
+        repos: [
+          {
+            externalId: '1',
+            identifier: 'getsentry/sentry',
+            name: 'sentry',
+            isInstalled: false,
+          },
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/`,
+      body: [
+        RepositoryFixture({
+          name: 'getsentry/sentry',
+          externalSlug: 'getsentry/sentry',
+        }),
+      ],
+    });
+
+    const onRepositoryChange = jest.fn();
+    render(
+      <ScmRepoSelector
+        {...defaultProps({integration: mockIntegration, onRepositoryChange})}
+      />,
+      {organization}
+    );
+
+    const search = screen.getByRole('textbox', {name: 'Search repositories'});
+    await userEvent.click(search);
+    await userEvent.keyboard('sentry');
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'sentry'})
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => expect(onRepositoryChange).toHaveBeenCalled());
+    expect(search).toHaveFocus();
+  });
+
   it('fires project_creation.connect_repo_selected when analyticsFlow=project-creation', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${mockIntegration.id}/repos/`,
@@ -431,6 +478,7 @@ describe('ScmRepoSelector', () => {
     await userEvent.click(await screen.findByTestId('icon-close'));
 
     await waitFor(() => expect(onRepositoryChange).toHaveBeenCalledWith(undefined));
+    expect(screen.getByRole('textbox', {name: 'Search repositories'})).toHaveFocus();
   });
 
   it('does not duplicate selected repo when it appears in results', async () => {
