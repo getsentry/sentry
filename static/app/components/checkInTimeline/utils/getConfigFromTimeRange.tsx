@@ -237,7 +237,8 @@ export function getConfigFromTimeRange(
 
   // Display only the time (no date) when the start and end times are the same day
   const timeOnly =
-    elapsedMinutes <= ONE_HOUR_SECS * 24 && start.getDate() === end.getDate();
+    elapsedSeconds <= ONE_DAY_SECS &&
+    moment.tz(start, timezone).isSame(moment.tz(end, timezone), 'day');
 
   // When one pixel represents less than at least one minute we also want to
   // display second values on our labels.
