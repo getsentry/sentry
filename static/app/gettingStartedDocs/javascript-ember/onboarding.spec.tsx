@@ -18,12 +18,79 @@ describe('javascript-ember onboarding docs', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
 
-    // Includes import statement in multiple places
     expect(
-      screen.getAllByText(
-        textWithMarkupMatcher(/import \* as Sentry from "@sentry\/ember"/)
-      )
-    ).toHaveLength(2); // Appears in configure and verify steps
+      screen.getByText(textWithMarkupMatcher(/import \* as Sentry from "@sentry\/ember"/))
+    ).toBeInTheDocument();
+  });
+
+  it('initializes the SDK directly and loads application initializers', () => {
+    renderWithOnboardingLayout(docs);
+
+    const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
+    expect(setup).toHaveTextContent('import config from "./config/environment"');
+    expect(setup).toHaveTextContent('loadInitializers(App, config.modulePrefix)');
+    expect(setup).toHaveTextContent('dataCollection:');
+    expect(setup).not.toHaveTextContent(/sendDefaultPii|enableLogs|enableMetrics/);
+  });
+
+  it('registers a performance instance initializer when tracing is selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+    });
+
+    const initializer = screen.getByText(
+      textWithMarkupMatcher(/export function initialize\(appInstance\)/)
+    );
+    expect(initializer).toHaveTextContent(
+      'import { instrumentAppInstancePerformance } from "@sentry/ember"'
+    );
+    expect(initializer).toHaveTextContent(
+      'instrumentAppInstancePerformance(appInstance)'
+    );
+    expect(initializer).toHaveTextContent('export default { initialize }');
+  });
+
+  it('omits performance instrumentation when tracing is not selected', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/instrumentAppInstancePerformance/))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/tracesSampleRate/))
+    ).not.toBeInTheDocument();
+  });
+
+  it('verifies errors with a component action and button', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.ERROR_MONITORING],
+    });
+
+    const component = screen.getByText(textWithMarkupMatcher(/throw new Error/));
+    expect(component).toHaveTextContent('extends Component');
+    expect(component).toHaveTextContent(/@action\s*triggerError\(\)/);
+    expect(component).not.toHaveTextContent(/setTimeout|@sentry\/ember/);
+    expect(
+      screen.getByText(textWithMarkupMatcher(/\{\{on "click" this\.triggerError\}\}/))
+    ).toHaveTextContent('Break the world');
+  });
+
+  it('sends both selected signals before the verification error', () => {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [
+        ProductSolution.ERROR_MONITORING,
+        ProductSolution.LOGS,
+        ProductSolution.METRICS,
+      ],
+    });
+
+    const component = screen.getByText(textWithMarkupMatcher(/throw new Error/));
+    expect(component).toHaveTextContent('import * as Sentry from "@sentry/ember"');
+    expect(component).toHaveTextContent(
+      /Sentry\.logger\.info.*Sentry\.metrics\.count.*throw new Error/
+    );
   });
 
   it('displays sample rates by default', () => {
