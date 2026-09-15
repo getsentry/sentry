@@ -68,11 +68,7 @@ export function ReleaseHeader({
    * Swaps the current version out of the current path, so paginating from a
    * sub-page (e.g. Files Changed) lands on the same sub-page of the neighbour.
    */
-  function makeSiblingReleaseTarget(toRelease: string | null) {
-    if (!toRelease) {
-      return;
-    }
-
+  function makeSiblingReleaseTarget(toRelease: string) {
     // Substitute exactly once. Running an encoded pass and then a raw pass lets
     // the second match the old version inside the version the first just
     // inserted, so 1.0 -> 1.0.1 would land on 1.0.1.1.
@@ -201,7 +197,9 @@ export function ReleaseHeader({
                 tooltip: prevReleaseVersion
                   ? t('Older release')
                   : t('This is the oldest release'),
-                to: makeSiblingReleaseTarget(prevReleaseVersion),
+                to: prevReleaseVersion
+                  ? makeSiblingReleaseTarget(prevReleaseVersion)
+                  : undefined,
                 onClick: () => trackPaginationClick('older'),
               },
               next: {
@@ -209,7 +207,9 @@ export function ReleaseHeader({
                 tooltip: nextReleaseVersion
                   ? t('Newer release')
                   : t('This is the newest release'),
-                to: makeSiblingReleaseTarget(nextReleaseVersion),
+                to: nextReleaseVersion
+                  ? makeSiblingReleaseTarget(nextReleaseVersion)
+                  : undefined,
                 onClick: () => trackPaginationClick('newer'),
               },
             },

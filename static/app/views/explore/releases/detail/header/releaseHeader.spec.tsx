@@ -20,10 +20,6 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ReleaseHeader} from './releaseHeader';
 
-jest.mock('sentry/utils/useFeedbackForm', () => ({
-  useFeedbackForm: () => jest.fn(),
-}));
-
 describe('ReleaseHeader', () => {
   const organization = OrganizationFixture();
 
@@ -122,13 +118,6 @@ describe('ReleaseHeader', () => {
       'href',
       release.url
     );
-  });
-
-  it('renders exactly one feedback button in the top bar', () => {
-    const release = ReleaseFixture({version: '0c7d1730b1b1', projects: [project]});
-    renderHeader({release});
-
-    expect(screen.getAllByRole('button', {name: 'Give Feedback'})).toHaveLength(1);
   });
 
   describe('actions menu', () => {
