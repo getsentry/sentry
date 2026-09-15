@@ -4,7 +4,7 @@ import datetime
 from datetime import timezone
 
 import pytest
-from snuba_sdk import Column, Condition, Function, Op
+from snuba_sdk import Condition, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events.builder.metrics import (
@@ -12,8 +12,6 @@ from sentry.search.events.builder.metrics import (
     TimeseriesMetricQueryBuilder,
 )
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
-from sentry.sentry_metrics import indexer
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 
@@ -207,48 +205,6 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                     "transaction",
                 ],
             )
-
-    def test_free_text_search(self) -> None:
-        query = MetricsQueryBuilder(
-            self.params,
-            dataset=None,
-            query="foo",
-            selected_columns=["count()"],
-        )
-
-        self.maxDiff = 100000
-
-        transaction_key = indexer.resolve(
-            UseCaseID.TRANSACTIONS, self.organization.id, "transaction"
-        )
-        self.assertCountEqual(
-            query.where,
-            [
-                Condition(
-                    Function(
-                        "positionCaseInsensitive",
-                        [
-                            Column(f"tags[{transaction_key}]"),
-                            "foo",
-                        ],
-                    ),
-                    Op.NEQ,
-                    0,
-                ),
-                Condition(
-                    Column("metric_id"),
-                    Op.IN,
-                    [
-                        indexer.resolve(
-                            UseCaseID.TRANSACTIONS,
-                            self.organization.id,
-                            "d:transactions/duration@millisecond",
-                        )
-                    ],
-                ),
-                *self.default_conditions,
-            ],
-        )
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):

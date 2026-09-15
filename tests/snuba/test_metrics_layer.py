@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime
+from collections.abc import Mapping
+from datetime import datetime, timedelta, timezone
+from typing import Literal
 
 import pytest
 from snuba_sdk import (
@@ -17,9 +19,7 @@ from snuba_sdk import (
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import SessionMRI
-from sentry.snuba.metrics_layer.query import (
-    run_query,
-)
+from sentry.snuba.metrics_layer.query import run_query
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -28,6 +28,31 @@ pytestmark = pytest.mark.sentry_metrics
 class MQLTest(TestCase, BaseMetricsTestCase):
     def ts(self, dt: datetime) -> int:
         return int(dt.timestamp())
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        self.metrics: Mapping[str, Literal["counter", "set", "distribution"]] = {
+            SessionMRI.RAW_DURATION.value: "distribution",
+            SessionMRI.RAW_USER.value: "set",
+            SessionMRI.RAW_SESSION.value: "counter",
+        }
+        self.now = datetime.now(tz=timezone.utc).replace(microsecond=0)
+        self.hour_ago = self.now - timedelta(hours=1)
+        self.org_id = self.project.organization_id
+        for mri, metric_type in self.metrics.items():
+            assert metric_type in {"counter", "distribution", "set"}
+            for i in range(10):
+                self.store_metric(
+                    self.org_id,
+                    self.project.id,
+                    mri,
+                    {
+                        "release": "release_even" if i % 2 == 0 else "release_odd",
+                    },
+                    self.ts(self.hour_ago + timedelta(minutes=1 * i)),
+                    i,
+                )
 
     def test_metrics_groupby(self) -> None:
         query = MetricsQuery(
@@ -162,8 +187,3 @@ class MQLTest(TestCase, BaseMetricsTestCase):
         assert len(result["data"]) == 5
         assert any(data_point["release"] == "release_even" for data_point in result["data"])
         assert any(data_point["project_id"] == self.project.id for data_point in result["data"])
-
-
-class MQLMetaTest(TestCase, BaseMetricsTestCase):
-    def ts(self, dt: datetime) -> int:
-        return int(dt.timestamp())
