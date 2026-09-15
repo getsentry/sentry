@@ -26,9 +26,20 @@ export function useIsStuck(
       return () => {};
     }
 
+    // Sticky offsets are relative to the nearest scroll container, not the viewport.
+    let root = el.parentElement;
+    while (root && root !== document.body && root !== document.documentElement) {
+      const {overflowY} = getComputedStyle(root);
+      if (['auto', 'scroll', 'hidden', 'overlay'].includes(overflowY)) {
+        break;
+      }
+      root = root.parentElement;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => setIsStuck(entry!.intersectionRatio < 1),
       {
+        root: root === document.body || root === document.documentElement ? null : root,
         rootMargin:
           options.position === 'bottom'
             ? `0px 0px ${-(options.offset ?? 0) - 1}px 0px`

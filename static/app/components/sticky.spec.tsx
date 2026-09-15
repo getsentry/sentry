@@ -42,6 +42,7 @@ describe('Sticky', () => {
 
     const sticky = screen.getByText('Sticky content');
     expect(observe).toHaveBeenCalledWith(sticky);
+    expect(observerOptions.at(-1)?.root).toBeNull();
     expect(sticky).not.toHaveAttribute('data-stuck');
 
     act(() => {
@@ -60,6 +61,23 @@ describe('Sticky', () => {
     });
     expect(sticky).not.toHaveAttribute('data-stuck');
   });
+
+  it.each(['auto', 'scroll', 'hidden'])(
+    'uses the nearest overflow-%s container',
+    overflowY => {
+      render(
+        <div style={{overflowY: 'auto'}}>
+          <div data-test-id="scroll-container" style={{overflowY}}>
+            <div>
+              <Sticky>Sticky content</Sticky>
+            </div>
+          </div>
+        </div>
+      );
+
+      expect(observerOptions.at(-1)?.root).toBe(screen.getByTestId('scroll-container'));
+    }
+  );
 
   it('supports an external ref and an additional top offset', () => {
     const ref = createRef<HTMLDivElement>();
