@@ -205,7 +205,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             response = session.get(manifest_key)
             if response is None:
                 logger.info(
-                    "preprod.snapshot.latest_base.manifest_missing",
+                    "preprod.snapshot.manifest_missing",
                     extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
                 )
                 return Response({"detail": "No snapshot found"}, status=404)
