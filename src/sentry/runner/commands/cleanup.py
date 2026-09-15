@@ -848,8 +848,8 @@ def _schedule_bulk_delete_chunks(
         Tuple of (chunk_count, total_objects)
     """
     imp = ".".join((model_tp.__module__, model_tp.__name__))
-    total_objects = 0
     chunk_count = 0
+    total_objects = 0
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
         scheduler.put(imp, chunk, project_id)
