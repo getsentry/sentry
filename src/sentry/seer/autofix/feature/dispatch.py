@@ -12,6 +12,7 @@ from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_utils import (
     AgentRunOptions,
+    SeerFeatureRunRequest,
     collect_user_org_context,
     get_proxy_headers,
 )
@@ -105,7 +106,7 @@ def trigger_autofix_feature(
     if args.stopping_point is not None:
         extras["stopping_point"] = args.stopping_point.value
 
-    client_args = {
+    client_args: SeerFeatureRunRequest = {
         "feature_id": FEATURE_ID,
         "payload": payload.dict(),
         "referrer": args.referrer.value,
@@ -124,6 +125,7 @@ def trigger_autofix_feature(
             extras=extras,
         )
     else:
+        assert args.existing_run_id is not None
         run = client.continue_feature_run(
             **client_args,
             run_id=args.existing_run_id,
