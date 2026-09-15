@@ -3,8 +3,10 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
+import hashlib
+import re
 from collections.abc import Callable, Generator, Mapping
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar, TypeVarTuple
 
 import pydantic
 
@@ -40,21 +42,37 @@ class CellCachingService(RpcService):
 
 
 _R = TypeVar("_R", bound=pydantic.BaseModel)
+_Params = TypeVarTuple("_Params")
+
+# Cache keys are stored in ``CacheVersionBase.key``, a varchar(64). Keys longer than
+# this raise a DataError when a version row is created during cache invalidation.
+MAX_CACHE_KEY_LENGTH = 64
+
+# We can go as low as 16 bytes of md5 without risking collisions
+MAX_BASE_KEY_LENGTH = MAX_CACHE_KEY_LENGTH - 16
+
+# Memcached rejects whitespace and control characters in keys, so any parameter
+# encoding containing them has to be hashed rather than used verbatim.
+_UNSAFE_KEY_CHARS = re.compile(r"[^\x21-\x7e]")
 
 
-class SiloCacheBackedCallable(Generic[_R]):
+class SiloCacheBackedCallable(Generic[*_Params, _R]):
     """
     Get a single record from cache or wrapped function.
 
     When cache read returns no data, the wrapped function will be
     invoked. The result of the wrapped function is then stored in cache.
 
-    Ideal for 'get by id' style methods
+    Ideal for 'get by id' style methods.
+
+    Cache keys vary based on the parameters, so all parameters must be JSON
+    serializable. Parameters that don't fit in the remaining key budget, or that
+    contain characters memcached rejects, are hashed instead.
     """
 
     silo_mode: SiloMode
     base_key: str
-    cb: Callable[[int], _R | None]
+    cb: Callable[[*_Params], _R | None]
     type_: type[_R]
     timeout: int | None
 
@@ -62,33 +80,56 @@ class SiloCacheBackedCallable(Generic[_R]):
         self,
         base_key: str,
         silo_mode: SiloMode,
-        cb: Callable[[int], _R | None],
+        cb: Callable[[*_Params], _R | None],
         t: type[_R],
         timeout: int | None = None,
     ):
+        if len(base_key) > MAX_BASE_KEY_LENGTH:
+            raise ValueError(
+                f"base_key {base_key!r} is {len(base_key)} characters; it must be at most "
+                f"{MAX_BASE_KEY_LENGTH} so that hashed parameters fit within the "
+                f"{MAX_CACHE_KEY_LENGTH} character CacheVersion.key column"
+            )
         self.base_key = base_key
         self.silo_mode = silo_mode
         self.cb = cb
         self.type_ = t
         self.timeout = timeout
 
-    def __call__(self, object_id: int) -> _R | None:
+    def __call__(self, *args: *_Params) -> _R | None:
         if (
             SiloMode.get_current_mode() != self.silo_mode
             and SiloMode.get_current_mode() != SiloMode.MONOLITH
         ):
-            return self.cb(object_id)
-        return self.get_one(object_id)
+            return self.cb(*args)
+        return self.get_one(*args)
 
-    def key_from(self, object_id: int) -> str:
-        return f"{self.base_key}:{object_id}"
+    def key_from(self, *args: *_Params) -> str:
+        """
+        Generate a cache key for this call.
+        Keys must fit within CacheVersion.key column, and not contain whitespace.
+        """
+        # Preserve compatibility with historical cache keys
+        if len(args) == 1:
+            arg_str = str(args[0])  # type: ignore[misc]
+        else:
+            arg_str = json.dumps(args)
+
+        # Replace parameters that would overflow the key column, or that memcached
+        # would reject, with a digest of the same parameters. Add 1 for the :
+        if len(arg_str) + len(self.base_key) + 1 > MAX_CACHE_KEY_LENGTH or _UNSAFE_KEY_CHARS.search(
+            arg_str
+        ):
+            arg_str = hashlib.md5(arg_str.encode("utf-8")).hexdigest()
+
+        return f"{self.base_key}:{arg_str}"[:MAX_CACHE_KEY_LENGTH]
 
     def resolve_from(
-        self, i: int, values: Mapping[str, int | str]
+        self, values: Mapping[str, int | str], *args: *_Params
     ) -> Generator[None, None, _R | None]:
         from .impl import _consume_generator, _delete_cache, _set_cache
 
-        key = self.key_from(i)
+        key = self.key_from(*args)
         value = values[key]
         version: int
         if isinstance(value, str):
@@ -101,17 +142,17 @@ class SiloCacheBackedCallable(Generic[_R]):
             version = value
 
         metrics.incr("hybridcloud.caching.one.rpc", tags={"base_key": self.base_key})
-        r = self.cb(i)
+        r = self.cb(*args)
         if r is not None:
             _consume_generator(_set_cache(key, r.json(), version, self.timeout))
         return r
 
-    def get_one(self, object_id: int) -> _R | None:
+    def get_one(self, *args: *_Params) -> _R | None:
         from .impl import _consume_generator, _get_cache
 
-        key = self.key_from(object_id)
+        key = self.key_from(*args)
         values = _consume_generator(_get_cache([key], self.silo_mode))
-        return _consume_generator(self.resolve_from(object_id, values))
+        return _consume_generator(self.resolve_from(values, *args))
 
 
 class SiloCacheBackedListCallable(Generic[_R]):
@@ -287,7 +328,7 @@ class SiloCacheManyBackedCallable(Generic[_R]):
 
 def back_with_silo_cache(
     base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
-) -> Callable[[Callable[[int], _R | None]], "SiloCacheBackedCallable[_R]"]:
+) -> Callable[[Callable[[*_Params], _R | None]], "SiloCacheBackedCallable[*_Params, _R]"]:
     """
     Decorator for adding local caching to RPC operations on a single record.
 
@@ -300,7 +341,7 @@ def back_with_silo_cache(
     See user_service.get_user() for an example usage.
     """
 
-    def wrapper(cb: Callable[[int], _R | None]) -> "SiloCacheBackedCallable[_R]":
+    def wrapper(cb: Callable[[*_Params], _R | None]) -> "SiloCacheBackedCallable[*_Params, _R]":
         return SiloCacheBackedCallable(base_key, silo_mode, cb, t, timeout)
 
     return wrapper
