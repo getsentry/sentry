@@ -1462,7 +1462,9 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         )
         assert comparison.state == PreprodSnapshotComparison.State.FAILED
         assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
-        assert comparison.error_message == "Base snapshot for commit abcdef1 has expired."
+        assert (
+            comparison.error_message == "Base snapshot for commit abcdef1 is no longer available."
+        )
         failure_calls = [
             c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_failure"
         ]

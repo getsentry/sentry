@@ -247,8 +247,7 @@ def format_missing_base_snapshot_status_check_messages(
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
     if expired:
         summary += (
-            f"\n\nBase commit {base_sha_markdown} no longer has snapshots to compare against "
-            "(they expire after 30 days of inactivity). "
+            f"\n\nBase commit {base_sha_markdown} no longer has snapshots to compare against. "
             "Push a new commit to the base branch, then rebase this branch on it."
         )
     else:
