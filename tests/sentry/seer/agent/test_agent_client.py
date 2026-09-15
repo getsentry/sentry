@@ -20,7 +20,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.agent.client_utils import UserOrgContext
+from sentry.seer.agent.client_utils import AgentRunOptions, UserOrgContext
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -1760,12 +1760,37 @@ class TestContinueFeatureRun(TestCase):
         assert body == {
             "feature_id": "autofix",
             "payload": {"existing_run_id": 456, "insert_index": 2},
+            "agent_run_options": {},
             "ref": str(run.uuid),
             "external_idempotency_key": str(run.uuid),
             "referrer": "autofix",
             "user_org_context": {"org_slug": self.organization.slug, "all_org_projects": []},
             "proxy_headers": {"X-Viewer-Context": "signed-viewer-context"},
         }
+
+    @with_feature("organizations:seer-explorer-allow-bash-mode")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_merges_client_and_caller_options(self, mock_request, _mock_access) -> None:
+        mock_request.return_value = Mock(status=200)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=456)
+        client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
+
+        client.continue_feature_run(
+            run_id=456,
+            feature_id="autofix",
+            payload={},
+            referrer="autofix",
+            agent_run_options=AgentRunOptions(
+                is_context_engine_enabled=False,
+                enable_frontend_code_search=False,
+            ),
+        )
+
+        agent_run_options = mock_request.call_args.args[0]["agent_run_options"]
+        assert agent_run_options["enable_bash_mode"] is True
+        assert agent_run_options["is_context_engine_enabled"] is False
+        assert agent_run_options["enable_frontend_code_search"] is False
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.seer.agent.client.make_feature_run_request")

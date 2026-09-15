@@ -634,15 +634,18 @@ class SeerAgentClient:
         if run is None:
             raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
+        resolved_agent_run_options = self._build_agent_run_options()
+        if agent_run_options is not None:
+            resolved_agent_run_options.update(agent_run_options)
+
         body = SeerFeatureRunWireRequest(
-            feature_id=feature_id,
-            payload=payload,
             ref=str(run.uuid),
             external_idempotency_key=str(run.uuid),
+            feature_id=feature_id,
+            payload=payload,
             referrer=referrer,
+            agent_run_options=resolved_agent_run_options,
         )
-        if agent_run_options is not None:
-            body["agent_run_options"] = agent_run_options
         if user_org_context is not None:
             body["user_org_context"] = user_org_context
         if proxy_headers is not None:
