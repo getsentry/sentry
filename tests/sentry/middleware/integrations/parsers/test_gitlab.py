@@ -1,5 +1,3 @@
-from unittest import mock
-
 import responses
 from django.db import connections, router, transaction
 from django.http import HttpRequest, HttpResponse
@@ -21,7 +19,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.outbox import assert_no_webhook_payloads, assert_webhook_payloads_for_mailbox
+from sentry.testutils.outbox import (
+    assert_no_webhook_payloads,
+    assert_webhook_payloads_for_mailbox,
+    override_mailbox_bucket_count,
+)
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
 
@@ -33,6 +35,12 @@ cell_config = (cell,)
 class GitlabRequestParserTest(TestCase):
     factory = RequestFactory()
     path = f"{IntegrationClassification.integration_prefix}gitlab/webhook/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # One request never sends fast enough to earn a split. Pin the width so these
+        # assertions stay about which bucket a key lands in.
+        self.enterContext(override_mailbox_bucket_count(64))
 
     def get_response(self, req: HttpRequest) -> HttpResponse:
         return HttpResponse(status=200, content="passthrough")
@@ -57,6 +65,23 @@ class GitlabRequestParserTest(TestCase):
     def run_parser(self, request):
         parser = GitlabRequestParser(request=request, response_handler=self.get_response)
         return parser.get_response()
+
+    def test_mailbox_bucket_id(self) -> None:
+        request = self.factory.post(
+            self.path,
+            data=PUSH_EVENT,
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Push Hook",
+        )
+        parser = GitlabRequestParser(request=request, response_handler=self.get_response)
+
+        assert parser.mailbox_bucket_id({"project": {"id": 15}}) == 15
+        assert parser.mailbox_bucket_id({"project": {"id": "15"}}) == 15
+        assert parser.mailbox_bucket_id({}) is None
+        assert parser.mailbox_bucket_id({"project": {}}) is None
+        assert parser.mailbox_bucket_id({"project": "sentry"}) is None
+        assert parser.mailbox_bucket_id({"project": {"id": "sentry"}}) is None
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
@@ -183,7 +208,7 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}:push",
+            mailbox_name=f"gitlab:{integration.id}:15:push",
             cell_names=[cell.name],
         )
 
@@ -207,7 +232,7 @@ class GitlabRequestParserTest(TestCase):
         # An unvalidated suffix would put an arbitrary body value in the mailbox name.
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}",
+            mailbox_name=f"gitlab:{integration.id}:15",
             cell_names=[cell.name],
         )
 
@@ -250,35 +275,6 @@ class GitlabRequestParserTest(TestCase):
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == 202
-        assert response.content == b""
-        assert len(responses.calls) == 0
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            mailbox_name=f"gitlab:{integration.id}:push",
-            cell_names=[cell.name],
-        )
-
-    @override_cells(cell_config)
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @responses.activate
-    def test_routing_webhook_with_mailbox_buckets(self) -> None:
-        integration = self.get_integration()
-        request = self.factory.post(
-            self.path,
-            data=PUSH_EVENT,
-            content_type="application/json",
-            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
-            HTTP_X_GITLAB_EVENT="Push Hook",
-        )
-        with mock.patch(
-            "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
-        ) as mock_is_limited:
-            mock_is_limited.return_value = True
-            parser = GitlabRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
         assert response.content == b""
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
@@ -347,6 +343,6 @@ class GitlabRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"gitlab:{integration.id}:push",
+            mailbox_name=f"gitlab:{integration.id}:15:push",
             cell_names=[cell.name],
         )

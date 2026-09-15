@@ -759,6 +759,7 @@ function CollapsedGapMarker({
     }
 
     event.preventDefault();
+    // oxlint-disable-next-line react/immutability
     scrollContainer.scrollTop += event.deltaY;
     scrollContainer.scrollLeft += event.deltaX;
   };

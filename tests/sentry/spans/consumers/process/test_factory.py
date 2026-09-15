@@ -57,6 +57,14 @@ def test_decode_extracts_segment_id() -> None:
     assert event.segment_id == "a" * 16
 
 
+@pytest.mark.parametrize("segment_id", ["aa:bb", "aa:bb:cc", "not-a-span-id", "aa:bb:cc:dd:ee:f"])
+def test_decode_rejects_invalid_segment_id(segment_id: str) -> None:
+    payload = _valid_span(attributes={"sentry.segment.id": {"type": "string", "value": segment_id}})
+
+    with pytest.raises(msgspec.ValidationError):
+        decode_process_span_event(orjson.dumps(payload))
+
+
 def test_decode_without_segment_id_attribute() -> None:
     event = decode_process_span_event(
         orjson.dumps(_valid_span(attributes={"some.other.attr": {"type": "integer", "value": 1}}))

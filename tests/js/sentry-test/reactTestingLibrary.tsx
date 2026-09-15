@@ -405,6 +405,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   let memoryRouter: Router | null = null;
 
   function Wrapper({children}: {children?: React.ReactNode}) {
+    // oxlint-disable-next-line react/globals -- Test helper exposes the router built inside the wrapper.
     memoryRouter = makeRouter({
       children: <AllTheProviders>{children}</AllTheProviders>,
       history,
@@ -480,9 +481,7 @@ instrumentUserEvent();
 export * from '@testing-library/react';
 
 export {
-  // eslint-disable-next-line import/export
   fireEvent,
-  // eslint-disable-next-line import/export
   render,
   renderGlobalModal,
   renderHookWithProviders,

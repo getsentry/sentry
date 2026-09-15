@@ -2,7 +2,6 @@ from typing import Any
 from unittest import mock
 
 import responses
-from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory, override_settings
 from django.urls import reverse
@@ -79,7 +78,7 @@ class JiraServerRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"jira_server:{self.integration.id}",
+            mailbox_name=f"jira_server:{self.integration.id}:1",
             cell_names=[cell.name],
         )
 
@@ -112,7 +111,7 @@ class JiraServerRequestParserTest(TestCase):
     @override_cells(cell_config)
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @responses.activate
-    def test_routing_webhook_with_mailbox_buckets_low_volume(self) -> None:
+    def test_routing_webhook_buckets_on_issue_id(self) -> None:
         route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
 
         request = self.factory.post(
@@ -131,71 +130,6 @@ class JiraServerRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"jira_server:{self.integration.id}",
-            cell_names=[cell.name],
-        )
-
-    @override_cells(cell_config)
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @responses.activate
-    def test_routing_webhook_with_mailbox_buckets_high_volume(self) -> None:
-        route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
-
-        request = self.factory.post(
-            route, data=issue_updated_payload, content_type="application/json"
-        )
-        parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
-
-        with (
-            mock.patch(
-                "sentry.integrations.middleware.hybrid_cloud.parser.ratelimiter.is_limited"
-            ) as mock_is_limited,
-            mock.patch(
-                "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
-            ) as mock_get_token,
-        ):
-            mock_is_limited.return_value = True
-            mock_get_token.return_value = self.integration
-            response = parser.get_response()
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.content == b""
-        assert len(responses.calls) == 0
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            # Mailbox name should have an extra segment
-            mailbox_name=f"jira_server:{self.integration.id}:1",
-            cell_names=[cell.name],
-        )
-
-    @override_cells(cell_config)
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @responses.activate
-    def test_routing_webhook_with_mailbox_bucket_mode_active(self) -> None:
-        route = reverse("sentry-extensions-jiraserver-issue-updated", kwargs={"token": "TOKEN"})
-
-        request = self.factory.post(
-            route, data=issue_updated_payload, content_type="application/json"
-        )
-        parser = JiraServerRequestParser(request=request, response_handler=self.get_response)
-
-        use_bucket_key = f"webhookpayload:jira_server:{self.integration.id}:use_buckets"
-        cache.set(use_bucket_key, 1)
-
-        with mock.patch(
-            "sentry.middleware.integrations.parsers.jira_server.get_integration_from_token"
-        ) as mock_get_token:
-            mock_get_token.return_value = self.integration
-            response = parser.get_response()
-
-        cache.delete(use_bucket_key)
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert response.content == b""
-        assert len(responses.calls) == 0
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            # Mailbox name should have an extra segment
             mailbox_name=f"jira_server:{self.integration.id}:1",
             cell_names=[cell.name],
         )

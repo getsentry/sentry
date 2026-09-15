@@ -16,7 +16,9 @@ import {
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -28,7 +30,10 @@ import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversatio
 import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
-import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';
+import {
+  CONVERSATION_FIELDS,
+  useConversations,
+} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
 import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
@@ -39,6 +44,29 @@ import {
   FilterUrlParams,
   TableUrlParams,
 } from 'sentry/views/insights/pages/agents/utils/urlParams';
+
+const CONVERSATION_FIELD_DEFINITIONS: Record<string, FieldDefinition> =
+  Object.fromEntries(
+    Object.values(CONVERSATION_FIELDS).map(({key, valueType, description}) => [
+      key,
+      {
+        kind: FieldKind.FIELD,
+        valueType,
+        desc: description,
+      },
+    ])
+  );
+
+const CONVERSATION_FILTER_KEYS: TagCollection = Object.fromEntries(
+  Object.values(CONVERSATION_FIELDS).map(({key}) => [
+    key,
+    {
+      key,
+      name: key,
+      kind: FieldKind.MEASUREMENT,
+    },
+  ])
+);
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
@@ -103,6 +131,7 @@ function ConversationsOverviewPage() {
         unsetCursor();
       },
       searchSource: 'conversations',
+      disableRecentSearches: true,
       // The conversations API cannot express negation given how it fetches
       // conversations, so hide negation operators from the search suggestions.
       disallowNegation: true,
@@ -130,8 +159,24 @@ function ConversationsOverviewPage() {
       );
     };
 
+    const fieldDefinitionGetter =
+      spanSearchQueryBuilderProviderProps.fieldDefinitionGetter;
     return {
       ...spanSearchQueryBuilderProviderProps,
+      filterKeys: {
+        ...spanSearchQueryBuilderProviderProps.filterKeys,
+        ...CONVERSATION_FILTER_KEYS,
+      },
+      filterKeySections: [
+        {
+          value: 'conversation',
+          label: t('Conversation'),
+          children: Object.keys(CONVERSATION_FILTER_KEYS),
+        },
+        ...spanSearchQueryBuilderProviderProps.filterKeySections,
+      ],
+      fieldDefinitionGetter: (key: string, options?: {kind?: FieldKind}) =>
+        CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
     };
   }, [spanSearchQueryBuilderProviderProps]);

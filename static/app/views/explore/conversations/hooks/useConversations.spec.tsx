@@ -166,7 +166,7 @@ describe('useConversations', () => {
     expect(result.current.data[0]?.lastOutput).toBeNull();
   });
 
-  it('sorts conversations by endTimestamp descending', async () => {
+  it('preserves the server sort order', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/`,
       body: [
@@ -179,8 +179,8 @@ describe('useConversations', () => {
 
     await waitFor(() => expect(result.current.isFetching).toBe(false));
 
-    expect(result.current.data[0]?.conversationId).toBe('newer');
-    expect(result.current.data[1]?.conversationId).toBe('older');
+    expect(result.current.data[0]?.conversationId).toBe('older');
+    expect(result.current.data[1]?.conversationId).toBe('newer');
   });
 
   it('reports a direct hit when the header is present', async () => {

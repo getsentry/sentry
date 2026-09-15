@@ -2581,8 +2581,9 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
         )
 
 
+@trace
 def save_pending_attachments(
-    *, project: Project, event_id: str, group_id: int, source: str
+    *, project: Project, event_id: str, group_id: int | None, source: str
 ) -> None:
     """
     Promote any :class:`PendingEventAttachment` rows for ``event_id`` into real
@@ -2893,6 +2894,19 @@ def save_transaction_events(
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
+
+    for job in jobs:
+        # NOTE: This puts a postgres query in the critical ingestion path for transactions.
+        # `save_pending_attachments` currently early-returns for most projects, but before graduation,
+        # we should make sure that the extra load on postgres is justifiable, given the facts that transactions
+        # are a legacy feature and transaction attachments are a niche use case.
+        safe_execute(
+            save_pending_attachments,
+            project=projects[job["project_id"]],
+            event_id=job["event"].event_id,
+            group_id=None,
+            source="save_transaction_events",
+        )
 
     for job in jobs:
         track_sampled_event(

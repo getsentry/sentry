@@ -67,7 +67,7 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
         # prevent the initial lazy-starring from happening again.
         if query.prebuilt_id is not None:
             if ExploreSavedQueryStarred.objects.updated_starred_query(
-                organization, request.user.id, query, bool(is_starred)
+                organization, request.user, query, bool(is_starred)
             ):
                 return Response(status=status.HTTP_200_OK)
             else:
@@ -75,12 +75,12 @@ class ExploreSavedQueryStarredEndpoint(OrganizationEndpoint):
 
         if is_starred:
             if ExploreSavedQueryStarred.objects.insert_starred_query(
-                organization, request.user.id, query
+                organization, request.user, query
             ):
                 return Response(status=status.HTTP_200_OK)
         else:
             if ExploreSavedQueryStarred.objects.delete_starred_query(
-                organization, request.user.id, query
+                organization, request.user, query
             ):
                 return Response(status=status.HTTP_200_OK)
 

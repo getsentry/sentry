@@ -423,7 +423,6 @@ if (globalThis.setImmediate === undefined) {
  */
 const FLAKY_RERUN_COUNT = 50;
 
-/* eslint-disable jest/valid-title */
 it.isKnownFlake = function isKnownFlake(
   name: string,
   fn: jest.ProvidesCallback,
@@ -440,4 +439,3 @@ it.isKnownFlake = function isKnownFlake(
     }
   });
 };
-/* eslint-enable jest/valid-title */

@@ -8,6 +8,8 @@ class AIConversationExamples:
             value={
                 "conversationId": "01JQZ4W8X7J2Q9B4R5M6N7P8T9",
                 "title": "Check San Francisco weather",
+                "projects": [{"id": 1, "name": "Weather Assistant", "slug": "weather-assistant"}],
+                "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/01JQZ4W8X7J2Q9B4R5M6N7P8T9/?project=1",
                 "spans": [
                     {
                         "span_id": "a1b2c3d4e5f67890",
@@ -51,6 +53,10 @@ class AIConversationExamples:
                     "conversationId": "01JQZ4W8X7J2Q9B4R5M6N7P8T9",
                     "title": "Check San Francisco weather",
                     "projectId": 1,
+                    "projects": [
+                        {"id": 1, "name": "Weather Assistant", "slug": "weather-assistant"}
+                    ],
+                    "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/01JQZ4W8X7J2Q9B4R5M6N7P8T9/?project=1",
                     "flow": ["Weather Assistant"],
                     "errors": 0,
                     "llmCalls": 2,

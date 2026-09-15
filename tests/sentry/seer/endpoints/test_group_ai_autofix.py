@@ -15,8 +15,8 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
@@ -27,6 +27,7 @@ from sentry.seer.autofix.pr_iteration.pause import (
     pause_pr_iteration,
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -825,6 +826,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         self, mock_run_state, mock_trigger_explorer, mock_try_enqueue, mock_consume
     ):
         group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         mock_run_state.return_value = SeerRunState(
             run_id=123,
             blocks=[],
@@ -955,6 +957,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
     ):
         """The failed push is the thing to iterate out of, so the PR still counts."""
         group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         mock_run_state.return_value = SeerRunState(
             run_id=123,
             blocks=[],

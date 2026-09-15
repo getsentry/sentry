@@ -13,6 +13,7 @@ import {
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isPrIterationBlock,
+  isPrIterationPaused,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -24,7 +25,10 @@ import {
   FeedbackList,
   usePrIterationFeedback,
 } from 'sentry/components/events/autofix/v3/feedbackList';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {
+  PR_ITERATION_PAUSED_TOOLTIP,
+  PrIterationFeedbackForm,
+} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {IconCode} from 'sentry/icons/iconCode';
@@ -114,8 +118,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
+  const isPaused = isPrIterationPaused(autofix.runState);
+
   // Reset-after-PR is only reachable where reset opens the manual form.
   const isResetEligible =
+    !isPaused &&
     !hasFailedOnlyPRs &&
     (hasManualPrIterationFeature
       ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
@@ -340,6 +347,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       }
       allowReset
       onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}
     >
       <FeedbackList items={feedback} />
       {content}

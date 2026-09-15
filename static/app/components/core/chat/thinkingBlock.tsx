@@ -10,6 +10,8 @@ import {IconSeer} from 'sentry/icons';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {SECOND} from 'sentry/utils/formatters';
 
+import {ClippedDetail} from './clippedDetail';
+
 const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
 
 /**
@@ -81,6 +83,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
 
   useEffect(() => {
     if (!isActive) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setOverride(null);
     }
   }, [isActive]);
@@ -103,7 +106,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
     >
       <Global styles={streamingAnimationStyles} />
       <Disclosure.Title
-        leadingItems={<IconSeer size="xs" animation={isActive ? 'waiting' : undefined} />}
+        leadingItems={<IconSeer size="xs" animation={isActive ? 'loading' : undefined} />}
         trailingItems={
           <Text variant="secondary" size="sm" align="right" monospace>
             {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}
@@ -121,7 +124,11 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
           {isActive ? <AnimatedEllipsis /> : null}
         </Text>
       </Disclosure.Title>
-      {children ? <Disclosure.Content>{children}</Disclosure.Content> : null}
+      {children ? (
+        <Disclosure.Content>
+          <ClippedDetail>{children}</ClippedDetail>
+        </Disclosure.Content>
+      ) : null}
     </Disclosure>
   );
 }

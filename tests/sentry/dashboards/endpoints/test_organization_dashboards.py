@@ -2134,6 +2134,38 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         self.assert_equal_dashboards(self.dashboard, favorited)
         assert all(not d["isFavorited"] for d in response.data if d["id"] != str(self.dashboard.id))
 
+    def test_user_hidden_dashboards_excluded_by_default(self) -> None:
+        self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
+
+        response = self.do_request("get", self.url)
+
+        assert response.status_code == 200, response.content
+        dashboard_ids = {d["id"] for d in response.data}
+        assert str(self.dashboard.id) not in dashboard_ids
+        assert str(self.dashboard_2.id) in dashboard_ids
+        assert all(d["isHidden"] is False for d in response.data)
+
+    def test_user_hidden_dashboards_included_with_show_user_hidden_filter(self) -> None:
+        self.create_dashboard_hidden_user(dashboard=self.dashboard, user=self.user)
+
+        response = self.do_request("get", self.url, {"filter": "showUserHidden"})
+
+        assert response.status_code == 200, response.content
+        hidden_by_id = {d["id"]: d["isHidden"] for d in response.data}
+        assert hidden_by_id[str(self.dashboard.id)] is True
+        assert hidden_by_id[str(self.dashboard_2.id)] is False
+
+    def test_user_hidden_dashboards_only_hidden_for_that_user(self) -> None:
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization)
+        self.create_dashboard_hidden_user(dashboard=self.dashboard, user=other_user)
+
+        response = self.do_request("get", self.url)
+
+        assert response.status_code == 200, response.content
+        hidden_by_id = {d["id"]: d["isHidden"] for d in response.data}
+        assert hidden_by_id[str(self.dashboard.id)] is False
+
     def test_post_errors_widget_with_is_filter(self) -> None:
         data: dict[str, Any] = {
             "title": "Dashboard with errors widget",
@@ -2416,8 +2448,13 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert PrebuiltDashboardId.BACKEND_QUERIES_SUMMARY in prebuilt_ids_in_response
 
     def test_node_runtime_metrics_prebuilt_dashboard_sync(self) -> None:
-        """The Node.js Runtime Metrics prebuilt dashboard syncs when enabled via options."""
-        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+        """The Node.js Runtime Metrics dashboard syncs when metrics and its option are enabled."""
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:tracemetrics-enabled",
+            ]
+        ):
             with override_options(
                 {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
             ):
@@ -2436,6 +2473,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             if d.get("prebuiltId") == PrebuiltDashboardId.NODE_RUNTIME_METRICS
         ]
         assert len(prebuilt_in_response) == 1
+
+    def test_node_runtime_metrics_prebuilt_dashboard_not_synced_without_metrics(self) -> None:
+        with self.feature("organizations:dashboards-prebuilt-insights-dashboards"):
+            with override_options(
+                {"dashboards.prebuilt-dashboard-ids": [PrebuiltDashboardId.NODE_RUNTIME_METRICS]}
+            ):
+                response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert not Dashboard.objects.filter(
+            organization=self.organization,
+            prebuilt_id=PrebuiltDashboardId.NODE_RUNTIME_METRICS,
+        ).exists()
+        assert all(
+            dashboard.get("prebuiltId") != PrebuiltDashboardId.NODE_RUNTIME_METRICS
+            for dashboard in response.data
+        )
 
     def test_endpoint_creates_pre_favorited_prebuilt_dashboards(self) -> None:
         assert (

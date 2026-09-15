@@ -7,6 +7,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ResultTable} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
@@ -18,7 +19,6 @@ import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {DetailsPage} from 'admin/components/detailsPage';
-import {ResultTable} from 'admin/components/resultTable';
 import {isBillingAdmin, prettyDate} from 'admin/utils';
 import type {Invoice, InvoiceItem} from 'getsentry/types';
 import {InvoiceStatus} from 'getsentry/types';
@@ -26,9 +26,8 @@ import {InvoiceStatus} from 'getsentry/types';
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
 export function InvoiceDetails() {
-  const {invoiceId, orgId, region} = useParams<{
+  const {invoiceId, region} = useParams<{
     invoiceId: string;
-    orgId: string;
     region: string;
   }>();
   const cellInfo = getCells().find(c => c.name.toLowerCase() === region.toLowerCase());
@@ -86,7 +85,7 @@ export function InvoiceDetails() {
   const handleRetry = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
-        `/customers/${orgId}/invoices/${invoiceId}/retry-payment/`,
+        `/customers/${customer.slug}/invoices/${invoiceId}/retry-payment/`,
         {
           method: 'PUT',
         }
@@ -139,7 +138,7 @@ export function InvoiceDetails() {
         <DetailLabel title="Customer">
           {customer.isDeleted ? (
             <span>
-              {customer.slug} <small>(deleted)</small>
+              {customer.slug ?? customer.id} <small>(deleted)</small>
             </span>
           ) : (
             <Link to={`/_admin/customers/${customer.slug}/`}>{customer.name}</Link>

@@ -157,6 +157,7 @@ export default function IntegrationOrganizationLink() {
   useEffect(() => {
     // If only one organization, select it and redirect
     if (organizations.length === 1) {
+      // oxlint-disable-next-line react/set-state-in-effect
       selectOrganization(organizations[0]!.slug);
     }
     // Now, check the subdomain and use that org slug if it exists
