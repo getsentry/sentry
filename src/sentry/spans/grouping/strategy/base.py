@@ -131,7 +131,9 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
 
 
 def raw_description(span: Span) -> str:
-    return span.get("description") or attribute_value(span, "sentry.description") or ""
+    return (
+        span.get("description") or attribute_value(span, ATTRIBUTE_NAMES.SENTRY_DESCRIPTION) or ""
+    )
 
 
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
