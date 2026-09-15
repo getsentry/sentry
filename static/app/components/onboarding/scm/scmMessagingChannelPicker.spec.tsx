@@ -138,6 +138,26 @@ describe('ScmMessagingChannelPicker', () => {
   });
 
   describe('staging a new destination', () => {
+    it('saves on Enter in the channel field once a channel is chosen', async () => {
+      mockChannels('10', [slackChannel]);
+      const {onConfigured} = renderPicker({eligibleIntegrations: [slackIntegration]});
+
+      expect(screen.getByLabelText('Channel')).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      expect(onConfigured).not.toHaveBeenCalled();
+
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+      // The select helper clicks the option, which drops focus in jsdom; a
+      // browser keeps it on the input after a choice.
+      act(() => screen.getByLabelText('channel').focus());
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      await userEvent.keyboard('{Enter}');
+
+      expect(onConfigured).toHaveBeenCalledWith(
+        expect.objectContaining({channelName: '#general'})
+      );
+    });
+
     it('stores Slack by display name', async () => {
       mockChannels('10', [slackChannel]);
       const {onConfigured} = renderPicker({eligibleIntegrations: [slackIntegration]});
