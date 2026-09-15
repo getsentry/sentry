@@ -20,12 +20,10 @@ import {
 } from 'sentry/views/detectors/components/forms/context';
 import {useSubmitCreateDetector} from 'sentry/views/detectors/hooks/useSubmitCreateDetector';
 
-import {
-  DetectorFormLayout,
-  DetectorProjectEnvironmentSection,
-  getDetectorSubmitTitle,
-  useInitialDetectorCommonValues,
-} from './scraps';
+import {DetectorFormLayout} from './detectorFormLayout';
+import {DetectorProjectEnvironmentSection} from './detectorProjectEnvironmentSection';
+import {getDetectorSubmitTitle} from './getDetectorSubmitTitle';
+import {useInitialDetectorCommonValues} from './useInitialDetectorCommonValues';
 
 const schema = z.object({
   name: z.string(),
