@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -34,6 +35,7 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
         Return details of the rule if the task is successful
 
         """
+        enforce_alerts_api_deprecation(project.organization)
         client = RedisRuleStatus(task_uuid)
         result = client.get_value()
 
