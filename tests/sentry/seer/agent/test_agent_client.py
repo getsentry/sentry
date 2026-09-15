@@ -10,6 +10,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.seer.agent.client import (
     SeerAgentClient,
+    SeerRunWithAgent,
     get_available_monitoring_providers,
 )
 from sentry.seer.agent.client_models import (
@@ -1730,6 +1731,12 @@ class TestContinueFeatureRun(TestCase):
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
 
+    def _run_with_agent(self, run: SeerRun, source: str = "autofix") -> SeerRunWithAgent:
+        return SeerRunWithAgent(
+            run=run,
+            agent=self.create_seer_agent_run(run=run, source=source),
+        )
+
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.seer.agent.client.make_feature_run_request")
     def test_dispatches_against_existing_mirror(self, mock_request, _mock_access) -> None:
@@ -1743,8 +1750,7 @@ class TestContinueFeatureRun(TestCase):
         client = SeerAgentClient(self.organization, self.user)
 
         result = client.continue_feature_run(
-            run=run,
-            feature_id="autofix_rca",
+            existing_run=self._run_with_agent(run, source="autofix_rca"),
             payload={"existing_run_id": 456, "insert_index": 2},
             referrer="autofix",
             user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
@@ -1777,8 +1783,7 @@ class TestContinueFeatureRun(TestCase):
         client = SeerAgentClient(self.organization, self.user, enable_bash_tools=True)
 
         client.continue_feature_run(
-            run=run,
-            feature_id="autofix",
+            existing_run=self._run_with_agent(run),
             payload={},
             referrer="autofix",
             user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
@@ -1802,8 +1807,7 @@ class TestContinueFeatureRun(TestCase):
 
         with pytest.raises(SeerApiError):
             client.continue_feature_run(
-                run=run,
-                feature_id="autofix",
+                existing_run=self._run_with_agent(run),
                 payload={},
                 referrer="autofix",
                 user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},

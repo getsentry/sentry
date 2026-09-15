@@ -9,7 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
-from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client import SeerAgentClient, SeerRunWithAgent
 from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     collect_user_org_context,
@@ -122,16 +122,21 @@ def trigger_autofix_feature(
             extras=extras,
         )
     elif args.existing_run_id is not None:
-        existing_run = SeerRun.objects.filter(
-            organization_id=group.organization.id, seer_run_state_id=args.existing_run_id
-        ).first()
+        existing_run = (
+            SeerRun.objects.select_related("agent")
+            .filter(
+                organization_id=group.organization.id,
+                seer_run_state_id=args.existing_run_id,
+                agent__isnull=False,
+            )
+            .first()
+        )
 
         if existing_run is None:
             raise Exception(f"Run with ID {args.existing_run_id} not found")
 
         run = client.continue_feature_run(
-            run=existing_run,
-            feature_id=FEATURE_ID,
+            existing_run=SeerRunWithAgent(run=existing_run, agent=existing_run.agent),
             payload=payload.dict(),
             referrer=args.referrer.value,
             user_org_context=user_org_context,

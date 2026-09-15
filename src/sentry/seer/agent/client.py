@@ -5,6 +5,7 @@ import random
 import time
 import uuid
 from collections.abc import Callable, Collection
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal
 
@@ -73,6 +74,12 @@ from sentry.utils.prompts import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class SeerRunWithAgent:
+    run: SeerRun
+    agent: SeerAgentRun
 
 
 def _trigger_explorer_indexes_if_needed(
@@ -619,8 +626,7 @@ class SeerAgentClient:
 
     def continue_feature_run(
         self,
-        run: SeerRun,
-        feature_id: str,
+        existing_run: SeerRunWithAgent,
         payload: dict[str, Any],
         referrer: str,
         user_org_context: UserOrgContext,
@@ -632,9 +638,9 @@ class SeerAgentClient:
             resolved_agent_run_options.update(agent_run_options)
 
         body = SeerFeatureRunWireRequest(
-            ref=str(run.uuid),
-            external_idempotency_key=str(run.uuid),
-            feature_id=feature_id,
+            ref=str(existing_run.run.uuid),
+            external_idempotency_key=str(existing_run.run.uuid),
+            feature_id=existing_run.agent.source,
             payload=payload,
             referrer=referrer,
             agent_run_options=resolved_agent_run_options,
@@ -646,8 +652,8 @@ class SeerAgentClient:
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 
-        run.update(last_triggered_at=now())
-        return run
+        existing_run.run.update(last_triggered_at=now())
+        return existing_run.run
 
     def _embed_widgets_enabled(self) -> bool:
         """Whether to tell the agent it may emit embed widgets.

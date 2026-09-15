@@ -6,7 +6,7 @@ from sentry.constants import DataCategory
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
-from sentry.seer.autofix.feature.models import RCAStepArgs
+from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID, RCAStepArgs
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
@@ -22,6 +22,7 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_continues_feature_run(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(run=fake_run, source=LEGACY_FEATURE_ID)
 
         with (
             patch(
@@ -72,8 +73,8 @@ class TestTriggerAutofixFeature(TestCase):
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
-        assert run_kwargs["run"] == fake_run
-        assert run_kwargs["feature_id"] == "autofix"
+        assert run_kwargs["existing_run"].run == fake_run
+        assert run_kwargs["existing_run"].agent.source == LEGACY_FEATURE_ID
         assert "flush" not in run_kwargs
         payload = run_kwargs["payload"]
         assert payload["group_id"] == self.group.id
