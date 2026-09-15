@@ -908,15 +908,6 @@ export type ReservedBudgetMetricHistory = {
   reservedSpend: number;
 };
 
-export type ReservedBudgetForCategory = {
-  apiName: string;
-  freeBudget: number;
-  prepaidBudget: number;
-  reservedCpe: number; // in cents
-  reservedSpend: number;
-  totalReservedBudget: number;
-};
-
 type PolicyConsent = {
   acceptedVersion: string;
   createdAt: string;
