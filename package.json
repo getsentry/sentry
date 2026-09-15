@@ -40,7 +40,7 @@
     "build": "NODE_OPTIONS='--max-old-space-size=4096' rspack --config ./rspack.config.ts",
     "build-js-loader": "node scripts/build-js-loader.ts",
     "build-js-po": "node build-utils/ts-extract-gettext.ts",
-    "build-profile": "rspack --profile --json > stats.json",
+    "build-profile": "RSPACK_STATS=1 NODE_ENV=production rspack --mode production --config ./rspack.config.ts --json=stats.rspack.json",
     "extract-form-fields": "node scripts/extractFormFields.ts",
     "gen:embed-widgets": "esbuild scripts/genEmbedWidgets.ts --bundle --platform=node --format=esm --packages=external --outfile=.artifacts/genEmbedWidgets.mjs && node .artifacts/genEmbedWidgets.mjs",
     "gen:platform-info": "node scripts/genPlatformProductInfo.ts",
