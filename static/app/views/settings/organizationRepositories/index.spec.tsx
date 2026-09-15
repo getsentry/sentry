@@ -91,7 +91,7 @@ describe('OrganizationRepositories', () => {
     expect(await screen.findByText('GitHub')).toBeInTheDocument();
     expect(screen.getByText('GitLab')).toBeInTheDocument();
 
-    const connectButtons = screen.getAllByRole('button', {name: 'Add integration'});
+    const connectButtons = screen.getAllByRole('button', {name: 'Connect'});
     expect(connectButtons).toHaveLength(2);
   });
 

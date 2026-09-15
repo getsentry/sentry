@@ -79,7 +79,6 @@ export function AddIntegrationButton({
             onError,
           });
         }}
-        aria-label={t('Add integration')}
       >
         {label}
       </Button>

@@ -26,7 +26,7 @@ describe('AddIntegrationButton', () => {
       />
     );
 
-    await userEvent.click(screen.getByLabelText('Add integration'));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Installation'}));
 
     expect(openPipelineModalSpy).toHaveBeenCalledWith(
       expect.objectContaining({
