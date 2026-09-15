@@ -108,13 +108,13 @@ describe('replays query embed', () => {
     );
 
     // One cell carries both icons, the browser stacked behind the OS.
-    const [browser, os] = within(cells[1]!).getAllByRole('img');
-
-    await userEvent.hover(browser!);
-    expect(await screen.findByText('Chrome 103.0.0')).toBeInTheDocument();
+    const [os, browser] = within(cells[1]!).getAllByRole('img');
 
     await userEvent.hover(os!);
     expect(await screen.findByText('Mac OS X 10.15.7')).toBeInTheDocument();
+
+    await userEvent.hover(browser!);
+    expect(await screen.findByText('Chrome 103.0.0')).toBeInTheDocument();
   });
 
   it('renders an archived replay without its measurements', async () => {

@@ -55,14 +55,14 @@ describe('ReplayPlatformIconStack', () => {
   it('stacks the browser behind the OS, each with its own tooltip', async () => {
     render(<ReplayPlatformIconStack browser={chrome} os={macOS} />);
 
-    const [browser, os] = screen.getAllByRole('img');
-
-    // Reversed in the DOM so `row-reverse` can paint the OS over the browser.
-    await userEvent.hover(browser!);
-    expect(await screen.findByText('Chrome 103.0.0')).toBeInTheDocument();
+    // The OS leads, the browser follows and slides under it.
+    const [os, browser] = screen.getAllByRole('img');
 
     await userEvent.hover(os!);
     expect(await screen.findByText('Mac OS X 10.15.7')).toBeInTheDocument();
+
+    await userEvent.hover(browser!);
+    expect(await screen.findByText('Chrome 103.0.0')).toBeInTheDocument();
   });
 
   it('shows the OS alone for a replay with no browser', async () => {

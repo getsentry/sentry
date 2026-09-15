@@ -73,17 +73,11 @@ export function ReplayPlatformIconStack({
 
   return (
     <IconStack>
-      {/*
-       * Reversed on purpose: `row-reverse` puts the first child on the right,
-       * and a later sibling paints over an earlier one, so listing the browser
-       * first leaves the OS drawn on top of it — no z-index needed. Same
-       * technique as `AvatarList`.
-       */}
-      <StackedIcon>
-        <ReplayPlatformIcon name={browser.name} version={browser.version} size={size} />
-      </StackedIcon>
       <StackedIcon>
         <ReplayPlatformIcon name={os.name} version={os.version} size={size} />
+      </StackedIcon>
+      <StackedIcon>
+        <ReplayPlatformIcon name={browser.name} version={browser.version} size={size} />
       </StackedIcon>
     </IconStack>
   );
@@ -92,26 +86,32 @@ export function ReplayPlatformIconStack({
 const IconStack = styled('div')`
   display: flex;
   align-items: center;
-  flex-direction: row-reverse;
 `;
 
 /**
  * The ring is what keeps the two icons legible where they overlap; without it
  * a dark browser logo bleeds into the OS logo in front of it.
  */
+/**
+ * A rounded square rather than the circle stacked avatars use: a platform logo
+ * is square, and its corners cross the edge of a circle tight enough to sit in
+ * a table row.
+ */
 const StackedIcon = styled('div')`
   display: flex;
+  position: relative;
   padding: 2px;
   border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: 50%;
+  border-radius: ${p => p.theme.radius.sm};
   background: ${p => p.theme.tokens.background.primary};
 
-  /*
-   * The margin belongs to the browser, not the OS. In row-reverse the first
-   * child sits on the right, and pulling its left edge in is what lets the OS
-   * beside it close the gap and overlap.
-   */
+  /* The OS leads, and stays in front of what slides under it. */
   &:first-child {
-    margin-left: -5px;
+    z-index: 1;
+  }
+
+  /* The browser tucks in behind the OS's trailing edge. */
+  &:last-child {
+    margin-left: -7px;
   }
 `;
