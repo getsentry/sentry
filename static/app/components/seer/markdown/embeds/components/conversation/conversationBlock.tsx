@@ -4,13 +4,10 @@ import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 
 import {getConversationHref, type ConversationData} from './conversationLink';
-import {
-  ConversationMetricsBar,
-  getConversationMetricsFromNodes,
-} from './conversationMetrics';
 
 function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
   if (!isoTimestamp) {
@@ -46,7 +43,7 @@ function toProjectIds(projects: ConversationData['projects']): number[] | undefi
  */
 export default function ConversationBlock({data}: {data: ConversationData}) {
   const organization = useOrganization();
-  const {nodes, isLoading, error, title} = useConversation({
+  const {aggregates, nodes, isLoading, error, title} = useConversation({
     conversationId: data.id,
     projects: toProjectIds(data.projects),
     startTimestamp: toTimestampMs(data.start),
@@ -67,8 +64,10 @@ export default function ConversationBlock({data}: {data: ConversationData}) {
       ) : !isLoading && nodes.length === 0 ? (
         <Text variant="muted">{t('No messages in this conversation')}</Text>
       ) : (
-        <ConversationMetricsBar
-          metrics={getConversationMetricsFromNodes(nodes)}
+        <ConversationAggregatesBar
+          aggregates={aggregates}
+          conversationId={data.id}
+          nodes={nodes}
           isLoading={isLoading}
         />
       )}
