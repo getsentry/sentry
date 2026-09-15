@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
@@ -30,6 +31,12 @@ if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
+
+
+class GitLabApiRequestType(StrEnum):
+    CREATE_PROJECT_WEBHOOK = "create_project_webhook"
+    UPDATE_PROJECT_WEBHOOK = "update_project_webhook"
+    DELETE_PROJECT_WEBHOOK = "delete_project_webhook"
 
 
 class GitLabSetupApiClient(IntegrationProxyClient):
@@ -540,7 +547,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "note_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
-        resp = self.post(path, data=data)
+        resp = self.post(
+            path, data=data, api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK
+        )
 
         return resp["id"]
 
@@ -571,7 +580,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "note_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
-        return self.put(path, data=data)
+        return self.put(
+            path, data=data, api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK
+        )
 
     def delete_project_webhook(self, project_id, hook_id):
         """Delete a webhook from a project
@@ -581,7 +592,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.delete(path)
+        return self.delete(path, api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK)
 
     def create_branch(self, project_id: str, branch: str, ref: str):
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""
