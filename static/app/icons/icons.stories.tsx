@@ -187,11 +187,11 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'seer-waiting',
+        id: 'seer-idle',
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {animation: 'waiting'},
+        defaultProps: {animation: 'idle'},
       },
       {
         id: 'seer-loading',

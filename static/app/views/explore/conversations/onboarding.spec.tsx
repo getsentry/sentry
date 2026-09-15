@@ -315,6 +315,10 @@ describe('ConversationOnboarding', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Copy instructions'}));
 
+    expect(trackAnalytics).toHaveBeenCalledWith('conversations.onboarding.interaction', {
+      organization,
+      action: 'copy_agent_prompt',
+    });
     expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
       organization,
       platform: 'node',

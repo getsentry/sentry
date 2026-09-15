@@ -111,6 +111,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     pop_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.tasks.base import instrumented_task
@@ -118,6 +119,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +163,14 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
+def _get_feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether the batch is manual, automated, or both."""
+    kinds = {item.source.is_automated for item in items}
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
+
+
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
     actor_user_ids = {item.actor_user_id for item in items}
     if len(actor_user_ids) == 1:
@@ -185,6 +195,7 @@ def _organization_for_gate(run_id: int, organization_id: int) -> Organization | 
         return None
 
 
+@trace
 def trigger_consume_pr_iteration_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -196,6 +207,11 @@ def trigger_consume_pr_iteration_feedback(
     delay: int | None = None,
 ) -> None:
     bypass = source in _BYPASSES_SHOULD_TRIGGER
+    set_pr_iteration_attributes(
+        run_id=run_id,
+        organization_id=organization_id,
+        group_id=run_state.metadata.get("group_id") if run_state.metadata else None,
+    )
 
     if is_pr_iteration_paused(run_id=run_id, organization_id=organization_id):
         record_pause_blocked("trigger_consume")
@@ -264,6 +280,9 @@ def trigger_consume_pr_iteration_feedback(
     if decision.task is not None:
         countdown = delay if delay is not None else decision.task.countdown()
         trigger_id = uuid4().hex
+        set_pr_iteration_attributes(
+            trigger_id=trigger_id,
+        )
         consume_queued_autofix_feedback.apply_async(
             kwargs={
                 "run_id": run_id,
@@ -410,6 +429,12 @@ def consume_queued_autofix_feedback(
     )
 
     with lock.acquire():
+        set_pr_iteration_attributes(
+            run_id=run_id,
+            organization_id=organization_id,
+            trigger_id=trigger_id,
+        )
+
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
@@ -430,6 +455,8 @@ def consume_queued_autofix_feedback(
             return
 
         group_id = state.metadata.get("group_id") if state.metadata else None
+        set_pr_iteration_attributes(group_id=group_id)
+
         log_ctx = PrIterationLogContext.for_run(
             logger, state, organization_id, group_id, iteration=LogCtxIteration.UNTRIGGERED
         )
@@ -514,6 +541,7 @@ def _discard_iteration(
         )
 
 
+@trace
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -641,6 +669,17 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
+    feedback_kind = _get_feedback_kind(feedback_items)
+    metrics.incr(
+        "autofix.pr_iteration.step",
+        amount=len(feedback_items),
+        tags={
+            "checkpoint": "consumed",
+            "referrer": referrer.value,
+            "feedback_kind": feedback_kind,
+        },
+        sample_rate=1.0,
+    )
     log_ctx.info(
         "autofix.pr_iteration.consume_feedback.drain",
         outcome="drained",
@@ -672,6 +711,15 @@ def _drain_queued_autofix_feedback(
 
     # a drain (from the log above) with no trigger autofix agent below it means this call never came back.
     try:
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "sent_to_seer",
+                "referrer": referrer.value,
+                "feedback_kind": feedback_kind,
+            },
+            sample_rate=1.0,
+        )
         trigger_autofix_agent(
             group=group,
             step=AutofixStep.PR_ITERATION,
@@ -1208,6 +1256,38 @@ def trigger_pr_iteration_from_comment(
     """
     Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
 
+    The body runs under its own isolation scope and trace: this stage is one of
+    four the flow is followed by, and it is joined to the others by the ids in
+    ``pr_iteration.tracing`` rather than by the trace it was queued from.
+    """
+    with (
+        sentry_sdk.isolation_scope(),
+        start_span(
+            name="pr_iteration.trigger_from_comment",
+            op="function",
+            transaction=True,
+        ),
+    ):
+        _trigger_pr_iteration_from_comment(
+            organization_id=organization_id,
+            repo_id=repo_id,
+            integration_id=integration_id,
+            pr_number=pr_number,
+            feedback=feedback,
+        )
+
+
+def _trigger_pr_iteration_from_comment(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    feedback: str,
+) -> None:
+    """
+    Resolve the Autofix run behind ``pr_number`` and kick off a PR iteration.
+
     Runs async because it makes external GitHub and Seer calls: it fetches the
     PR to recover its GitHub id, looks up the agent run state keyed on that id,
     and triggers the iteration with the comment as feedback.
@@ -1538,6 +1618,46 @@ def _build_review_feedback(
     retry=Retry(times=1),
 )
 def trigger_pr_iteration_from_review(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    review_id: int,
+    author_username: str | None = None,
+    author_external_id: str | int | None = None,
+    author_is_bot: bool = False,
+    delivery_authenticated: bool = True,
+) -> None:
+    """
+    Resolve the Autofix run behind a submitted PR review and kick off an iteration.
+
+    The body runs under its own isolation scope and trace: this stage is one of
+    four the flow is followed by, and it is joined to the others by the ids in
+    ``pr_iteration.tracing`` rather than by the trace it was queued from.
+    """
+    with (
+        sentry_sdk.isolation_scope(),
+        start_span(
+            name="pr_iteration.trigger_from_review",
+            op="function",
+            transaction=True,
+        ),
+    ):
+        _trigger_pr_iteration_from_review(
+            organization_id=organization_id,
+            repo_id=repo_id,
+            integration_id=integration_id,
+            pr_number=pr_number,
+            review_id=review_id,
+            author_username=author_username,
+            author_external_id=author_external_id,
+            author_is_bot=author_is_bot,
+            delivery_authenticated=delivery_authenticated,
+        )
+
+
+def _trigger_pr_iteration_from_review(
     *,
     organization_id: int,
     repo_id: int,
