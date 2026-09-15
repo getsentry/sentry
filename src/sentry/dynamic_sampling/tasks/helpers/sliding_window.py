@@ -19,10 +19,6 @@ def was_sliding_window_org_executed() -> bool:
     return bool(redis_client.exists(cache_key))
 
 
-def generate_sliding_window_org_cache_key(org_id: int) -> str:
-    return f"ds::o:{org_id}:sliding_window_org_sample_rate"
-
-
 def extrapolate_monthly_volume(volume: int, hours: int) -> int | None:
     # We don't support a lower granularity than 1 hour.
     if hours < 1:
