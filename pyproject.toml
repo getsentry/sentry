@@ -2041,7 +2041,6 @@ module = [
     "tests.sentry.sentry_metrics.test_base_indexer",
     "tests.sentry.sentry_metrics.test_batch",
     "tests.sentry.sentry_metrics.test_configuration",
-    "tests.sentry.sentry_metrics.test_gen_metrics_multiprocess_steps",
     "tests.sentry.sentry_metrics.test_indexer",
     "tests.sentry.sentry_metrics.test_indexer_cache",
     "tests.sentry.sentry_metrics.test_parallel_indexer",

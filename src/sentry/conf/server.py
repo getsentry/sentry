@@ -1799,10 +1799,8 @@ SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
+# Release-health indexer only; generic metrics consumers are gone.
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS: dict[str, str] = {}
-SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
-    SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
-)
 
 # Controls the sample rate with which we report errors to Sentry for metric messages
 # dropped due to rate limits.

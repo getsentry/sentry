@@ -92,7 +92,7 @@ def get_ingest_config(
                 output_topic=Topic.SNUBA_GENERIC_METRICS,
                 use_case_id=UseCaseKey.PERFORMANCE,
                 internal_metrics_tag="perf",
-                writes_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE,
+                writes_limiter_cluster_options={},
                 writes_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
                 should_index_tag_values=False,
