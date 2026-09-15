@@ -3,6 +3,10 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  ProblemSection,
+  type ProblemSectionField,
+} from 'sentry/components/events/problemSection';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
@@ -13,7 +17,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
-import {LowValueSpanEstimatedCost} from './lowValueSpanEstimatedCost';
+import {
+  LowValueSpanEstimatedCost,
+  LowValueSpanEstimatedCostValue,
+} from './lowValueSpanEstimatedCost';
 import type {LowValueSpanEvidenceData} from './types';
 import {formatDurationMs, getLowValueSpanEvidenceData, getSpanLabel} from './utils';
 
@@ -54,12 +61,54 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
       })
     : undefined;
 
+  const summary = t(
+    'Sentry found a frequently created span that adds little value. It can make traces harder to read and increases stored span volume.'
+  );
+
+  if (organization.features.includes('issue-details-generic-problem-section')) {
+    const fields: ProblemSectionField[] = [
+      {
+        key: 'affected-span',
+        label: t('Affected span'),
+        value: getSpanLabel(evidenceData),
+        link: affectedSpanExploreUrl,
+      },
+      {
+        key: 'span-count',
+        label: t('Span count'),
+        value: spanCount === null ? t('Unknown') : formatAbbreviatedNumber(spanCount),
+        tooltip:
+          extrapolatedCount === null
+            ? undefined
+            : t(
+                'Projected 30-day volume based on a recent sample. Actual volume may differ.'
+              ),
+      },
+    ];
+
+    if (canViewEstimatedCost && extrapolatedCount !== null) {
+      fields.push({
+        key: 'estimated-cost',
+        label: t('Estimated cost'),
+        value: (
+          <LowValueSpanEstimatedCostValue extrapolatedSpanCount={extrapolatedCount} />
+        ),
+      });
+    }
+
+    fields.push({
+      key: 'average-duration',
+      label: t('Average duration'),
+      value: formatDurationMs(evidenceData.avgDurationMs),
+    });
+
+    return <ProblemSection summary={summary} fields={fields} />;
+  }
+
   return (
     <Stack gap="lg">
       <Alert variant="muted" showIcon>
-        {t(
-          'Sentry found a frequently created span that adds little value. It can make traces harder to read and increases stored span volume.'
-        )}
+        {summary}
       </Alert>
       <Grid columns="fit-content(50%) 1fr" border="primary" radius="md" padding="sm">
         <KeyValueTableDataRow
