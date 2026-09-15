@@ -27,7 +27,7 @@ class CacheVersionBase(Model):
             updated = ["version"]
 
             # Dual write keys to the new longer column
-            if obj.keyname is None:
+            if obj.keyname is None or obj.keyname == "":
                 obj.keyname = key
                 updated.append("keyname")
 
