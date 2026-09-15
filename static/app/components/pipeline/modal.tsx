@@ -197,8 +197,7 @@ export function openPipelineModal<
         description={description}
       />
     ),
-    // Escape closes like any other modal; a backdrop click still does not, so
-    // a half-finished install flow is not lost by accident.
+    // Not 'all': a backdrop click must not lose a half-finished install flow.
     {onClose, closeEvents: 'escape-key'}
   );
 }
