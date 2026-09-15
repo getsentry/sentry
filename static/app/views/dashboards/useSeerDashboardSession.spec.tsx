@@ -11,6 +11,26 @@ function makeSeerApiUrl(orgSlug: string, runId: number) {
   return `/organizations/${orgSlug}/seer/explorer-chat/${runId}/`;
 }
 
+function makeSeerUpdateUrl(orgSlug: string, runId: number) {
+  return `/organizations/${orgSlug}/seer/explorer-update/${runId}/`;
+}
+
+const AWAITING_USER_INPUT_SESSION = {
+  session: {
+    run_id: SEER_RUN_ID,
+    status: 'awaiting_user_input',
+    updated_at: '2026-01-01T00:00:00Z',
+    blocks: [],
+    pending_user_input: {
+      id: 'input-1',
+      input_type: 'ask_user_question',
+      data: {
+        questions: [{question: 'Which metric should I use?'}],
+      },
+    },
+  },
+};
+
 const COMPLETED_SESSION = {
   session: {
     run_id: SEER_RUN_ID,
@@ -117,6 +137,50 @@ describe('useSeerDashboardSession', () => {
       expect.objectContaining({
         method: 'POST',
         data: {query: 'Add an error rate widget'},
+      })
+    );
+  });
+
+  it('responds to a pending agent question', async () => {
+    MockApiClient.addMockResponse({
+      url: apiUrl,
+      body: AWAITING_USER_INPUT_SESSION,
+    });
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: makeSeerUpdateUrl(organization.slug, SEER_RUN_ID),
+      method: 'POST',
+      body: {run_id: SEER_RUN_ID},
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useSeerDashboardSession({
+          seerRunId: SEER_RUN_ID,
+          onDashboardUpdate: jest.fn(),
+        }),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.session?.status).toBe('awaiting_user_input');
+    });
+
+    await act(async () => {
+      await result.current.sendFollowUpMessage('Use request.duration');
+    });
+
+    expect(updateMock).toHaveBeenCalledWith(
+      makeSeerUpdateUrl(organization.slug, SEER_RUN_ID),
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          payload: {
+            type: 'user_input_response',
+            input_id: 'input-1',
+            response_data: {answers: ['Use request.duration']},
+          },
+        },
       })
     );
   });
