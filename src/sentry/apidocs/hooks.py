@@ -11,6 +11,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
+from sentry.apidocs.omission_apply import OmissionError
+from sentry.apidocs.omission_guard import (
+    check_schema_omissions,
+    omissions_disabled,
+    omissions_enabled,
+    recording_omissions,
+)
 from sentry.apidocs.utils import SentryApiBuildError
 
 HTTP_METHOD_NAME = Literal[
@@ -102,6 +109,23 @@ class CustomEndpointEnumerator(EndpointEnumerator):
 
 class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
+
+    def get_schema(self, request: Any = None, public: bool = False) -> Any:
+        """Build the schema, then prove its omissions changed only what they declare.
+
+        The baseline is a second build, on a fresh registry, with omissions off."""
+        baseline_generator = type(self)(
+            patterns=self.patterns, urlconf=self.urlconf, api_version=self.api_version
+        )
+        with omissions_disabled():
+            baseline = SchemaGenerator.get_schema(baseline_generator, request, public)
+        with recording_omissions() as recorded:
+            schema = super().get_schema(request, public)
+        try:
+            check_schema_omissions(baseline, schema, recorded)
+        except OmissionError as exc:
+            raise SentryApiBuildError(str(exc)) from exc
+        return schema
 
 
 # Collected during preprocessing, used in postprocessing
@@ -215,7 +239,9 @@ def _validate_request_body(
         # display body params without a description, so it's easy to miss them.
 
         # There is an edge case where a body param might be reference that we should ignore for now
-        if "description" not in param_data and "$ref" not in param_data:
+        # The baseline build restores omitted fields, which are exactly the ones
+        # allowed to lack a description, and it is never published.
+        if "description" not in param_data and "$ref" not in param_data and omissions_enabled():
             raise SentryApiBuildError(
                 f"""Body parameter '{body_param}' is missing a description for endpoint {endpoint_name}.
 

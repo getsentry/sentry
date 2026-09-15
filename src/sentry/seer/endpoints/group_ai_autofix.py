@@ -101,6 +101,10 @@ logger = logging.getLogger(__name__)
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 
+# Marks the one 409 from this endpoint that a caller can recover from on its own:
+# the run named in the body is alive, so polling it is the whole remedy.
+RUN_IN_FLIGHT_CODE = "run_in_flight"
+
 PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
@@ -499,9 +503,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
-                # A truncating re-run would strand a PR/coding agent (they live
-                # outside the blocks). Refuse it, mirroring the frontend gate.
-                if data.get("insert_index") is not None and resolved_run_id is not None:
+                if resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
                     except SeerPermissionError as e:
@@ -509,7 +511,30 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
+                    # Seer accepts a step while one is still processing, and the two
+                    # workers then write to the same run state; a truncating re-run
+                    # even deletes the blocks the live worker is appending to. Refuse
+                    # the step and hand back the run in flight, so a caller that can
+                    # recover silently has the ids to poll.
+                    #
+                    # The code, not the detail text, is what callers branch on: this
+                    # 409 is recoverable, the re-run 409 below is not.
+                    if run_state.status == "processing":
+                        return Response(
+                            {
+                                "detail": "A step is already running for this autofix run",
+                                "code": RUN_IN_FLIGHT_CODE,
+                                "run_id": resolved_run_id,
+                                "sentry_run_id": resolved_sentry_run_id,
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                    # A truncating re-run would strand a PR/coding agent (they live
+                    # outside the blocks). Refuse it, mirroring the frontend gate.
+                    if data.get("insert_index") is not None and (
+                        run_state.get_created_pull_request_states() or run_state.coding_agents
+                    ):
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"
