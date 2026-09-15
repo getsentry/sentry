@@ -1,10 +1,20 @@
 from unittest.mock import MagicMock, Mock, patch
 
+from django.utils import timezone
 from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
-from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
+from sentry.seer.anomaly_detection.get_anomaly_data import (
+    get_anomaly_data_from_seer,
+    get_anomaly_threshold_data_from_seer,
+)
+from sentry.seer.anomaly_detection.types import (
+    AnomalyDetectionSeasonality,
+    AnomalyDetectionSensitivity,
+    AnomalyDetectionThresholdType,
+)
 from sentry.snuba.models import QuerySubscription
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -25,6 +35,33 @@ class GetAnomalyThresholdDataFromSeerTest(BaseWorkflowTest):
         response.status = status
         response.data = data
         return response
+
+    @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_detect_anomalies_request")
+    def test_detect_establishes_viewer_context(self, mock_request: MagicMock) -> None:
+        observed_contexts: list[ViewerContext | None] = []
+
+        def make_request(*args, **kwargs):
+            observed_contexts.append(get_viewer_context())
+            return self._mock_response(200, b'{"success": true, "timeseries": []}')
+
+        mock_request.side_effect = make_request
+
+        result = get_anomaly_data_from_seer(
+            AnomalyDetectionSensitivity.HIGH,
+            AnomalyDetectionSeasonality.AUTO,
+            AnomalyDetectionThresholdType.ABOVE,
+            self.subscription,
+            {"timestamp": timezone.now(), "value": 1.0},
+        )
+
+        assert result is None
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ]
 
     @patch("sentry.seer.anomaly_detection.get_anomaly_data.make_signed_seer_api_request")
     def test_successful_response(self, mock_request: MagicMock) -> None:
