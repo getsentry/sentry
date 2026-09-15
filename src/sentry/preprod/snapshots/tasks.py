@@ -124,9 +124,8 @@ def _get_json[T: BaseModel](session: SnapshotStorage, key: str, model_cls: type[
 
 
 def _put_json(session: SnapshotStorage, key: str, model: BaseModel) -> None:
-    _retry_objectstore(
-        lambda: session.put(orjson.dumps(model.dict()), key=key, content_type="application/json")
-    )
+    data = orjson.dumps(model.dict())
+    _retry_objectstore(lambda: session.put(data, key=key, content_type="application/json"))
 
 
 def _put_diff_mask(session: SnapshotStorage, key: str, data: bytes) -> None:
