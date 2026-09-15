@@ -458,12 +458,14 @@ class StatefulDetectorHandler(
             self.state_manager.build_key(group_key),
         ]
 
+        workflow_engine_evidence_data = self._build_workflow_engine_evidence_data(
+            group_evaluation,
+            data_packet,
+            evaluation_value,
+        )
+
         evidence_data = {
-            **self._build_workflow_engine_evidence_data(
-                group_evaluation,
-                data_packet,
-                evaluation_value,
-            ),
+            **dataclasses.asdict(workflow_engine_evidence_data),
             **self.build_detector_evidence_data(
                 group_evaluation,
                 data_packet,
@@ -565,7 +567,7 @@ class StatefulDetectorHandler(
             occurrence_id=str(uuid4()),
             project_id=self.detector.project_id,
             status=new_priority,
-            additional_evidence_data=evidence_data,
+            additional_evidence_data=dataclasses.asdict(evidence_data),
         )
 
     def _evaluation_detector_conditions(

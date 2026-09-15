@@ -37,7 +37,7 @@ EventData = dict[str, Any]
 class EvidenceData(Generic[DataPacketEvaluationType]):
     value: DataPacketEvaluationType
     detector_id: DetectorId
-    data_packet_source_id: int
+    data_packet_source_id: str
     conditions: list[dict[str, Any]]
     config: dict[str, Any] = dataclasses.field(default_factory=dict, kw_only=True)
     data_sources: list[dict[str, Any]] = dataclasses.field(default_factory=list, kw_only=True)
@@ -355,7 +355,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             occurrence_id=occurrence_id,
             project_id=self.detector.project_id,
             status=priority,
-            additional_evidence_data=additional_evidence_data,
+            additional_evidence_data=dataclasses.asdict(additional_evidence_data),
             fingerprint=issue_fingerprint,
         )
 
@@ -377,26 +377,26 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
         group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
-    ) -> dict[str, Any]:
+    ) -> EvidenceData[DataPacketEvaluationType]:
         """
         Build the workflow engine specific evidence data.
         This is data that is common to all detectors.
         """
 
-        base: dict[str, Any] = {
-            "detector_id": self.detector.id,
-            "value": evaluation_value,
-            "data_packet_source_id": str(data_packet.source_id),
-            "conditions": [
-                condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.triggered
-            ],
-            "config": self.detector.config,
-            "data_sources": self._build_evidence_data_sources(data_packet),
-        }
+        triggered_conditions = [
+            dict(condition_evaluation.condition.get_snapshot())
+            for condition_evaluation in group_evaluation.data["condition_evaluations"]
+            if condition_evaluation.triggered
+        ]
 
-        return base
+        return EvidenceData(
+            detector_id=self.detector.id,
+            value=evaluation_value,
+            data_packet_source_id=data_packet.source_id,
+            conditions=triggered_conditions,
+            config=self.detector.config,
+            data_sources=self._build_evidence_data_sources(data_packet),
+        )
 
     def _build_evidence_data_sources(
         self, data_packet: DataPacket[DataPacketType]
