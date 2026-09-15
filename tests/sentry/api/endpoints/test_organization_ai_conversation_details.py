@@ -959,6 +959,65 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert ai_client_span["gen_ai.usage.total_tokens"] == 100
         assert ai_client_span["gen_ai.cost.total_tokens"] == 0.01
 
+    def test_returns_full_conversation_aggregates_on_each_page(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        trace_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            operation_type="ai_client",
+            tokens=100,
+            input_tokens=70,
+            output_tokens=30,
+            cost=0.01,
+            trace_id=trace_id,
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="database",
+            status="internal_error",
+            trace_id=trace_id,
+        )
+
+        query: dict[str, Any] = {
+            "project": [self.project.id],
+            "per_page": "1",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        response = self.do_request(conversation_id, query)
+
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+        expected_aggregates = {
+            "endTimestamp": int(now.timestamp() * 1000),
+            "inputTokens": 70,
+            "llmCalls": 1,
+            "outputTokens": 30,
+            "startTimestamp": int((now - timedelta(seconds=1)).timestamp() * 1000),
+            "toolCalls": 1,
+            "toolErrors": 1,
+            "toolNames": ["database"],
+            "totalCost": 0.01,
+            "totalTokens": 100,
+        }
+        assert {field: response.data[field] for field in expected_aggregates} == expected_aggregates
+        assert response.data["generationDuration"] > 0
+
+        links = parse_link_header(response.headers["Link"])
+        query["cursor"] = next(link for link in links.values() if link["rel"] == "next")["cursor"]
+        next_response = self.do_request(conversation_id, query)
+
+        assert next_response.status_code == 200
+        assert {
+            field: next_response.data[field] for field in expected_aggregates
+        } == expected_aggregates
+
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex
 
@@ -1195,10 +1254,21 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.status_code == 200
         assert set(response.data) == {
             "conversationId",
-            "title",
+            "endTimestamp",
+            "generationDuration",
+            "inputTokens",
+            "llmCalls",
+            "outputTokens",
             "projects",
-            "webUrl",
             "spans",
+            "startTimestamp",
+            "title",
+            "toolCalls",
+            "toolErrors",
+            "toolNames",
+            "totalCost",
+            "totalTokens",
+            "webUrl",
         }
         assert response.data["conversationId"] == conversation_id
         assert response.data["projects"] == [

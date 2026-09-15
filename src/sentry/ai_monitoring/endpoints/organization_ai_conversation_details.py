@@ -10,6 +10,11 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.ai_monitoring.conversation_aggregates import (
+    CONVERSATION_AGGREGATE_COLUMNS,
+    AIConversationAggregates,
+    parse_conversation_aggregates,
+)
 from sentry.ai_monitoring.conversation_titles import fetch_conversation_title
 from sentry.ai_monitoring.utils import (
     ConversationProject,
@@ -34,9 +39,10 @@ from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
 from sentry.utils import metrics
@@ -129,7 +135,12 @@ AI_CONVERSATION_ATTRIBUTES = [
 ]
 
 
-class AIConversationDetailsResponse(TypedDict):
+class AIConversationPageData(TypedDict):
+    data: list[SpanRow]
+    aggregates: AIConversationAggregates
+
+
+class AIConversationDetailsResponse(AIConversationAggregates):
     """Span page plus conversation-level metadata."""
 
     conversationId: str
@@ -208,10 +219,13 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     snuba_params, request.GET.get("statsPeriod"), now, conversation_id
                 )
 
-            def data_fn(offset: int, limit: int) -> list[SpanRow]:
-                return self._fetch_spans(resolved_params, conversation_id, offset, limit)
+            def data_fn(offset: int, limit: int) -> AIConversationPageData:
+                return self._fetch_spans_and_aggregates(
+                    resolved_params, conversation_id, offset, limit
+                )
 
-            def on_results(spans: list[SpanRow]) -> AIConversationDetailsResponse:
+            def on_results(page: AIConversationPageData) -> AIConversationDetailsResponse:
+                spans = page["data"]
                 self._repair_parent_links(spans, resolved_params, conversation_id)
                 self._annotate_issues(spans, resolved_params, organization)
                 # Treat conversations as single-project for now. Multi-project conversations are
@@ -228,6 +242,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     "projects": [serialize_conversation_project(project)] if project else [],
                     "webUrl": get_conversation_url(organization, conversation_id, project_id),
                     "spans": spans,
+                    **page["aggregates"],
                 }
 
             return self.paginate(
@@ -484,6 +499,58 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     )
 
             pending = next_pending
+
+    @trace
+    def _fetch_spans_and_aggregates(
+        self,
+        snuba_params: SnubaParams,
+        conversation_id: str,
+        offset: int,
+        limit: int,
+    ) -> AIConversationPageData:
+        query_string = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
+        resolver = Spans.get_resolver(
+            snuba_params,
+            SearchResolverConfig(
+                auto_fields=True,
+                disable_aggregate_extrapolation=True,
+                fields_acl=FieldsACL(functions={"collect_unique_if"}),
+            ),
+        )
+        results = Spans.run_bulk_table_queries(
+            [
+                TableQuery(
+                    name="spans",
+                    query_string=query_string,
+                    selected_columns=AI_CONVERSATION_ATTRIBUTES,
+                    orderby=["precise.start_ts"],
+                    offset=offset,
+                    limit=limit,
+                    referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
+                    sampling_mode="HIGHEST_ACCURACY",
+                    resolver=resolver,
+                ),
+                TableQuery(
+                    name="aggregates",
+                    query_string=query_string,
+                    selected_columns=CONVERSATION_AGGREGATE_COLUMNS,
+                    orderby=None,
+                    offset=0,
+                    limit=1,
+                    referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
+                    sampling_mode="HIGHEST_ACCURACY",
+                    resolver=resolver,
+                ),
+            ],
+            snuba_params.debug,
+        )
+        aggregate_rows = results["aggregates"].get("data", [])
+        return {
+            "data": results["spans"].get("data", []),
+            "aggregates": parse_conversation_aggregates(
+                aggregate_rows[0] if aggregate_rows else {}
+            ),
+        }
 
     @trace
     def _fetch_spans(
