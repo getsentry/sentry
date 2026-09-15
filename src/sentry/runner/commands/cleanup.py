@@ -852,9 +852,9 @@ def _schedule_bulk_delete_chunks(
     chunk_count = 0
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
+        scheduler.put(imp, chunk, project_id)
         chunk_count += 1
         total_objects += len(chunk)
-        scheduler.put(imp, chunk, project_id)
 
     if chunk_count > 0:
         debug_output(
