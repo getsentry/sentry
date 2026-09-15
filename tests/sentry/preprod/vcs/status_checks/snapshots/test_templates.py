@@ -519,7 +519,7 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
 
         assert title == "Snapshot Testing"
         assert subtitle == "No base snapshot found for abcdef1234567890abcdef1234567890abcdef12"
-        assert "no longer has snapshots to compare against" in summary
+        assert "No snapshots were found for base commit" in summary
         assert "Push a new commit to the base branch" in summary
         assert "com.example.app" in summary
 

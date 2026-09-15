@@ -944,8 +944,8 @@ def _base_manifest_missing_message(head_artifact: PreprodArtifact) -> str:
     commit_comparison = head_artifact.commit_comparison
     base_sha = (commit_comparison.base_sha or "") if commit_comparison else ""
     if not base_sha:
-        return "Base snapshot is no longer available."
-    return f"Base snapshot for commit {base_sha[:7]} is no longer available."
+        return "Base snapshot not found."
+    return f"Base snapshot for commit {base_sha[:7]} not found."
 
 
 @instrumented_task(
