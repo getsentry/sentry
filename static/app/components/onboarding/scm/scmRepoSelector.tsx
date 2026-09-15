@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
@@ -65,6 +65,10 @@ interface ScmRepoSelectorProps {
   onClearDerivedState: () => void;
   onRepositoryChange: (repo: Repository | undefined) => void;
   selectedRepository: Repository | undefined;
+  // Focus the search field on mount. Set when the selector replaces the
+  // provider pills after an install, so keyboard focus does not fall to body
+  // with the pill the user activated.
+  autoFocus?: boolean;
 }
 
 export function ScmRepoSelector({
@@ -73,9 +77,11 @@ export function ScmRepoSelector({
   onClearDerivedState,
   onRepositoryChange,
   selectedRepository,
+  autoFocus,
 }: ScmRepoSelectorProps) {
   const organization = useOrganization();
   const [search, setSearch] = useState('');
+  const selectRef = useRef<{focus: () => void} | null>(null);
   const {reposByIdentifier, dropdownItems, isFetching, isError} = useScmRepos(
     integration.id,
     selectedRepository
@@ -121,10 +127,18 @@ export function ScmRepoSelector({
   );
 
   function handleChange(option: {value: string} | null) {
+    // The field stays enabled while a pick registers so it keeps focus; a
+    // second pick in that window is ignored.
+    if (busy) {
+      return;
+    }
     onClearDerivedState();
 
     if (option === null) {
       handleRemove();
+      // The clear button unmounts with the value, so put focus back in the
+      // field rather than letting it fall to body.
+      selectRef.current?.focus();
     } else {
       const repo = reposByIdentifier.get(option.value);
       if (repo) {
@@ -150,6 +164,11 @@ export function ScmRepoSelector({
 
   return (
     <Select
+      ref={selectRef}
+      // react-select does not tie the placeholder to the input, so the field
+      // needs its own name.
+      aria-label={t('Search repositories')}
+      autoFocus={autoFocus}
       placeholder={t('Search repositories')}
       options={rankedOptions}
       value={selectedRepository?.externalSlug ?? null}
@@ -157,8 +176,10 @@ export function ScmRepoSelector({
       inputValue={search}
       onInputChange={setSearch}
       noOptionsMessage={noOptionsMessage}
-      isLoading={isFetching}
-      isDisabled={busy}
+      isLoading={isFetching || busy}
+      // The core Select blurs single selects on pick, which drops keyboard
+      // focus to body. Keep it in the field.
+      blurInputOnSelect={false}
       clearable
       searchable
       components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
