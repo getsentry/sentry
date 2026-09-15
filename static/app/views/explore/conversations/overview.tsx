@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, type ReactNode, useCallback, useEffect, useMemo} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -33,12 +33,15 @@ import {
   type AgentsTableTab,
 } from 'sentry/views/explore/conversations/components/agentsTable';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
+import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
+import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
 import {
   CONVERSATION_FIELDS,
   useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
+import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
@@ -79,6 +82,7 @@ function ConversationsOverviewPage() {
   const queryingEnhancementsEnabled = organization.features.includes(
     'gen-ai-conversations-querying-enhancements'
   );
+  const agentsOverviewEnabled = organization.features.includes('gen-ai-agents-overview');
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
@@ -107,8 +111,9 @@ function ConversationsOverviewPage() {
     'table',
     agentsTableTabParser.withOptions({history: 'replace'})
   );
-  const activeTab: AgentsTableTab =
-    selectedTab ?? (hasConversations ? 'conversations' : 'traces');
+  const activeTab: AgentsTableTab = agentsOverviewEnabled
+    ? (selectedTab ?? (hasConversations ? 'conversations' : 'traces'))
+    : 'conversations';
   const isConversationsTab = activeTab === 'conversations';
   const selectedTabShowsOnboarding = isConversationsTab
     ? !hasConversations
@@ -241,6 +246,37 @@ function ConversationsOverviewPage() {
   const resetParamsOnFilterChange = [TableUrlParams.CURSOR, SPANS_CURSOR_URL_PARAM];
   const showSearch = !isOnboardingLoading && !selectedTabShowsOnboarding;
 
+  let content: ReactNode;
+  if (isOnboardingLoading) {
+    content = <LoadingIndicator />;
+  } else if (agentsOverviewEnabled) {
+    content = (
+      <Fragment>
+        {hasAgenticSpans && <AgentsCharts />}
+        {isConversationsTab && showMissingMessagesAlert && (
+          <ConversationMissingMessagesAlert />
+        )}
+        <AgentsTable
+          activeTab={activeTab}
+          hasAgenticSpans={hasAgenticSpans}
+          hasConversations={hasConversations}
+          onConversationOnboardingDismiss={refetchOnboarding}
+          onTabChange={handleTabChange}
+        />
+      </Fragment>
+    );
+  } else if (showOnboarding) {
+    content = <ConversationOnboarding onDismiss={refetchOnboarding} />;
+  } else {
+    content = (
+      <Fragment>
+        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+        <ConversationsChart />
+        <ConversationsTable />
+      </Fragment>
+    );
+  }
+
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
       <ExploreBodySearch>
@@ -284,23 +320,7 @@ function ConversationsOverviewPage() {
       </ExploreBodySearch>
       <ExploreBodyContent>
         <Stack flex={1} minWidth="0" padding="xl" gap="md">
-          {isOnboardingLoading ? (
-            <LoadingIndicator />
-          ) : (
-            <Fragment>
-              {hasAgenticSpans && <AgentsCharts />}
-              {isConversationsTab && showMissingMessagesAlert && (
-                <ConversationMissingMessagesAlert />
-              )}
-              <AgentsTable
-                activeTab={activeTab}
-                hasAgenticSpans={hasAgenticSpans}
-                hasConversations={hasConversations}
-                onConversationOnboardingDismiss={refetchOnboarding}
-                onTabChange={handleTabChange}
-              />
-            </Fragment>
-          )}
+          {content}
         </Stack>
       </ExploreBodyContent>
     </SearchQueryBuilderProvider>
