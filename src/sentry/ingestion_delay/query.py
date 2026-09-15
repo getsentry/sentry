@@ -67,6 +67,12 @@ def build_delay_expression() -> AttributeKeyExpression:
     )
 
 
+def build_last_ingested_expression() -> AttributeKeyExpression:
+    return AttributeKeyExpression(
+        key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name=INGESTED_AT_ATTRIBUTE)
+    )
+
+
 def build_delay_request(
     organization_id: int,
     project_ids: list[int],
@@ -97,9 +103,7 @@ def build_delay_request(
                 label=LAST_INGESTED_LABEL,
                 conditional_aggregation=AttributeConditionalAggregation(
                     aggregate=Function.FUNCTION_MAX,
-                    expression=AttributeKeyExpression(
-                        key=AttributeKey(type=AttributeKey.TYPE_DOUBLE, name=INGESTED_AT_ATTRIBUTE)
-                    ),
+                    expression=build_last_ingested_expression(),
                     label=LAST_INGESTED_LABEL,
                     extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_NONE,
                 ),
