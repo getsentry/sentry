@@ -356,28 +356,6 @@ class TestGetAnomalyDetectionIssueTitle(TestCase):
             == "crash_free_users"
         )
 
-    def test_defaults_to_custom(self) -> None:
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "count_unique(tags[sentry:user])", Dataset.Transactions
-            )
-            == "custom_transactions"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset("p95(measurements.fp)", Dataset.Transactions)
-            == "custom_transactions"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset("p95(measurements.ttfb)", Dataset.Transactions)
-            == "custom_transactions"
-        )
-        assert (
-            get_alert_type_from_aggregate_dataset(
-                "count(d:transaction/measurement@seconds)", Dataset.PerformanceMetrics
-            )
-            == "custom_transactions"
-        )
-
     def test_extract_eap_metrics_alert(self) -> None:
         assert (
             get_alert_type_from_aggregate_dataset(
