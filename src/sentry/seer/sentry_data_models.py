@@ -116,6 +116,11 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
+class ReferencedFixStatementsResponse(BaseModel):
+    statements: list[str]
+    short_ids: list[str]
+
+
 class OrganizationProjectDetail(BaseModel):
     id: int
     slug: str
