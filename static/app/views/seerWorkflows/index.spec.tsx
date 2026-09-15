@@ -116,7 +116,7 @@ describe('SeerWorkflows', () => {
     expect(screen.getAllByText('No findings')).not.toHaveLength(0);
   }, 10000);
 
-  it('polls running Night Shift workflows and keeps them visible when a background poll fails', async () => {
+  it('polls running Agentic triage workflows and keeps them visible when a background poll fails', async () => {
     jest.useFakeTimers();
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const url = `/organizations/${organization.slug}/seer/workflows/`;

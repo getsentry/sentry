@@ -1,13 +1,13 @@
 import {t} from 'sentry/locale';
 import {
+  AgenticTriageDebug,
+  AgenticTriageResults,
+  getAgenticTriageSummary,
+} from 'sentry/views/seerWorkflows/agenticTriage';
+import {
   MonitorCleanupRunResults,
   getMonitorRunSummary,
 } from 'sentry/views/seerWorkflows/monitorCleanup';
-import {
-  NightShiftDebug,
-  NightShiftResults,
-  getNightShiftSummary,
-} from 'sentry/views/seerWorkflows/nightShift';
 import type {WorkflowStrategy, WorkflowRow} from 'sentry/views/seerWorkflows/types';
 
 type StrategyMeta = {
@@ -29,9 +29,9 @@ export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
     label: 'Duplicate monitors',
   },
   agentic_triage: {
-    Results: NightShiftResults,
-    getSummary: getNightShiftSummary,
-    Debug: NightShiftDebug,
+    Results: AgenticTriageResults,
+    getSummary: getAgenticTriageSummary,
+    Debug: AgenticTriageDebug,
     label: 'Agentic triage',
   },
 };

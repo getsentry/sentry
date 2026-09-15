@@ -20,11 +20,11 @@ import type {
   WorkflowRowStatus,
 } from 'sentry/views/seerWorkflows/types';
 
-type SeerNightShiftRunPullRequest = PullRequest & {
+type SeerAgenticTriageRunPullRequest = PullRequest & {
   status: PullRequestStatus | null;
 };
 
-type SeerNightShiftRunIssue = {
+type SeerAgenticTriageRunIssue = {
   action: string;
   dateAdded: string;
   groupId: string;
@@ -34,15 +34,15 @@ type SeerNightShiftRunIssue = {
   reason: string | null;
   seerRunId: string | null;
   skipReason: string | null;
-  pullRequests?: SeerNightShiftRunPullRequest[];
+  pullRequests?: SeerAgenticTriageRunPullRequest[];
 };
 
-// A Seer run dispatched by a night shift run, openable in Explorer.
-type SeerNightShiftSeerRun = {
+// A Seer run dispatched by a agentic triage run, openable in Explorer.
+type SeerAgenticTriageSeerRun = {
   seerRunId: string | null;
 };
 
-type SeerNightShiftRunOptions = {
+type SeerAgenticTriageRunOptions = {
   dry_run?: boolean;
   extra_triage_instructions?: string;
   intelligence_level?: 'low' | 'medium' | 'high';
@@ -51,7 +51,7 @@ type SeerNightShiftRunOptions = {
   source?: string;
 };
 
-type SeerNightShiftRunErrorType =
+type SeerAgenticTriageRunErrorType =
   | 'no_quota'
   | 'eligible_projects_failed'
   | 'no_seer_access'
@@ -60,22 +60,22 @@ type SeerNightShiftRunErrorType =
   | 'shard_delivery_failed'
   | 'unknown';
 
-type SeerNightShiftRun = SeerWorkflowRun & {
-  errorType: SeerNightShiftRunErrorType | null;
-  extras: {options?: SeerNightShiftRunOptions};
-  issues: SeerNightShiftRunIssue[];
-  seerRuns: SeerNightShiftSeerRun[];
+type SeerAgenticTriageRun = SeerWorkflowRun & {
+  errorType: SeerAgenticTriageRunErrorType | null;
+  extras: {options?: SeerAgenticTriageRunOptions};
+  issues: SeerAgenticTriageRunIssue[];
+  seerRuns: SeerAgenticTriageSeerRun[];
   strategy: 'agentic_triage';
 };
 
-export type NightShiftRow = {
-  issues: SeerNightShiftRunIssue[];
-  seerRuns: SeerNightShiftSeerRun[];
-  options?: SeerNightShiftRunOptions;
+export type AgenticTriageRow = {
+  issues: SeerAgenticTriageRunIssue[];
+  seerRuns: SeerAgenticTriageSeerRun[];
+  options?: SeerAgenticTriageRunOptions;
 };
 
-export function getNightShiftRow(run: SeerWorkflowRun) {
-  if (!isNightShiftRun(run)) {
+export function getAgenticTriageRow(run: SeerWorkflowRun) {
+  if (!isAgenticTriageRun(run)) {
     return {};
   }
   const errorPresentation = getTriageErrorPresentation(run.errorType ?? null);
@@ -90,7 +90,7 @@ export function getNightShiftRow(run: SeerWorkflowRun) {
   };
 }
 
-export function getNightShiftSummary(row: WorkflowRow): string {
+export function getAgenticTriageSummary(row: WorkflowRow): string {
   if (row.status === 'running') {
     return t('Triaging issues…');
   }
@@ -106,7 +106,7 @@ export function getNightShiftSummary(row: WorkflowRow): string {
     : tn('%s issue', '%s issues', issueCount);
 }
 
-export function NightShiftResults({
+export function AgenticTriageResults({
   row,
   organizationSlug,
 }: {
@@ -125,7 +125,7 @@ export function NightShiftResults({
   );
 }
 
-export function NightShiftDebug({row}: {row: WorkflowRow}) {
+export function AgenticTriageDebug({row}: {row: WorkflowRow}) {
   const {
     reasoning_effort,
     intelligence_level,
@@ -232,7 +232,7 @@ function IssueList({
   isRunning,
 }: {
   isRunning: boolean;
-  issues: SeerNightShiftRunIssue[];
+  issues: SeerAgenticTriageRunIssue[];
   organizationSlug: string;
 }) {
   return (
@@ -262,7 +262,7 @@ function IssueRow({
   issue,
   organizationSlug,
 }: {
-  issue: SeerNightShiftRunIssue;
+  issue: SeerAgenticTriageRunIssue;
   organizationSlug: string;
 }) {
   const title = issue.groupTitle ?? issue.groupId;
@@ -312,7 +312,7 @@ const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
   skip: 'muted',
 };
 
-function IssueStatusTag({issue}: {issue: SeerNightShiftRunIssue}) {
+function IssueStatusTag({issue}: {issue: SeerAgenticTriageRunIssue}) {
   const actionLabel = getActionLabel(issue.action);
   const label =
     issue.action === 'skip' && issue.skipReason
@@ -345,7 +345,7 @@ const PR_STATUS_PREFIXED = new Set<PullRequestStatus>(['merged', 'closed', 'draf
 function IssuePullRequestChip({
   pullRequest,
 }: {
-  pullRequest: SeerNightShiftRunPullRequest;
+  pullRequest: SeerAgenticTriageRunPullRequest;
 }) {
   const status = pullRequest.status ?? 'unknown';
   const Icon = PR_STATUS_ICON[status] ?? IconPullRequest;
@@ -432,7 +432,7 @@ function TriageIssuesDebugAddendum({row}: {row: WorkflowRow}) {
 }
 
 function getTriageErrorPresentation(
-  errorType: SeerNightShiftRunErrorType | null
+  errorType: SeerAgenticTriageRunErrorType | null
 ): {resultText: string; status: WorkflowRowStatus} | null {
   switch (errorType) {
     case null:
@@ -477,7 +477,7 @@ function getActionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action;
 }
 
-// Night Shift still supplies issue and dispatch fields alongside the shared envelope.
-function isNightShiftRun(run: SeerWorkflowRun): run is SeerNightShiftRun {
+// Agentic triage still supplies issue and dispatch fields alongside the shared envelope.
+function isAgenticTriageRun(run: SeerWorkflowRun): run is SeerAgenticTriageRun {
   return run.strategy === 'agentic_triage';
 }

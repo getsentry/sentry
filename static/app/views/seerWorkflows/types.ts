@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import type {NightShiftRow} from 'sentry/views/seerWorkflows/nightShift';
+import type {AgenticTriageRow} from 'sentry/views/seerWorkflows/agenticTriage';
 
 export type WorkflowRunStatus = 'running' | 'complete' | 'partial' | 'failed';
 
@@ -46,7 +46,7 @@ export type WorkflowRow = {
   runStatus?: WorkflowRunStatus;
   seerRunId?: string;
   source?: string;
-  triage?: NightShiftRow;
+  triage?: AgenticTriageRow;
 };
 
 const monitorCleanupResourceSchema = z.object({

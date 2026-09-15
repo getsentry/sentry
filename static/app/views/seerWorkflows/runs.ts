@@ -1,4 +1,4 @@
-import {getNightShiftRow} from 'sentry/views/seerWorkflows/nightShift';
+import {getAgenticTriageRow} from 'sentry/views/seerWorkflows/agenticTriage';
 import type {SeerWorkflowRun, WorkflowRow} from 'sentry/views/seerWorkflows/types';
 
 export function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
@@ -13,6 +13,6 @@ export function toWorkflowRow(run: SeerWorkflowRun): WorkflowRow {
     errorMessage: run.errorMessage,
     results: run.results ?? [],
     seerRunId: run.seerRunId,
-    ...getNightShiftRow(run),
+    ...getAgenticTriageRow(run),
   };
 }
