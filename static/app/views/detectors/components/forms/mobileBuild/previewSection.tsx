@@ -2,26 +2,20 @@ import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
-import {
-  PREPROD_DETECTOR_FORM_FIELDS,
-  usePreprodDetectorFormField,
-} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
+import type {PreprodDetectorFormData} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
 import {
   getMetricLabelForPlatform,
   guessPlatformForProject,
 } from 'sentry/views/settings/project/preprod/types';
 
-export function MobileBuildPreviewSection({step}: {step: number}) {
-  const measurement =
-    usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.measurement) ??
-    'install_size';
-  const highThreshold = usePreprodDetectorFormField(
-    PREPROD_DETECTOR_FORM_FIELDS.highThreshold
-  );
-  const thresholdType = usePreprodDetectorFormField(
-    PREPROD_DETECTOR_FORM_FIELDS.thresholdType
-  );
-  const projectId = usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.projectId);
+export function MobileBuildPreviewSection({
+  step,
+  values,
+}: {
+  step: number;
+  values: PreprodDetectorFormData;
+}) {
+  const {measurement, highThreshold, thresholdType, projectId} = values;
   const {projects} = useProjects();
 
   const project = projects.find(p => p.id === projectId);

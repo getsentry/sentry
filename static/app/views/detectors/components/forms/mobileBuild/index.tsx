@@ -1,94 +1,220 @@
-import {useCallback, useContext} from 'react';
 import {useTheme} from '@emotion/react';
+import {z} from 'zod';
 
+import {
+  defaultFormOptions,
+  setFieldErrors,
+  useScrapsForm,
+  useStore,
+} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
-import {FormContext} from 'sentry/components/forms/formContext';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
+import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
 import type {PreprodDetector} from 'sentry/types/workflowEngine/detectors';
-import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
-import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
-import {ProjectSection} from 'sentry/views/detectors/components/forms/common/projectSection';
-import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
-import {MobileBuildDetectSection} from 'sentry/views/detectors/components/forms/mobileBuild/detectSection';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {AutomateSection} from 'sentry/views/detectors/components/forms/automateSection';
 import {
-  PREPROD_DEFAULT_FORM_DATA,
-  PREPROD_DETECTOR_FORM_FIELDS,
-  preprodFormDataToEndpointPayload,
-  preprodSavedDetectorToFormData,
-  usePreprodDetectorFormField,
-} from 'sentry/views/detectors/components/forms/mobileBuild/mobileBuildFormData';
-import {MobileBuildPreviewSection} from 'sentry/views/detectors/components/forms/mobileBuild/previewSection';
-import {NewDetectorLayout} from 'sentry/views/detectors/components/forms/newDetectorLayout';
+  DetectorFormLayout,
+  DetectorOwnershipSection,
+  DetectorProjectSection,
+  getDetectorSubmitTitle,
+  useDetectorProject,
+  useInitialDetectorCommonValues,
+} from 'sentry/views/detectors/components/forms/common/scraps';
+import {useSubmitCreateDetector} from 'sentry/views/detectors/hooks/useSubmitCreateDetector';
+import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
+import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
 import {STATUS_CHECK_ALLOWED_FILTER_KEYS} from 'sentry/views/settings/project/preprod/types';
 
-function MobileBuildDetectorForm() {
+import {MobileBuildDetectSection} from './detectSection';
+import {
+  PREPROD_DEFAULT_FORM_DATA,
+  preprodFormDataToEndpointPayload,
+  preprodSavedDetectorToFormData,
+} from './mobileBuildFormData';
+import {MobileBuildPreviewSection} from './previewSection';
+
+const schema = z
+  .object({
+    name: z.string(),
+    projectId: z.string().min(1, t('Required fields must be filled out')),
+    description: z.string().nullable(),
+    owner: z.string(),
+    workflowIds: z.array(z.string()),
+    measurement: z.enum(['install_size', 'download_size']),
+    thresholdType: z.enum(['absolute', 'absolute_diff', 'relative_diff']),
+    highThreshold: z.string(),
+    lowThreshold: z.string(),
+    query: z.string(),
+  })
+  .refine(values => !!values.highThreshold || !!values.lowThreshold, {
+    path: ['highThreshold'],
+    message: t('At least one threshold is required'),
+  });
+
+function MobileBuildDetectorForm({detector}: {detector?: PreprodDetector}) {
   const theme = useTheme();
-  const {form} = useContext(FormContext);
-  const query = usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.query) ?? '';
-  const projectId = usePreprodDetectorFormField(PREPROD_DETECTOR_FORM_FIELDS.projectId);
-
-  const handleSearch = useCallback(
-    (searchQuery: string) => {
-      form?.setValue(PREPROD_DETECTOR_FORM_FIELDS.query, searchQuery);
+  const organization = useOrganization();
+  const commonValues = useInitialDetectorCommonValues();
+  const initialValues = detector
+    ? preprodSavedDetectorToFormData(detector)
+    : {...commonValues, ...PREPROD_DEFAULT_FORM_DATA};
+  const onError = (error: unknown): void => {
+    if (error instanceof RequestError) {
+      setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values));
+    }
+  };
+  const submitCreate = useSubmitCreateDetector({onError});
+  const submitEdit = useSubmitEditDetector({onError});
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: initialValues,
+    validators: {onChange: schema, onDynamic: schema},
+    onSubmitInvalid: args => {
+      defaultFormOptions.onSubmitInvalid(args);
+      if (!detector) {
+        trackAnalytics('monitor.created', {
+          organization,
+          detector_type: 'preprod_size_analysis',
+          success: false,
+        });
+      }
     },
-    [form]
-  );
-
+    onSubmit: ({value, formApi}) => {
+      // Scraps disables automatic browser validation. Preserve the legacy number
+      // inputs' native validity, including their step base, before sending data.
+      const element = document.getElementById(formApi.formId);
+      if (element instanceof HTMLFormElement && !element.reportValidity()) {
+        return;
+      }
+      const payload = preprodFormDataToEndpointPayload(value);
+      return detector
+        ? submitEdit({detectorId: detector.id, ...payload})
+        : submitCreate(payload);
+    },
+  });
+  const projectId = useStore(form.store, state => state.values.projectId);
+  const project = useDetectorProject(projectId);
+  const canEdit = useCanEditDetector({projectId, detectorType: 'preprod_size_analysis'});
   return (
-    <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
-      <ProjectSection step={1} />
-      <MobileBuildDetectSection />
-      <Container>
-        <FormSection
-          step={4}
-          title={t('Filters')}
-          description={t(
-            'Narrow down which builds are monitored by filtering on build attributes.'
-          )}
+    <EditLayout>
+      <form.AppForm form={form}>
+        <DetectorFormLayout
+          form={form}
+          fields={{name: 'name'}}
+          detectorType="preprod_size_analysis"
+          detector={detector}
+          submitButton={
+            <form.Subscribe
+              selector={state => ({
+                isIncomplete: !state.values.projectId,
+                isValid: state.isValid,
+                projectId: state.values.projectId,
+              })}
+            >
+              {state => (
+                <form.SubmitButton
+                  size={detector ? 'sm' : undefined}
+                  disabled={state.isIncomplete || !state.isValid || !canEdit}
+                  tooltipProps={{
+                    title: getDetectorSubmitTitle(
+                      state,
+                      canEdit
+                        ? undefined
+                        : t(
+                            'You do not have permission to create or edit monitors in this project'
+                          )
+                    ),
+                  }}
+                >
+                  {detector ? t('Save') : t('Create Monitor')}
+                </form.SubmitButton>
+              )}
+            </form.Subscribe>
+          }
         >
-          <PreprodSearchBar
-            initialQuery={query}
-            projects={projectId ? [Number(projectId)] : []}
-            onSearch={handleSearch}
-            searchSource="mobile_build_detector_form"
-            disallowFreeText
-            disallowHas
-            disallowLogicalOperators
-            allowedKeys={STATUS_CHECK_ALLOWED_FILTER_KEYS}
-          />
-        </FormSection>
-      </Container>
-      <IssueOwnershipSection step={5} />
-      <MobileBuildPreviewSection step={6} />
-      <AutomateSectionDeprecated step={7} />
-    </Stack>
+          <Stack gap="2xl" maxWidth={theme.breakpoints.lg}>
+            <DetectorProjectSection
+              form={form}
+              fields={{projectId: 'projectId'}}
+              detectorType="preprod_size_analysis"
+              detector={detector}
+              step={1}
+            />
+            <MobileBuildDetectSection
+              form={form}
+              fields={{
+                projectId: 'projectId',
+                measurement: 'measurement',
+                thresholdType: 'thresholdType',
+                highThreshold: 'highThreshold',
+                lowThreshold: 'lowThreshold',
+              }}
+            />
+            <Container>
+              <FormSection
+                step={4}
+                title={t('Filters')}
+                description={t(
+                  'Narrow down which builds are monitored by filtering on build attributes.'
+                )}
+              >
+                <form.Subscribe selector={state => state.values.projectId}>
+                  {selectedProjectId => (
+                    <form.AppField name="query">
+                      {field => (
+                        <PreprodSearchBar
+                          initialQuery={field.state.value}
+                          projects={selectedProjectId ? [Number(selectedProjectId)] : []}
+                          onSearch={field.handleChange}
+                          searchSource="mobile_build_detector_form"
+                          disallowFreeText
+                          disallowHas
+                          disallowLogicalOperators
+                          allowedKeys={STATUS_CHECK_ALLOWED_FILTER_KEYS}
+                        />
+                      )}
+                    </form.AppField>
+                  )}
+                </form.Subscribe>
+              </FormSection>
+            </Container>
+            <DetectorOwnershipSection
+              form={form}
+              fields={{
+                projectId: 'projectId',
+                owner: 'owner',
+                description: 'description',
+              }}
+              step={5}
+            />
+            <form.Subscribe selector={state => state.values}>
+              {values => <MobileBuildPreviewSection values={values} step={6} />}
+            </form.Subscribe>
+            <AutomateSection
+              form={form}
+              fields={{workflowIds: 'workflowIds'}}
+              project={project}
+              step={7}
+            />
+          </Stack>
+        </DetectorFormLayout>
+      </form.AppForm>
+    </EditLayout>
   );
 }
 
 export function NewPreprodDetectorForm() {
-  return (
-    <NewDetectorLayout
-      detectorType="preprod_size_analysis"
-      formDataToEndpointPayload={preprodFormDataToEndpointPayload}
-      initialFormData={PREPROD_DEFAULT_FORM_DATA}
-    >
-      <MobileBuildDetectorForm />
-    </NewDetectorLayout>
-  );
+  return <MobileBuildDetectorForm />;
 }
 
 export function EditExistingPreprodDetectorForm({detector}: {detector: PreprodDetector}) {
-  return (
-    <EditDetectorLayout
-      detector={detector}
-      formDataToEndpointPayload={preprodFormDataToEndpointPayload}
-      savedDetectorToFormData={preprodSavedDetectorToFormData}
-    >
-      <MobileBuildDetectorForm />
-    </EditDetectorLayout>
-  );
+  return <MobileBuildDetectorForm detector={detector} />;
 }

@@ -1,4 +1,3 @@
-import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
@@ -12,7 +11,7 @@ import type {
 } from 'sentry/types/workflowEngine/detectors';
 import {bytesToMB, mbToBytes} from 'sentry/views/settings/project/preprod/types';
 
-interface PreprodDetectorFormData {
+export interface PreprodDetectorFormData {
   description: string | null;
   highThreshold: string;
   lowThreshold: string;
@@ -40,19 +39,16 @@ export const PREPROD_DETECTOR_FORM_FIELDS = {
   query: 'query',
 } satisfies Record<PreprodDetectorFormFieldName, PreprodDetectorFormFieldName>;
 
-export const PREPROD_DEFAULT_FORM_DATA: Partial<PreprodDetectorFormData> = {
+export const PREPROD_DEFAULT_FORM_DATA = {
   measurement: 'install_size',
   thresholdType: 'absolute',
   highThreshold: '',
   lowThreshold: '',
   query: '',
-};
-
-export function usePreprodDetectorFormField<T extends PreprodDetectorFormFieldName>(
-  name: T
-): PreprodDetectorFormData[T] | undefined {
-  return useFormField(name);
-}
+} satisfies Pick<
+  PreprodDetectorFormData,
+  'measurement' | 'thresholdType' | 'highThreshold' | 'lowThreshold' | 'query'
+>;
 
 function createPreprodConditions(
   data: PreprodDetectorFormData
