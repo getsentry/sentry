@@ -1107,6 +1107,20 @@ def compare_snapshots(
                 preprod_artifact_id=head_artifact_id, caller="compare_failure"
             )
 
+    def _fail_manifest_load(which: str) -> None:
+        logger.exception(
+            "compare_snapshots: failed to load or parse %s manifest",
+            which,
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+            },
+        )
+        _fail_comparison(
+            PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+            "Failed to load or parse snapshot manifest.",
+        )
+
     try:
         session = get_snapshot_storage(project_id, org=org_id)
 
@@ -1136,17 +1150,7 @@ def compare_snapshots(
         try:
             head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
         except manifest_errors:
-            logger.exception(
-                "compare_snapshots: failed to load or parse head manifest",
-                extra={
-                    "head_artifact_id": head_artifact_id,
-                    "base_artifact_id": base_artifact_id,
-                },
-            )
-            _fail_comparison(
-                PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                "Failed to load or parse snapshot manifest.",
-            )
+            _fail_manifest_load("head")
             return
 
         try:
@@ -1166,17 +1170,7 @@ def compare_snapshots(
             )
             return
         except manifest_errors:
-            logger.exception(
-                "compare_snapshots: failed to load or parse base manifest",
-                extra={
-                    "head_artifact_id": head_artifact_id,
-                    "base_artifact_id": base_artifact_id,
-                },
-            )
-            _fail_comparison(
-                PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                "Failed to load or parse snapshot manifest.",
-            )
+            _fail_manifest_load("base")
             return
 
         # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of
