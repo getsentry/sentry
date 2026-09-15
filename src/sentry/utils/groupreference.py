@@ -106,14 +106,12 @@ def find_referenced_groups(text: str | None, org_id: int) -> set[Group]:
     return results
 
 
-def find_fix_statements(text: str | None, org_id: int) -> list[str]:
-    """Return each whole line of *text* that fixes a real Sentry issue in
-    *org_id*, so a caller can strip the line from a description verbatim.
-
-    Group detection is delegated to find_referenced_groups, line by line, so a
-    line listing several issues ("Fixes FOO-1, FOO-2") is one statement.
-    """
+def find_fix_statements(text: str | None, org_id: int) -> list[tuple[str, set[Group]]]:
     if not text:
         return []
 
-    return [line for line in text.splitlines() if find_referenced_groups(line, org_id)]
+    return [
+        (line, groups)
+        for line in text.splitlines()
+        if (groups := find_referenced_groups(line, org_id))
+    ]

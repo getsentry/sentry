@@ -13,7 +13,7 @@ class FindFixStatementsTest(TestCase):
         return urlparse(self._url_prefix()).netloc
 
     def _find(self, text: str | None) -> list[str]:
-        return find_fix_statements(text, self.organization.id)
+        return [line for line, _ in find_fix_statements(text, self.organization.id)]
 
     def test_empty_text(self) -> None:
         assert self._find(None) == []

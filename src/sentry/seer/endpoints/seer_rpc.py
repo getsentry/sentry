@@ -162,6 +162,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
+from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
@@ -422,12 +423,17 @@ def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
 
 
 def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
-    from sentry.utils.groupreference import find_fix_statements, find_referenced_groups
-
-    groups = find_referenced_groups(text, org_id)
+    statements = find_fix_statements(text, org_id)
     return ReferencedFixStatementsResponse(
-        statements=find_fix_statements(text, org_id),
-        short_ids=sorted(g.qualified_short_id for g in groups if g.qualified_short_id),
+        statements=[line for line, _ in statements],
+        short_ids=sorted(
+            {
+                group.qualified_short_id
+                for _, groups in statements
+                for group in groups
+                if group.qualified_short_id
+            }
+        ),
     )
 
 
