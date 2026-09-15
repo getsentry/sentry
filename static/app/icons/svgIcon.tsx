@@ -68,7 +68,7 @@ SvgIcon.ICON_DIRECTION_TO_ROTATION_ANGLE = ICON_DIRECTION_TO_ROTATION_ANGLE;
  * a common icon size interface and handles the resolution. With some small changes to the types, this
  * could be achieved via a small wrapper around the Container component.
  */
-const ICON_SIZES: Record<IconSize, string> = {
+export const ICON_SIZES: Record<IconSize, string> = {
   xs: '12px',
   sm: '14px',
   md: '16px',
