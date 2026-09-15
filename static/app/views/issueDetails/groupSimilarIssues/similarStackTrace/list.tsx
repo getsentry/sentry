@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -17,11 +17,11 @@ import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
 
 const SIMILAR_ISSUE_COLUMNS: TableColumnConfig[] = [
-  {key: 'merge', width: 'minmax(0, 1fr)'},
-  {key: 'events', width: 'max-content'},
+  {key: 'merge', width: 'minmax(160px, 1fr)'},
+  {key: 'events', width: 'max-content', visible: {xs: true}},
   {key: 'exception', width: 'max-content'},
-  {key: 'message', width: 'max-content'},
-  {key: 'actions', width: '80px'},
+  {key: 'message', width: 'max-content', visible: {md: true}},
+  {key: 'actions', width: '80px', visible: {'2xs': true}},
 ];
 
 const SIMILAR_ISSUE_COLUMNS_WITHOUT_MESSAGE = SIMILAR_ISSUE_COLUMNS.filter(
@@ -81,75 +81,81 @@ export function List({
         />
       </Flex>
 
-      <SimpleTable
-        columns={
-          hasSimilarityEmbeddingsFeature
-            ? SIMILAR_ISSUE_COLUMNS_WITHOUT_MESSAGE
-            : SIMILAR_ISSUE_COLUMNS
-        }
-        header={
-          <SimpleTable.HeaderRow>
-            <MergeHeaderCell>
-              <Confirm
-                disabled={mergeCount === 0}
-                message={tn(
-                  'Merge %s issue into this one?',
-                  'Merge %s issues into this one?',
-                  mergeCount
-                )}
-                onConfirm={onMerge}
-              >
-                <Button size="xs">
-                  {tn('Merge %s issue', 'Merge %s issues', mergeCount)}
-                </Button>
-              </Confirm>
-            </MergeHeaderCell>
-            <SimpleTable.HeaderCell align="center">{t('Events')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell align="center">
-              {t('Exception')}
-            </SimpleTable.HeaderCell>
-            {!hasSimilarityEmbeddingsFeature && (
-              <SimpleTable.HeaderCell align="center">
-                {t('Message')}
+      {/* A query container, so the responsive columns above resolve against the
+          table's own width rather than the viewport's. */}
+      <Container containerType="inline-size">
+        <SimpleTable
+          columns={
+            hasSimilarityEmbeddingsFeature
+              ? SIMILAR_ISSUE_COLUMNS_WITHOUT_MESSAGE
+              : SIMILAR_ISSUE_COLUMNS
+          }
+          header={
+            <SimpleTable.HeaderRow>
+              <MergeHeaderCell columnKey="merge">
+                <Confirm
+                  disabled={mergeCount === 0}
+                  message={tn(
+                    'Merge %s issue into this one?',
+                    'Merge %s issues into this one?',
+                    mergeCount
+                  )}
+                  onConfirm={onMerge}
+                >
+                  <Button size="xs">
+                    {tn('Merge %s issue', 'Merge %s issues', mergeCount)}
+                  </Button>
+                </Confirm>
+              </MergeHeaderCell>
+              <SimpleTable.HeaderCell align="center" columnKey="events">
+                {t('Events')}
               </SimpleTable.HeaderCell>
-            )}
-            <SimpleTable.HeaderCell />
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {loading &&
-          Array.from({length: 3}).map((_, i) => (
-            <SimilarStackTraceItemSkeleton
-              key={i}
-              hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
-            />
-          ))}
-        {isError && (
-          <SimpleTable.Empty>
-            <Stack align="center" gap="sm">
-              <Text>{t("Couldn't load similar issues.")}</Text>
-              <Button size="xs" onClick={onRetry}>
-                {t('Retry')}
-              </Button>
-            </Stack>
-          </SimpleTable.Empty>
-        )}
-        {isEmpty && <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>}
-        {!loading &&
-          !isError &&
-          itemsWithFiltered.map(item => (
-            <SimilarStackTraceItem
-              key={item.issue.id}
-              groupId={groupId}
-              project={project}
-              hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
-              checked={checkedIds.has(item.issue.id)}
-              busy={busyIds.has(item.issue.id)}
-              onToggle={onToggle}
-              {...item}
-            />
-          ))}
-      </SimpleTable>
+              <SimpleTable.HeaderCell align="center" columnKey="exception">
+                {t('Exception')}
+              </SimpleTable.HeaderCell>
+              {!hasSimilarityEmbeddingsFeature && (
+                <SimpleTable.HeaderCell align="center" columnKey="message">
+                  {t('Message')}
+                </SimpleTable.HeaderCell>
+              )}
+              <SimpleTable.HeaderCell columnKey="actions" />
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {loading &&
+            Array.from({length: 3}).map((_, i) => (
+              <SimilarStackTraceItemSkeleton
+                key={i}
+                hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
+              />
+            ))}
+          {isError && (
+            <SimpleTable.Empty>
+              <Stack align="center" gap="sm">
+                <Text>{t("Couldn't load similar issues.")}</Text>
+                <Button size="xs" onClick={onRetry}>
+                  {t('Retry')}
+                </Button>
+              </Stack>
+            </SimpleTable.Empty>
+          )}
+          {isEmpty && <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>}
+          {!loading &&
+            !isError &&
+            itemsWithFiltered.map(item => (
+              <SimilarStackTraceItem
+                key={item.issue.id}
+                groupId={groupId}
+                project={project}
+                hasSimilarityEmbeddingsFeature={hasSimilarityEmbeddingsFeature}
+                checked={checkedIds.has(item.issue.id)}
+                busy={busyIds.has(item.issue.id)}
+                onToggle={onToggle}
+                {...item}
+              />
+            ))}
+        </SimpleTable>
+      </Container>
 
       {hasHiddenItems && !showAllItems && !hasSimilarityEmbeddingsFeature && (
         <Flex justify="center" padding="lg">
