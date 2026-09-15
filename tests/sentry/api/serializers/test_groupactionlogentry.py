@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import patch
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
@@ -379,9 +380,11 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             data={"comment_id": comment.id, **data},
         )
 
-    def _activity_items(self) -> list[dict[str, Any]]:
+    def _activity_items(self, limit: int = 99) -> list[dict[str, Any]]:
         with action_log_activity_enabled():
-            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+            items = get_serialized_activity_items(
+                self.group, self.user, endpoint="test", limit=limit
+            )
         assert items is not None
         return items
 
@@ -394,6 +397,113 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert [item["type"] for item in items] == ["note", "first_seen"]
         assert items[0]["id"] == "123"
         assert items[0]["data"]["text"] == "edited"
+
+    def test_edit_at_window_boundary_preserves_comment(self) -> None:
+        comment = self._comment(123, "original")
+        older_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
+        before = self._activity_items(limit=3)
+
+        for text in ["first", "second", "third", "fourth", "fifth", "edited again"]:
+            self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text=text)
+
+        with patch.object(
+            GroupActionLogEntry.objects,
+            "get_actions_for_group",
+            wraps=GroupActionLogEntry.objects.get_actions_for_group,
+        ) as fetch:
+            items = self._activity_items(limit=3)
+
+        assert [call.args[1] for call in fetch.call_args_list] == [3, 6, 12]
+
+        assert [item["id"] for item in items] == [
+            str(newer_action.id),
+            str(older_action.id),
+            "123",
+            "0",
+        ]
+        assert items[:2] == before[:2]
+        assert items[2] == {**before[2], "data": {**before[2]["data"], "text": "edited again"}}
+        assert items[3] == before[3]
+
+    def test_initial_headroom_absorbs_boundary_edit_without_refetch(self) -> None:
+        comment = self._comment(123, "original")
+        older_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
+        newest_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
+
+        with patch.object(
+            GroupActionLogEntry.objects,
+            "get_actions_for_group",
+            wraps=GroupActionLogEntry.objects.get_actions_for_group,
+        ) as fetch:
+            items = self._activity_items(limit=4)
+
+        fetch.assert_called_once_with(self.group, 5)
+        assert [item["id"] for item in items] == [
+            str(newest_action.id),
+            str(newer_action.id),
+            str(older_action.id),
+            "123",
+            "0",
+        ]
+        assert items[3]["data"]["text"] == "edited"
+
+    def test_full_page_without_mutations_needs_only_one_fetch(self) -> None:
+        self._comment(123, "comment")
+        self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+
+        with patch.object(
+            GroupActionLogEntry.objects,
+            "get_actions_for_group",
+            wraps=GroupActionLogEntry.objects.get_actions_for_group,
+        ) as fetch:
+            items = self._activity_items(limit=2)
+
+        fetch.assert_called_once_with(self.group, 2)
+        assert [item["type"] for item in items] == ["set_resolved", "note", "first_seen"]
+
+    def test_deleted_comment_is_replaced_by_older_action(self) -> None:
+        oldest_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        comment = self._comment(123, "original")
+        newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
+        newest_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
+        self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
+
+        items = self._activity_items(limit=3)
+
+        assert [item["id"] for item in items] == [
+            str(newest_action.id),
+            str(newer_action.id),
+            str(oldest_action.id),
+            "0",
+        ]
+        assert items[-1]["type"] == "first_seen"
+
+    def test_deleted_comment_is_replaced_by_older_comment(self) -> None:
+        self._comment(123, "oldest")
+        self._comment(456, "middle")
+        deleted = self._comment(789, "newest")
+        self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
+
+        items = self._activity_items(limit=2)
+
+        assert [item["id"] for item in items] == ["456", "123", "0"]
+
+    def test_comment_history_is_truncated_after_folding(self) -> None:
+        oldest = self._comment(123, "oldest")
+        self._comment(456, "middle")
+        newest = self._comment(789, "newest")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, newest, text="edited")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, oldest, text="still outside the page")
+
+        items = self._activity_items(limit=2)
+
+        assert [item["id"] for item in items] == ["789", "456", "0"]
+        assert items[0]["data"]["text"] == "edited"
+        assert items[-1]["type"] == "first_seen"
 
     def test_latest_comment_edit_wins(self) -> None:
         comment = self._comment(123, "original")
@@ -449,8 +559,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert items[2]["data"]["text"] == "untouched"
 
     def test_comment_mutations_are_dropped_without_their_comment(self) -> None:
-        # The COMMENT fell outside the window, or was never written. Either way the
-        # mutation has nothing to fold into and must not render on its own.
+        # A missing COMMENT leaves nothing to fold into; its mutation must not render.
         orphan = self._comment(123, "original")
         self._comment_mutation(GroupActionType.COMMENT_EDIT, orphan, text="edited")
         orphan.delete()
