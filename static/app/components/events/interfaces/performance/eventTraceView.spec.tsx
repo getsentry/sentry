@@ -59,15 +59,16 @@ describe('EventTraceView', () => {
       method: 'GET',
       url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
       body: {
-        errors: 1,
-        performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: Array.from({length: size})
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 1,
+        spansCount: 0,
+        spansCountMap: {},
+        transactionChildCountMap: Array.from({length: size})
           .fill(0)
-          .map((_, i) => [{'transaction.id': i.toString(), count: 1}]),
-        span_count: 0,
-        span_count_map: {},
+          .map((_, i) => ({'transaction.event_id': i.toString(), 'count()': 1})),
+        uptimeCount: 0,
       },
     });
     MockApiClient.addMockResponse({
@@ -134,13 +135,14 @@ describe('EventTraceView', () => {
       method: 'GET',
       url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
       body: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
-        span_count: 0,
-        span_count_map: {},
+        errorsCount: 0,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 0,
+        spansCountMap: {},
+        transactionChildCountMap: [{'transaction.event_id': '1', 'count()': 1}],
+        uptimeCount: 0,
       },
     });
     MockApiClient.addMockResponse({

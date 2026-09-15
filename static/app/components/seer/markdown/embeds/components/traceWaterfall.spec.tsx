@@ -20,13 +20,14 @@ describe('traceWaterfall embed', () => {
     const metaRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/trace-meta/${traceId}/`,
       body: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [],
-        span_count: 0,
-        span_count_map: {},
+        errorsCount: 0,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 0,
+        spansCountMap: {},
+        transactionChildCountMap: [],
+        uptimeCount: 0,
       },
     });
 

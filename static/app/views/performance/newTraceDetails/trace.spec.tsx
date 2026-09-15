@@ -108,13 +108,14 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
     asyncDelay: 1,
     ...(resp ?? {
       body: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [],
-        span_count: 200,
-        span_count_map: {},
+        errorsCount: 0,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 200,
+        spansCountMap: {},
+        transactionChildCountMap: [],
+        uptimeCount: 0,
       },
     }),
   });
