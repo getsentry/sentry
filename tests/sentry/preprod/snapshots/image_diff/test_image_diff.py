@@ -143,7 +143,7 @@ class TestCompareImagesBatch:
         assert encoded is not None
         assert counts_only is not None
         assert encoded.diff_mask_png
-        assert counts_only == encoded.copy(update={"diff_mask_png": b""})
+        assert counts_only == encoded.copy(update={"diff_mask_png": None})
         assert counts_only.changed_pixels == changed_pixels
         assert counts_only.total_pixels == 4
         encode.assert_called_once()

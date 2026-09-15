@@ -17,7 +17,7 @@ class ImageSize(NamedTuple):
 class DiffResult(BaseModel):
     model_config = ConfigDict(frozen=True)
 
-    diff_mask_png: bytes
+    diff_mask_png: bytes | None
     changed_pixels: int
     total_pixels: int
     aligned_height: int

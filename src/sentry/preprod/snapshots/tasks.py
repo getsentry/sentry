@@ -849,6 +849,7 @@ def _process_chunk(
                 org_id, project_id, head_artifact_id, base_artifact_id, stem
             )
             diff_mask_bytes = diff_result.diff_mask_png
+            assert diff_mask_bytes is not None
             _put_diff_mask(session, diff_mask_key, diff_mask_bytes)
 
             diff_mask_image_id = f"{head_artifact_id}/{base_artifact_id}/diff/{stem}.png"

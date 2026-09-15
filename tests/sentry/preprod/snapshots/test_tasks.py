@@ -475,7 +475,7 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
         patch("sentry.preprod.snapshots.tasks._fetch_batch_images", return_value=(fetched, set())),
         patch(
             "sentry.preprod.snapshots.tasks.compare_images_batch",
-            return_value=[diff_result, diff_result],
+            return_value=[diff_result, diff_result.copy(update={"diff_mask_png": None})],
         ) as compare,
         patch("sentry.preprod.snapshots.tasks.OdiffServer"),
         patch("sentry.preprod.snapshots.tasks._put_diff_mask") as put_mask,

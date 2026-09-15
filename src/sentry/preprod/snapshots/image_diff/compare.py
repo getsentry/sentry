@@ -179,7 +179,7 @@ def _compare_single_pair(
             diff_mask = _mask_from_diff_output(output_path)
             changed_pixels = sum(diff_mask.histogram()[1:])
 
-        diff_mask_png = _encode_mask_png(diff_mask) if include_mask else b""
+        diff_mask_png = _encode_mask_png(diff_mask) if include_mask else None
 
         return DiffResult(
             diff_mask_png=diff_mask_png,
