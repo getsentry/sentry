@@ -27,9 +27,11 @@ export function Subscriptions({events, onChange, permissions}: Props) {
   // Every event needs its backing permission.
   useEffect(() => {
     const permitted = new Set<string>(
-      EVENT_CHOICES.filter(
-        resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
-      ).flatMap(resource => [resource, ...RESOURCE_EVENTS[resource]])
+      EVENT_CHOICES.flatMap(resource =>
+        permissions[PERMISSIONS_MAP[resource]] === 'no-access'
+          ? []
+          : [resource, ...RESOURCE_EVENTS[resource]]
+      )
     );
     const permittedEvents = events.filter(subscription => permitted.has(subscription));
 

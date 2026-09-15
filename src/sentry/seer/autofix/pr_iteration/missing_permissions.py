@@ -50,10 +50,12 @@ from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
     get_missing_permissions_by_repo,
 )
+from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome, record_pr_iteration_blocked
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 MISSING_PERMISSIONS_EXTRA = "missing_permissions"
 
@@ -222,6 +224,7 @@ def _skip(log_ctx: PrIterationLogContext, reason: str, **log_fields: Any) -> Non
     log_ctx.info("autofix.pr_iteration.missing_permissions.skipped", reason=reason, **log_fields)
 
 
+@trace
 def block_iteration_for_missing_permissions(
     *,
     organization: Organization,
@@ -238,6 +241,13 @@ def block_iteration_for_missing_permissions(
     if not missing_by_repo:
         return False
 
+    record_pr_iteration_blocked(
+        log_ctx=log_ctx,
+        run_state=state,
+        run_id=run_id,
+        organization_id=organization.id,
+        outcome=PrIterationOutcome.MISSING_PERMISSIONS.value,
+    )
     _queue_missing_permissions_comments(
         organization=organization,
         run_id=run_id,

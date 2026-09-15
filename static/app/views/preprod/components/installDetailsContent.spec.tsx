@@ -5,6 +5,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {
   getDeviceInstallUrl,
   getDistributionErrorTooltip,
+  getIpaDownloadUrl,
   InstallDetailsContent,
 } from 'sentry/views/preprod/components/installDetailsContent';
 
@@ -48,6 +49,24 @@ describe('getDeviceInstallUrl', () => {
     expect(getDeviceInstallUrl('android', 'https://example.com/install')).toBe(
       'https://example.com/install'
     );
+  });
+});
+
+describe('getIpaDownloadUrl', () => {
+  it('adds the ipa response_format when none is present', () => {
+    expect(getIpaDownloadUrl('https://example.com/install/')).toBe(
+      'https://example.com/install/?response_format=ipa'
+    );
+  });
+
+  it('swaps a plist response_format for ipa', () => {
+    expect(getIpaDownloadUrl('https://example.com/install/?response_format=plist')).toBe(
+      'https://example.com/install/?response_format=ipa'
+    );
+  });
+
+  it('returns the input unchanged when it is not a valid URL', () => {
+    expect(getIpaDownloadUrl('not a url')).toBe('not a url');
   });
 });
 
@@ -237,9 +256,16 @@ describe('InstallDetailsContent', () => {
     });
 
     expect(await screen.findByText('5 downloads')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Install'})).toHaveAttribute(
       'href',
       'itms-services://?action=download-manifest&url=https%3A%2F%2Fexample.com%2Finstall'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More install options'}));
+    const downloadIpaItem = await screen.findByText('Download IPA');
+    expect(downloadIpaItem.closest('a')).toHaveAttribute(
+      'href',
+      'https://example.com/install?response_format=ipa'
     );
   });
 
@@ -257,10 +283,10 @@ describe('InstallDetailsContent', () => {
       organization,
     });
 
-    const copyButtons = await screen.findAllByRole('button', {
-      name: 'Copy Download Link',
-    });
-    await userEvent.click(copyButtons[0]!);
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'More install options'})
+    );
+    await userEvent.click(await screen.findByText('Copy Install Link'));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       'itms-services://?action=download-manifest&url=https%3A%2F%2Fexample.com%2Finstall'
@@ -330,7 +356,7 @@ describe('InstallDetailsContent', () => {
       organization,
     });
 
-    expect(await screen.findByRole('button', {name: 'Download'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Install'})).toBeInTheDocument();
     expect(screen.queryByText('Install Groups')).not.toBeInTheDocument();
   });
 });

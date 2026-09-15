@@ -208,7 +208,7 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
 
 def ensure_default_organization_workflows(organization: Organization) -> list[Workflow]:
     """
-    Raises on Workflow.MultipleObjectsReturned, Detector.MultipleObjectsReturned, UnableToAcquireLockApiError
+    Raises on Workflow.MultipleObjectsReturned, UnableToAcquireLockApiError
     """
     workflows: list[Workflow] = []
     if not options.get("workflow_engine.auto_creation.pull_request_workflow"):

@@ -11,8 +11,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectAlertRulePermission, ProjectEndpoint
 from sentry.api.endpoints.project_rules import find_duplicate_rule
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.constants import ObjectStatus
+from sentry.api.helpers.deprecation import deprecated
+from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.models.rule import Rule
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import (
     report_used_legacy_models,
     track_alert_endpoint_execution,
@@ -28,7 +30,13 @@ class ProjectRuleEnableEndpoint(ProjectEndpoint):
     permission_classes = (ProjectAlertRulePermission,)
 
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-rule-enable")
+    @deprecated(
+        ALERTS_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-workflow-details",
+        key=ALERTS_API_DEPRECATION_KEY,
+    )
     def put(self, request: Request, project, rule_id) -> Response:
+        enforce_alerts_api_deprecation(project.organization)
         # Mark that we're using legacy Rule models (before query to track failures too)
         report_used_legacy_models()
 

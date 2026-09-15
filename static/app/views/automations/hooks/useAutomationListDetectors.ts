@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import chunk from 'lodash/chunk';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
@@ -16,18 +16,12 @@ const MAX_DETECTORS_PER_REQUEST = 100;
 export function useAutomationListQueryOptions() {
   const organization = useOrganization();
   const {selection, isReady} = usePageFilters();
-  const {
-    sort: sorts,
-    query,
-    cursor,
-  } = useLocationQuery({
-    fields: {
-      sort: decodeSorts,
-      query: decodeScalar,
-      cursor: decodeScalar,
-    },
-  });
-  const sort = sorts[0] ?? {kind: 'desc', field: 'lastTriggered'};
+  const [sort] = useQueryState(
+    'sort',
+    parseAsSort.withDefault({kind: 'desc', field: 'lastTriggered'})
+  );
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
+  const [cursor] = useQueryState('cursor', parseAsString.withDefault(''));
 
   return {
     queryOptions: automationsApiOptions(organization, {

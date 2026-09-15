@@ -8,6 +8,10 @@ from sentry.integrations.utils.github_permission_tiers import (
     _baseline_tier_reqs,
     get_permission_tiers,
 )
+from sentry.integrations.utils.github_permissions import (
+    PermissionLevel,
+    parse_github_app_permissions,
+)
 
 REQUIRED_PERMISSIONS = {
     "actions": "write",
@@ -86,7 +90,7 @@ def test_a_level_above_the_watermark_still_satisfies_the_tier() -> None:
     assert _keys({**UP_TO_DATE, "contents": "admin"}) == []
 
 
-def test_an_unrecognised_level_counts_as_not_held() -> None:
+def test_an_unrecognised_held_level_counts_as_not_held() -> None:
     assert _keys({**UP_TO_DATE, "actions": "sudo"}) == ALL_KEYS[:1]
 
 
@@ -123,7 +127,7 @@ def test_a_requirement_no_tier_claims_falls_short_of_baseline(
     assert _keys(UP_TO_DATE, required) == ALL_KEYS
 
     assert mock_warning.call_args[0][0] == "github_permission_tiers.short_of_baseline"
-    assert mock_warning.call_args[1]["extra"]["expected_permissions"] == {
+    assert mock_warning.call_args[1]["extra"]["expected_levels"] == {
         "administration": "read",
         "issues": "write",
         "metadata": "read",
@@ -140,17 +144,20 @@ def test_a_consistent_run_is_not_warned_about(mock_warning) -> None:
 
 
 def test_unclaimed_requirements_is_what_the_baseline_speaks_for() -> None:
-    assert _baseline_tier_reqs(REQUIRED_PERMISSIONS) == {
-        "administration": "read",
-        "issues": "write",
-        "metadata": "read",
-        "repository_hooks": "write",
+    required_levels = parse_github_app_permissions(REQUIRED_PERMISSIONS, source="test").levels
+    assert _baseline_tier_reqs(required_levels) == {
+        "administration": PermissionLevel.READ,
+        "issues": PermissionLevel.WRITE,
+        "metadata": PermissionLevel.READ,
+        "repository_hooks": PermissionLevel.WRITE,
     }
 
 
 def test_unclaimed_requirements_reports_a_raise_beyond_any_tier() -> None:
-    assert _baseline_tier_reqs({"contents": "admin"}) == {"contents": "admin"}
-    assert _baseline_tier_reqs({"contents": "write"}) == {}
+    assert _baseline_tier_reqs({"contents": PermissionLevel.ADMIN}) == {
+        "contents": PermissionLevel.ADMIN
+    }
+    assert _baseline_tier_reqs({"contents": PermissionLevel.WRITE}) == {}
 
 
 def test_every_tier_key_is_unique() -> None:

@@ -113,7 +113,7 @@ class ShiftPositionsTest(StarredHelpersTestBase):
         above = self.explore_star(3)
         above2 = self.explore_star(4)
 
-        utils.shift_starred_positions_by_one(self.org, self.user.id, from_position=1)
+        utils.shift_starred_positions(self.org, self.user.id, from_position=1, delta=-1)
 
         below.refresh_from_db()
         above.refresh_from_db()
@@ -121,6 +121,22 @@ class ShiftPositionsTest(StarredHelpersTestBase):
         assert below.position == 1
         assert above.position == 2
         assert above2.position == 3
+
+    def test_inclusive_gap(self) -> None:
+        below = self.explore_star(1)
+        above = self.discover_star(2)
+        above2 = self.explore_star(3)
+
+        utils.shift_starred_positions(
+            self.org, self.user.id, from_position=2, delta=1, inclusive=True
+        )
+
+        below.refresh_from_db()
+        above.refresh_from_db()
+        above2.refresh_from_db()
+        assert below.position == 1
+        assert above.position == 3
+        assert above2.position == 4
 
 
 class ReorderTest(StarredHelpersTestBase):

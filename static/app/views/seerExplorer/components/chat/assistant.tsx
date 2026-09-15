@@ -21,6 +21,7 @@ export function AssistantBlock({
   runId,
   interactionPending,
   readOnly,
+  compact,
 }: AssistantBlockProps) {
   const organization = useOrganization();
   const content = block.message.content ?? '';
@@ -55,7 +56,7 @@ export function AssistantBlock({
   return (
     <Fragment>
       {hasValidContent(content) && (
-        <MessageRow from="assistant">
+        <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
           <AssistantMessage>
             <SeerMarkdown raw={content} scope={embedScope} />
           </AssistantMessage>

@@ -638,7 +638,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
 
-    def test_get_eap_transaction_volumes_reads_cap_from_legacy_option(self) -> None:
+    def test_get_eap_transaction_volumes_reads_cap_from_option(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         timestamp = before_now(minutes=15)

@@ -1,16 +1,11 @@
-import {
-  AST_NODE_TYPES,
-  ESLintUtils,
-  type TSESLint,
-  type TSESTree,
-} from '@typescript-eslint/utils';
+import type {Fix} from '@oxlint/plugins';
+import type {Fixer} from '@oxlint/plugins';
+import {defineRule, type ESTree, type Context} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
 
 const LAYOUT_SOURCE = '@sentry/scraps/layout';
 
-type MessageIds = 'preferStack';
-type Context = TSESLint.RuleContext<MessageIds, readonly unknown[]>;
 type ImportTracker = ReturnType<typeof createImportTracker>;
 
 /**
@@ -18,15 +13,15 @@ type ImportTracker = ReturnType<typeof createImportTracker>;
  * (`<Flex>`) or via a namespace import (`import * as Layout` -> `<Layout.Flex>`).
  */
 function isLayoutFlexElement(
-  nameNode: TSESTree.JSXTagNameExpression,
+  nameNode: ESTree.JSXElementName,
   importTracker: ImportTracker
 ): boolean {
-  if (nameNode.type === AST_NODE_TYPES.JSXIdentifier) {
+  if (nameNode.type === 'JSXIdentifier') {
     return importTracker.findLocalNames(LAYOUT_SOURCE, 'Flex').includes(nameNode.name);
   }
   if (
-    nameNode.type === AST_NODE_TYPES.JSXMemberExpression &&
-    nameNode.object.type === AST_NODE_TYPES.JSXIdentifier &&
+    nameNode.type === 'JSXMemberExpression' &&
+    nameNode.object.type === 'JSXIdentifier' &&
     nameNode.property.name === 'Flex'
   ) {
     const info = importTracker.resolve(nameNode.object.name);
@@ -42,23 +37,23 @@ function isLayoutFlexElement(
  * matched, since those cannot be expressed by <Stack>'s static default.
  */
 function getColumnDirectionAttribute(
-  opening: TSESTree.JSXOpeningElement
-): TSESTree.JSXAttribute | null {
+  opening: ESTree.JSXOpeningElement
+): ESTree.JSXAttribute | null {
   for (const attr of opening.attributes) {
     if (
-      attr.type !== AST_NODE_TYPES.JSXAttribute ||
-      attr.name.type !== AST_NODE_TYPES.JSXIdentifier ||
+      attr.type !== 'JSXAttribute' ||
+      attr.name.type !== 'JSXIdentifier' ||
       attr.name.name !== 'direction'
     ) {
       continue;
     }
     const value = attr.value;
-    if (value?.type === AST_NODE_TYPES.Literal && value.value === 'column') {
+    if (value?.type === 'Literal' && value.value === 'column') {
       return attr;
     }
     if (
-      value?.type === AST_NODE_TYPES.JSXExpressionContainer &&
-      value.expression.type === AST_NODE_TYPES.Literal &&
+      value?.type === 'JSXExpressionContainer' &&
+      value.expression.type === 'Literal' &&
       value.expression.value === 'column'
     ) {
       return attr;
@@ -74,18 +69,17 @@ function getStackLocalName(importTracker: ImportTracker): string {
 
 /** Adds `Stack` to the existing layout import, or a fresh import if none exists. */
 function getStackImportFix(
-  fixer: TSESLint.RuleFixer,
+  fixer: Fixer,
   context: Context,
   importTracker: ImportTracker
-): TSESLint.RuleFix | null {
+): Fix | null {
   if (importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack').length > 0) {
     return null;
   }
 
   const layoutImport = context.sourceCode.ast.body.find(
-    (node): node is TSESTree.ImportDeclaration =>
-      node.type === AST_NODE_TYPES.ImportDeclaration &&
-      node.source.value === LAYOUT_SOURCE
+    (node): node is ESTree.ImportDeclaration =>
+      node.type === 'ImportDeclaration' && node.source.value === LAYOUT_SOURCE
   );
 
   // The element resolves to Flex from the layout module, so an import from
@@ -98,8 +92,7 @@ function getStackImportFix(
   }
 
   const specifiers = layoutImport.specifiers.filter(
-    (spec): spec is TSESTree.ImportSpecifier =>
-      spec.type === AST_NODE_TYPES.ImportSpecifier
+    (spec): spec is ESTree.ImportSpecifier => spec.type === 'ImportSpecifier'
   );
   const lastSpecifier = specifiers.at(-1);
   if (!lastSpecifier) {
@@ -109,7 +102,7 @@ function getStackImportFix(
   // Insert Stack in alphabetical position among the named imports.
   const after = specifiers.find(
     spec =>
-      (spec.imported.type === AST_NODE_TYPES.Identifier
+      (spec.imported.type === 'Identifier'
         ? spec.imported.name
         : spec.imported.value
       ).localeCompare('Stack') > 0
@@ -122,22 +115,22 @@ function getStackImportFix(
 
 /** Renames Flex -> Stack, drops the redundant `direction` prop, and ensures the import. */
 function buildStackFix(
-  fixer: TSESLint.RuleFixer,
-  node: TSESTree.JSXElement,
-  directionAttr: TSESTree.JSXAttribute,
+  fixer: Fixer,
+  node: ESTree.JSXElement,
+  directionAttr: ESTree.JSXAttribute,
   context: Context,
   importTracker: ImportTracker
-): TSESLint.RuleFix[] {
+): Fix[] {
   const openingName = node.openingElement.name;
   const closingName = node.closingElement?.name;
-  const fixes: TSESLint.RuleFix[] = [];
+  const fixes: Fix[] = [];
 
-  if (openingName.type === AST_NODE_TYPES.JSXMemberExpression) {
+  if (openingName.type === 'JSXMemberExpression') {
     // Namespace form (`<Layout.Flex>`): rename only the `.Flex` member to
     // `.Stack`, keeping the namespace prefix. No import fix is needed since the
     // namespace already exposes Stack.
     fixes.push(fixer.replaceText(openingName.property, 'Stack'));
-    if (closingName?.type === AST_NODE_TYPES.JSXMemberExpression) {
+    if (closingName?.type === 'JSXMemberExpression') {
       fixes.push(fixer.replaceText(closingName.property, 'Stack'));
     }
   } else {
@@ -166,7 +159,7 @@ function buildStackFix(
   return fixes;
 }
 
-export const preferStackForColumnFlex = ESLintUtils.RuleCreator.withoutDocs({
+export const preferStackForColumnFlex = defineRule({
   meta: {
     type: 'suggestion',
     docs: {

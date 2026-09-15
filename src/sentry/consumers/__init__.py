@@ -281,42 +281,6 @@ def ingest_events_options() -> list[click.Option]:
     return options
 
 
-_METRICS_INDEXER_OPTIONS = [
-    click.Option(["--input-block-size"], type=int, default=None),
-    click.Option(["--output-block-size"], type=int, default=None),
-    click.Option(["--indexer-db"], default="postgres"),
-    click.Option(["max_msg_batch_size", "--max-msg-batch-size"], type=int, default=50),
-    click.Option(["max_msg_batch_time", "--max-msg-batch-time-ms"], type=int, default=10000),
-    click.Option(["max_parallel_batch_size", "--max-parallel-batch-size"], type=int, default=50),
-    click.Option(
-        ["max_parallel_batch_time", "--max-parallel-batch-time-ms"],
-        type=int,
-        default=10000,
-    ),
-    click.Option(
-        ["--processes"],
-        default=1,
-        type=int,
-    ),
-]
-
-_METRICS_LAST_SEEN_UPDATER_OPTIONS = [
-    click.Option(
-        ["--max-batch-size"],
-        default=100,
-        type=int,
-        help="Maximum number of messages to batch before flushing.",
-    ),
-    click.Option(
-        ["--max-batch-time-ms", "max_batch_time"],
-        default=1000,
-        callback=convert_max_batch_time,
-        type=int,
-        help="Maximum time (in milliseconds) to wait before flushing a batch.",
-    ),
-    click.Option(["--indexer-db"], default="postgres"),
-]
-
 _POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
     default_max_batch_size=1000, default_max_batch_time_ms=1000
 ) + [
@@ -402,40 +366,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "click_options": ingest_events_options(),
         "dlq_topic": Topic.INGEST_TRANSACTIONS_DLQ,
         "stale_topic": Topic.INGEST_TRANSACTIONS_BACKLOG,
-    },
-    "ingest-metrics": {
-        "topic": Topic.INGEST_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
-        "click_options": _METRICS_INDEXER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "release-health",
-        },
-        "dlq_topic": Topic.INGEST_METRICS_DLQ,
-    },
-    "ingest-generic-metrics": {
-        "topic": Topic.INGEST_PERFORMANCE_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.indexer.parallel.MetricsConsumerStrategyFactory",
-        "click_options": _METRICS_INDEXER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "performance",
-        },
-        "dlq_topic": Topic.INGEST_GENERIC_METRICS_DLQ,
-    },
-    "generic-metrics-last-seen-updater": {
-        "topic": Topic.SNUBA_GENERIC_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
-        "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "performance",
-        },
-    },
-    "metrics-last-seen-updater": {
-        "topic": Topic.SNUBA_METRICS,
-        "strategy_factory": "sentry.sentry_metrics.consumers.last_seen_updater.LastSeenUpdaterStrategyFactory",
-        "click_options": _METRICS_LAST_SEEN_UPDATER_OPTIONS,
-        "static_args": {
-            "ingest_profile": "release-health",
-        },
     },
     "post-process-forwarder-issue-platform": {
         "topic": Topic.EVENTSTREAM_GENERIC,
