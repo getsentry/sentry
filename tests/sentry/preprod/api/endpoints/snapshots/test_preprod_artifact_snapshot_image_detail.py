@@ -621,3 +621,15 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         head = response.data["head_image"]
         assert head is not None
         assert head["canvas_theme"] is None
+
+    @patch(MOCK_TARGET)
+    def test_missing_manifest_returns_404(self, mock_get_session):
+        artifact, _, _, _ = self._create_artifact_with_manifest()
+        mock_session = MagicMock()
+        mock_session.get.return_value = None
+        mock_get_session.return_value = mock_session
+
+        response = self.client.get(self._get_url(artifact.id, "screen1.png"))
+
+        assert response.status_code == 404
+        assert response.data["detail"] == "Snapshot manifest not found"
