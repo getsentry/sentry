@@ -94,6 +94,16 @@ export function traceTabsReducer(
         return index !== action.payload;
       });
 
+      if (newTabs.length === 0) {
+        const fallback = state.last_clicked_tab ?? state.current_tab;
+        return {
+          ...state,
+          current_tab: fallback,
+          last_clicked_tab: fallback,
+          tabs: newTabs,
+        };
+      }
+
       const nextTabIsPersistent = typeof newTabs[newTabs.length - 1]!.node === 'string';
       if (nextTabIsPersistent) {
         if (!state.last_clicked_tab && !state.current_tab) {
