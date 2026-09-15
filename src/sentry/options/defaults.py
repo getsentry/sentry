@@ -2797,6 +2797,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Holds the monitor clock tick while the partition clock set is short of the
+# partition list learned from the clock pulse.
+register(
+    "crons.clock_tick.hold_on_missing_partitions",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Bounds the hold above. Once the partition clock set has been short for this
+# many seconds, the clock advances on the partitions that are present. Zero
+# means no bound, so the clock holds until every partition is back.
+register(
+    "crons.clock_tick.hold_max_seconds",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Sets the timeout for webhooks
 register(

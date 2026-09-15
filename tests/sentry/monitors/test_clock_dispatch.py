@@ -22,6 +22,15 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json, redis
 
+HOLD_OPTION = "crons.clock_tick.hold_on_missing_partitions"
+HOLD_MAX_SECONDS_OPTION = "crons.clock_tick.hold_max_seconds"
+
+BASE_OPTIONS = {
+    "crons.system_incidents.collect_metrics": False,
+    HOLD_OPTION: False,
+    HOLD_MAX_SECONDS_OPTION: 0,
+}
+
 
 @pytest.fixture(autouse=True)
 def partition_set_state() -> Generator[PartitionSetState]:
@@ -42,7 +51,7 @@ def gauge_values(metrics_mock: mock.MagicMock, key: str) -> list[float]:
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_monitor_task_trigger(dispatch_tick: mock.MagicMock) -> None:
     seed_pulse(1)
     now = timezone.now().replace(second=0, microsecond=0)
@@ -72,7 +81,7 @@ def test_monitor_task_trigger(dispatch_tick: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_monitor_task_trigger_partition_desync(dispatch_tick: mock.MagicMock) -> None:
     """
     When consumer partitions are not completely synchronized we may read
@@ -105,7 +114,7 @@ def test_monitor_task_trigger_partition_desync(dispatch_tick: mock.MagicMock) ->
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_monitor_task_trigger_partition_sync(dispatch_tick: mock.MagicMock) -> None:
     """
     When the kafka topic has multiple partitions we want to only tick our clock
@@ -135,7 +144,7 @@ def test_monitor_task_trigger_partition_sync(dispatch_tick: mock.MagicMock) -> N
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_monitor_task_trigger_partition_tick_skip(dispatch_tick: mock.MagicMock) -> None:
     """
     In a scenario where all partitions move multiple ticks past the slowest
@@ -184,7 +193,7 @@ def run_short_partition_set_sequence(now: datetime) -> None:
 
 @mock.patch("sentry.monitors.clock_dispatch.metrics")
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_monitor_task_trigger_missing_partitions(
     dispatch_tick: mock.MagicMock, metrics_mock: mock.MagicMock
 ) -> None:
@@ -226,7 +235,7 @@ def test_monitor_task_trigger_missing_partitions(
 
 @mock.patch("sentry.monitors.clock_dispatch.metrics")
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_monitor_task_trigger_stall_gap(
     dispatch_tick: mock.MagicMock,
     metrics_mock: mock.MagicMock,
@@ -276,7 +285,7 @@ def test_monitor_task_trigger_stall_gap(
 
 @mock.patch("sentry.monitors.clock_dispatch.metrics")
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_monitor_task_trigger_no_pulse_seen(
     dispatch_tick: mock.MagicMock,
     metrics_mock: mock.MagicMock,
@@ -300,13 +309,236 @@ def test_monitor_task_trigger_no_pulse_seen(
     assert gauge_values(metrics_mock, "monitors.task.clock_stall_gap") == []
 
 
+def get_redis_client():
+    return redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+
+def fill_partition_set(now: datetime, partition_count: int) -> None:
+    """
+    Every partition writes the same clock value, so the partition clock set is
+    complete and the clock ticks once.
+    """
+    for partition in range(partition_count):
+        try_monitor_clock_tick(ts=now, partition=partition)
+
+
+def run_loss_sequence(now: datetime, lost_keys: list[str]) -> None:
+    """
+    A healthy set of 4 partitions ticks the clock, redis loses the given keys,
+    then only partition 0 writes for five minutes before the other three
+    partitions come back.
+    """
+    fill_partition_set(now, 4)
+    get_redis_client().delete(*lost_keys)
+
+    for minute in range(1, 6):
+        try_monitor_clock_tick(ts=now + timedelta(minutes=minute), partition=0)
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+def test_hold_clock_tick_all_keys_lost(dispatch_tick: mock.MagicMock) -> None:
+    """
+    Redis loses the partition clock set and the last triggered timestamp. The
+    clock holds while only one partition writes, and moves again once the set
+    is complete.
+    """
+    seed_pulse(4)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    run_loss_sequence(now, [MONITOR_TASKS_PARTITION_CLOCKS, MONITOR_TASKS_LAST_TRIGGERED_KEY])
+
+    # One tick from the healthy set, then nothing while the set is short
+    assert dispatch_tick.mock_calls == [mock.call(now)]
+
+    # The missing partitions come back and the clock moves again. There is no
+    # backfill here, because the last triggered timestamp was lost as well.
+    for partition in (1, 2, 3):
+        try_monitor_clock_tick(ts=now + timedelta(minutes=5), partition=partition)
+
+    assert dispatch_tick.mock_calls == [
+        mock.call(now),
+        mock.call(now + timedelta(minutes=5)),
+    ]
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+def test_hold_clock_tick_only_clock_set_lost(dispatch_tick: mock.MagicMock) -> None:
+    """
+    Redis loses only the partition clock set. The clock holds while the set is
+    short, then backfills every minute it held.
+    """
+    seed_pulse(4)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    run_loss_sequence(now, [MONITOR_TASKS_PARTITION_CLOCKS])
+
+    # One tick from the healthy set, then nothing while the set is short
+    assert dispatch_tick.mock_calls == [mock.call(now)]
+
+    # The missing partitions come back. The held minutes are backfilled, so the
+    # hold delayed the ticks and did not drop them.
+    for partition in (1, 2, 3):
+        try_monitor_clock_tick(ts=now + timedelta(minutes=5), partition=partition)
+
+    assert dispatch_tick.mock_calls == [
+        mock.call(now),
+        mock.call(now + timedelta(minutes=1)),
+        mock.call(now + timedelta(minutes=2)),
+        mock.call(now + timedelta(minutes=3)),
+        mock.call(now + timedelta(minutes=4)),
+        mock.call(now + timedelta(minutes=5)),
+    ]
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+def test_hold_clock_tick_no_bound_by_default(dispatch_tick: mock.MagicMock) -> None:
+    """
+    With the hold bound at its default of zero, the clock holds for as long as
+    the partition set is short. Nothing lets the clock advance on its own.
+    """
+    seed_pulse(4)
+
+    with freeze_time() as frozen_time:
+        now = timezone.now().replace(second=0, microsecond=0)
+
+        fill_partition_set(now, 4)
+        assert dispatch_tick.call_count == 1
+
+        get_redis_client().delete(MONITOR_TASKS_PARTITION_CLOCKS)
+
+        # Partition 0 keeps writing for two hours while the set stays short
+        for minute in range(1, 121):
+            frozen_time.shift(timedelta(minutes=1))
+            try_monitor_clock_tick(ts=now + timedelta(minutes=minute), partition=0)
+
+        # The clock never moved past the tick from the healthy set
+        assert dispatch_tick.mock_calls == [mock.call(now)]
+        last_ts = get_redis_client().get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
+        assert int(last_ts) == int(now.timestamp())
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, HOLD_OPTION: True, HOLD_MAX_SECONDS_OPTION: 600})
+def test_hold_clock_tick_max_seconds(dispatch_tick: mock.MagicMock) -> None:
+    """
+    With a hold bound set, the clock holds until the set has been short for
+    that long, then advances on the partitions that are present. The held
+    minutes are backfilled, and the clock keeps moving while the set stays
+    short.
+    """
+    seed_pulse(4)
+
+    with freeze_time() as frozen_time:
+        now = timezone.now().replace(second=0, microsecond=0)
+
+        fill_partition_set(now, 4)
+        assert dispatch_tick.mock_calls == [mock.call(now)]
+
+        get_redis_client().delete(MONITOR_TASKS_PARTITION_CLOCKS)
+
+        # The set goes short at minute 1. The stall gap reaches the bound of
+        # ten minutes at minute 11, so the clock holds through minute 10.
+        for minute in range(1, 11):
+            frozen_time.shift(timedelta(minutes=1))
+            try_monitor_clock_tick(ts=now + timedelta(minutes=minute), partition=0)
+        assert dispatch_tick.mock_calls == [mock.call(now)]
+
+        # At minute 11 the bound releases the hold. The clock follows partition
+        # 0 and backfills the ten minutes it held.
+        frozen_time.shift(timedelta(minutes=1))
+        try_monitor_clock_tick(ts=now + timedelta(minutes=11), partition=0)
+        assert dispatch_tick.mock_calls == [
+            mock.call(now + timedelta(minutes=minute)) for minute in range(0, 12)
+        ]
+
+        # The set is still short, so the clock keeps following partition 0
+        frozen_time.shift(timedelta(minutes=1))
+        try_monitor_clock_tick(ts=now + timedelta(minutes=12), partition=0)
+        assert dispatch_tick.mock_calls[-1] == mock.call(now + timedelta(minutes=12))
+        assert dispatch_tick.call_count == 13
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+def test_hold_clock_tick_compares_partition_ids(dispatch_tick: mock.MagicMock) -> None:
+    """
+    A stale member can make the size of the partition clock set look complete
+    while a live partition is missing. We compare the partition ids, so the
+    clock still holds.
+    """
+    seed_pulse(4)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    # A member for a partition that the topic no longer has
+    get_redis_client().zadd(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        mapping={"part-9": int(now.timestamp())},
+    )
+
+    # Partitions 0 to 2 write, so the set holds 4 members but partition 3 is
+    # missing
+    for partition in range(3):
+        try_monitor_clock_tick(ts=now, partition=partition)
+    assert dispatch_tick.call_count == 0
+
+    # Partition 3 arrives and the clock moves
+    try_monitor_clock_tick(ts=now, partition=3)
+    assert dispatch_tick.mock_calls == [mock.call(now)]
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+def test_hold_clock_tick_no_pulse_seen(
+    dispatch_tick: mock.MagicMock,
+    partition_set_state: PartitionSetState,
+) -> None:
+    """
+    A process that has not seen a clock pulse knows no partition list. It never
+    holds the clock.
+    """
+    assert partition_set_state.expected_partitions is None
+
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    try_monitor_clock_tick(ts=now, partition=0)
+    try_monitor_clock_tick(ts=now + timedelta(minutes=1), partition=0)
+
+    assert dispatch_tick.mock_calls == [mock.call(now), mock.call(now + timedelta(minutes=1))]
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options(BASE_OPTIONS)
+def test_hold_clock_tick_option_off(dispatch_tick: mock.MagicMock) -> None:
+    """
+    With the option off the clock advances on the short set, which is the
+    behavior before this change.
+    """
+    seed_pulse(4)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    run_loss_sequence(now, [MONITOR_TASKS_PARTITION_CLOCKS])
+
+    # Partition 0 alone is the slowest partition, so the clock follows it
+    assert dispatch_tick.mock_calls == [
+        mock.call(now),
+        mock.call(now + timedelta(minutes=1)),
+        mock.call(now + timedelta(minutes=2)),
+        mock.call(now + timedelta(minutes=3)),
+        mock.call(now + timedelta(minutes=4)),
+        mock.call(now + timedelta(minutes=5)),
+    ]
+
+
 @override_settings(
     KAFKA_TOPIC_OVERRIDES={"monitors-clock-tick": "clock-tick-test-topic"},
     KAFKA_TOPIC_TO_CLUSTER={"clock-tick-test-topic": "default"},
 )
 @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
 @mock.patch("sentry.monitors.clock_dispatch._clock_tick_producer")
-@override_options({"crons.system_incidents.collect_metrics": False})
+@override_options(BASE_OPTIONS)
 def test_dispatch_to_kafka(clock_tick_producer_mock: mock.MagicMock) -> None:
     now = timezone.now().replace(second=0, microsecond=0)
     _dispatch_tick(now)

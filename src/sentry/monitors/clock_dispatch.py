@@ -11,6 +11,7 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -62,16 +63,28 @@ def record_pulse_partitions(pulse: ClockPulse) -> None:
         _partition_set_state.expected_partitions = frozenset(pulse["partition_ids"])
 
 
-def _record_partition_set_metrics(partition_clocks: list[tuple[str, float]]) -> None:
+def _missing_partitions(partition_clocks: list[tuple[str, float]]) -> frozenset[int] | None:
     expected_partitions = _partition_set_state.expected_partitions
 
     if expected_partitions is None:
-        return
+        return None
 
     present_members = {member for member, _ in partition_clocks}
-    missing_count = sum(
-        1 for partition in expected_partitions if f"part-{partition}" not in present_members
+    return frozenset(
+        partition for partition in expected_partitions if f"part-{partition}" not in present_members
     )
+
+
+def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> float | None:
+    """
+    Reports the missing partition count and the stall gap. Returns the stall
+    gap, the seconds the set has been continuously short in this process, or
+    None when this process has not seen a pulse.
+    """
+    if missing_partitions is None:
+        return None
+
+    missing_count = len(missing_partitions)
 
     now = datetime.now().timestamp()
     if missing_count == 0:
@@ -84,6 +97,27 @@ def _record_partition_set_metrics(partition_clocks: list[tuple[str, float]]) -> 
 
     metrics.gauge("monitors.task.clock_missing_partitions", missing_count, sample_rate=1.0)
     metrics.gauge("monitors.task.clock_stall_gap", stall_gap, sample_rate=1.0)
+
+    return stall_gap
+
+
+def _hold_clock_tick(missing_partitions: frozenset[int] | None, stall_gap: float | None) -> bool:
+    """
+    Decides whether the clock holds on this call. The clock holds while the
+    partition clock set is short of the list learned from the clock pulse, and
+    the hold option is on. A hold bound of zero seconds means no bound.
+    """
+    if not missing_partitions or stall_gap is None:
+        return False
+
+    if not options.get("crons.clock_tick.hold_on_missing_partitions"):
+        return False
+
+    hold_max_seconds = options.get("crons.clock_tick.hold_max_seconds")
+    if hold_max_seconds > 0 and stall_gap >= hold_max_seconds:
+        return False
+
+    return True
 
 
 def _dispatch_tick(ts: datetime):
@@ -143,7 +177,11 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
         end=-1,
     )
 
-    _record_partition_set_metrics(partition_clocks)
+    missing_partitions = _missing_partitions(partition_clocks)
+    stall_gap = _record_partition_set_metrics(missing_partitions)
+
+    if _hold_clock_tick(missing_partitions, stall_gap):
+        return
 
     # the first tuple is the slowest (part-<id>, score), the score is the
     # timestamp. Use `int()` to keep the timestamp (score) as an int
