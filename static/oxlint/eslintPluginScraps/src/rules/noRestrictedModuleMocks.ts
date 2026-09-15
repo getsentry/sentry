@@ -14,6 +14,10 @@ const replacements = new Map([
   ['sentry/utils/useProjects', 'Use ProjectsStore.loadInitialData([ProjectFixture()]).'],
   ['sentry/utils/useLocation', 'Set initialRouterConfig.location in the render options.'],
   [
+    'sentry/utils/useParams',
+    'Set initialRouterConfig.route and initialRouterConfig.location in the render options.',
+  ],
+  [
     'sentry/utils/useNavigate',
     'Use the router provided by render and assert on router.location after interacting.',
   ],
