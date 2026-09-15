@@ -12,6 +12,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import type {Subscription} from 'getsentry/types';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
 
 describe('UsageOverview', () => {
@@ -24,13 +25,16 @@ describe('UsageOverview', () => {
   });
   const usageData = CustomerUsageFixture();
 
-  function renderUsageOverview(options: Parameters<typeof render>[1] = {}) {
+  function renderUsageOverview(
+    options: Parameters<typeof render>[1] = {},
+    activeSubscription: Subscription = subscription
+  ) {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1400);
 
     return render(
       <Container containerType="inline-size">
         <UsageOverview
-          subscription={subscription}
+          subscription={activeSubscription}
           organization={organization}
           usageData={usageData}
         />
@@ -57,9 +61,28 @@ describe('UsageOverview', () => {
     await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
     expect(screen.getByRole('button', {name: 'View all usage'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/stats/'
+      '/settings/org-slug/billing/usage/'
     );
     expect(screen.getByRole('button', {name: 'Download as CSV'})).toBeInTheDocument();
+  });
+
+  it('points "View all usage" at Stats & Usage for platform orgs', async () => {
+    const migratedSubscription = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+      onDemandPeriodStart: '2021-05-02',
+      onDemandPeriodEnd: '2021-06-01',
+      hasMigratedToBillingPlatform: true,
+    });
+    SubscriptionStore.set(organization.slug, migratedSubscription);
+
+    renderUsageOverview({}, migratedSubscription);
+
+    await screen.findByRole('heading', {name: 'Usage: May 2 - Jun 1, 2021'});
+    expect(screen.getByRole('button', {name: 'View all usage'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/stats/'
+    );
   });
 
   it('does not render actions for non-billing users', async () => {

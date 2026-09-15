@@ -7,9 +7,16 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
+import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-export function UsageOverviewActions({organization}: {organization: Organization}) {
+export function UsageOverviewActions({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
   const shouldCollapseActions = useResponsivePropValue({zero: true, xl: false});
 
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
@@ -27,7 +34,11 @@ export function UsageOverviewActions({organization}: {organization: Organization
   }> = [
     {
       label: t('View all usage'),
-      to: `/settings/${organization.slug}/stats/`,
+      // Legacy orgs keep the billing usage history page. Only orgs migrated to
+      // the billing platform get the Stats & Usage page.
+      to: subscription.hasMigratedToBillingPlatform
+        ? `/settings/${organization.slug}/stats/`
+        : `/settings/${organization.slug}/billing/usage/`,
       icon: <IconTable />,
     },
     {

@@ -128,7 +128,7 @@ export function UsageOverview({
               })}
             </Heading>
           </Stack>
-          <UsageOverviewActions organization={organization} />
+          <UsageOverviewActions organization={organization} subscription={subscription} />
         </Flex>
         <UsageOverviewTable
           subscription={subscription}
