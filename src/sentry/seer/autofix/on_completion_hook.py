@@ -180,9 +180,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
     - Continuing the automated pipeline if stopping_point hasn't been reached
-    - No-op'ing when the run did not complete (errors / timeouts), so Seer can
-      invoke this hook with ``call_on_failure=True`` without advancing the pipeline
-    - Recording and pausing a PR iteration that a failed run stopped
+    - Not advancing the pipeline when the run did not complete (errors /
+      timeouts), so Seer can invoke this hook with ``call_on_failure=True``.
+      A failed run is not a full no-op: a PR iteration still gets paused and
+      its outcome recorded, since nothing else will ever end that iteration.
     """
 
     @classmethod
@@ -222,6 +223,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 cls._fail_pr_iteration(organization, run_id, state)
                 return
 
+        group, run_referrer = cls._resolve_group(organization, run_id, state)
+        if group is None:
+            return
+
         if state.status != "completed":
             logger.info(
                 "autofix.on_completion_hook.run_not_completed",
@@ -238,29 +243,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        metadata = state.metadata or {}
-        group_id = metadata.get("group_id")
-        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
-        if group_id is None:
-            group_id = mirror_group_id
-        if group_id is None:
-            logger.warning(
-                "autofix.on_completion_hook.missing_group_id",
-                extra={"run_id": run_id, "organization_id": organization.id},
-            )
-            return
-
-        group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
-        if group is None:
-            logger.warning(
-                "autofix.on_completion_hook.group_not_found",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group_id,
-                },
-            )
-            return
         now = timezone.now()
         with transaction.atomic(using=router.db_for_write(Group)):
             group.update(seer_explorer_autofix_last_triggered=now)
@@ -308,6 +290,37 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
         )
+
+    @classmethod
+    def _resolve_group(
+        cls, organization: Organization, run_id: int, state: SeerRunState
+    ) -> tuple[Group, AutofixReferrer | None] | tuple[None, None]:
+        """The run's group, from the run state or the Sentry-side run mirror."""
+        metadata = state.metadata or {}
+        group_id = metadata.get("group_id")
+        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
+        if group_id is None:
+            group_id = mirror_group_id
+        if group_id is None:
+            logger.warning(
+                "autofix.on_completion_hook.missing_group_id",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return None, None
+
+        group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
+        if group is None:
+            logger.warning(
+                "autofix.on_completion_hook.group_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
+            )
+            return None, None
+
+        return group, run_referrer
 
     @classmethod
     def _iteration_log_context(
