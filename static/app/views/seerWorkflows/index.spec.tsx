@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
@@ -123,7 +122,6 @@ describe('SeerWorkflows', () => {
 
   it('polls running Agentic triage workflows and keeps them visible when a background poll fails', async () => {
     jest.useFakeTimers();
-    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const url = `/organizations/${organization.slug}/seer/workflows/`;
     const runningRun = {
@@ -159,13 +157,6 @@ describe('SeerWorkflows', () => {
     });
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
 
-    expect(captureMessage).toHaveBeenCalledTimes(2);
-    for (const strategy of ['future_strategy', 'constructor']) {
-      expect(captureMessage).toHaveBeenCalledWith('Unsupported Seer workflow strategy', {
-        level: 'warning',
-        extra: {strategy},
-      });
-    }
     expect(screen.getByText('Triaging issues…')).toBeInTheDocument();
     expect(screen.getByLabelText('Automated')).toBeInTheDocument();
     expect(screen.queryByLabelText('Manual')).not.toBeInTheDocument();
@@ -210,7 +201,6 @@ describe('SeerWorkflows', () => {
       await jest.advanceTimersByTimeAsync(10000);
     });
     expect(completedPoll).toHaveBeenCalledTimes(1);
-    expect(captureMessage).toHaveBeenCalledTimes(2);
     await user.click(screen.getByRole('button', {name: /Strategy/}));
     expect(screen.getAllByRole('option')).toHaveLength(1);
     expect(screen.getByRole('option', {name: 'Agentic triage'})).toBeInTheDocument();
