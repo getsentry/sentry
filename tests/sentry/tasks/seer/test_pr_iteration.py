@@ -828,6 +828,14 @@ def _step_checkpoints(mock_metrics: MagicMock) -> list[str]:
     ]
 
 
+def _step_feedback_kinds(mock_metrics: MagicMock) -> list[str]:
+    return [
+        call.kwargs["tags"]["feedback_kind"]
+        for call in mock_metrics.incr.call_args_list
+        if call.args and call.args[0] == "autofix.pr_iteration.step"
+    ]
+
+
 class ConsumeQueuedAutofixFeedbackTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1585,6 +1593,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             tags={
                 "checkpoint": "consumed",
                 "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
             },
             sample_rate=1.0,
         )
@@ -1643,9 +1652,49 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             tags={
                 "checkpoint": "sent_to_seer",
                 "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
             },
             sample_rate=1.0,
         )
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_an_automated_batch_is_tagged_automated(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._check_suite_feedback())]
+
+        self._call()
+
+        assert _step_feedback_kinds(mock_metrics) == ["automated", "automated"]
+
+    @patch(f"{TASK_PATH}.metrics")
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_a_batch_of_both_is_tagged_mixed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        _mock_trigger: MagicMock,
+        mock_metrics: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback()),
+            self._queued(self._review_feedback(777)),
+        ]
+
+        self._call()
+
+        assert _step_feedback_kinds(mock_metrics) == ["mixed", "mixed"]
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent", side_effect=RuntimeError("seer is down"))
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")

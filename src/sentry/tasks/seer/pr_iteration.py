@@ -160,6 +160,14 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
+def _get_feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether the batch is manual, automated, or both."""
+    kinds = {item.source.is_automated for item in items}
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
+
+
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
     actor_user_ids = {item.actor_user_id for item in items}
     if len(actor_user_ids) == 1:
@@ -638,10 +646,15 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
+    feedback_kind = _get_feedback_kind(feedback_items)
     metrics.incr(
         "autofix.pr_iteration.step",
         amount=len(feedback_items),
-        tags={"checkpoint": "consumed", "referrer": referrer.value},
+        tags={
+            "checkpoint": "consumed",
+            "referrer": referrer.value,
+            "feedback_kind": feedback_kind,
+        },
         sample_rate=1.0,
     )
     log_ctx.info(
@@ -676,7 +689,11 @@ def _drain_queued_autofix_feedback(
     try:
         metrics.incr(
             "autofix.pr_iteration.step",
-            tags={"checkpoint": "sent_to_seer", "referrer": referrer.value},
+            tags={
+                "checkpoint": "sent_to_seer",
+                "referrer": referrer.value,
+                "feedback_kind": feedback_kind,
+            },
             sample_rate=1.0,
         )
         trigger_autofix_agent(
