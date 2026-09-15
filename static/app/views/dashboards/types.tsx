@@ -18,6 +18,7 @@ export enum DashboardFilter {
   EXCLUDE_PREBUILT = 'excludePrebuilt',
   ONLY_PREBUILT = 'onlyPrebuilt',
   SHOW_HIDDEN = 'showHidden',
+  SHOW_USER_HIDDEN = 'showUserHidden',
 }
 
 export type LegendType = 'default' | 'breakdown';
@@ -210,6 +211,7 @@ export type DashboardListItem = {
   dateCreated?: string;
   description?: string;
   isFavorited?: boolean;
+  isHidden?: boolean;
   lastVisited?: string;
   permissions?: DashboardPermissions;
   prebuiltId?: PrebuiltDashboardId;

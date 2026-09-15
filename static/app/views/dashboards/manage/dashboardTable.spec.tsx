@@ -419,4 +419,63 @@ describe('Dashboards - DashboardTable', () => {
       ).toBeInTheDocument();
     });
   });
+
+  describe('hiding dashboards', () => {
+    it('hides a visible dashboard', async () => {
+      const hideMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/hidden/',
+        method: 'PUT',
+      });
+
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organization}
+          dashboards={[DashboardListItemFixture({id: '1', title: 'Dashboard 1'})]}
+          location={location}
+          isOnlyPrebuilt={false}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Hide Dashboard'}));
+
+      await waitFor(() => {
+        expect(hideMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/hidden/',
+          expect.objectContaining({data: {shouldHide: true}})
+        );
+      });
+    });
+
+    it('unhides a hidden dashboard', async () => {
+      const unhideMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/1/hidden/',
+        method: 'PUT',
+      });
+
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organization}
+          dashboards={[
+            DashboardListItemFixture({id: '1', title: 'Dashboard 1', isHidden: true}),
+          ]}
+          location={location}
+          isOnlyPrebuilt={false}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByText('Hidden')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Unhide Dashboard'}));
+
+      await waitFor(() => {
+        expect(unhideMock).toHaveBeenCalledWith(
+          '/organizations/org-slug/dashboards/1/hidden/',
+          expect.objectContaining({data: {shouldHide: false}})
+        );
+      });
+    });
+  });
 });

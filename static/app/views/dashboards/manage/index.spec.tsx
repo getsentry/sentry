@@ -214,6 +214,28 @@ describe('Dashboards > Detail', () => {
     expect(screen.getByLabelText('Previous')).toBeDisabled();
   });
 
+  it('toggles showing hidden dashboards', async () => {
+    const org = OrganizationFixture({features: FEATURES});
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard'})],
+    });
+
+    const {router} = render(<ManageDashboards />, {
+      organization: org,
+    });
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Show hidden'}));
+
+    expect(router.location.query).toEqual({showHidden: 'true'});
+    expect(request).toHaveBeenLastCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        query: expect.objectContaining({filter: ['showUserHidden']}),
+      })
+    );
+  });
+
   it('renders the table view', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
