@@ -1747,6 +1747,7 @@ class TestContinueFeatureRun(TestCase):
             feature_id="autofix_rca",
             payload={"existing_run_id": 456, "insert_index": 2},
             referrer="autofix",
+            user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
             proxy_headers={"X-Viewer-Context": "signed-viewer-context"},
         )
 
@@ -1763,6 +1764,7 @@ class TestContinueFeatureRun(TestCase):
             "ref": str(run.uuid),
             "external_idempotency_key": str(run.uuid),
             "referrer": "autofix",
+            "user_org_context": {"org_slug": self.organization.slug, "all_org_projects": []},
             "proxy_headers": {"X-Viewer-Context": "signed-viewer-context"},
         }
 
@@ -1779,6 +1781,7 @@ class TestContinueFeatureRun(TestCase):
             feature_id="autofix",
             payload={},
             referrer="autofix",
+            user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
             agent_run_options=AgentRunOptions(
                 is_context_engine_enabled=False,
                 enable_frontend_code_search=False,
@@ -1803,6 +1806,7 @@ class TestContinueFeatureRun(TestCase):
                 feature_id="autofix",
                 payload={},
                 referrer="autofix",
+                user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
             )
 
 
