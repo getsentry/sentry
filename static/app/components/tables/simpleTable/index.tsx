@@ -12,7 +12,6 @@ import {
   fullWidthCellStyle,
   Table,
   type TableColumnConfig,
-  useIsColumnHidden,
 } from '@sentry/scraps/table';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -41,8 +40,7 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
 export function SimpleTable({children, columns, header, ...props}: TableProps) {
-  // Cells name their column so it can be hidden, which is not an invitation to
-  // resize it: this shell has no resize affordance of its own.
+  // This shell has no resize affordance, so its columns do not opt into one.
   const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
 
   return (
@@ -79,7 +77,6 @@ function HeaderCell({
 }: HTMLAttributes<HTMLTableCellElement> & {
   align?: ColumnAlign;
   children?: React.ReactNode;
-  columnKey?: string;
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
   sort?: SortDirection;
@@ -117,22 +114,12 @@ function Row({children, variant = 'default', ref, ...props}: RowProps) {
 
 function RowCell({
   children,
-  columnKey,
   ...props
 }: ComponentProps<typeof Flex> & {
   children: React.ReactNode;
-  columnKey?: string;
 }) {
   return (
-    <Flex
-      as="td"
-      role="cell"
-      align="center"
-      overflow="hidden"
-      padding="lg xl"
-      hidden={useIsColumnHidden(columnKey)}
-      {...props}
-    >
+    <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
       {children}
     </Flex>
   );

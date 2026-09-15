@@ -10,7 +10,12 @@ const Z_INDEX_RESIZER = 1;
 
 const Z_INDEX_STICKY_HEAD = 2;
 
-export const TableGrid = styled('table')`
+interface TableGridProps {
+  hiddenColumnIndexes?: number[];
+  prependedColumnCount?: number;
+}
+
+export const TableGrid = styled('table')<TableGridProps>`
   position: inherit;
   display: grid;
 
@@ -18,9 +23,14 @@ export const TableGrid = styled('table')`
   border-collapse: collapse;
   margin: 0;
 
-  [hidden] {
-    display: none;
-  }
+  ${p =>
+    p.hiddenColumnIndexes?.map(
+      index => css`
+        tr > *:nth-child(${(p.prependedColumnCount ?? 0) + index + 1} of [role='cell'], [role='columnheader'], th):not(${TableStatusCell}) {
+          display: none;
+        }
+      `
+    )}
 `;
 
 const subgrid = css`
