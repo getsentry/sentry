@@ -1,10 +1,6 @@
 from unittest.mock import patch
 
-from sentry.sentry_metrics.configuration import (
-    PERFORMANCE_PG_NAMESPACE,
-    RELEASE_HEALTH_PG_NAMESPACE,
-    UseCaseKey,
-)
+from sentry.sentry_metrics.configuration import RELEASE_HEALTH_PG_NAMESPACE, UseCaseKey
 from sentry.sentry_metrics.indexer.base import UseCaseKeyCollection
 from sentry.sentry_metrics.indexer.limiters.writes import WritesLimiter
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
@@ -12,7 +8,6 @@ from sentry.testutils.helpers.options import override_options
 
 WRITES_LIMITERS = {
     RELEASE_HEALTH_PG_NAMESPACE: WritesLimiter(RELEASE_HEALTH_PG_NAMESPACE, **{}),
-    PERFORMANCE_PG_NAMESPACE: WritesLimiter(PERFORMANCE_PG_NAMESPACE, **{}),
 }
 
 
@@ -51,11 +46,9 @@ def test_writes_limiter_no_limits() -> None:
             "sentry-metrics.writes-limiter.limits.uc1.per-org": [],
             "sentry-metrics.writes-limiter.limits.uc2.global": [],
             "sentry-metrics.writes-limiter.limits.uc2.per-org": [],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.global": [],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.per-org": [],
         },
     ):
-        writes_limiter = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
+        writes_limiter = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         use_case_keys = UseCaseKeyCollection(
             {
@@ -97,13 +90,9 @@ def test_writes_limiter_doesnt_limit() -> None:
             "sentry-metrics.writes-limiter.limits.uc2.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 3}
             ],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.global": [],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.per-org": [
-                {"window_seconds": 10, "granularity_seconds": 10, "limit": 4}
-            ],
         },
     ):
-        writes_limiter = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
+        writes_limiter = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         use_case_keys = UseCaseKeyCollection(
             {
@@ -146,13 +135,9 @@ def test_writes_limiter_org_limit() -> None:
             "sentry-metrics.writes-limiter.limits.uc2.per-org": [
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 2}
             ],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.global": [],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.per-org": [
-                {"window_seconds": 10, "granularity_seconds": 10, "limit": 3}
-            ],
         },
     ):
-        writes_limiter = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
+        writes_limiter = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         use_case_keys = UseCaseKeyCollection(
             {
@@ -210,13 +195,9 @@ def test_writes_limiter_global_limit() -> None:
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 3}
             ],
             "sentry-metrics.writes-limiter.limits.uc2.per-org": [],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.global": [
-                {"window_seconds": 10, "granularity_seconds": 10, "limit": 4}
-            ],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.per-org": [],
         },
     ):
-        writes_limiter = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
+        writes_limiter = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         # edgecase: each organization's quota fits into the global quota
         # individually, but not in total.
@@ -264,13 +245,9 @@ def test_writes_limiter_respects_use_case_id() -> None:
                 {"window_seconds": 10, "granularity_seconds": 10, "limit": 6}
             ],
             "sentry-metrics.writes-limiter.limits.uc2.per-org": [],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.global": [
-                {"window_seconds": 10, "granularity_seconds": 10, "limit": 6}
-            ],
-            "sentry-metrics.writes-limiter.limits.generic-metrics.per-org": [],
         },
     ):
-        writes_limiter_perf = get_writes_limiter(PERFORMANCE_PG_NAMESPACE)
+        writes_limiter_perf = get_writes_limiter(RELEASE_HEALTH_PG_NAMESPACE)
 
         use_case_keys = UseCaseKeyCollection(
             {
