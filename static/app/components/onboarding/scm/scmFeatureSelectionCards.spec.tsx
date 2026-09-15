@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -73,7 +73,7 @@ describe('ScmFeatureSelectionCards', () => {
     const errorMonitoringCard = screen.getByRole('checkbox', {
       name: /Error monitoring/,
     });
-    expect(errorMonitoringCard).toBeDisabled();
+    expect(errorMonitoringCard).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.click(errorMonitoringCard);
     expect(onToggleFeature).not.toHaveBeenCalled();
@@ -119,9 +119,39 @@ describe('ScmFeatureSelectionCards', () => {
       />
     );
 
-    expect(screen.getByRole('checkbox', {name: /Session replay/})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeEnabled();
+    expect(screen.getByRole('checkbox', {name: /Session replay/})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('checkbox', {name: /Profiling/})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toHaveAttribute(
+      'aria-disabled'
+    );
+  });
+
+  it('shows the disabled reason when a disabled card takes keyboard focus', async () => {
+    render(
+      <ScmFeatureSelectionCards
+        availableFeatures={ALL_FEATURES}
+        selectedFeatures={[ProductSolution.ERROR_MONITORING]}
+        disabledProducts={{
+          [ProductSolution.SESSION_REPLAY]: {
+            reason: 'Not available on your plan',
+          },
+        }}
+        onToggleFeature={jest.fn()}
+        featureMeta={FALLBACK_FEATURE_META}
+        isOnboarding
+      />
+    );
+
+    // aria-disabled keeps the card in the tab order, so the reason is not
+    // hover only.
+    act(() => screen.getByRole('checkbox', {name: /Session replay/}).focus());
+    expect(await screen.findByText('Not available on your plan')).toBeInTheDocument();
   });
 
   it('error monitoring checkbox is always checked', () => {
