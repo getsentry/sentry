@@ -912,6 +912,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
         - Filters: help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions: specify what should happen when the trigger conditions are met and the filters match.
         """
+        enforce_alerts_api_deprecation(project.organization)
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization, "request": request},
             data=request.data,
