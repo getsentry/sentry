@@ -11,15 +11,11 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: [
-    'gen-ai-agents-overview',
-    'gen-ai-conversations',
-    'gen-ai-conversations-querying-enhancements',
-  ],
+  features: ['gen-ai-agents-overview', 'gen-ai-conversations'],
 });
 
 const organizationWithoutAgentsOverview = OrganizationFixture({
-  features: ['gen-ai-conversations', 'gen-ai-conversations-querying-enhancements'],
+  features: ['gen-ai-conversations'],
 });
 
 describe('ConversationsOverviewPage', () => {

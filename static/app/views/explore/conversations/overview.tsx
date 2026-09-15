@@ -79,9 +79,6 @@ const agentsTableTabParser = parseAsStringLiteral(AGENTS_TABLE_TABS);
 
 function ConversationsOverviewPage() {
   const organization = useOrganization();
-  const queryingEnhancementsEnabled = organization.features.includes(
-    'gen-ai-conversations-querying-enhancements'
-  );
   const agentsOverviewEnabled = organization.features.includes('gen-ai-agents-overview');
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
@@ -210,13 +207,6 @@ function ConversationsOverviewPage() {
       );
     };
 
-    if (!queryingEnhancementsEnabled) {
-      return {
-        ...spanSearchQueryBuilderProviderProps,
-        getTagValues: getTagValuesWithoutCounts,
-      };
-    }
-
     const fieldDefinitionGetter =
       spanSearchQueryBuilderProviderProps.fieldDefinitionGetter;
     return {
@@ -237,11 +227,7 @@ function ConversationsOverviewPage() {
         CONVERSATION_FIELD_DEFINITIONS[key] ?? fieldDefinitionGetter(key, options),
       getTagValues: getTagValuesWithoutCounts,
     };
-  }, [
-    isConversationsTab,
-    queryingEnhancementsEnabled,
-    spanSearchQueryBuilderProviderProps,
-  ]);
+  }, [isConversationsTab, spanSearchQueryBuilderProviderProps]);
 
   const resetParamsOnFilterChange = [TableUrlParams.CURSOR, SPANS_CURSOR_URL_PARAM];
   const showSearch = !isOnboardingLoading && !selectedTabShowsOnboarding;
