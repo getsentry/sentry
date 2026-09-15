@@ -24,6 +24,7 @@ from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_SCOPES,
     CURSOR_ORIGIN_WEB_BASE_URL,
 )
+from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
@@ -33,6 +34,7 @@ from sentry.integrations.source_code_management.repository import (
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiPaginationTruncated,
@@ -196,6 +198,11 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
 
     requires_feature_flag = True
+
+    def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
+        from sentry.integrations.cursor_origin.pipeline import CursorOriginInstallApiStep
+
+        return [CursorOriginInstallApiStep()]
 
     def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
         installation_id = state["installation_id"]
