@@ -18,7 +18,7 @@ from sentry.apidocs.omission_guard import (
     omissions_enabled,
     recording_omissions,
 )
-from sentry.apidocs.utils import SentryApiBuildError
+from sentry.apidocs.utils import SentryApiBuildError, is_internal_build
 
 HTTP_METHOD_NAME = Literal[
     "GET", "POST", "PUT", "OPTIONS", "HEAD", "DELETE", "TRACE", "CONNECT", "PATCH"
@@ -114,6 +114,14 @@ class CustomGenerator(SchemaGenerator):
         """Build the schema, then prove its omissions changed only what they declare.
 
         The baseline is a second build, on a fresh registry, with omissions off."""
+        if is_internal_build():
+            # The check guards what gets published, and an internal build is not.
+            # Building the baseline would also resolve the fields the omissions
+            # drop, across a much larger set of endpoints than the published spec
+            # covers -- including a pair of TypedDicts that only terminate because
+            # the omission breaks the cycle between them.
+            return super().get_schema(request, public)
+
         baseline_generator = type(self)(
             patterns=self.patterns, urlconf=self.urlconf, api_version=self.api_version
         )
@@ -141,10 +149,39 @@ _EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
 # by hand before the status existed.
 EXPERIMENTAL_NOTICE = "**Experimental:** This API is under active development and may change."
 
+# Non-public operations admitted to an internal build, keyed by (path, lowercase
+# method). Postprocessing stamps these with ``x-sentry-publish-status`` and skips
+# the checks that only make sense for the published reference (tags, docstrings,
+# unique summaries, body parameter descriptions).
+_INTERNAL_OPERATIONS: dict[tuple[str, str], ApiPublishStatus] = {}
+
+PUBLISH_STATUS_EXTENSION = "x-sentry-publish-status"
+
+
+def _declares_schema(view_class: type, method: str) -> bool:
+    """
+    True when ``method`` on ``view_class`` carries an ``@extend_schema`` override,
+    either directly on the handler or on the endpoint class.
+
+    drf-spectacular records a method-level decorator as ``handler.kwargs["schema"]``
+    and a class-level decorator as a ``schema`` attribute set on the decorated class
+    itself (``APIView`` only provides one through a descriptor on its own class).
+    """
+    handler = getattr(view_class, method.lower(), None)
+    if handler is not None and "schema" in getattr(handler, "kwargs", {}):
+        return True
+    return any(
+        "schema" in vars(cls)
+        for cls in view_class.__mro__
+        if cls.__module__.startswith(("sentry", "getsentry"))
+    )
+
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
     _ENDPOINT_SERVERS.clear()
     _EXPERIMENTAL_OPERATIONS.clear()
+    _INTERNAL_OPERATIONS.clear()
+    internal_build = is_internal_build()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -177,26 +214,26 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"All methods must declare a publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
             )
 
+        status = callback.view_class.publish_status[method]
+
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
-        elif callback.view_class.publish_status:
-            # endpoints that are documented via tooling
-            status = callback.view_class.publish_status.get(method)
-            if status is not None and status.is_published:
-                # only pass declared public methods of the endpoint
-                # to the rest of the OpenAPI build pipeline
-                filtered.append((path, path_regex, method, callback))
-                if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
-                    _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
+        elif status.is_published:
+            # only pass declared published methods of the endpoint
+            # to the rest of the OpenAPI build pipeline
+            filtered.append((path, path_regex, method, callback))
+            if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
+                _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
 
-        else:
-            # if an endpoint doesn't have any registered public methods, don't check it.
-            pass
+        elif internal_build and _declares_schema(callback.view_class, method):
+            # Internal builds also admit private/experimental methods, but only
+            # those that already declare a schema: an undocumented method would
+            # produce an empty operation that says nothing about its response.
+            filtered.append((path, path_regex, method, callback))
+            _INTERNAL_OPERATIONS[(path, method.lower())] = status
 
-        ownership_data[owner_team][callback.view_class.publish_status[method]].add(
-            f"{callback.view_class.__name__}::{method}"
-        )
+        ownership_data[owner_team][status].add(f"{callback.view_class.__name__}::{method}")
 
     __write_ownership_data(ownership_data)
     return filtered
@@ -265,6 +302,35 @@ def _validate_request_body(
         )
 
 
+def _stamp_publish_status(result: Any) -> None:
+    """
+    Record each operation's publish status as ``x-sentry-publish-status``.
+
+    Only internal builds carry the extension, so the published spec is unchanged.
+    This runs before ``_fix_issue_paths`` moves operations between paths, and the
+    later checks read the stamp off the operation rather than re-deriving it.
+    """
+    if not is_internal_build():
+        return
+    for path, endpoints in result["paths"].items():
+        for method, method_info in endpoints.items():
+            status = _INTERNAL_OPERATIONS.get((path, method))
+            if status is None:
+                # Anything preprocessing did not admit as internal is published.
+                status = (
+                    ApiPublishStatus.PUBLIC_EXPERIMENTAL
+                    if (path, method) in _EXPERIMENTAL_OPERATIONS
+                    else ApiPublishStatus.PUBLIC
+                )
+            method_info[PUBLISH_STATUS_EXTENSION] = status.value
+
+
+def _is_internal_operation(method_info: Mapping[str, Any]) -> bool:
+    """True for an operation only an internal build emits, so is held to no docs bar."""
+    status = method_info.get(PUBLISH_STATUS_EXTENSION)
+    return status is not None and not ApiPublishStatus(status).is_published
+
+
 def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():
@@ -272,7 +338,9 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
             for method_info in result["paths"][path].values():
                 method_info["servers"] = servers
 
-    # Must run before _fix_issue_paths, which rewrites the path keys this is keyed on.
+    # Must run before _fix_issue_paths, which rewrites the path keys these are keyed on.
+    _stamp_publish_status(result)
+
     for path, method in _EXPERIMENTAL_OPERATIONS:
         method_info = result["paths"].get(path, {}).get(method)
         if method_info is not None:
@@ -296,6 +364,11 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
     for path, endpoints in result["paths"].items():
         for method_info in endpoints.values():
             endpoint_name = f"'{method_info['operationId']}'"
+
+            if _is_internal_operation(method_info):
+                # Private/experimental operations are only in the spec for their
+                # response shapes; the reference-quality checks below do not apply.
+                continue
 
             summary = method_info.get("summary")
             if summary is not None:
