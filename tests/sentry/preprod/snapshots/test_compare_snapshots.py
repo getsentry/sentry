@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
 from objectstore_client import RequestError
+from PIL import Image
 
-from sentry.preprod.snapshots.image_diff.types import ImageSize
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison
+from sentry.preprod.snapshots.storage import SnapshotStorage
 from sentry.preprod.snapshots.tasks import _retry_objectstore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -121,6 +123,18 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
     return session
 
 
+def _fake_fetch(
+    session: SnapshotStorage, key_prefix: str, hashes: set[str], directory: Path
+) -> tuple[dict[str, Path], set[str]]:
+    fetched: dict[str, Path] = {}
+    with Image.new("RGBA", (1, 1)) as image:
+        for index, image_hash in enumerate(hashes):
+            image_path = directory / str(index)
+            image.save(image_path, format="PNG")
+            fetched[image_hash] = image_path
+    return fetched, set()
+
+
 @cell_silo_test
 class ProcessChunkTest(TestCase):
     def test_comparison_defaults_images_errored_to_zero(self):
@@ -194,9 +208,8 @@ class ProcessChunkTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
-                return_value=({"h": b"img", "b": b"img"}, set()),
+                side_effect=_fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
         ):
             process_snapshot_comparison_chunk(
@@ -284,9 +297,8 @@ class ProcessChunkTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.OdiffServer"),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
-                return_value=({"h": b"img", "b": b"img"}, set()),
+                side_effect=_fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[diff]),
         ):
             process_snapshot_comparison_chunk(
@@ -376,9 +388,8 @@ class ProcessChunkTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
-                return_value=({"h": b"img", "b": b"img"}, set()),
+                side_effect=_fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -416,9 +427,8 @@ class ProcessChunkTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
-                return_value=({"h": b"img", "b": b"img"}, set()),
+                side_effect=_fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[self._diff_result()],
@@ -468,9 +478,8 @@ class ProcessChunkTest(TestCase):
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._fetch_batch_images",
-                return_value=({"h": b"img", "b": b"img"}, set()),
+                side_effect=_fake_fetch,
             ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 return_value=[unchanged_diff],
@@ -1991,9 +2000,6 @@ class EndToEndFanoutTest(TestCase):
             after_height=10,
         )
 
-    def _fake_fetch(self, session, key_prefix, hashes, directory):
-        return {h: b"img" for h in hashes}, set()
-
     def test_full_flow_reaches_success(self):
         from datetime import datetime
 
@@ -2023,10 +2029,7 @@ class EndToEndFanoutTest(TestCase):
         with (
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 1),
-            patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
-            ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch("sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=_fake_fetch),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 side_effect=lambda pairs, server: [self._diff_result() for _ in pairs],
@@ -2186,10 +2189,7 @@ class EndToEndFanoutTest(TestCase):
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
-            patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
-            ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch("sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=_fake_fetch),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],
@@ -2327,10 +2327,7 @@ class EndToEndFanoutTest(TestCase):
             self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
-            patch(
-                "sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=self._fake_fetch
-            ),
-            patch("sentry.preprod.snapshots.tasks.read_image_size", return_value=ImageSize(1, 1)),
+            patch("sentry.preprod.snapshots.tasks._fetch_batch_images", side_effect=_fake_fetch),
             patch(
                 "sentry.preprod.snapshots.tasks.compare_images_batch",
                 side_effect=lambda pairs, server: [unchanged_diff for _ in pairs],

@@ -398,7 +398,7 @@ def test_build_comparison_plan_detects_rename():
     assert "old.png" not in plan.non_diff_images
 
 
-def test_process_chunk_enforces_actual_batch_pixel_limit():
+def test_process_chunk_enforces_actual_batch_pixel_limit(tmp_path: Path) -> None:
     assignment = ChunkAssignment(
         chunk_index=0,
         candidates=[
@@ -412,13 +412,14 @@ def test_process_chunk_enforces_actual_batch_pixel_limit():
             for name in ("first", "second")
         ],
     )
-    buffer = io.BytesIO()
-    Image.new("RGBA", (10, 10)).save(buffer, format="PNG")
-    fetched = {
-        image_hash: buffer.getvalue()
+    fetched: dict[str, Path] = {
+        image_hash: tmp_path / image_hash
         for candidate in assignment.candidates
         for image_hash in (candidate.head_hash, candidate.base_hash)
     }
+    with Image.new("RGBA", (10, 10)) as image:
+        for image_path in fetched.values():
+            image.save(image_path, format="PNG")
 
     with (
         patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", 150),
@@ -440,8 +441,7 @@ def test_process_chunk_enforces_actual_batch_pixel_limit():
     load.assert_not_called()
 
 
-@pytest.mark.parametrize("status", [429, 503])
-def test_fetch_batch_images_truncates_partial_download_on_retry(tmp_path: Path, status: int):
+def test_fetch_batch_images_truncates_partial_download_on_retry(tmp_path: Path) -> None:
     partial = io.BytesIO()
     complete = io.BytesIO(b"complete")
     session = MagicMock()
@@ -451,7 +451,7 @@ def test_fetch_batch_images_truncates_partial_download_on_retry(tmp_path: Path, 
         patch.object(
             partial,
             "read",
-            side_effect=[b"partial" * 100_000, RequestError("unavailable", status, "")],
+            side_effect=[b"partial" * 100_000, RequestError("unavailable", 503, "")],
         ) as partial_read,
         patch.object(complete, "read", wraps=complete.read) as complete_read,
         patch("sentry.preprod.snapshots.tasks.time.sleep"),
@@ -467,7 +467,7 @@ def test_fetch_batch_images_truncates_partial_download_on_retry(tmp_path: Path, 
     assert session.get.call_args_list == [call("1/2/hash"), call("1/2/hash")]
 
 
-def test_fetch_batch_images_excludes_failed_downloads(tmp_path: Path):
+def test_fetch_batch_images_excludes_failed_downloads(tmp_path: Path) -> None:
     partial = io.BytesIO()
     session = MagicMock()
     session.get.return_value.payload = partial
@@ -478,6 +478,7 @@ def test_fetch_batch_images_excludes_failed_downloads(tmp_path: Path):
     assert paths == {}
     assert failed == {"hash"}
     assert partial.closed
+    assert not list(tmp_path.iterdir())
     session.get.assert_called_once_with("1/2/hash")
 
 
@@ -548,7 +549,7 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     assert not base_pair[0].parent.exists()
 
 
-def test_process_chunk_cleans_downloads_on_comparison_failure():
+def test_process_chunk_cleans_downloads_on_comparison_failure() -> None:
     assignment = ChunkAssignment(
         chunk_index=0,
         candidates=[

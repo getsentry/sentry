@@ -6,6 +6,7 @@ import tempfile
 import threading
 import time
 from collections.abc import Callable
+from contextlib import suppress
 from datetime import datetime
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -299,6 +300,8 @@ def _fetch_batch_images(
             with lock:
                 cache[image_hash] = destination
         except Exception:
+            with suppress(OSError):
+                destination.unlink(missing_ok=True)
             with lock:
                 failed.add(image_hash)
 
