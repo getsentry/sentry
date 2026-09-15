@@ -19,7 +19,10 @@ Status = IngestionStatus
 
 class GetIngestionDelayStatusTest(TestCase):
     def _status(
-        self, delay_seconds=None, ingested_seconds_ago=None, accepted=None
+        self,
+        delay_seconds: float | None = None,
+        ingested_seconds_ago: float | None = None,
+        accepted: bool | None = None,
     ) -> IngestionDelayStatus:
         with (
             mock.patch("sentry.ingestion_delay.status.datetime") as mock_datetime,

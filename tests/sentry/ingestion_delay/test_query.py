@@ -12,7 +12,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 
 
 class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
-    def _measure_ingestion_delay(self) -> float | None:
+    def _measure_ingestion_delay(self) -> IngestionDelayMeasurement:
         return measure_ingestion_delay(
             organization_id=self.organization.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
