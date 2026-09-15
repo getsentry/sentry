@@ -25,9 +25,8 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        # No outbound FK constraints. Generic-metrics consumers are already gone;
-        # drop the table in the follow-up migration before the performance_metrics
-        # cluster is decommissioned.
+        # No outbound FK constraints. DROP TABLE follows in a separate PR after
+        # this pending-deletion migration has deployed.
         SafeDeleteModel(
             name="PerfStringIndexer",
             deletion_action=DeletionAction.MOVE_TO_PENDING,

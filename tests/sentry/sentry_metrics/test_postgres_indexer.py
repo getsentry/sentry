@@ -33,3 +33,9 @@ class PostgresIndexerV2Test(TestCase):
         )
 
         assert indexer_cache.get("br", key) is None
+
+    def test_removed_generic_metrics_path_reads_fail_closed(self) -> None:
+        indexer = PGStringIndexerV2()
+        assert indexer.resolve(UseCaseID.TRANSACTIONS, 1, "environment") is None
+        assert indexer.reverse_resolve(UseCaseID.SPANS, 1, 1) is None
+        assert indexer.bulk_reverse_resolve(UseCaseID.TRANSACTIONS, 1, [1, 2]) == {}
