@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import functools
 import logging
+import multiprocessing
 import os
+import sys
 import time
 from collections.abc import Callable
 from concurrent.futures import FIRST_COMPLETED, Executor, Future, ProcessPoolExecutor
@@ -323,9 +325,17 @@ def _cleanup(
     # Make sure we fork off multiprocessing pool
     # before we import or configure the app
     # Using a fairly low tasks per child to control memory usage
+    if sys.platform not in ("win32", "darwin") and multiprocessing.reduction.HAVE_SEND_HANDLE:
+        mp_context: multiprocessing.context.BaseContext = multiprocessing.get_context("forkserver")
+        mp_context.set_forkserver_preload(["sentry.runner"])
+    else:
+        mp_context = multiprocessing.get_context("spawn")
     scheduler = FutureScheduler(
         ProcessPoolExecutor(
-            max_workers=concurrency, initializer=_worker_initializer, max_tasks_per_child=100
+            max_workers=concurrency,
+            mp_context=mp_context,
+            initializer=_worker_initializer,
+            max_tasks_per_child=100,
         ),
         concurrency * 2,
     )
