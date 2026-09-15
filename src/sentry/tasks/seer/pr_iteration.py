@@ -219,7 +219,8 @@ def trigger_consume_pr_iteration_feedback(
             run_id=run_id,
             organization_id=organization_id,
             outcome=outcome_for_pause(
-                log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+                get_pause_reason(run_id=run_id, organization_id=organization_id)
+                or PauseReason.USER_STOP
             ),
         )
         log_ctx.info(
@@ -469,7 +470,8 @@ def consume_queued_autofix_feedback(
                 run_id=run_id,
                 organization_id=organization_id,
                 outcome=outcome_for_pause(
-                    log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+                    get_pause_reason(run_id=run_id, organization_id=organization_id)
+                    or PauseReason.USER_STOP
                 ),
             )
             clear_queued_autofix_feedback(run_id)
@@ -501,7 +503,7 @@ def consume_queued_autofix_feedback(
                 run_state=state,
                 run_id=run_id,
                 organization_id=organization_id,
-                outcome=outcome_for_pause(log_ctx, PauseReason.PR_CLOSED.value),
+                outcome=outcome_for_pause(PauseReason.PR_CLOSED),
             )
             log_ctx.info(
                 "autofix.pr_iteration.consume_feedback.skipped",
