@@ -14,11 +14,11 @@ describe('traceWaterfall embed', () => {
 
   function mockTraceRequests() {
     const traceRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-trace/${traceId}/`,
+      url: `/organizations/org-slug/trace/${traceId}/`,
       body: {transactions: [], orphan_errors: []},
     });
     const metaRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-trace-meta/${traceId}/`,
+      url: `/organizations/org-slug/trace-meta/${traceId}/`,
       body: {
         errors: 0,
         performance_issues: 0,

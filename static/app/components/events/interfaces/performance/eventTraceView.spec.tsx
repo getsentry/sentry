@@ -57,7 +57,7 @@ describe('EventTraceView', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
       body: {
         errors: 1,
         performance_issues: 1,
@@ -71,7 +71,7 @@ describe('EventTraceView', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
       body: {
         transactions: Array.from({length: size}, (_, i) =>
           makeTransaction({
@@ -132,7 +132,7 @@ describe('EventTraceView', () => {
     });
     MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${traceId}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
       body: {
         errors: 0,
         performance_issues: 0,
@@ -144,7 +144,7 @@ describe('EventTraceView', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-trace/${traceId}/`,
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
       body: {
         transactions: [],
         orphan_errors: [],

@@ -85,7 +85,7 @@ function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-trace/trace-id/',
+    url: '/organizations/org-slug/trace/trace-id/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {body: {}}),
@@ -103,7 +103,7 @@ function mockPerformanceSubscriptionDetailsResponse(resp?: Partial<ResponseType>
 
 function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-trace-meta/trace-id/',
+    url: '/organizations/org-slug/trace-meta/trace-id/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {
@@ -1066,7 +1066,7 @@ describe('trace view', () => {
 
   it('reveals a hidden vital pill source node on click', async () => {
     const start = Date.now() / 1e3;
-    const organization = OrganizationFixture({features: ['trace-spans-format']});
+    const organization = OrganizationFixture();
     const vitalSpanDescription = 'standalone LCP span';
 
     mockPerformanceSubscriptionDetailsResponse();

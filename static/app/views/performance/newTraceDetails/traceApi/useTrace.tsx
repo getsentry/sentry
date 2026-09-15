@@ -13,9 +13,6 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
-
-import type {TraceSplitResults} from './types';
 
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
@@ -29,10 +26,9 @@ type TraceQueryParamOptions = {
 };
 
 function getTargetIdParams(
-  traceType: 'eap' | 'non-eap',
   options: TraceQueryParamOptions,
   normalizedParams: ReturnType<typeof normalizeDateTimeParams>
-): {targetId?: string} | {errorId?: string} {
+): {errorId?: string} {
   // Node params occur in the format `${event-type}-${eventId}`, where the most relevant event is the last one in the array.
   // If not an array, it is a string with the same format.
   const nodeParams = normalizedParams.node;
@@ -54,11 +50,7 @@ function getTargetIdParams(
     return {};
   }
 
-  if (traceType === 'eap') {
-    return isValidEventUUID(targetId) ? {errorId: targetId} : {};
-  }
-
-  return {targetId};
+  return isValidEventUUID(targetId) ? {errorId: targetId} : {};
 }
 
 type TraceQueryParams = {
@@ -67,10 +59,9 @@ type TraceQueryParams = {
   pageStart?: string;
   statsPeriod?: string;
   timestamp?: string;
-} & ({targetId?: string} | {errorId?: string});
+} & {errorId?: string};
 
 export function getTraceQueryParams(
-  traceType: 'eap' | 'non-eap',
   query: Location['query'],
   filters?: Partial<PageFilters>,
   options: TraceQueryParamOptions = {}
@@ -103,7 +94,7 @@ export function getTraceQueryParams(
     delete timeRangeParams.statsPeriod;
   }
 
-  const targetEventParams = getTargetIdParams(traceType, options, normalizedParams);
+  const targetEventParams = getTargetIdParams(options, normalizedParams);
 
   const queryParams = {
     ...timeRangeParams,
@@ -153,20 +144,14 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const organization = useOrganization();
   const query = options.disableUrlSync ? EMPTY_QUERY : qs.parse(location.search);
 
-  const isEAPEnabled = useIsEAPTraceEnabled();
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
   const queryParams = useMemo(() => {
-    return getTraceQueryParams(
-      isEAPEnabled ? 'eap' : 'non-eap',
-      query,
-      filters.selection,
-      {
-        limit: options.limit,
-        timestamp: options.timestamp,
-        targetId: options.targetEventId,
-      }
-    );
+    return getTraceQueryParams(query, filters.selection, {
+      limit: options.limit,
+      timestamp: options.timestamp,
+      targetId: options.targetEventId,
+    });
 
     // Only re-run this if the view query param changes, otherwise if we pass location.search
     // as a dependency, the query will re-run every time we perform actions on the trace view; like
@@ -177,7 +162,6 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     options.limit,
     options.timestamp,
     options.targetEventId,
-    isEAPEnabled,
     filters.selection,
   ]);
 
@@ -200,23 +184,13 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     [queryParams, maxPickableDays, options.referrer]
   );
 
-  const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events-trace/$traceId/', {
-        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
-      }),
-      {query: {...queryParams, referrer: options.referrer}},
-    ],
-    {
-      staleTime: Infinity,
-      enabled: hasValidTrace && !isEAPEnabled,
-    }
-  );
-
-  const eapTraceQuery = useApiQuery<TraceTree.EAPTrace>(
+  const traceQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
-        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
+        path: {
+          organizationIdOrSlug: organization.slug,
+          traceId: options.traceSlug ?? '',
+        },
       }),
       {
         query: {
@@ -230,38 +204,22 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     {
       staleTime: Infinity,
       retry: false,
-      enabled: hasValidTrace && isEAPEnabled,
+      enabled: hasValidTrace,
     }
   );
 
   const isInitialTraceEmpty =
     traceQuery.status === 'success' &&
-    traceQuery.data?.transactions?.length === 0 &&
-    traceQuery.data?.orphan_errors?.length === 0;
+    Array.isArray(traceQuery.data) &&
+    traceQuery.data.length === 0;
 
-  const isInitialEAPTraceEmpty =
-    eapTraceQuery.status === 'success' &&
-    Array.isArray(eapTraceQuery.data) &&
-    eapTraceQuery.data.length === 0;
-
-  const traceFallbackQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events-trace/$traceId/', {
-        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
-      }),
-      {query: fallbackQueryParams},
-    ],
-    {
-      staleTime: Infinity,
-      enabled:
-        hasValidTrace && !isEAPEnabled && isInitialTraceEmpty && canRetryWithWiderPeriod,
-    }
-  );
-
-  const eapTraceFallbackQuery = useApiQuery<TraceTree.EAPTrace>(
+  const traceFallbackQuery = useApiQuery<TraceTree.EAPTrace>(
     [
       getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
-        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
+        path: {
+          organizationIdOrSlug: organization.slug,
+          traceId: options.traceSlug ?? '',
+        },
       }),
       {
         query: {
@@ -274,19 +232,10 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     {
       staleTime: Infinity,
       retry: false,
-      enabled:
-        hasValidTrace &&
-        isEAPEnabled &&
-        isInitialEAPTraceEmpty &&
-        canRetryWithWiderPeriod,
+      enabled: hasValidTrace && isInitialTraceEmpty && canRetryWithWiderPeriod,
     }
   );
 
-  if (isEAPEnabled) {
-    return isInitialEAPTraceEmpty && canRetryWithWiderPeriod
-      ? eapTraceFallbackQuery
-      : eapTraceQuery;
-  }
   return isInitialTraceEmpty && canRetryWithWiderPeriod ? traceFallbackQuery : traceQuery;
 }
 
