@@ -31,6 +31,7 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -95,6 +96,7 @@ function SeerWorkflows() {
     },
   });
 
+  const reportedStrategies = useRef(new Set<string>());
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerWorkflowRun[]>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/',
@@ -103,6 +105,20 @@ function SeerWorkflows() {
         staleTime: 0,
       }
     ),
+    queryFn: async context => {
+      const response = await apiFetch<SeerWorkflowRun[]>(context);
+      for (const {strategy} of response.json) {
+        if (isSupportedStrategy(strategy) || reportedStrategies.current.has(strategy)) {
+          continue;
+        }
+        reportedStrategies.current.add(strategy);
+        Sentry.captureMessage('Unsupported Seer workflow strategy', {
+          level: 'warning',
+          extra: {strategy},
+        });
+      }
+      return response;
+    },
     refetchInterval: query =>
       query.state.data?.json.some(
         run => isSupportedStrategy(run.strategy) && run.extras.status === 'running'
@@ -115,19 +131,6 @@ function SeerWorkflows() {
     () => data?.filter(run => isSupportedStrategy(run.strategy)) ?? [],
     [data]
   );
-  const reportedStrategies = useRef(new Set<string>());
-  useEffect(() => {
-    for (const {strategy} of data ?? []) {
-      if (isSupportedStrategy(strategy) || reportedStrategies.current.has(strategy)) {
-        continue;
-      }
-      reportedStrategies.current.add(strategy);
-      Sentry.captureMessage('Unsupported Seer workflow strategy', {
-        level: 'warning',
-        extra: {strategy},
-      });
-    }
-  }, [data]);
 
   const strategyFilter = decodeList(location.query.strategy) as WorkflowStrategy[];
   const statusFilter = decodeList(location.query.status) as WorkflowDisplayStatus[];
