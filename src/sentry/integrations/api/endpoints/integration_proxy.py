@@ -497,16 +497,25 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         """
         Catch-all workaround instead of explicitly setting handlers for each method (GET, POST, etc.)
         """
-        with IntegrationProxyEvent(
-            interaction_type=IntegrationProxyEventType.SHOULD_PROXY
-        ).capture() as lifecycle:
+        # Opened before validation runs, so the provider is not knowable yet. Both
+        # exits below reassign it before recording an outcome, which is why the event
+        # is bound to a name rather than constructed inline.
+        should_proxy_event = IntegrationProxyEvent(
+            interaction_type=IntegrationProxyEventType.SHOULD_PROXY,
+            provider=UNKNOWN_PROVIDER,
+        )
+        with should_proxy_event.capture() as lifecycle:
             try:
                 validator = IntegrationProxyRequestValidator(request)
             except IntegrationProxyRequestValidationException as e:
+                # Assigned ahead of record_failure: the failure tags are read from the
+                # event at record time, and the later validation failures do resolve a
+                # provider.
+                self.provider = e.integration_context["provider"]
+                should_proxy_event.provider = self.provider
                 lifecycle.record_failure(
                     failure_reason=e.failure_type.value, extra={**e.integration_context}
                 )
-                self.provider = e.integration_context["provider"]
                 invalid_request_response = HttpResponseBadRequest()
                 self._record_failure(e.failure_type, invalid_request_response)
                 return invalid_request_response
@@ -514,6 +523,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             self.proxy_path = validator.proxy_path
             self.client = validator.client
             self.provider = validator.integration.provider
+            should_proxy_event.provider = self.provider
 
             self._add_metric(
                 metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
@@ -537,20 +547,18 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             }
             headers = clean_outbound_headers(request.headers)
 
+        # Validation has resolved by now, so this one is tagged from the start.
         with IntegrationProxyEvent(
-            interaction_type=IntegrationProxyEventType.PROXY_REQUEST
+            interaction_type=IntegrationProxyEventType.PROXY_REQUEST,
+            provider=self.provider,
         ).capture() as lifecycle:
             org_integration = validator.organization_integration
-            if org_integration is not None:
-                lifecycle.add_extras(
-                    {
-                        "integration_id": org_integration.integration_id,
-                        "organization_id": org_integration.organization_id,
-                    }
-                )
-            integration = validator.integration
-            if integration is not None:
-                lifecycle.add_extras({"provider": integration.provider})
+            lifecycle.add_extras(
+                {
+                    "integration_id": org_integration.integration_id,
+                    "organization_id": org_integration.organization_id,
+                }
+            )
 
             try:
                 response = self._call_third_party_api(
