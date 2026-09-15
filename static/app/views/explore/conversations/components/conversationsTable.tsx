@@ -206,7 +206,6 @@ export function ConversationsTable() {
     isDirectHit,
     sort,
     setSort,
-    sortingEnabled,
   } = useConversations();
   useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
@@ -303,7 +302,7 @@ export function ConversationsTable() {
   const getColumnSort = useCallback(
     (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
       const field = SORT_FIELD_BY_COLUMN[column.key];
-      if (!sortingEnabled || !field) {
+      if (!field) {
         return undefined;
       }
 
@@ -318,7 +317,7 @@ export function ConversationsTable() {
         },
       };
     },
-    [setSort, sort, sortingEnabled, unsetCursor]
+    [setSort, sort, unsetCursor]
   );
 
   const renderBodyCell = useCallback(
