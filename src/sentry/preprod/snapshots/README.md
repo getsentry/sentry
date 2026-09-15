@@ -42,8 +42,14 @@ and image IDs remain relative to the organization/project storage prefix.
 Unselected plans and unpublished attempt artifacts are not eagerly deleted;
 they rely on the existing objectstore retention policy. A missing frozen plan is
 an error, not permission to rebuild different assignments under the same ID.
-This change does not stream image downloads, change mask encoding, parallelize
-result reads, or introduce a pair-count batching limit.
+New frozen plans split pixel-budgeted chunks into at most 100 image pairs each.
+The split preserves pixel boundaries and happens before final indices are
+published. Retried executions do not repack their assignments when the limit
+changes. Legacy plans retain pixel-only batching. More chunks add task and
+storage overhead; the pair cap is not an image-byte or disk-space limit.
+
+This change does not stream image downloads, change mask encoding, or parallelize
+result reads.
 
 ## Review decisions before rollout
 
