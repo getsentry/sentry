@@ -148,16 +148,16 @@ class MetricIssueConditionGroupValidator(BaseDataConditionGroupValidator):
     conditions = serializers.ListField(required=True)
 
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        MetricIssueComparisonConditionValidator(data=value, many=True).is_valid(
-            raise_exception=True
-        )
+        validator = MetricIssueComparisonConditionValidator(data=value, many=True)
+        validator.is_valid(raise_exception=True)
+        validated = list(validator.validated_data)
         if not any(
-            condition["condition_result"] == DetectorPriorityLevel.OK for condition in value
-        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in value):
+            condition["condition_result"] == DetectorPriorityLevel.OK for condition in validated
+        ) and not any(condition["type"] == Condition.ANOMALY_DETECTION for condition in validated):
             raise serializers.ValidationError(
                 "Resolution condition required for metric issue detector."
             )
-        return value
+        return validated
 
 
 def is_invalid_extrapolation_mode(

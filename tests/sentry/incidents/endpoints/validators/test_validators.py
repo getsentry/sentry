@@ -18,6 +18,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.metric_issue_detector import (
     MetricIssueComparisonConditionValidator,
+    MetricIssueConditionGroupValidator,
     MetricIssueDetectorValidator,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -128,6 +129,47 @@ class MetricIssueComparisonConditionValidatorTest(BaseValidatorTest):
         assert validator.errors.get("conditionResult") == [
             ErrorDetail(string="Unsupported condition result", code="invalid")
         ]
+
+
+class MetricIssueConditionGroupValidatorTest(BaseValidatorTest):
+    """Tests for MetricIssueConditionGroupValidator."""
+
+    def test_validate_conditions_strips_unknown_fields(self) -> None:
+        """
+        Extra fields sent by API clients (e.g. alertThreshold, actions round-tripped
+        from a GET response) must be stripped before reaching DataCondition.objects.create().
+        Regression test for: TypeError: DataCondition() got unexpected keyword arguments:
+        'alert_threshold', 'actions'.
+        """
+        conditions_with_extra_fields = [
+            {
+                "type": Condition.GREATER,
+                "comparison": 30,
+                "conditionResult": DetectorPriorityLevel.HIGH,
+                # Extra fields that the GET serializer includes but the model does not accept
+                "alertThreshold": 30,
+                "actions": [{"type": "slack", "integrationId": "123"}],
+            },
+            {
+                "type": Condition.LESS_OR_EQUAL,
+                "comparison": 30,
+                "conditionResult": DetectorPriorityLevel.OK,
+                "alertThreshold": 0,
+                "actions": [],
+            },
+        ]
+        validator = MetricIssueConditionGroupValidator(
+            data={"logicType": "any", "conditions": conditions_with_extra_fields}
+        )
+        assert validator.is_valid(), validator.errors
+        validated_conditions = validator.validated_data["conditions"]
+        for condition in validated_conditions:
+            assert "alert_threshold" not in condition
+            assert "actions" not in condition
+        # Ensure the core fields are present and correctly typed
+        assert validated_conditions[0]["type"] == Condition.GREATER
+        assert validated_conditions[0]["comparison"] == 30.0
+        assert validated_conditions[0]["condition_result"] == DetectorPriorityLevel.HIGH
 
 
 # on-demand-metrics-extraction excluded from base features: it also triggers
