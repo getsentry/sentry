@@ -2,15 +2,46 @@ from __future__ import annotations
 
 from base64 import b64encode
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import responses
 from django.utils import timezone
 
+from sentry.integrations.errors import OrganizationIntegrationNotFound
+from sentry.integrations.github.multi_platform_detection import PlatformDetectionClient
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
 from sentry.testutils.cases import APITestCase
 
 ENDPOINT_MODULE = "sentry.integrations.api.endpoints.organization_repository_platforms"
+
+
+class StubDetectionClient:
+    """A client implementing only the PlatformDetectionClient surface."""
+
+    def __init__(
+        self,
+        languages: dict[str, int],
+        tree: list[dict[str, Any]],
+        has_languages_endpoint: bool = True,
+    ) -> None:
+        self.languages = languages
+        self.tree = tree
+        self.has_languages_endpoint = has_languages_endpoint
+        self.languages_called_with_tree: list[dict[str, Any]] | None = None
+
+    def get_languages(
+        self, repo_slug: str, tree: list[dict[str, Any]] | None = None
+    ) -> dict[str, int]:
+        self.languages_called_with_tree = tree
+        return self.languages
+
+    def get(self, url: str, **kwargs: Any) -> Any:
+        return {"tree": self.tree, "truncated": False}
+
+    def get_contents(self, repo_slug: str, file_path: str, revision: str | None = None) -> Any:
+        return {"content": ""}
 
 
 class OrganizationRepositoryPlatformsGetTest(APITestCase):
@@ -215,21 +246,135 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
             ]
         }
 
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_client")
+    def test_resolves_client_from_integration_installation(
+        self, mock_get_client: mock.MagicMock
+    ) -> None:
+        client: PlatformDetectionClient = StubDetectionClient(
+            languages={"Python": 50000},
+            tree=[{"path": "manage.py", "type": "blob", "size": 100}],
+        )
+        mock_get_client.return_value = client
+
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert mock_get_client.called
+        platforms = {p["platform"] for p in response.data["platforms"]}
+        assert platforms == {"python-django", "python"}
+
+    @mock.patch(f"{ENDPOINT_MODULE}.detect_platforms_multi")
+    @mock.patch("sentry.integrations.models.integration.Integration.get_installation")
+    def test_second_request_is_served_from_cache(
+        self, mock_get_installation: mock.MagicMock, mock_detect: mock.MagicMock
+    ) -> None:
+        mock_detect.return_value = {"platforms": [{"platform": "python"}]}
+
+        first = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+        second = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert first.data == second.data
+        assert mock_detect.call_count == 1
+
+    @mock.patch(f"{ENDPOINT_MODULE}.detect_platforms_multi")
+    @mock.patch("sentry.integrations.models.integration.Integration.get_installation")
+    def test_a_failed_detection_is_not_cached(
+        self, mock_get_installation: mock.MagicMock, mock_detect: mock.MagicMock
+    ) -> None:
+        mock_detect.side_effect = ApiError("boom")
+        assert self.get_response(self.organization.slug, self.repo.id).status_code == 502
+
+        mock_detect.side_effect = None
+        mock_detect.return_value = {"platforms": [{"platform": "python"}]}
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert response.data["platforms"] == [{"platform": "python"}]
+        assert mock_detect.call_count == 2
+
+    @mock.patch(f"{ENDPOINT_MODULE}.detect_platforms_multi")
+    @mock.patch("sentry.integrations.models.integration.Integration.get_installation")
+    def test_an_empty_repo_is_cached(
+        self, mock_get_installation: mock.MagicMock, mock_detect: mock.MagicMock
+    ) -> None:
+        mock_detect.side_effect = ApiConflictError("empty")
+
+        first = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+        second = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert first.data == {"platforms": []}
+        assert second.data == {"platforms": []}
+        assert mock_detect.call_count == 1
+
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_client")
+    def test_a_client_without_a_languages_endpoint_derives_them_from_the_tree(
+        self, mock_get_client: mock.MagicMock
+    ) -> None:
+        """Avoids a second tree fetch for providers with no languages endpoint."""
+        tree = [{"path": "manage.py", "type": "blob", "size": 100}]
+        client = StubDetectionClient(
+            languages={"Python": 50000}, tree=tree, has_languages_endpoint=False
+        )
+        mock_get_client.return_value = client
+
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert client.languages_called_with_tree == tree
+        platforms = {p["platform"] for p in response.data["platforms"]}
+        assert platforms == {"python-django", "python"}
+
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_client")
+    def test_a_client_with_a_languages_endpoint_is_not_given_the_tree(
+        self, mock_get_client: mock.MagicMock
+    ) -> None:
+        client = StubDetectionClient(
+            languages={"Python": 50000},
+            tree=[{"path": "manage.py", "type": "blob", "size": 100}],
+            has_languages_endpoint=True,
+        )
+        mock_get_client.return_value = client
+
+        self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert client.languages_called_with_tree is None
+
+    @mock.patch(f"{ENDPOINT_MODULE}.detect_platforms_multi")
+    @mock.patch(
+        "sentry.integrations.services.integration.integration_service.get_organization_integration"
+    )
+    def test_org_integration_is_fetched_once(
+        self, mock_get_org_integration: mock.MagicMock, mock_detect: mock.MagicMock
+    ) -> None:
+        """get_client() would re-fetch it over RPC if the cached property were unseeded."""
+        mock_detect.return_value = {"platforms": []}
+
+        self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert mock_get_org_integration.call_count == 1
+
+    @mock.patch("sentry.integrations.github.integration.GitHubIntegration.get_client")
+    def test_a_missing_org_integration_is_a_400_not_a_500(
+        self, mock_get_client: mock.MagicMock
+    ) -> None:
+        mock_get_client.side_effect = OrganizationIntegrationNotFound("gone")
+
+        response = self.get_response(self.organization.slug, self.repo.id)
+
+        assert response.status_code == 400
+
     def test_repo_not_found(self) -> None:
         response = self.get_response(self.organization.slug, 99999)
         assert response.status_code == 404
 
-    def test_non_github_repo(self) -> None:
+    def test_unsupported_provider_repo(self) -> None:
         repo = Repository.objects.create(
             organization_id=self.organization.id,
-            name="non-github-repo",
+            name="unsupported-provider-repo",
             provider="integrations:bitbucket",
             external_id="456",
         )
 
         response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
-        assert "only supported for GitHub" in response.data["detail"]
+        assert "not supported for this repository" in response.data["detail"]
 
     def test_github_enterprise_repo_rejected(self) -> None:
         repo = Repository.objects.create(
@@ -242,7 +387,7 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
 
         response = self.get_response(self.organization.slug, repo.id)
         assert response.status_code == 400
-        assert "only supported for GitHub" in response.data["detail"]
+        assert "not supported for this repository" in response.data["detail"]
 
     def test_repo_without_integration(self) -> None:
         repo = Repository.objects.create(

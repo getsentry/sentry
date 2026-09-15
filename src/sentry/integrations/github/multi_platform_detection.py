@@ -5,7 +5,7 @@ import time
 from base64 import b64decode
 from collections import defaultdict
 from concurrent.futures import as_completed
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import Any, Protocol, TypedDict
 
 import sentry_sdk
 from yaml import YAMLError
@@ -48,27 +48,36 @@ from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.yaml import safe_load
 
-if TYPE_CHECKING:
-    from sentry.integrations.github.client import GitHubBaseClient
+
+class PlatformDetectionClient(Protocol):
+    """What platform detection needs from an SCM client."""
+
+    # Whether this client has an endpoint that provides language metadata
+    # about the repository
+    has_languages_endpoint: bool
+
+    def get(self, path: str, /, *args: Any, **kwargs: Any) -> Any: ...
+
+    # Asked for by name rather than URL: providers disagree on the shape of a contents
+    # route, and making them impersonate one another's is worse.
+    def get_contents(self, repo: str, /, path: str, ref: str | None = None) -> Any: ...
+
+    def get_languages(
+        self, repo: str, /, tree: list[dict[str, Any]] | None = None
+    ) -> dict[str, int]: ...
+
 
 # ---------------------------------------------------------------------------
 # File I/O and manifest parsing helpers
 # ---------------------------------------------------------------------------
 
 
-def _ref_params(ref: str | None) -> dict[str, str]:
-    return {"ref": ref} if ref else {}
-
-
 def _get_repo_file_content(
-    client: GitHubBaseClient, repo: str, path: str, ref: str | None = None
+    client: PlatformDetectionClient, repo: str, path: str, ref: str | None = None
 ) -> str | None:
-    """Fetch a file's content from a GitHub repo. Returns None if not found."""
+    """Fetch a file's content from a repo. Returns None if not found."""
     try:
-        response = client.get(
-            f"/repos/{repo}/contents/{path}",
-            params=_ref_params(ref),
-        )
+        response = client.get_contents(repo, path, ref)
         return b64decode(response["content"]).decode("utf-8")
     except (ApiError, KeyError, TypeError, UnicodeDecodeError, ValueError):
         return None
@@ -192,7 +201,7 @@ def _select_active_platforms(
 
 
 def _get_tree(
-    client: GitHubBaseClient,
+    client: PlatformDetectionClient,
     repo: str,
     ref: str | None = None,
 ) -> tuple[list[dict[str, Any]], bool]:
@@ -459,11 +468,11 @@ def _framework_matches_scoped(
 
 
 def detect_platforms_multi(
-    client: GitHubBaseClient,
+    client: PlatformDetectionClient,
     repo: str,
     ref: str | None = None,
 ) -> MultiDetectionResult:
-    """Detect Sentry platforms for a GitHub repository.
+    """Detect Sentry platforms for a repository.
 
     Selects up to MAX_LANGUAGES base platforms by byte count, fetches the full
     recursive git tree once, then runs two high-confidence passes:
@@ -483,16 +492,16 @@ def detect_platforms_multi(
     """
     start_time = time.monotonic()
 
-    # Run get_languages and _get_tree concurrently — they are independent
-    # requests.  active_platforms only needs languages, so it is computed on
-    # the main thread while the tree fetch is in flight.
     tree_start = time.monotonic()
     with ContextPropagatingThreadPoolExecutor(max_workers=1) as ex:
         tree_future = ex.submit(_get_tree, client, repo, ref)
-        languages: dict[str, int] = client.get_languages(repo)
-        active_platforms = _select_active_platforms(languages)
+        languages = client.get_languages(repo) if client.has_languages_endpoint else None
         entries, is_truncated = tree_future.result()
     tree_duration_ms = (time.monotonic() - tree_start) * 1000
+
+    if languages is None:
+        languages = client.get_languages(repo, entries)
+    active_platforms = _select_active_platforms(languages)
     index = _build_tree_index(entries)
 
     results: list[DetectedPlatform] = []
@@ -643,8 +652,6 @@ def detect_platforms_multi(
         f"{_MULTI_METRICS_PREFIX}.k_reads_realized",
         k_reads_realized,
     )
-    # tree.duration: wall time of the concurrent (languages + tree) block —
-    # effectively the tree's wall time since it is the long pole.
     sentry_sdk.metrics.distribution(
         f"{_MULTI_METRICS_PREFIX}.tree.duration",
         tree_duration_ms,
