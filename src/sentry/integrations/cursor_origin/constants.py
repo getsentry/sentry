@@ -24,6 +24,12 @@ CURSOR_ORIGIN_JWKS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/keys"
 CURSOR_ORIGIN_JWKS_CACHE_SECONDS = 600
 CURSOR_ORIGIN_JWKS_STALE_SECONDS = 600
 
+# Origin installation tokens last at most 15 minutes. Refresh this far ahead of
+# expiry so a long request can't straddle it.
+TOKEN_MINIMUM_VALIDITY_SECONDS = 180
+
+PAGE_SIZE = 100
+
 CURSOR_ORIGIN_SCOPES = (
     "repository:contents:read",
     "repository:contents:write",
