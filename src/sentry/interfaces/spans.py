@@ -41,6 +41,7 @@ class Span(Interface):
 
     @classmethod
     def to_python(cls, data):
+        data = data or {}
         for key in SPAN_KEYS:
             data.setdefault(key, None)
 
