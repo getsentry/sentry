@@ -78,12 +78,14 @@ backend_api_urls: &backend_api_urls
   - '**/urls.py'
 
 # `backend_src` filters on files that are backend changes excluding
-# changes to tests/, Python fixtures, and TypeScript-related config files.
+# changes to tests/, acceptance page objects, and TypeScript-related config files.
 # If you want to filter on *all* backend files, use the `backend_all` filter.
 backend_src: &backend_src
   - *backend_build_changes
   - *backend_dependencies
   - '!(tests|fixtures)/**/*.py'
+  - 'fixtures/*.py'
+  - 'fixtures/!(page_objects)/**/*.py'
   - '**/*.sh'
   - '**/*.pysnap'
   - 'src/sentry/!(static)/**'
