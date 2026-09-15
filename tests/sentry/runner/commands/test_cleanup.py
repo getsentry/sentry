@@ -182,7 +182,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
             models_attempted: set[str] = set()
             run_bulk_deletes_by_project(
-                task_queue=task_queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
+                scheduler=task_queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
                 project_id=None,
                 start_from_project_id=None,
                 is_filtered=lambda model: False,
@@ -228,7 +228,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
             models_attempted: set[str] = set()
             run_bulk_deletes_by_project(
-                task_queue=task_queue,  # type: ignore[arg-type]
+                scheduler=task_queue,  # type: ignore[arg-type]
                 project_id=None,
                 start_from_project_id=None,
                 is_filtered=lambda model: False,
