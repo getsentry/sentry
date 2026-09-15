@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import * as Sentry from '@sentry/react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -103,10 +104,30 @@ function SeerWorkflows() {
       }
     ),
     refetchInterval: query =>
-      query.state.data?.json.some(run => run.extras.status === 'running') ? 5000 : false,
+      query.state.data?.json.some(
+        run => isSupportedStrategy(run.strategy) && run.extras.status === 'running'
+      )
+        ? 5000
+        : false,
   });
 
-  const runs = useMemo(() => data ?? [], [data]);
+  const runs = useMemo(
+    () => data?.filter(run => isSupportedStrategy(run.strategy)) ?? [],
+    [data]
+  );
+  const reportedStrategies = useRef(new Set<string>());
+  useEffect(() => {
+    for (const {strategy} of data ?? []) {
+      if (isSupportedStrategy(strategy) || reportedStrategies.current.has(strategy)) {
+        continue;
+      }
+      reportedStrategies.current.add(strategy);
+      Sentry.captureMessage('Unsupported Seer workflow strategy', {
+        level: 'warning',
+        extra: {strategy},
+      });
+    }
+  }, [data]);
 
   const strategyFilter = decodeList(location.query.strategy) as WorkflowStrategy[];
   const statusFilter = decodeList(location.query.status) as WorkflowDisplayStatus[];
@@ -472,6 +493,10 @@ function SeerWorkflows() {
       </Stack>
     </SentryDocumentTitle>
   );
+}
+
+function isSupportedStrategy(strategy: string): strategy is WorkflowStrategy {
+  return Object.hasOwn(STRATEGY_META, strategy);
 }
 
 const SOURCE_LABELS: Record<WorkflowRunSource, string> = {

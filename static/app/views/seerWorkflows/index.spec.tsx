@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
@@ -122,6 +123,7 @@ describe('SeerWorkflows', () => {
 
   it('polls running Agentic triage workflows and keeps them visible when a background poll fails', async () => {
     jest.useFakeTimers();
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
     const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const url = `/organizations/${organization.slug}/seer/workflows/`;
     const runningRun = {
@@ -137,9 +139,14 @@ describe('SeerWorkflows', () => {
       issues: [],
       seerRuns: [],
     };
+    const unsupportedRuns = [
+      {id: '2', strategy: 'future_strategy', extras: {status: 'running'}},
+      {id: '3', strategy: 'future_strategy'},
+      {id: '4', strategy: 'constructor'},
+    ];
     MockApiClient.addMockResponse({
       url,
-      body: [runningRun],
+      body: [...unsupportedRuns, runningRun],
     });
     render(<SeerWorkflows />, {
       organization,
@@ -152,6 +159,13 @@ describe('SeerWorkflows', () => {
     });
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
 
+    expect(captureMessage).toHaveBeenCalledTimes(2);
+    for (const strategy of ['future_strategy', 'constructor']) {
+      expect(captureMessage).toHaveBeenCalledWith('Unsupported Seer workflow strategy', {
+        level: 'warning',
+        extra: {strategy},
+      });
+    }
     expect(screen.getByText('Triaging issues…')).toBeInTheDocument();
     expect(screen.getByLabelText('Automated')).toBeInTheDocument();
     expect(screen.queryByLabelText('Manual')).not.toBeInTheDocument();
@@ -175,9 +189,10 @@ describe('SeerWorkflows', () => {
     expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
 
-    MockApiClient.addMockResponse({
+    const completedPoll = MockApiClient.addMockResponse({
       url,
       body: [
+        ...unsupportedRuns,
         {
           ...runningRun,
           dateCompleted: '2026-09-09T00:01:00Z',
@@ -191,6 +206,14 @@ describe('SeerWorkflows', () => {
     expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
     expect(screen.getByText('No issues processed in this run.')).toBeInTheDocument();
     expect(screen.queryByText('Triaging issues…')).not.toBeInTheDocument();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(10000);
+    });
+    expect(completedPoll).toHaveBeenCalledTimes(1);
+    expect(captureMessage).toHaveBeenCalledTimes(2);
+    await user.click(screen.getByRole('button', {name: /Strategy/}));
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('option', {name: 'Agentic triage'})).toBeInTheDocument();
   });
 
   it('renders structured duplicate monitor findings in workflow history', async () => {
