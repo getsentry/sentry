@@ -97,14 +97,10 @@ def languages_from_tree(tree: list[dict[str, Any]]) -> dict[str, int]:
     totals: dict[str, int] = defaultdict(int)
 
     for entry in tree:
-        if entry.get("type") != "blob" or entry.get("mode") == _SYMLINK_MODE:
+        if entry["type"] != "blob" or entry["mode"] == _SYMLINK_MODE:
             continue
 
-        path = entry.get("path")
-        if not path:
-            continue
-
-        language = _language(path)
+        language = _language(entry["path"])
         if language is None:
             continue
 
