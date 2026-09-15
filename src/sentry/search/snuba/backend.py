@@ -331,18 +331,11 @@ class QCallbackCondition(Condition):
         self, queryset: BaseQuerySet[Group, Group], search_filter: SearchFilter
     ) -> BaseQuerySet[Group, Group]:
         value = search_filter.value.raw_value
+        q = self.callback(value)
         if search_filter.operator not in ("=", "!=", "IN", "NOT IN"):
             raise InvalidSearchQuery(
                 f"Operator {search_filter.operator} not valid for search {search_filter}"
             )
-        # The search parser encodes `has:field` as `field != ''` and `!has:field`
-        # as `field = ''`. QCallbackCondition fields don't have a meaningful notion
-        # of "existence" the way nullable DB columns do, so short-circuit here:
-        # `has:field` → all groups pass (return queryset unchanged);
-        # `!has:field` → no groups pass (return empty queryset).
-        if value == "" and search_filter.operator in ("=", "!="):
-            return queryset.none() if search_filter.operator == "=" else queryset
-        q = self.callback(value)
         queryset_method = (
             queryset.filter if search_filter.operator in EQUALITY_OPERATORS else queryset.exclude
         )
@@ -669,7 +662,16 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 "seer_explorer_autofix_last_triggered", SEER_LAST_RUN_RECENCY_WINDOW
             ),
             "issue.id": QCallbackCondition(
-                lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
+                # The search parser encodes `has:issue.id` as `issue.id != ''` and
+                # `!has:issue.id` as `issue.id = ''`. Filter out empty strings before
+                # casting to int so those queries don't raise a ValueError.
+                lambda ids: Q(
+                    id__in=[
+                        int(v)
+                        for v in (ids if isinstance(ids, list) else [ids])
+                        if v != ""
+                    ]
+                )
             ),
         }
 
