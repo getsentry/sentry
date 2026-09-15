@@ -4,10 +4,16 @@ from django.urls import reverse
 from sentry.discover.models import (
     DiscoverSavedQuery,
     DiscoverSavedQueryLastVisited,
+    DiscoverSavedQueryStarred,
+)
+from sentry.explore.endpoints.explore_saved_queries import (
+    sync_prebuilt_queries,
+    sync_prebuilt_queries_starred,
 )
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryLastVisited,
+    ExploreSavedQueryStarred,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -198,3 +204,269 @@ class SavedQueriesTest(APITestCase):
             response = self.client.get(self.url, data={"per_page": 1})
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
+
+    def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user)
+
+        starred = list(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id, starred=True
+            )
+            .order_by("position")
+            .select_related("explore_saved_query")
+        )
+
+        expected_names = sorted(
+            ExploreSavedQuery.objects.filter(
+                organization=self.org, prebuilt_id__isnull=False
+            ).values_list("name", flat=True)
+        )
+        assert [s.explore_saved_query.name for s in starred] == expected_names
+        assert [s.position for s in starred] == list(range(1, len(expected_names) + 1))
+
+    def test_sync_prebuilt_starred_inserts_new_prebuilt_alphabetically_for_existing_user(
+        self,
+    ) -> None:
+        # Seed all prebuilts as if the user had synced previously.
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user)
+
+        # Simulate a "new prebuilt added later" by removing the starred record for
+        # one prebuilt that lives alphabetically in the middle of the list, then
+        # compacting the remaining positions.
+        sorted_names = sorted(
+            ExploreSavedQuery.objects.filter(
+                organization=self.org, prebuilt_id__isnull=False
+            ).values_list("name", flat=True)
+        )
+        middle_index = len(sorted_names) // 2
+        middle_name = sorted_names[middle_index]
+        middle_query = ExploreSavedQuery.objects.get(organization=self.org, name=middle_name)
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=self.user.id, explore_saved_query=middle_query
+        ).delete()
+        for idx, row in enumerate(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id
+            ).order_by("position"),
+            start=1,
+        ):
+            row.position = idx
+            row.save()
+
+        sync_prebuilt_queries_starred(self.org, self.user)
+
+        starred = list(
+            ExploreSavedQueryStarred.objects.filter(
+                organization=self.org, user_id=self.user.id, starred=True
+            )
+            .order_by("position")
+            .select_related("explore_saved_query")
+        )
+
+        # User has not customized order, so the new prebuilt is inserted at its
+        # alphabetical position rather than appended at the end.
+        assert [s.explore_saved_query.name for s in starred] == sorted_names
+        assert [s.position for s in starred] == list(range(1, len(sorted_names) + 1))
+        assert starred[middle_index].explore_saved_query.name == middle_name
+
+    def test_sync_prebuilt_starred_preserves_user_custom_order(self) -> None:
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user)
+
+        original_ids = list(
+            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
+            .order_by("position")
+            .values_list("explore_saved_query_id", flat=True)
+        )
+        reversed_ids = list(reversed(original_ids))
+        ExploreSavedQueryStarred.objects.reorder_starred_queries(
+            self.org, self.user.id, reversed_ids
+        )
+
+        sync_prebuilt_queries_starred(self.org, self.user)
+
+        after_ids = list(
+            ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
+            .order_by("position")
+            .values_list("explore_saved_query_id", flat=True)
+        )
+        assert after_ids == reversed_ids
+
+    def test_get_shared_queries(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        discover_model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id + 1,
+            name="Shared discover query",
+            query=self.discover_query_body,
+            version=1,
+        )
+        discover_model.set_projects(self.project_ids)
+
+        model = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id + 1,
+            name="Shared query",
+            query=query,
+        )
+        model.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"exclude": "owned"})
+        assert response.status_code == 200, response.content
+
+        # Both shared queries, plus the prebuilts, which have no creator.
+        names = [row["name"] for row in response.data]
+        assert names == [
+            "All Transactions",
+            "DB Latency",
+            "LLM Calls",
+            "Shared discover query",
+            "Shared query",
+            "Slow HTTP Requests",
+            "Worst Pageloads",
+        ]
+
+        # The shared rows span both sources.
+        by_name = {row["name"]: row for row in response.data}
+        assert by_name["Shared discover query"]["queryType"] == "discover"
+        assert by_name["Shared query"]["queryType"] == "explore"
+
+        # The caller's own queries are excluded.
+        assert "Test query" not in names
+        assert "Discover query" not in names
+
+    def test_get_no_starred_queries(self) -> None:
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=self.discover_query,
+            position=1,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        # Five auto-starred prebuilts plus the starred Discover query.
+        assert len(response.data) == 6
+
+        # Unstars prebuilt queries
+        ExploreSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            starred=True,
+        ).update(starred=False)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        # Unstarring the Explore side leaves the Discover star untouched.
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "Discover query"
+        assert response.data[0]["queryType"] == "discover"
+
+        DiscoverSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=self.user.id
+        ).update(starred=False)
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_get_starred_queries(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        model_a = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Starred query A",
+            query=query,
+        )
+        model_a.set_projects(self.project_ids)
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query=model_a,
+            position=1,
+        )
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model_a,
+            position=1,
+        )
+
+        model_b = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Starred query B",
+            query=query,
+        )
+        model_b.set_projects(self.project_ids)
+        ExploreSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id + 1,
+            explore_saved_query=model_b,
+            position=2,
+        )
+
+        discover_starred = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Starred discover query",
+            query=self.discover_query_body,
+            version=1,
+        )
+        discover_starred.set_projects(self.project_ids)
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=discover_starred,
+            position=6,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        # Five prebuilts, Starred query A and the Discover query. Starred query B
+        # is starred by a different user, so it is not in the caller's list.
+        assert len(response.data) == 7
+        names = {row["name"] for row in response.data}
+        assert "Starred query B" not in names
+
+        by_name = {row["name"]: row for row in response.data}
+        assert by_name["Starred query A"]["starred"] is True
+        assert by_name["Starred query A"]["position"] == 1
+        assert by_name["Starred query A"]["queryType"] == "explore"
+        assert by_name["Starred discover query"]["starred"] is True
+        assert by_name["Starred discover query"]["position"] == 6
+        assert by_name["Starred discover query"]["queryType"] == "discover"
+
+        # starred=1 orders by the caller's position across both sources.
+        positions = [row["position"] for row in response.data if row["position"] is not None]
+        assert positions == sorted(positions)
+
+    def test_malformed_query_missing_query_field_in_get(self) -> None:
+        """VULN-950: A saved query with no 'query' content returns a response
+        missing the 'query' key, which crashes the frontend All Queries page."""
+        malformed = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="malformed",
+            query={"range": "24h"},
+        )
+        malformed.set_projects(self.project_ids)
+
+        with self.feature(self.features):
+            url = reverse(
+                "sentry-api-0-explore-saved-query-detail",
+                args=[self.org.slug, malformed.id],
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 200
+        # The response is missing the 'query' key entirely — this is what
+        # crashes the frontend, which expects it to be an array.
+        assert "query" not in response.data
