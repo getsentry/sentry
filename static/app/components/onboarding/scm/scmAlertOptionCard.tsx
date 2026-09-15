@@ -44,7 +44,15 @@ export function ScmAlertOptionCard({
               `}
             >
               <Flex area="radio" align="center">
-                <Radio size="xs" readOnly checked={isSelected} tabIndex={-1} />
+                {/* Visual only: the card button carries the radio role and
+                    state, so the input is hidden from the accessibility tree. */}
+                <Radio
+                  size="xs"
+                  readOnly
+                  checked={isSelected}
+                  tabIndex={-1}
+                  aria-hidden
+                />
               </Flex>
               <Container area="label">
                 <Text bold size="sm" density="comfortable">
