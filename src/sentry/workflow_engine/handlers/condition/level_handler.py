@@ -21,7 +21,9 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
         "type": "object",
         "properties": {
             "level": {"type": "integer", "enum": [level.value for level in LogLevel]},
-            "match": {"type": "string", "enum": [*MatchType]},
+            # Only level-supported match ops. Full MatchType includes values like
+            # NOT_EQUAL that break render_label and are not evaluated here.
+            "match": {"type": "string", "enum": list(LEVEL_MATCH_CHOICES.keys())},
         },
         "required": ["level", "match"],
         "additionalProperties": False,
@@ -54,8 +56,12 @@ class LevelConditionHandler(DataConditionHandler[WorkflowEventData]):
 
     @classmethod
     def render_label(cls, condition_data: dict[str, Any], organization_id: int) -> str:
+        level = condition_data.get("level")
+        match = condition_data.get("match")
         data = {
-            "level": LEVEL_CHOICES[condition_data["level"]],
-            "match": LEVEL_MATCH_CHOICES[condition_data["match"]],
+            # Fall back to the raw value for unexpected/legacy data so rule list
+            # serialization does not 500 (matches frontend LevelDetails behavior).
+            "level": LEVEL_CHOICES.get(str(level), level),
+            "match": LEVEL_MATCH_CHOICES.get(match, match),
         }
         return cls.label_template.format(**data)
