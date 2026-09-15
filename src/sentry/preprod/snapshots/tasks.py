@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import datetime
 from difflib import SequenceMatcher
 from typing import Any, Literal, NamedTuple
@@ -705,6 +705,107 @@ def _build_comparison_plan(
     )
 
 
+class _ImageMeasurementFailure(NamedTuple):
+    reason: str
+
+
+def _measure_chunk_images(
+    session: SnapshotStorage,
+    assignment: ChunkAssignment,
+    server: OdiffServer,
+    org_id: int,
+    project_id: int,
+) -> Iterator[tuple[ChunkCandidate, DiffResult | _ImageMeasurementFailure]]:
+    image_key_prefix = f"{org_id}/{project_id}"
+    diff_pairs: list[tuple[bytes, bytes]] = []
+    batch_candidates: list[ChunkCandidate] = []
+
+    unique_hashes: set[str] = set()
+    for candidate in assignment.candidates:
+        unique_hashes.add(candidate.head_hash)
+        unique_hashes.add(candidate.base_hash)
+
+    fetch_cache, failed_hashes = _fetch_batch_images(session, image_key_prefix, unique_hashes)
+
+    actual_sizes: dict[str, ImageSize | None] = {}
+    for image_hash, image_data in fetch_cache.items():
+        try:
+            actual_sizes[image_hash] = read_image_size(image_data)
+        except Exception as error:
+            actual_sizes[image_hash] = None
+            metrics.incr("preprod.snapshots.image_diff.header_read_failed")
+            logger.warning(
+                "preprod.snapshots.image_diff.header_read_failed",
+                extra={
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "image_hash": image_hash,
+                    "error_type": type(error).__name__,
+                },
+            )
+
+    current_batch_pixels = 0
+    for candidate in assignment.candidates:
+        if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
+            yield candidate, _ImageMeasurementFailure("image_fetch_failed")
+            continue
+
+        head_size = actual_sizes[candidate.head_hash]
+        base_size = actual_sizes[candidate.base_hash]
+        if head_size is None or base_size is None:
+            yield candidate, _ImageMeasurementFailure("image_processing_failed")
+            continue
+
+        head_data = fetch_cache[candidate.head_hash]
+        base_data = fetch_cache[candidate.base_hash]
+        comparison_size = get_comparison_size(head_size, base_size)
+        comparison_pixels = comparison_size.pixel_count
+        if comparison_pixels > MAX_DIFF_PIXELS:
+            yield candidate, _ImageMeasurementFailure("exceeds_pixel_limit")
+            metrics.incr("preprod.snapshots.image_diff.exceeds_pixel_limit")
+            logger.warning(
+                "preprod.snapshots.image_diff.exceeds_pixel_limit",
+                extra={
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "head_hash": candidate.head_hash,
+                    "base_hash": candidate.base_hash,
+                    "width": comparison_size.width,
+                    "height": comparison_size.height,
+                },
+            )
+            continue
+
+        next_batch_pixels = current_batch_pixels + comparison_pixels
+        if next_batch_pixels > MAX_PIXELS_PER_BATCH:
+            yield candidate, _ImageMeasurementFailure("exceeds_batch_pixel_limit")
+            metrics.incr("preprod.snapshots.image_diff.exceeds_batch_pixel_limit")
+            logger.warning(
+                "preprod.snapshots.image_diff.exceeds_batch_pixel_limit",
+                extra={
+                    "org_id": org_id,
+                    "project_id": project_id,
+                    "head_hash": candidate.head_hash,
+                    "base_hash": candidate.base_hash,
+                    "current_batch_pixels": current_batch_pixels,
+                    "comparison_pixels": comparison_pixels,
+                },
+            )
+            continue
+
+        current_batch_pixels = next_batch_pixels
+        diff_pairs.append((base_data, head_data))
+        batch_candidates.append(candidate)
+
+    diff_results = compare_images_batch(diff_pairs, server=server)
+
+    for candidate, diff_result in zip(batch_candidates, diff_results, strict=True):
+        if diff_result is None:
+            yield candidate, _ImageMeasurementFailure("image_processing_failed")
+        else:
+            yield candidate, diff_result
+
+
 def _process_chunk(
     session: SnapshotStorage,
     assignment: ChunkAssignment,
@@ -713,120 +814,24 @@ def _process_chunk(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> ChunkResult:
-    image_key_prefix = f"{org_id}/{project_id}"
     images: dict[str, ComparisonImageResult] = {}
     sibling_images: dict[str, ComparisonImageResult] = {}
 
-    def results_for(candidate: ChunkCandidate) -> dict[str, ComparisonImageResult]:
-        return sibling_images if candidate.kind == "sibling" else images
-
     with OdiffServer() as server:
-        diff_pairs: list[tuple[bytes, bytes]] = []
-        batch_candidates: list[ChunkCandidate] = []
-
-        unique_hashes: set[str] = set()
-        for candidate in assignment.candidates:
-            unique_hashes.add(candidate.head_hash)
-            unique_hashes.add(candidate.base_hash)
-
-        fetch_cache, failed_hashes = _fetch_batch_images(session, image_key_prefix, unique_hashes)
-
-        actual_sizes: dict[str, ImageSize | None] = {}
-        for image_hash, image_data in fetch_cache.items():
-            try:
-                actual_sizes[image_hash] = read_image_size(image_data)
-            except Exception as error:
-                actual_sizes[image_hash] = None
-                metrics.incr("preprod.snapshots.image_diff.header_read_failed")
-                logger.warning(
-                    "preprod.snapshots.image_diff.header_read_failed",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "image_hash": image_hash,
-                        "error_type": type(error).__name__,
-                    },
-                )
-
-        current_batch_pixels = 0
-        for candidate in assignment.candidates:
-            if candidate.head_hash in failed_hashes or candidate.base_hash in failed_hashes:
-                results_for(candidate)[candidate.name] = _errored_result(
-                    candidate, "image_fetch_failed"
-                )
+        for candidate, diff_result in _measure_chunk_images(
+            session, assignment, server, org_id, project_id
+        ):
+            if isinstance(diff_result, _ImageMeasurementFailure):
+                target = sibling_images if candidate.kind == "sibling" else images
+                target[candidate.name] = _errored_result(candidate, diff_result.reason)
                 continue
 
-            head_size = actual_sizes[candidate.head_hash]
-            base_size = actual_sizes[candidate.base_hash]
-            if head_size is None or base_size is None:
-                results_for(candidate)[candidate.name] = _errored_result(
-                    candidate, "image_processing_failed"
-                )
-                continue
-
-            head_data = fetch_cache[candidate.head_hash]
-            base_data = fetch_cache[candidate.base_hash]
-            comparison_size = get_comparison_size(head_size, base_size)
-            comparison_pixels = comparison_size.pixel_count
-            if comparison_pixels > MAX_DIFF_PIXELS:
-                results_for(candidate)[candidate.name] = _errored_result(
-                    candidate, "exceeds_pixel_limit"
-                )
-                metrics.incr("preprod.snapshots.image_diff.exceeds_pixel_limit")
-                logger.warning(
-                    "preprod.snapshots.image_diff.exceeds_pixel_limit",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "head_hash": candidate.head_hash,
-                        "base_hash": candidate.base_hash,
-                        "width": comparison_size.width,
-                        "height": comparison_size.height,
-                    },
-                )
-                continue
-
-            next_batch_pixels = current_batch_pixels + comparison_pixels
-            if next_batch_pixels > MAX_PIXELS_PER_BATCH:
-                results_for(candidate)[candidate.name] = _errored_result(
-                    candidate, "exceeds_batch_pixel_limit"
-                )
-                metrics.incr("preprod.snapshots.image_diff.exceeds_batch_pixel_limit")
-                logger.warning(
-                    "preprod.snapshots.image_diff.exceeds_batch_pixel_limit",
-                    extra={
-                        "org_id": org_id,
-                        "project_id": project_id,
-                        "head_hash": candidate.head_hash,
-                        "base_hash": candidate.base_hash,
-                        "current_batch_pixels": current_batch_pixels,
-                        "comparison_pixels": comparison_pixels,
-                    },
-                )
-                continue
-
-            current_batch_pixels = next_batch_pixels
-            diff_pairs.append((base_data, head_data))
-            batch_candidates.append(candidate)
-
-        diff_results = compare_images_batch(diff_pairs, server=server)
-
-        for candidate, diff_result in zip(batch_candidates, diff_results, strict=True):
             name = candidate.name
             head_hash, base_hash, threshold = (
                 candidate.head_hash,
                 candidate.base_hash,
                 candidate.diff_threshold,
             )
-            if diff_result is None:
-                results_for(candidate)[name] = ComparisonImageResult(
-                    status="errored",
-                    head_hash=head_hash,
-                    base_hash=base_hash,
-                    reason="image_processing_failed",
-                )
-                continue
-
             diff_pct = _diff_ratio(diff_result)
             is_changed = diff_pct > threshold
 

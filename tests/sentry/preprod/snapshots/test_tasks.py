@@ -1,6 +1,8 @@
 import io
+from typing import Literal
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PIL import Image, PngImagePlugin
 
 from sentry.preprod.snapshots.image_diff.compare import get_comparison_size
@@ -495,7 +497,30 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     assert put_mask.call_count == 1
 
 
-def test_process_chunk_sibling_fetch_failure_is_errored_in_sibling_images() -> None:
+@pytest.mark.parametrize(
+    "kind,result_field,other_field",
+    [("base", "images", "sibling_images"), ("sibling", "sibling_images", "images")],
+)
+@pytest.mark.parametrize(
+    "failed_hashes,header_error,pixel_limit,batch_limit,reason",
+    [
+        ({"a-sib"}, None, 100, 100, "image_fetch_failed"),
+        (set(), ValueError("invalid image"), 100, 100, "image_processing_failed"),
+        (set(), None, 99, 100, "exceeds_pixel_limit"),
+        (set(), None, 100, 99, "exceeds_batch_pixel_limit"),
+        (set(), None, 100, 100, "image_processing_failed"),
+    ],
+)
+def test_process_chunk_routes_measurement_failures(
+    kind: Literal["base", "sibling"],
+    result_field: str,
+    other_field: str,
+    failed_hashes: set[str],
+    header_error: Exception | None,
+    pixel_limit: int,
+    batch_limit: int,
+    reason: str,
+) -> None:
     assignment = ChunkAssignment(
         chunk_index=0,
         candidates=[
@@ -505,20 +530,36 @@ def test_process_chunk_sibling_fetch_failure_is_errored_in_sibling_images() -> N
                 base_hash="a-sib",
                 pixel_count=1,
                 diff_threshold=0.0,
-                kind="sibling",
+                kind=kind,
             ),
         ],
     )
     with (
-        patch("sentry.preprod.snapshots.tasks._fetch_batch_images", return_value=({}, {"a-sib"})),
-        patch("sentry.preprod.snapshots.tasks.compare_images_batch", return_value=[]),
+        patch(
+            "sentry.preprod.snapshots.tasks._fetch_batch_images",
+            return_value=({"a-head": b"head", "a-sib": b"reference"}, failed_hashes),
+        ),
+        patch(
+            "sentry.preprod.snapshots.tasks.read_image_size",
+            return_value=ImageSize(10, 10),
+            side_effect=header_error,
+        ),
+        patch("sentry.preprod.snapshots.tasks.MAX_DIFF_PIXELS", pixel_limit),
+        patch("sentry.preprod.snapshots.tasks.MAX_PIXELS_PER_BATCH", batch_limit),
+        patch(
+            "sentry.preprod.snapshots.tasks.compare_images_batch",
+            side_effect=lambda pairs, **kwargs: [None] * len(pairs),
+        ),
         patch("sentry.preprod.snapshots.tasks.OdiffServer"),
+        patch("sentry.preprod.snapshots.tasks._put_diff_mask") as put_mask,
     ):
         result = _process_chunk(MagicMock(), assignment, 1, 2, 3, 4)
 
-    assert result.images == {}
-    assert result.sibling_images["a.png"].status == "errored"
-    assert result.sibling_images["a.png"].reason == "image_fetch_failed"
+    assert getattr(result, other_field) == {}
+    assert getattr(result, result_field)["a.png"] == ComparisonImageResult(
+        status="errored", head_hash="a-head", base_hash="a-sib", reason=reason
+    )
+    put_mask.assert_not_called()
 
 
 def _threshold_manifest(
