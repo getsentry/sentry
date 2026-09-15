@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
+import {parseAsInteger, parseAsNativeArrayOf, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -18,7 +19,6 @@ import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEn
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
@@ -107,35 +107,12 @@ function AllMonitors({
     setCursor(undefined);
   }, []);
   const {selection} = usePageFilters();
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const filterWritableProjects = useCallback(
-    (project: Project) => hasAutomationWriteAccess({organization, project}),
-    [organization]
-  );
-  const writableProjects = projects.filter(filterWritableProjects);
-  const canEditOrganization = hasOrganizationAutomationWriteAccess(organization);
-  const projectIds = canEditOrganization
-    ? selection.projects
-    : writableProjects
-        .filter(
-          project =>
-            selection.projects.includes(-1) ||
-            (selection.projects.length === 0
-              ? project.isMember
-              : selection.projects.includes(Number(project.id)))
-        )
-        .map(project => Number(project.id));
-  const hasNoWritableProjects = !canEditOrganization && projectIds.length === 0;
 
   return (
     <PageFiltersContainer>
       <FormSection title={t('All Monitors')}>
         <Flex gap="xl">
-          <ProjectPageFilter
-            filterProjects={filterWritableProjects}
-            storageNamespace="automationDrawer"
-          />
+          <ProjectPageFilter storageNamespace="automationDrawer" />
           <div style={{flexGrow: 1}}>
             <DetectorSearch initialQuery={searchQuery} onSearch={onSearch} />
           </div>
@@ -148,8 +125,7 @@ function AllMonitors({
           cursor={cursor}
           onCursor={setCursor}
           query={searchQuery}
-          projectIds={projectIds}
-          detectorIds={hasNoWritableProjects ? [] : undefined}
+          projectIds={selection.projects}
           openInNewTab
         />
       </FormSection>
@@ -261,11 +237,27 @@ function SpecificMonitorsSection({
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
   const organization = useOrganization();
+  const {projects} = useProjects();
+  const [projectIds, setProjectIds] = useQueryState(
+    'project',
+    parseAsNativeArrayOf(parseAsInteger)
+  );
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
       closeDrawer();
       return;
+    }
+
+    // For users which only have access to writable projects, preset the project filter
+    // to the correct project list.
+    if (!hasOrganizationAutomationWriteAccess(organization) && projectIds.length === 0) {
+      setProjectIds(
+        projects
+          .filter(project => hasAutomationWriteAccess({organization, project}))
+          .map(project => Number(project.id))
+          .slice(0, 50) // Limit to the same number that the project selector field allows
+      );
     }
 
     openDrawer(
@@ -375,7 +367,9 @@ function EditConnectedMonitorsContent({
     [setConnectedIds, errorContext]
   );
 
-  const canEditAllProjects = useCanEditDetectorWorkflowConnections({projectId: null});
+  const canEditAllProjects = useCanEditDetectorWorkflowConnections({
+    projectId: null,
+  });
 
   const monitorModeChoices: Array<RadioOption<MonitorMode>> = [
     ['project', t('Alert on all issues in selected projects')],
