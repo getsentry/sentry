@@ -5,6 +5,7 @@ from unittest.mock import ANY, MagicMock, patch
 import orjson
 import pytest
 from objectstore_client import RequestError
+from urllib3 import HTTPConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 
 from sentry.preprod.snapshots.image_diff.types import ImageSize
@@ -961,14 +962,15 @@ class FinalizeSnapshotComparisonTest(TestCase):
         }
         session = _dict_backed_session(stored)
         responses = {key: session.get(key) for key in stored}
-        responses[f"{prefix}/{key_suffix}"].payload.read.side_effect = ReadTimeoutError(
-            None, None, "socket read timed out"
-        )
         session.get.side_effect = responses.get
         with (
+            HTTPConnectionPool("objectstore") as pool,
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
         ):
+            responses[f"{prefix}/{key_suffix}"].payload.read.side_effect = ReadTimeoutError(
+                pool, None, "socket read timed out"
+            )
             finalize_snapshot_comparison(**self._kwargs(comparison, head, base))
 
         comparison.refresh_from_db()
