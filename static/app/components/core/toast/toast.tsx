@@ -2,10 +2,10 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import type {Theme} from 'sentry/utils/theme';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -25,8 +25,10 @@ export function Toast({message, variant, action, onDismiss}: ToastProps) {
   return (
     <ToastContainer role={variant === 'error' ? 'alert' : 'status'} variant={variant}>
       <ToastIcon variant={variant} />
-      <Container padding="lg">
-        <TextOverflow>{message}</TextOverflow>
+      <Container padding="lg" flex="1" minWidth={0}>
+        <Text as="div" wrap="normal" wordBreak="break-word">
+          {message}
+        </Text>
       </Container>
       {action ? (
         <Flex align="center" justify="center" padding="0 lg">

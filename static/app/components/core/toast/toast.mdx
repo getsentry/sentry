@@ -31,6 +31,18 @@ toaster, so callers only need to invoke a method.
       Loading
     </Button>
     <Button onClick={() => toast.message('This is a notification')}>Message</Button>
+    <Button
+      onClick={() => {
+        const words =
+          'This toast has a random message length to show how longer content wraps inside the fixed width layout.'.split(
+            ' '
+          );
+        const length = Math.floor(Math.random() * words.length) + 1;
+        toast.message(words.slice(0, length).join(' '));
+      }}
+    >
+      Random length
+    </Button>
   </Flex>
 </Storybook.Demo>
 

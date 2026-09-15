@@ -14,8 +14,7 @@ const StyledToaster = styled(Toaster)`
   }
 
   &[data-sonner-toaster] [data-sonner-toast] {
-    width: auto;
-    max-width: min(600px, calc(100vw - 60px));
+    width: min(400px, calc(100vw - 60px));
   }
 
   /* Sonner hides overflow toasts with opacity and pointer-events, which leaves

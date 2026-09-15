@@ -6,6 +6,7 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -105,6 +106,25 @@ describe('Toast', () => {
     expect(screen.getByText('Second error')).toBeInTheDocument();
     expect(screen.getByText('Third error')).toBeInTheDocument();
     expect(screen.getAllByRole('alert')).toHaveLength(3);
+  });
+
+  it('uses a consistent width and wraps long messages', async () => {
+    render(<div />);
+    const message =
+      'This is a long toast message that should wrap onto multiple lines instead of being truncated.';
+
+    act(() => void toast.message(message, {duration: Infinity}));
+
+    const toastElement = await screen.findByRole('status');
+    const toaster = toastElement.closest<HTMLElement>('[data-sonner-toaster]');
+    const messageElement = screen.getByText(message);
+
+    expect(toaster).not.toBeNull();
+    expect(getEmotionRules(toaster!).join('')).toMatch(
+      /width:\s*min\(400px,\s*calc\(100vw - 60px\)\)/
+    );
+    expect(getEmotionRules(messageElement).join('')).toMatch(/white-space:\s*normal/);
+    expect(getEmotionRules(messageElement).join('')).toMatch(/word-break:\s*break-word/);
   });
 
   it('dismisses toasts when the variant changes', async () => {
