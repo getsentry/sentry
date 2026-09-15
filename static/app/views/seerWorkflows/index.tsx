@@ -447,7 +447,6 @@ function SeerWorkflows() {
                         <SimpleTable.RowCell>
                           <Flex gap="sm" align="center" wrap="wrap">
                             <SourceIcon source={run.source} />
-                            {STRATEGY_META[run.strategy].icon}
                             <Text size="sm">{STRATEGY_META[run.strategy].label}</Text>
                           </Flex>
                         </SimpleTable.RowCell>

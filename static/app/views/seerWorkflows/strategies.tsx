@@ -1,4 +1,3 @@
-import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
   AgenticTriageResults,
@@ -17,13 +16,11 @@ import type {
 
 type StrategyMeta = {
   label: string;
-  icon?: React.ReactNode;
   runAction?: {feature: string; label: string};
 };
 
 export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
   duplicate_monitors: {
-    icon: <IconCopy size="xs" variant="muted" aria-hidden />,
     runAction: {
       feature: 'seer-workflows-monitor-cleanup',
       label: t('Monitor scan'),
