@@ -1,6 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ReplayPlatformIcon} from 'sentry/components/replays/replayPlatformIcon';
+import {
+  ReplayPlatformIcon,
+  ReplayPlatformIconStack,
+} from 'sentry/components/replays/replayPlatformIcon';
 
 describe('ReplayPlatformIcon', () => {
   it('names the platform and version in a tooltip', async () => {
@@ -41,5 +44,36 @@ describe('ReplayPlatformIcon', () => {
     );
 
     expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
+  });
+});
+
+describe('ReplayPlatformIconStack', () => {
+  const chrome = {name: 'Chrome', version: '103.0.0'};
+  const macOS = {name: 'Mac OS X', version: '10.15.7'};
+  const noBrowser = {name: null, version: null};
+
+  it('stacks the browser behind the OS, each with its own tooltip', async () => {
+    render(<ReplayPlatformIconStack browser={chrome} os={macOS} />);
+
+    const [browser, os] = screen.getAllByRole('img');
+
+    // Reversed in the DOM so `row-reverse` can paint the OS over the browser.
+    await userEvent.hover(browser!);
+    expect(await screen.findByText('Chrome 103.0.0')).toBeInTheDocument();
+
+    await userEvent.hover(os!);
+    expect(await screen.findByText('Mac OS X 10.15.7')).toBeInTheDocument();
+  });
+
+  it('shows the OS alone for a replay with no browser', async () => {
+    render(<ReplayPlatformIconStack browser={noBrowser} os={macOS} />);
+
+    // A mobile replay has no browser to stack, so it gets no second icon —
+    // and no "N/A" marker standing in for one.
+    const icon = screen.getByRole('img');
+    await userEvent.hover(icon);
+
+    expect(await screen.findByText('Mac OS X 10.15.7')).toBeInTheDocument();
+    expect(screen.queryByText('N/A')).not.toBeInTheDocument();
   });
 });
