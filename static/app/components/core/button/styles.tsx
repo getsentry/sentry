@@ -36,7 +36,8 @@ export function DO_NOT_USE_getButtonStyles(
   const variant = p.variant ?? 'secondary';
   // A button that is only aria-disabled stays focusable (so its tooltip can
   // open on focus) but must look and hover like a disabled one.
-  const disabled = p.disabled || p['aria-disabled'] === true;
+  const ariaDisabled = p['aria-disabled'];
+  const disabled = p.disabled || ariaDisabled === true || ariaDisabled === 'true';
 
   const buttonSizes = {
     ...p.theme.form,
