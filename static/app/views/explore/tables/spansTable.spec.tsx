@@ -12,6 +12,7 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -135,6 +136,7 @@ describe('SpansTable', () => {
   const rows = [firstRow, secondRow];
 
   beforeEach(() => {
+    setMockDate(new Date('2026-09-10T12:00:00Z'));
     MockApiClient.clearMockResponses();
     jest.mocked(trackAnalytics).mockClear();
     ProjectsStore.loadInitialData([
@@ -151,11 +153,17 @@ describe('SpansTable', () => {
     });
   });
 
+  afterEach(() => {
+    resetMockDate();
+  });
+
   function renderTable({
+    fields,
     requestIdentityKey,
     tableResult,
     tableRows = rows,
   }: {
+    fields?: string[];
     requestIdentityKey?: string;
     tableResult?: SpansTableResult['result'];
     tableRows?: Array<Record<string, unknown>>;
@@ -177,6 +185,7 @@ describe('SpansTable', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/explore/traces/`,
+            query: fields ? {field: fields} : {},
           },
         },
       }
@@ -227,6 +236,44 @@ describe('SpansTable', () => {
       {pointerEventsCheck: 0}
     );
   }
+
+  it('disables old span details and links to similar spans', async () => {
+    const oldRow = {...firstRow, timestamp: '2026-08-10T12:00:00Z'};
+    const detailsMock = mockSpanDetails(oldRow, []);
+    const {router} = renderTable({tableRows: [oldRow]});
+    const toggle = screen.getByRole('button', {name: 'Show span details'});
+
+    expect(toggle).toBeDisabled();
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(detailsMock).not.toHaveBeenCalled();
+    expect(trackAnalytics).not.toHaveBeenCalled();
+
+    await userEvent.hover(toggle);
+    expect(await screen.findByText(/Span is older than 30 days/)).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('link', {name: 'View similar spans'}));
+    expect(router.location.pathname).toBe(
+      `/organizations/${organization.slug}/explore/traces/`
+    );
+    expect(router.location.query).toEqual(
+      expect.objectContaining({
+        mode: 'samples',
+        project: project.id,
+        query: 'span.name:"span one" span.description:"GET /one"',
+        statsPeriod: '24h',
+      })
+    );
+    expect(detailsMock).not.toHaveBeenCalled();
+  });
+
+  it.each(['2026-08-11T12:00:00Z', '2026-08-10T12:00:01Z', undefined, null, ''])(
+    'allows span expansion for timestamp %s',
+    timestamp => {
+      renderTable({fields: ['id'], tableRows: [{...firstRow, timestamp}]});
+
+      expect(screen.getByRole('button', {name: 'Show span details'})).toBeEnabled();
+    }
+  );
 
   it('independently expands span details only after clicking the chevrons', async () => {
     const firstDetailsMock = mockSpanDetails(firstRow, [

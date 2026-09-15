@@ -1,8 +1,9 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,18 +11,21 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
@@ -34,6 +38,7 @@ import {
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 
+import {getSimilarEventsUrl, isPartialSpanOrTraceData} from './tracesTable/utils';
 import {FieldRenderer} from './fieldRenderer';
 import {SpanItemDetails} from './spanItemDetails';
 
@@ -292,6 +297,37 @@ function SpanSampleRow({
 }) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+  const isPartialSpan = isPartialSpanOrTraceData(data.timestamp);
+  let disabledReason: ReactNode;
+
+  if (isPartialSpan) {
+    const project = projects.find(p => p.slug === data.project);
+    const queryString = new MutableSearch('');
+    for (const field of ['span.name', 'span.description']) {
+      if (data[field]) {
+        queryString.addFilterValue(field, data[field]);
+      }
+    }
+    disabledReason = tct(
+      'Span is older than 30 days. [similarSpans] in the past 24 hours.',
+      {
+        similarSpans: (
+          <Link
+            to={getSimilarEventsUrl({
+              queryString: queryString.formatString(),
+              organization,
+              projectIds: project ? [Number(project.id)] : selection.projects,
+              selection,
+            })}
+          >
+            {t('View similar spans')}
+          </Link>
+        ),
+      }
+    );
+  }
 
   return (
     <Fragment>
@@ -300,8 +336,10 @@ function SpanSampleRow({
           <Button
             aria-expanded={isExpanded}
             aria-label={isExpanded ? t('Hide span details') : t('Show span details')}
+            disabled={isPartialSpan}
             icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
             size="zero"
+            tooltipProps={{title: disabledReason}}
             variant="transparent"
             onClick={() => {
               setIsExpanded(e => !e);
