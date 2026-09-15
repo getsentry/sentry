@@ -1,10 +1,22 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {FieldKind} from 'sentry/utils/fields';
 import {
+  TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -25,6 +37,22 @@ const organization = OrganizationFixture({
   features: ['search-query-attribute-validation'],
 });
 
+// Explore supplies a provider outside the builder; both register attribute metadata.
+function SpansSearchQueryBuilder() {
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps({
+      initialQuery: '',
+      searchSource: 'explore',
+      disableRecentSearches: true,
+    });
+
+  return (
+    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
+      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+    </SearchQueryBuilderProvider>
+  );
+}
+
 describe('useTraceItemSearchQueryBuilderProps', () => {
   beforeEach(() => {
     PageFiltersStore.init();
@@ -42,6 +70,59 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('does not retain attributes after switching projects', async () => {
+    const queryClient = makeTestQueryClient();
+    const url = '/organizations/org-slug/trace-items/attributes/';
+    MockApiClient.addMockResponse({
+      url,
+      body: [
+        {
+          key: 'custom.unique',
+          name: 'custom.unique',
+          attributeType: 'number',
+          attributeSource: {source_type: 'user'},
+        },
+      ],
+    });
+    let finishRequest!: () => void;
+    const projectRequest = MockApiClient.addMockResponse({
+      url,
+      body: [],
+      match: [MockApiClient.matchQuery({project: ['2']})],
+      asyncDelay: new Promise<void>(resolve => {
+        finishRequest = resolve;
+      }),
+    });
+
+    render(<SpansSearchQueryBuilder />, {
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.keyboard('custom.unique');
+    expect(
+      await screen.findByRole('option', {name: 'custom.unique'})
+    ).toBeInTheDocument();
+
+    act(() => PageFiltersStore.updateProjects([2], null));
+    await waitFor(() => expect(projectRequest).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('option', {name: 'custom.unique'})
+      ).not.toBeInTheDocument()
+    );
+    await act(async () => finishRequest());
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(screen.queryByRole('option', {name: 'custom.unique'})).not.toBeInTheDocument();
+
+    // An empty result in the new scope must not hide attributes when returning.
+    act(() => PageFiltersStore.updateProjects([1], null));
+    expect(
+      await screen.findByRole('option', {name: 'custom.unique'})
+    ).toBeInTheDocument();
   });
 
   it('wires boolean attributes into filter keys, aliases, and sections', () => {
