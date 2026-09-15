@@ -232,6 +232,17 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
             },
         }
 
+    def setup(self) -> None:
+        from sentry.plugins.base import bindings
+
+        from .repository import CursorOriginRepositoryProvider
+
+        bindings.add(
+            "integration-repository.provider",
+            CursorOriginRepositoryProvider,
+            id=f"integrations:{self.key}",
+        )
+
 
 def build_install_url(state: str, redirect_uri: str, scopes: Sequence[str] | None = None) -> str:
     """Where a workspace admin is sent to grant the app access to their codebase."""
