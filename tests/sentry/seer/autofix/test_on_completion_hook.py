@@ -307,8 +307,11 @@ class TestPrIterationStepMetrics(TestCase):
         assert _step_checkpoints(mock_metrics) == ["iteration_completed"]
 
     def test_an_errored_run_counts_nothing(self, mock_metrics, _mock_complete) -> None:
-        with patch(f"{HOOK_PATH}.pause_pr_iteration", return_value=True):
-            self._run(_unsynced_state(status="error"))
+        with (
+            patch(f"{HOOK_PATH}.pause_pr_iteration", return_value=True),
+            patch(f"{HOOK_PATH}.fetch_run_status", return_value=_unsynced_state(status="error")),
+        ):
+            AutofixOnCompletionHook.execute(self.organization, 1)
 
         assert _step_checkpoints(mock_metrics) == []
 

@@ -137,9 +137,14 @@ describe('SeerWorkflows', () => {
       issues: [],
       seerRuns: [],
     };
+    const unsupportedRuns = [
+      {id: '2', strategy: 'future_strategy', extras: {status: 'running'}},
+      {id: '3', strategy: 'future_strategy'},
+      {id: '4', strategy: 'constructor'},
+    ];
     MockApiClient.addMockResponse({
       url,
-      body: [runningRun],
+      body: [...unsupportedRuns, runningRun],
     });
     render(<SeerWorkflows />, {
       organization,
@@ -175,9 +180,10 @@ describe('SeerWorkflows', () => {
     expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
 
-    MockApiClient.addMockResponse({
+    const completedPoll = MockApiClient.addMockResponse({
       url,
       body: [
+        ...unsupportedRuns,
         {
           ...runningRun,
           dateCompleted: '2026-09-09T00:01:00Z',
@@ -191,6 +197,13 @@ describe('SeerWorkflows', () => {
     expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
     expect(screen.getByText('No issues processed in this run.')).toBeInTheDocument();
     expect(screen.queryByText('Triaging issues…')).not.toBeInTheDocument();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(10000);
+    });
+    expect(completedPoll).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', {name: /Strategy/}));
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('option', {name: 'Agentic triage'})).toBeInTheDocument();
   });
 
   it('renders structured duplicate monitor findings in workflow history', async () => {

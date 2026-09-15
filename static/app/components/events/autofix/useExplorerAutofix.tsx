@@ -273,9 +273,10 @@ function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string 
 /**
  * A step refused because another one is still running on the same run.
  *
- * The endpoint returns two different 409s, and only this one is recoverable, so
- * the machine-readable code decides — the detail text is free to be reworded.
- * The body carries the live run's ids in the shape a success response uses.
+ * The endpoint returns several different 409s, and only this one is
+ * recoverable, so the machine-readable code decides — the detail text is free
+ * to be reworded. The body carries the live run's ids in the shape a success
+ * response uses.
  */
 function isRunInFlightError(
   e: unknown
@@ -288,6 +289,30 @@ function isRunInFlightError(
     error?.status === 409 &&
     error.responseJSON?.code === 'run_in_flight' &&
     defined(error.responseJSON.run_id)
+  );
+}
+
+/**
+ * A new run refused because the organization is missing a supported SCM
+ * integration or the project has no connected repositories.
+ *
+ * Kickoffs are gated on the same Seer setup checks AutofixContent renders, so
+ * this 409 should be rare; the machine-readable code decides which check
+ * failed, and the detail text is user-facing copy telling the user what to set
+ * up. Unlike isRunInFlightError there is no live run to recover by refetching —
+ * setup must be completed first.
+ */
+function isAutofixSetupRequiredError(
+  e: unknown
+): e is {responseJSON: {code: 'scm_integration_required' | 'repos_not_linked'}} {
+  const error = e as
+    | {responseJSON?: {code?: unknown}; status?: number}
+    | null
+    | undefined;
+  const code = error?.responseJSON?.code;
+  return (
+    error?.status === 409 &&
+    (code === 'scm_integration_required' || code === 'repos_not_linked')
   );
 }
 
@@ -872,6 +897,7 @@ export function useExplorerAutofix(
 
         return getAutofixRunId(response)!;
       } catch (e: any) {
+        setWaitingForResponse(false);
         const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
 
         // The step lost a race against one that is already running. Nothing is
@@ -884,11 +910,25 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
           });
-          setWaitingForResponse(false);
           return getAutofixRunId(e.responseJSON)!;
         }
 
-        setWaitingForResponse(false);
+        // The kickoff was refused because Seer setup is incomplete. There is no
+        // failed run to paint, and unlike the in-flight race there is nothing to
+        // recover by refetching — surface the backend's setup copy (it names the
+        // check that failed) and rethrow so callers keep their error paths. The
+        // sidebar renders the setup UI in AutofixContent; this covers the
+        // surfaces that don't (drawer, previews, command palette).
+        if (isAutofixSetupRequiredError(e)) {
+          addErrorMessage(
+            getApiErrorMessage(
+              e,
+              'Seer Autofix requires additional setup before starting a run'
+            )
+          );
+          throw e;
+        }
+
         const errorMessage = getApiErrorMessage(e);
         // Replacing the cached run would wipe out the blocks of a run that already exists.
         if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {

@@ -341,6 +341,13 @@ def get_iterations(state: SeerRunState) -> list[Iteration]:
     return iterations
 
 
+def iteration_repos(iteration: Iteration) -> set[str]:
+    """The repositories this iteration changed."""
+    return {
+        patch.repo_name for block in iteration.blocks for patch in (block.merged_file_patches or [])
+    }
+
+
 def get_latest_iteration_index(state: SeerRunState) -> int:
     try:
         iterations = get_iterations(state)
@@ -977,12 +984,26 @@ AUTOMATED_AUTOFIX_REFERRERS = frozenset(
 )
 
 
+# Wraps the "Fixes <issue>" line so downstream readers (seer's duplicate-Fixes
+# check, PR-description parsers) can find it without regexing free text.
+SEER_FIXES_SENTRY_ISSUE_MARKER = "SEER_FIXES_SENTRY_ISSUE"
+
+
 def _build_issue_reference_lines(group: Group) -> list[str]:
     lines = []
 
     if group.qualified_short_id:
         issue_url = group.get_absolute_url(params={"seerDrawer": "true"})
-        lines.append(f"Fixes [{group.qualified_short_id}]({issue_url})")
+        lines.append(
+            f"<!-- {SEER_FIXES_SENTRY_ISSUE_MARKER} -->\n"
+            f"Fixes [{group.qualified_short_id}]({issue_url})\n"
+            f"<!-- /{SEER_FIXES_SENTRY_ISSUE_MARKER} -->"
+        )
+    else:
+        logger.warning(
+            "autofix.pr_description.no_short_id",
+            extra={"group": group.id, "project": group.project_id},
+        )
 
     for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
         if external_issue.service_type == "linear":
