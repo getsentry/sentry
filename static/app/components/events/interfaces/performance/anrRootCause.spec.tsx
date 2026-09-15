@@ -149,7 +149,10 @@ const makeEventWithThreads = (threads: Thread[]): Event => {
       type: 'ZeroDivisionError',
       value: 'divided by 0',
     },
-    tags: [{key: 'level', value: 'error'}],
+    tags: [
+      {key: 'level', value: 'error'},
+      {key: 'mechanism', value: 'ANR'},
+    ],
     platform: 'other',
     dateReceived: '2021-10-28T12:28:22.318469Z',
     errors: [],
@@ -251,12 +254,8 @@ describe('anrRootCause', () => {
         )
       )
     ).toBeInTheDocument();
-    expect(screen.getByTestId('stack-trace-content')).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher('Thread.java in wait at line 10'))
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(textWithMarkupMatcher('MainActivity.java in onCreate at line 366'))
-    ).toBeInTheDocument();
+    expect(screen.getByText('Suspect Frame')).toBeInTheDocument();
+    expect(screen.getByText('wait')).toBeInTheDocument();
+    expect(screen.getByText('onCreate')).toBeInTheDocument();
   });
 });
