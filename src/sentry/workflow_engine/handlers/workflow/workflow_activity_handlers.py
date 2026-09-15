@@ -31,6 +31,19 @@ def schedule_process_workflow_activity(
     )
 
 
+def schedule_smart_assignment_trigger(*, activity_id: int, group_id: GroupId) -> None:
+    from sentry.tasks.seer.smart_assignment import process_smart_assignment_trigger
+
+    transaction.on_commit(
+        partial(
+            process_smart_assignment_trigger.delay,
+            activity_id=activity_id,
+            group_id=group_id,
+        ),
+        using=router.db_for_write(Activity),
+    )
+
+
 # Seer runs on an issue and reaches the stage...
 SEER_WORKFLOW_ACTIVITIES = [
     ActivityType.SEER_RCA_COMPLETED,
@@ -119,9 +132,12 @@ def smart_assignment_trigger_handler(
     if activity_type not in SMART_ASSIGNMENT_ACTIVITIES:
         return
 
-    from sentry.seer.smart_assignment.trigger import trigger_smart_assignment
+    from sentry.seer.smart_assignment.trigger import is_smart_assignment_enabled
 
-    trigger_smart_assignment(group, activity_type, activity)
+    if not is_smart_assignment_enabled(group.organization):
+        return
+
+    schedule_smart_assignment_trigger(activity_id=activity.id, group_id=group.id)
 
 
 @workflow_activity_registry.register("smart_assignment_completed")

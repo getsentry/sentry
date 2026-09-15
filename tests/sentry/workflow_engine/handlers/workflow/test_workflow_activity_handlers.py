@@ -13,6 +13,7 @@ from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import 
     SUPPORTED_ACTIVITIES,
     activity_handler,
     schedule_process_workflow_activity,
+    schedule_smart_assignment_trigger,
     seer_activity_handler,
     smart_assignment_completed_handler,
     smart_assignment_trigger_handler,
@@ -39,6 +40,19 @@ class ScheduleProcessWorkflowActivityTest(TestCase):
             detector_id=3,
         )
 
+    @mock.patch("sentry.tasks.seer.smart_assignment.process_smart_assignment_trigger")
+    def test_schedules_smart_assignment_after_commit(
+        self, mock_process_smart_assignment_trigger: MagicMock
+    ) -> None:
+        with transaction.atomic(router.db_for_write(Activity)):
+            schedule_smart_assignment_trigger(activity_id=1, group_id=2)
+            mock_process_smart_assignment_trigger.delay.assert_not_called()
+
+        mock_process_smart_assignment_trigger.delay.assert_called_once_with(
+            activity_id=1,
+            group_id=2,
+        )
+
 
 class WorkflowActivityRegistryTest(TestCase):
     def test_registrants(self) -> None:
@@ -50,14 +64,17 @@ class WorkflowActivityRegistryTest(TestCase):
 
 
 class SmartAssignmentActivityHandlerTest(TestCase):
-    TRIGGER = "sentry.seer.smart_assignment.trigger.trigger_smart_assignment"
+    ENABLED = "sentry.seer.smart_assignment.trigger.is_smart_assignment_enabled"
+    SCHEDULE = (
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers."
+        "schedule_smart_assignment_trigger"
+    )
 
     def setUp(self) -> None:
         self.group = self.create_group()
 
-    @mock.patch(TRIGGER)
-    def test_delegates_for_relevant_activities(self, mock_trigger: MagicMock) -> None:
-        # The handler forwards the raw ActivityType straight through -- no condensing.
+    @mock.patch(SCHEDULE)
+    def test_schedules_relevant_activities(self, mock_schedule: MagicMock) -> None:
         cases = [
             (ActivityType.SEER_RCA_STARTED, None),
             (ActivityType.SEER_SOLUTION_STARTED, None),
@@ -66,29 +83,46 @@ class SmartAssignmentActivityHandlerTest(TestCase):
             (ActivityType.SET_RESOLVED, None),
             (ActivityType.SET_RESOLVED_IN_COMMIT, None),
         ]
-        for activity_type, data in cases:
-            mock_trigger.reset_mock()
-            activity = self.create_group_activity(
-                group=self.group, type=activity_type.value, data=data
-            )
-            smart_assignment_trigger_handler(self.group, activity, None)
-            mock_trigger.assert_called_once_with(self.group, activity_type, activity)
+        with mock.patch(self.ENABLED, return_value=True):
+            for activity_type, data in cases:
+                activity = self.create_group_activity(
+                    group=self.group, type=activity_type.value, data=data
+                )
+                mock_schedule.reset_mock()
+                smart_assignment_trigger_handler(self.group, activity, None)
+                mock_schedule.assert_called_once_with(
+                    activity_id=activity.id,
+                    group_id=self.group.id,
+                )
 
-    @mock.patch(TRIGGER)
-    def test_skips_unrelated_activities(self, mock_trigger: MagicMock) -> None:
-        for activity_type in (
-            # We trigger on Seer AI-step *starts*, not completions or PR creation...
-            ActivityType.SEER_SOLUTION_COMPLETED,
-            ActivityType.SEER_PR_CREATED,
-            # ...and an iteration is a re-run of an already-started autofix, so it's
-            # deliberately not a trigger (dedup would make it redundant anyway).
-            ActivityType.SEER_ITERATION_STARTED,
-            ActivityType.SET_RESOLVED_BY_AGE,
-            ActivityType.NOTE,
-        ):
-            activity = self.create_group_activity(group=self.group, type=activity_type.value)
+    @mock.patch(SCHEDULE)
+    def test_skips_unrelated_activities(self, mock_schedule: MagicMock) -> None:
+        with mock.patch(self.ENABLED, return_value=True):
+            for activity_type in (
+                # We trigger on Seer AI-step *starts*, not completions or PR creation...
+                ActivityType.SEER_SOLUTION_COMPLETED,
+                ActivityType.SEER_PR_CREATED,
+                # ...and an iteration is a re-run of an already-started autofix, so it's
+                # deliberately not a trigger (dedup would make it redundant anyway).
+                ActivityType.SEER_ITERATION_STARTED,
+                ActivityType.SET_RESOLVED_BY_AGE,
+                ActivityType.NOTE,
+            ):
+                activity = self.create_group_activity(group=self.group, type=activity_type.value)
+                smart_assignment_trigger_handler(self.group, activity, None)
+        mock_schedule.assert_not_called()
+
+    @mock.patch(SCHEDULE)
+    def test_skips_when_feature_disabled(self, mock_schedule: MagicMock) -> None:
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+
+        with mock.patch(self.ENABLED, return_value=False):
             smart_assignment_trigger_handler(self.group, activity, None)
-        mock_trigger.assert_not_called()
+
+        mock_schedule.assert_not_called()
 
 
 class SmartAssignmentCompletedHandlerTest(TestCase):
