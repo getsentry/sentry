@@ -4,15 +4,16 @@ from unittest import mock
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 
 from sentry.ingestion_delay.query import (
-    measure_delay_seconds,
+    IngestionDelayMeasurement,
+    measure_ingestion_delay,
 )
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
-class MeasureDelaySecondsTest(OrganizationEventsEndpointTestBase):
-    def _measure_delay_seconds(self) -> float | None:
-        return measure_delay_seconds(
+class GetIngestionDelayMeasurementTest(OrganizationEventsEndpointTestBase):
+    def _measure_ingestion_delay(self) -> float | None:
+        return measure_ingestion_delay(
             organization_id=self.organization.id,
             item_type=TraceItemType.TRACE_ITEM_TYPE_SPAN,
             now=datetime.now(tz=UTC),
@@ -38,38 +39,54 @@ class MeasureDelaySecondsTest(OrganizationEventsEndpointTestBase):
         self.store_spans([span])
 
     def test_returns_measured_value(self) -> None:
+        before_insert = datetime.now(tz=UTC)
         self._store_span_received_at(before_now(seconds=42.5))
-        delay = self._measure_delay_seconds()
+        status = self._measure_ingestion_delay()
+        delay = status.delay_seconds
         # Upper bound is intentionally loose to reduce flakiness.
         # ingested_at timestamp is inserted by snuba and we can't inject it in test.
         assert delay is not None
         assert 42.5 <= delay < 50
+        last_ingested_at = status.last_ingested_at
+        assert last_ingested_at is not None
+        assert last_ingested_at > before_insert
 
     def test_returns_measured_value_multiple_spans(self) -> None:
+        before_insert = datetime.now(tz=UTC)
         for i in range(100):
             self._store_span_received_at(before_now(seconds=i * 10))
-        delay = self._measure_delay_seconds()
+        status = self._measure_ingestion_delay()
+        delay = status.delay_seconds
         assert delay is not None
         assert 980 <= delay < 1000
+        last_ingested_at = status.last_ingested_at
+        assert last_ingested_at is not None
+        assert last_ingested_at > before_insert
 
     def test_no_result_returns_none(self) -> None:
-        assert self._measure_delay_seconds() is None
+        assert self._measure_ingestion_delay() == IngestionDelayMeasurement(
+            delay_seconds=None, last_ingested_at=None
+        )
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
     def test_empty_response_returns_none(self, mock_table_rpc: mock.MagicMock) -> None:
         mock_table_rpc.return_value = []
-        assert self._measure_delay_seconds() is None
+        assert self._measure_ingestion_delay() == IngestionDelayMeasurement(
+            delay_seconds=None, last_ingested_at=None
+        )
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
     def test_measures_all_projects_in_organization(self, mock_table_rpc: mock.MagicMock) -> None:
         project = self.project
         other = self.create_project(organization=self.organization)
         mock_table_rpc.return_value = [self._response(1.0)]
-        self._measure_delay_seconds()
+        self._measure_ingestion_delay()
         request = mock_table_rpc.call_args[0][0][0]
         assert set(request.meta.project_ids) == {project.id, other.id}
 
     @mock.patch("sentry.ingestion_delay.query.snuba_rpc.table_rpc")
     def test_query_failure_does_not_propagate(self, mock_table_rpc: mock.MagicMock) -> None:
         mock_table_rpc.side_effect = Exception("snuba is down")
-        assert self._measure_delay_seconds() is None
+        assert self._measure_ingestion_delay() == IngestionDelayMeasurement(
+            delay_seconds=None, last_ingested_at=None
+        )
