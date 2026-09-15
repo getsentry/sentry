@@ -152,7 +152,7 @@ describe('IntegrationDetailedView', () => {
     expect(await screen.findByText('Bitbucket')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Overview'})).toBeInTheDocument();
     expect(screen.getByText('Installed')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Add integration'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Add Installation'})).toBeEnabled();
   });
 
   it('shows the selected tab in the breadcrumb while loading data', () => {
