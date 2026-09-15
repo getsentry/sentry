@@ -1,5 +1,6 @@
 import unittest.mock as mock
 from typing import Any
+from uuid import UUID
 
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
@@ -566,3 +567,151 @@ class TestDetectorStateManagerRedisOptimization(TestCase):
         state_manager = self.handler.state_manager
         result = state_manager.bulk_get_redis_values([])
         assert result == {}
+
+
+class RotatingDetectorStateHandler(MockDetectorStateHandler):
+    rotates_activation_id = True
+
+
+class TestStatefulDetectorActivationId(TestCase):
+    def setUp(self) -> None:
+        self.group_key: DetectorGroupKey = None
+
+        self.detector = self.create_detector(
+            name="Stateful Detector",
+            project=self.project,
+        )
+
+        self.detector.workflow_condition_group = self.create_data_condition_group()
+
+        for value, result in (
+            ("OK", Level.OK),
+            ("MEDIUM", Level.MEDIUM),
+            ("HIGH", Level.HIGH),
+        ):
+            self.create_data_condition(
+                type="eq",
+                comparison=value,
+                condition_group=self.detector.workflow_condition_group,
+                condition_result=result,
+            )
+
+    def packet(self, key: int, result: DetectorPriorityLevel) -> DataPacket[Any]:
+        return self.grouped_packet(key, {self.group_key: result})
+
+    def grouped_packet(
+        self, key: int, results: dict[DetectorGroupKey, DetectorPriorityLevel]
+    ) -> DataPacket[Any]:
+        packet = {
+            "id": str(key),
+            "dedupe": key,
+            "group_vals": {group_key: result.name for group_key, result in results.items()},
+        }
+
+        return DataPacket(source_id=str(key), packet=packet)
+
+    def activation_id(
+        self, handler: MockDetectorStateHandler, group_key: DetectorGroupKey = None
+    ) -> UUID | None:
+        return handler.state_manager.get_state_data([group_key])[group_key].activation_id
+
+    def test_detector_without_a_project__resolves_its_organization(self) -> None:
+        """
+        An all-projects detector has project=NULL and carries its org in config, so
+        `linked_project` raises for it and cannot be used to check the flag.
+        """
+        org_scoped_detector = self.create_all_projects_detector(self.organization)
+
+        assert org_scoped_detector.project is None
+
+        handler = RotatingDetectorStateHandler(detector=org_scoped_detector)
+
+        assert handler._get_detector_organization() == self.organization
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            assert handler._should_rotate_activation_id() is True
+
+    def test_no_opt_in__never_rotates(self) -> None:
+        handler = MockDetectorStateHandler(detector=self.detector)
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            handler.evaluate(self.packet(1, Level.HIGH))
+
+        assert self.activation_id(handler) is None
+
+    def test_opt_in_without_flag__never_rotates(self) -> None:
+        handler = RotatingDetectorStateHandler(detector=self.detector)
+
+        handler.evaluate(self.packet(1, Level.HIGH))
+
+        assert self.activation_id(handler) is None
+
+    def test_leaving_ok__mints_an_id(self) -> None:
+        handler = RotatingDetectorStateHandler(detector=self.detector)
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            handler.evaluate(self.packet(1, Level.HIGH))
+
+        assert self.activation_id(handler) is not None
+
+    def test_escalation_and_resolution__keep_the_id(self) -> None:
+        handler = RotatingDetectorStateHandler(detector=self.detector)
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            handler.evaluate(self.packet(1, Level.MEDIUM))
+
+            activated = self.activation_id(handler)
+
+            handler.evaluate(self.packet(2, Level.HIGH))
+
+            assert self.activation_id(handler) == activated
+
+            handler.evaluate(self.packet(3, Level.OK))
+
+            assert self.activation_id(handler) == activated
+
+    def test_group_keys__rotate_independently(self) -> None:
+        """
+        Ensure one group key firing or resolving does not mess up another group key
+        """
+        handler = RotatingDetectorStateHandler(detector=self.detector)
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            handler.evaluate(self.grouped_packet(1, {"group_a": Level.HIGH, "group_b": Level.HIGH}))
+
+            first_a = self.activation_id(handler, "group_a")
+            first_b = self.activation_id(handler, "group_b")
+
+            assert first_a is not None
+            assert first_b is not None
+            assert first_a != first_b
+
+            handler.evaluate(self.grouped_packet(2, {"group_a": Level.OK}))
+
+            assert self.activation_id(handler, "group_a") == first_a
+            assert self.activation_id(handler, "group_b") == first_b
+
+            handler.evaluate(self.grouped_packet(3, {"group_a": Level.HIGH}))
+
+            second_a = self.activation_id(handler, "group_a")
+
+            assert second_a is not None
+            assert second_a != first_a
+            assert self.activation_id(handler, "group_b") == first_b
+
+    def test_refiring__mints_a_new_id(self) -> None:
+        handler = RotatingDetectorStateHandler(detector=self.detector)
+
+        with self.feature("organizations:workflow-engine-rotate-activation-id"):
+            handler.evaluate(self.packet(1, Level.HIGH))
+
+            first_activation = self.activation_id(handler)
+
+            handler.evaluate(self.packet(2, Level.OK))
+            handler.evaluate(self.packet(3, Level.HIGH))
+
+            second_activation = self.activation_id(handler)
+
+        assert first_activation is not None
+        assert second_activation is not None
+        assert second_activation != first_activation
