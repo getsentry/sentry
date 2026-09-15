@@ -22,6 +22,9 @@ from sentry.workflow_engine.types import (
 )
 
 
+# This class allows error issues to be associated with a detector. However,
+# user-defined logic for fingerprinting and auto-resolve rules are stored in project settings.
+# TODO: Move these project settings to the detector configuration
 class ErrorDetectorHandler(BaseDetectorHandler[object, object]):
     """Placeholder handler for error group types."""
 
