@@ -1,6 +1,4 @@
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,18 +34,6 @@ export function useCanEditDetector({
   const organization = useOrganization();
   const project = useProjectFromId({project_id: projectId ?? undefined});
 
-  return canEditDetector({detectorType, organization, project});
-}
-
-export function canEditDetector({
-  detectorType,
-  organization,
-  project,
-}: {
-  detectorType: DetectorType;
-  organization: Organization;
-  project: Project | undefined;
-}) {
   if (!project) {
     return false;
   }
