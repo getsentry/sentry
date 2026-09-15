@@ -411,7 +411,9 @@ export function FilterSelector({
   // Wire up refs after stagedSelect is created to break the circular
   // dependency between options (which need toggleOption) and useStagedCompactSelect
   // (which needs options).
+  // oxlint-disable-next-line react/refs
   toggleOptionRef.current = stagedSelect.toggleOption;
+  // oxlint-disable-next-line react/refs
   stagedValueRef.current = stagedSelect.value;
 
   const {dispatch} = stagedSelect;

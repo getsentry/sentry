@@ -82,7 +82,6 @@ class SsoRequired(SentryAPIException):
         organization: Organization | RpcOrganization,
         request: HttpRequest,
         after_login_redirect=None,
-        include_organization_slug: bool = False,
     ):
         login_url = reverse("sentry-auth-organization", args=[organization.slug])
         if is_using_customer_domain(request):
@@ -92,10 +91,7 @@ class SsoRequired(SentryAPIException):
             query_params = {REDIRECT_FIELD_NAME: after_login_redirect}
             login_url = construct_link_with_query(path=login_url, query_params=query_params)
 
-        organization_extra = (
-            {"organizationSlug": organization.slug} if include_organization_slug else {}
-        )
-        super().__init__(loginUrl=login_url, **organization_extra)
+        super().__init__(loginUrl=login_url, organizationSlug=organization.slug)
 
 
 class MemberDisabledOverLimit(SentryAPIException):

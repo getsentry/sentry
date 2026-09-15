@@ -41,7 +41,9 @@ from sentry.seer.autofix.pr_iteration.details_store import (
 )
 from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
+from sentry.utils.tracing import trace
 
 EventT = TypeVar("EventT", bound=analytics.Event)
 
@@ -177,13 +179,17 @@ def bootstrap_iteration(
 
     # Reads back the row just settled above, so the context reflects what is
     # actually in the table rather than what this call believes it wrote.
-    return PrIterationLogContext.for_run(
+    ctx = PrIterationLogContext.for_run(
         logger,
         run_state,
         organization_id,
         group_id,
         iteration=LogCtxIteration.UNTRIGGERED,
     )
+
+    set_pr_iteration_attributes(iteration_id=ctx.iteration_id)
+
+    return ctx
 
 
 def trigger_pr_iteration_details(
@@ -209,6 +215,7 @@ def trigger_pr_iteration_details(
             return None
 
         update_iteration(iteration, trigger_source=trigger_source)
+        set_pr_iteration_attributes(iteration_id=iteration.id)
         return iteration.id
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.trigger_failed")
@@ -226,6 +233,7 @@ def record_pr_iteration_counts(
     queued_count: int,
     dropped_count: int,
     automated_feedback_count: int,
+    feedback_bot_logins: list[str],
 ) -> None:
     """Write what the drain saw onto the row it claimed."""
     try:
@@ -244,6 +252,7 @@ def record_pr_iteration_counts(
             queued_count=queued_count,
             dropped_count=dropped_count,
             automated_feedback_count=automated_feedback_count,
+            feedback_bot_logins=feedback_bot_logins,
         )
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.counts_failed")
@@ -366,6 +375,7 @@ def record_pr_iteration_blocked(
         log_ctx.error("autofix.pr_iteration.details.blocked_failed")
 
 
+@trace
 def complete_pr_iteration_details(
     *,
     log_ctx: PrIterationLogContext,
@@ -384,6 +394,7 @@ def complete_pr_iteration_details(
             "autofix.pr_iteration.details.unresolved", exc_info=False, reason="no_iteration_id"
         )
         return
+    set_pr_iteration_attributes(iteration_id=iteration_id)
 
     try:
         seer_run = _seer_run(run_id=run_state.run_id, organization_id=organization_id)

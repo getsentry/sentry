@@ -181,7 +181,7 @@ export function NewWelcomeUI(props: StepProps) {
         description: t('Monitor, debug, and fix your code, all in one place.'),
       };
 
-  useWelcomeAnalyticsEffect();
+  useWelcomeAnalyticsEffect({showAgentSetup});
 
   // Scroll to top on mount to fix iOS Safari retaining scroll position from previous page.
   // Skip if there's a hash in the URL to avoid conflicting with anchor-based scrolling.
