@@ -118,26 +118,35 @@ describe('SeerWorkflows', () => {
 
   it('polls running Night Shift workflows and keeps them visible when a background poll fails', async () => {
     jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
     const url = `/organizations/${organization.slug}/seer/workflows/`;
+    const runningRun = {
+      id: '1',
+      strategy: 'agentic_triage',
+      dateAdded: '2026-09-09T00:00:00Z',
+      dateCompleted: null,
+      extras: {status: 'running', options: {source: 'cron'}},
+      errorType: null,
+      errorMessage: null,
+      results: [],
+      issues: [],
+      seerRuns: [],
+    };
     MockApiClient.addMockResponse({
       url,
-      body: [
-        {
-          id: '1',
-          strategy: 'agentic_triage',
-          dateAdded: '2026-09-09T00:00:00Z',
-          extras: {status: 'running'},
-          results: [],
-          issues: [],
-          seerRuns: [],
-        },
-      ],
+      body: [runningRun],
     });
     render(<SeerWorkflows />, {organization});
     expect(await screen.findByRole('status', {name: 'Running'})).toBeInTheDocument();
 
     expect(screen.getByText('Triaging issues…')).toBeInTheDocument();
     expect(screen.queryByText('No issues processed')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', {name: 'Expand run'}));
+    expect(screen.getByText('No issues processed yet.')).toBeInTheDocument();
+    expect(screen.getByText('No triage batches recorded yet.')).toBeInTheDocument();
+    expect(
+      screen.queryByText('No issues processed in this run.')
+    ).not.toBeInTheDocument();
 
     const failedPoll = MockApiClient.addMockResponse({
       url,
@@ -150,6 +159,23 @@ describe('SeerWorkflows', () => {
     expect(failedPoll).toHaveBeenCalled();
     expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url,
+      body: [
+        {
+          ...runningRun,
+          dateCompleted: '2026-09-09T00:01:00Z',
+          extras: {...runningRun.extras, status: 'complete'},
+        },
+      ],
+    });
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(5000);
+    });
+    expect(screen.getByRole('img', {name: 'Succeeded'})).toBeInTheDocument();
+    expect(screen.getByText('No issues processed in this run.')).toBeInTheDocument();
+    expect(screen.queryByText('Triaging issues…')).not.toBeInTheDocument();
   });
 
   it('renders structured duplicate monitor findings in workflow history', async () => {

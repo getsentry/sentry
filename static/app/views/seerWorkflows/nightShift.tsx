@@ -116,7 +116,11 @@ export function NightShiftResults({
   return (
     <Stack gap="lg">
       <TriageDispatchesPanel row={row} />
-      <IssueList issues={row.triage?.issues ?? []} organizationSlug={organizationSlug} />
+      <IssueList
+        issues={row.triage?.issues ?? []}
+        organizationSlug={organizationSlug}
+        isRunning={row.status === 'running'}
+      />
     </Stack>
   );
 }
@@ -200,7 +204,9 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
       </Text>
       {explorerRunIds.length === 0 ? (
         <Text variant="muted" size="sm">
-          {t('No triage batches recorded for this run.')}
+          {row.status === 'running'
+            ? t('No triage batches recorded yet.')
+            : t('No triage batches recorded for this run.')}
         </Text>
       ) : (
         <Flex gap="sm" wrap="wrap">
@@ -223,7 +229,9 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
 function IssueList({
   issues,
   organizationSlug,
+  isRunning,
 }: {
+  isRunning: boolean;
   issues: SeerNightShiftRunIssue[];
   organizationSlug: string;
 }) {
@@ -235,7 +243,9 @@ function IssueList({
 
       {issues.length === 0 ? (
         <Text variant="muted" size="sm">
-          {t('No issues processed in this run.')}
+          {isRunning
+            ? t('No issues processed yet.')
+            : t('No issues processed in this run.')}
         </Text>
       ) : (
         <Stack gap="xs">
