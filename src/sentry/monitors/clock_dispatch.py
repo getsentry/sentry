@@ -11,6 +11,7 @@ from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse
 from sentry_kafka_schemas.schema_types.monitors_clock_tick_v1 import ClockTick
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.utils import metrics, redis
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -62,16 +63,23 @@ def record_pulse_partitions(pulse: ClockPulse) -> None:
         _partition_set_state.expected_partitions = frozenset(pulse["partition_ids"])
 
 
-def _record_partition_set_metrics(partition_clocks: list[tuple[str, float]]) -> None:
+def _missing_partitions(partition_clocks: list[tuple[str, float]]) -> frozenset[int] | None:
     expected_partitions = _partition_set_state.expected_partitions
 
     if expected_partitions is None:
-        return
+        return None
 
     present_members = {member for member, _ in partition_clocks}
-    missing_count = sum(
-        1 for partition in expected_partitions if f"part-{partition}" not in present_members
+    return frozenset(
+        partition for partition in expected_partitions if f"part-{partition}" not in present_members
     )
+
+
+def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> None:
+    if missing_partitions is None:
+        return
+
+    missing_count = len(missing_partitions)
 
     now = datetime.now().timestamp()
     if missing_count == 0:
@@ -143,7 +151,13 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
         end=-1,
     )
 
-    _record_partition_set_metrics(partition_clocks)
+    missing_partitions = _missing_partitions(partition_clocks)
+    _record_partition_set_metrics(missing_partitions)
+
+    # Hold the clock while the partition clock set is short of the list we
+    # learned from the clock pulse. The clock holds for as long as the set is short
+    if missing_partitions and options.get("crons.clock_tick.hold_on_missing_partitions"):
+        return
 
     # the first tuple is the slowest (part-<id>, score), the score is the
     # timestamp. Use `int()` to keep the timestamp (score) as an int
