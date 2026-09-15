@@ -37,35 +37,40 @@ const POLL_INTERVAL_MS = 2000;
  */
 const COMMAND_SETTLE_MS = 30_000;
 
-/**
- * Statuses where the agent is not going to move on its own. The first three
- * have stopped for good; `awaiting_input` has stopped recoverably, blocked on a
- * person.
- */
-const STOPPED_STATUSES = new Set<string>([
-  'completed',
-  'failed',
-  'cancelled',
-  'awaiting_input',
-]);
+/** Statuses the agent will never move out of on its own. */
+const TERMINAL_STATUSES = new Set<string>(['completed', 'failed', 'cancelled']);
 
 /**
- * Whether a run is still advancing, and so worth polling.
+ * Whether the projection is still worth re-reading.
  *
- * `awaiting_input` counts as stopped even though it can resume: an
- * investigation created without a prompt starts there and stays there until
- * someone supplies one, so polling it would be a permanent two-second request
- * loop on a run nobody is driving. Supplying input from this client writes the
- * new projection straight into the cache, which starts it again.
+ * `awaiting_input` is the subtle one. A run blocked on a person does not move
+ * until someone supplies a prompt, and an investigation created without one
+ * starts there and stays there, so polling it would be a permanent two-second
+ * request loop on a run nobody is driving. Supplying input from this client
+ * writes the new projection straight into the cache, which starts it again.
  *
- * Exported because the detail view decides from the summary served alongside
- * the investigation and this component from the full projection — the same
- * statuses either way.
+ * But Sentry parks a brand-new run at `awaiting_input` *before* it has finished
+ * creating it in Seer: the create is dispatched after the transaction commits,
+ * and until it lands the run carries no Seer id. In that window the status is a
+ * placeholder rather than a decision to wait for a person, and the create can
+ * still fail the run or rewrite the projection underneath it — so it has to
+ * keep being read. `hasSeerRun` is how a caller says which of the two it is.
+ *
+ * Callers that cannot tell leave it alone and get the blocked-on-a-person
+ * reading: the detail view decides from the summary served alongside the
+ * investigation, and that summary carries no run id.
  */
 export function shouldPollInvestigationRun(
-  status: InvestigationOrchestrationStatus | undefined
+  status: InvestigationOrchestrationStatus | undefined,
+  hasSeerRun = true
 ): boolean {
-  return status === undefined || !STOPPED_STATUSES.has(status);
+  if (status === undefined) {
+    return true;
+  }
+  if (TERMINAL_STATUSES.has(status)) {
+    return false;
+  }
+  return status === 'awaiting_input' ? !hasSeerRun : true;
 }
 
 type InvestigationHypothesesProps = {
@@ -105,7 +110,8 @@ export function InvestigationHypotheses({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query => {
-      if (shouldPollInvestigationRun(query.state.data?.json.status)) {
+      const run = query.state.data?.json;
+      if (shouldPollInvestigationRun(run?.status, run?.runId !== null)) {
         return POLL_INTERVAL_MS;
       }
       const waitingOnCommand =
