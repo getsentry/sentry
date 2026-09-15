@@ -194,7 +194,7 @@ function DashboardTable({
           variant="transparent"
           aria-label={dataRow.isHidden ? t('Unhide Dashboard') : t('Hide Dashboard')}
           data-test-id="dashboard-toggle-hidden"
-          icon={dataRow.isHidden ? <IconShow /> : <IconHide />}
+          icon={dataRow.isHidden ? <IconHide /> : <IconShow />}
           size="sm"
           tooltipProps={{
             title: dataRow.isHidden ? t('Unhide dashboard') : t('Hide dashboard'),
