@@ -214,7 +214,7 @@ export function ScmFeatureSelectionPanel({
                 radius="md"
                 gap="lg"
               >
-                <IconBusiness size="lg" variant="accent" />
+                <IconBusiness size="lg" variant="accent" aria-hidden />
                 <Text size="md" density="comfortable">
                   {tct(
                     'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
@@ -234,7 +234,11 @@ export function ScmFeatureSelectionPanel({
               <Flex justify="between" align="center" gap="md">
                 <Heading as="h4">{t('Products')}</Heading>
                 {currentPlatformKey ? null : (
-                  <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
+                  <Tag
+                    variant="muted"
+                    icon={<IconInfo aria-hidden />}
+                    style={{minWidth: 0}}
+                  >
                     <Text ellipsis variant="inherit">
                       {t('Select a platform to configure products')}
                     </Text>

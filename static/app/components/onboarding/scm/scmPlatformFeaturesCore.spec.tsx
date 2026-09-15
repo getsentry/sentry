@@ -265,6 +265,34 @@ describe('ScmPlatformFeaturesCore', () => {
     expect(onFeaturesChange).toHaveBeenCalledWith(undefined);
   });
 
+  it('moves focus with the view when switching between detected and manual pickers', async () => {
+    const repository = RepositoryFixture({
+      id: '123',
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+      body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
+    });
+
+    render(
+      <ScmPlatformFeaturesCore {...defaultProps({selectedRepository: repository})} />,
+      {organization}
+    );
+
+    // Each switch unmounts the button that was activated, so the incoming
+    // view's control takes focus instead of the body.
+    await userEvent.click(
+      await screen.findByRole('button', {name: "Doesn't look right? Change platform"})
+    );
+    expect(screen.getByRole('textbox', {name: 'Select a platform'})).toHaveFocus();
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Back to recommended platforms'})
+    );
+    expect(screen.getByRole('radio', {name: /Python/})).toHaveFocus();
+  });
+
   it('does not offer a clear button when a platform was auto-detected', async () => {
     const repository = RepositoryFixture({
       id: '123',

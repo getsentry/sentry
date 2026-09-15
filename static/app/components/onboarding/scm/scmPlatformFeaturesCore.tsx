@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
@@ -92,6 +92,14 @@ export function ScmPlatformFeaturesCore({
 
   const [showManualPicker, setShowManualPicker] = useState(false);
   const [manualPickerFilter, setManualPickerFilter] = useState('');
+  // The detected and manual views replace each other, which unmounts the
+  // button that switched them. The incoming view's control takes focus
+  // instead, but only when a user action caused the swap: an automatic swap
+  // (detection failing, a repo change) must not steal focus.
+  const [autoFocusManualPicker, setAutoFocusManualPicker] = useState(false);
+  const [autoFocusSelectedCard, setAutoFocusSelectedCard] = useState(false);
+  // Names the radiogroup and the manual picker after their visible heading.
+  const headingId = useId();
   // Guards the auto-detect analytics event below so it fires once per repo.
   const autoDetectionTrackedRef = useRef(false);
 
@@ -103,6 +111,8 @@ export function ScmPlatformFeaturesCore({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setShowManualPicker(false);
+    setAutoFocusManualPicker(false);
+    setAutoFocusSelectedCard(false);
     autoDetectionTrackedRef.current = false;
   }, [selectedRepository?.externalId]);
 
@@ -268,6 +278,8 @@ export function ScmPlatformFeaturesCore({
 
   function handleChangePlatformClick() {
     setShowManualPicker(true);
+    setAutoFocusManualPicker(true);
+    setAutoFocusSelectedCard(false);
     // Distinguish bailing *while detection is still running* (a latency-driven
     // abandonment signal) from changing an already-detected platform.
     if (isDetecting) {
@@ -285,6 +297,8 @@ export function ScmPlatformFeaturesCore({
 
   function handleBackToRecommended() {
     setShowManualPicker(false);
+    setAutoFocusSelectedCard(true);
+    setAutoFocusManualPicker(false);
     // If the host already has a detected platform committed, just reopen the
     // cards view with it still selected. The user may have committed a non-top
     // detection (or the auto-adopted default), so forcing the top detection here
@@ -408,9 +422,11 @@ export function ScmPlatformFeaturesCore({
       >
         <Flex align="center" gap="sm">
           <Flex flexShrink={0}>
-            <IconBroadcast size="sm" />
+            <IconBroadcast size="sm" aria-hidden />
           </Flex>
-          <Heading as="h4">{t('Auto-detected from your repository')}</Heading>
+          <Heading as="h4" id={headingId}>
+            {t('Auto-detected from your repository')}
+          </Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
           {isDetecting
@@ -420,7 +436,11 @@ export function ScmPlatformFeaturesCore({
       </Flex>
       <Stack gap="lg" width="100%">
         {isDetecting ? (
-          <Flex justify="center">
+          <Flex
+            justify="center"
+            role="status"
+            aria-label={t('Detecting platforms from your repository')}
+          >
             <LoadingIndicator mini />
           </Flex>
         ) : (
@@ -436,8 +456,9 @@ export function ScmPlatformFeaturesCore({
             justify="start"
             gap="md"
             role="radiogroup"
+            aria-labelledby={headingId}
           >
-            {resolvedPlatforms.map(({platform, info}) => (
+            {resolvedPlatforms.map(({platform, info}, index) => (
               <ScmPlatformCard
                 key={platform}
                 platform={platform}
@@ -445,6 +466,10 @@ export function ScmPlatformFeaturesCore({
                 type={info.type}
                 isSelected={currentPlatformKey === platform}
                 onClick={() => handleSelectDetectedPlatform(platform)}
+                autoFocus={
+                  autoFocusSelectedCard &&
+                  (currentPlatformKey ? currentPlatformKey === platform : index === 0)
+                }
               />
             ))}
           </Grid>
@@ -461,7 +486,7 @@ export function ScmPlatformFeaturesCore({
     >
       <Flex justify="between" align="end">
         <Flex gap="sm" direction={isOnboarding ? undefined : 'column'}>
-          <Heading as="h4">
+          <Heading as="h4" id={headingId}>
             {isOnboarding ? t('Select a platform') : t('Platform')}
           </Heading>
           {isOnboarding ? null : (
@@ -476,6 +501,11 @@ export function ScmPlatformFeaturesCore({
           </Button>
         )}
       </Flex>
+      {hasScmConnected && isDetectionError ? (
+        <Text role="alert" variant="secondary" size="sm">
+          {t("We couldn't detect a platform from your repository. Select one below.")}
+        </Text>
+      ) : null}
       {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
           core Select types `clearable` as a discriminated-union literal (`?: false`
           vs `: true`, which also selects the onChange signature), so a dynamic
@@ -486,6 +516,8 @@ export function ScmPlatformFeaturesCore({
           is empty. "Back to recommended platforms" covers reverting. */}
       {detectedPlatformKey ? (
         <Select<(typeof platformOptions)[number]>
+          aria-labelledby={headingId}
+          autoFocus={autoFocusManualPicker}
           placeholder={t('Search SDKs...')}
           options={platformOptionGroups}
           value={currentPlatformKey ?? null}
@@ -497,6 +529,8 @@ export function ScmPlatformFeaturesCore({
         />
       ) : (
         <Select<(typeof platformOptions)[number]>
+          aria-labelledby={headingId}
+          autoFocus={autoFocusManualPicker}
           placeholder={t('Search SDKs...')}
           options={platformOptionGroups}
           value={currentPlatformKey ?? null}
