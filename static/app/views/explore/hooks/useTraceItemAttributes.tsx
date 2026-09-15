@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
@@ -88,6 +88,7 @@ function useTraceItemAttributeConfig({
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
+  // Previous-query placeholders can get registered as attributes of the new page filters.
   const {data, isFetching: attributesLoading} = useQuery({
     ...traceItemAttributeKeysOptions({
       organization,
@@ -101,7 +102,6 @@ function useTraceItemAttributeConfig({
     }),
     enabled,
     select: selectTraceItemTagCollection(),
-    placeholderData: keepPreviousData,
   });
 
   const allNumberAttributes = useMemo(() => {
