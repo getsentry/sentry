@@ -1379,6 +1379,12 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "seer.smart_assignment.prefetch_sample_rate",
+    type=Float,
+    default=0.5,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Fuzzy resolution always runs after an exact email miss so its proposal can be
 # inspected. This controls whether that proposal is used in the delivered prediction.
 register(
