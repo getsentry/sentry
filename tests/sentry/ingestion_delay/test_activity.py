@@ -20,7 +20,7 @@ class HasAcceptedOutcomesTest(OutcomesSnubaTest):
                 "org_id": self.organization.id,
                 "project_id": self.project.id,
                 "outcome": Outcome.ACCEPTED,
-                "category": DataCategory.SPAN,
+                "category": DataCategory.SPAN_INDEXED,
                 "timestamp": self.now - timedelta(minutes=minutes_ago),
                 "quantity": quantity,
             }
