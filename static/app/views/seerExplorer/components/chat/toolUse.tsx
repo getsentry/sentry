@@ -794,7 +794,7 @@ function CodeModeCallRow({
       title={label}
       status={callRecordStatus(record, settled)}
       reference={
-        url
+        url && !isFailure
           ? {
               value: linkLabel ?? t('Open'),
               to: url,
@@ -805,10 +805,9 @@ function CodeModeCallRow({
       }
       failureLabel={isFailure && record.status ? String(record.status) : undefined}
       input={inputQuery ? <ProvidedFormattedQuery query={inputQuery} /> : undefined}
-      output={isFailure && failure ? <Text size="sm">{failure}</Text> : undefined}
       notifications={!isFailure && failure ? [failure] : undefined}
     >
-      {detail ? <RequestDetail detail={detail} /> : null}
+      {detail && !isFailure ? <RequestDetail detail={detail} /> : null}
     </ToolCall>
   );
 }
