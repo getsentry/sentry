@@ -54,14 +54,6 @@ function getElementName(nameNode: ESTree.JSXElementName): string {
   }
 }
 
-function isI18nCall(node: ESTree.Expression, i18nNames: string[]): boolean {
-  return (
-    node.type === 'CallExpression' &&
-    node.callee.type === 'Identifier' &&
-    i18nNames.includes(node.callee.name)
-  );
-}
-
 export const preferInfoText = defineRule({
   meta: {
     type: 'suggestion',
