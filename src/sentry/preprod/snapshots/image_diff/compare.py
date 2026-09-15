@@ -85,22 +85,34 @@ def compare_images(
 def compare_images_batch(
     pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
     server: OdiffServer | None = None,
+    *,
+    include_masks: Sequence[bool] | None = None,
 ) -> list[DiffResult | None]:
+    if include_masks is not None and len(include_masks) != len(pairs):
+        raise ValueError("Expected one mask setting per image pair")
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
         if server is not None:
-            return _compare_pairs(pairs, server, tmpdir_path)
+            return _compare_pairs(pairs, server, tmpdir_path, include_masks)
         with OdiffServer() as new_server:
-            return _compare_pairs(pairs, new_server, tmpdir_path)
+            return _compare_pairs(pairs, new_server, tmpdir_path, include_masks)
 
 
 def _compare_pairs(
     pairs: Sequence[tuple[bytes | Image.Image, bytes | Image.Image]],
     server: OdiffServer,
     tmpdir_path: Path,
+    include_masks: Sequence[bool] | None,
 ) -> list[DiffResult | None]:
     return [
-        _compare_single_pair(idx, before, after, server, tmpdir_path)
+        _compare_single_pair(
+            idx,
+            before,
+            after,
+            server,
+            tmpdir_path,
+            include_masks[idx] if include_masks is not None else True,
+        )
         for idx, (before, after) in enumerate(pairs)
     ]
 
@@ -111,6 +123,7 @@ def _compare_single_pair(
     after: bytes | Image.Image,
     server: OdiffServer,
     tmpdir_path: Path,
+    include_mask: bool = True,
 ) -> DiffResult | None:
     before_img: Image.Image | None = None
     after_img: Image.Image | None = None
@@ -166,7 +179,7 @@ def _compare_single_pair(
             diff_mask = _mask_from_diff_output(output_path)
             changed_pixels = sum(diff_mask.histogram()[1:])
 
-        diff_mask_png = _encode_mask_png(diff_mask)
+        diff_mask_png = _encode_mask_png(diff_mask) if include_mask else b""
 
         return DiffResult(
             diff_mask_png=diff_mask_png,

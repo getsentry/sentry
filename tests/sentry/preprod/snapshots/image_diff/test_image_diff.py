@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 import io
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
 from PIL import Image, ImageDraw, PngImagePlugin
 
-from sentry.preprod.snapshots.image_diff.compare import compare_images, compare_images_batch
+from sentry.preprod.snapshots.image_diff.compare import (
+    _encode_mask_png,
+    compare_images,
+    compare_images_batch,
+)
+from sentry.preprod.snapshots.image_diff.types import OdiffResponse
 
 
 def _make_solid_image(width: int, height: int, color: tuple[int, int, int, int]) -> Image.Image:
@@ -112,6 +119,35 @@ class TestCompareImages:
 
 
 class TestCompareImagesBatch:
+    @pytest.mark.parametrize(("match", "changed_pixels"), [(False, 3), (True, 0)])
+    def test_optional_encoding_preserves_mask_pixel_counts(self, match, changed_pixels) -> None:
+        def compare(before_path, after_path, output_path: Path, **kwargs):
+            with Image.new("RGBA", (2, 2), (255, 0, 0, 1)) as output:
+                output.putpixel((0, 0), (255, 0, 0, 0))
+                output.save(output_path, "PNG")
+            return OdiffResponse(requestId=0, match=match, diffCount=1)
+
+        server = MagicMock()
+        server.compare.side_effect = compare
+        with (
+            Image.new("RGBA", (2, 2)) as image,
+            patch(
+                "sentry.preprod.snapshots.image_diff.compare._encode_mask_png",
+                wraps=_encode_mask_png,
+            ) as encode,
+        ):
+            encoded, counts_only = compare_images_batch(
+                [(image, image), (image, image)], server=server, include_masks=[True, False]
+            )
+
+        assert encoded is not None
+        assert counts_only is not None
+        assert encoded.diff_mask_png
+        assert counts_only == encoded.copy(update={"diff_mask_png": b""})
+        assert counts_only.changed_pixels == changed_pixels
+        assert counts_only.total_pixels == 4
+        encode.assert_called_once()
+
     def test_batch_returns_correct_count(self) -> None:
         img1 = _make_solid_image(50, 50, (100, 100, 100, 255))
         img2 = _make_solid_image(50, 50, (200, 200, 200, 255))

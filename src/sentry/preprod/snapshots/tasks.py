@@ -809,7 +809,11 @@ def _process_chunk(
             diff_pairs.append((base_data, head_data))
             batch_candidates.append(candidate)
 
-        diff_results = compare_images_batch(diff_pairs, server=server)
+        diff_results = compare_images_batch(
+            diff_pairs,
+            server=server,
+            include_masks=[candidate.kind == "base" for candidate in batch_candidates],
+        )
 
         for candidate, diff_result in zip(batch_candidates, diff_results, strict=True):
             name = candidate.name
