@@ -57,10 +57,8 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
     // Called before the early return so the hook stays unconditional; it
     // no-ops for an embed that failed validation and renders nothing.
     //
-    // The markdown level is the same embed being serialized for the clipboard,
-    // not a second time a reader saw it. Tracking dedupes per embed instance,
-    // so counting it would not just inflate the total -- whichever pass ran
-    // first would decide the recorded level.
+    // Tracking dedupes per embed instance, so counting the clipboard pass would
+    // let whichever pass ran first decide the recorded level.
     useTrackEmbedRendered({
       name,
       level,

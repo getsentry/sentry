@@ -60,46 +60,29 @@ export const RESOURCE_KIND_ICON: Record<ResourceKind, ComponentType<SVGIconProps
 };
 
 /**
- * Which output a resource link produces. `markdown` is the clipboard pass --
- * see `SeerEmbedRenderLevel`. Both come out of this one component so a copied
- * link can never point somewhere the rendered link does not.
- *
- * Unexported: a caller that needs the type has the prop it belongs to, and can
- * spell it `ResourceLinkFormatProps['format']`.
+ * Both formats come out of one component, so a copied link cannot point
+ * somewhere the rendered link does not. Reachable as
+ * `ResourceLinkFormatProps['format']`.
  */
 type ResourceLinkFormat = 'element' | 'markdown';
 
-/**
- * Mixed into every `*Link` wrapper, so the level an embed was asked to render
- * at reaches the `ResourceLink` at the bottom without each wrapper restating
- * what the prop means.
- */
+/** Lets a `*Link` wrapper pass the embed's level down to `ResourceLink`. */
 export interface ResourceLinkFormatProps {
   format?: ResourceLinkFormat;
 }
 
 interface ResolvedHref {
-  /**
-   * Fully qualified. Markdown is read away from the app -- pasted into a
-   * ticket, a chat, a commit message -- where a site-relative path resolves
-   * against whatever page it landed on, so every markdown destination carries
-   * an origin even when the anchor beside it does not.
-   */
+  /** Fully qualified: copied markdown is read away from the app. */
   absolute: string;
-  /**
-   * What the rendered anchor navigates to, which stays relative while it is
-   * on-site so the router handles it without a page load.
-   */
+  /** Relative while on-site, so the router handles it without a page load. */
   anchor: string;
   isExternal: boolean;
 }
 
 /**
- * Seer writes hrefs into the tag body, so only a recognised shape resolves: an
- * absolute http(s) URL that passes the markdown safety check, or a
- * site-relative path. Anything else -- a `javascript:` URL, a protocol-relative
- * `//host` that would leave the site without looking like it -- resolves to
- * null and renders nothing at either format.
+ * Seer writes hrefs into the tag body, so only a safe http(s) URL or a
+ * site-relative path resolves. Anything else -- `javascript:`, a
+ * protocol-relative `//host` -- renders nothing at either format.
  */
 function resolveResourceHref(href: string): ResolvedHref | null {
   if (/^https?:\/\//.test(href) && isSafeHref(href)) {
@@ -140,9 +123,8 @@ function markdownLink(resolved: ResolvedHref, title: string): string {
 }
 
 /**
- * The markdown form of a resource link, for the embeds that compose one into a
- * larger string and so have no element to give a `format` to. Returns null for
- * the same hrefs `ResourceLink` refuses.
+ * For embeds that compose a link into a larger string, so have no element to
+ * give a `format` to. Refuses the same hrefs `ResourceLink` does.
  */
 export function resourceLinkMarkdown(href: string, title: string): string | null {
   const resolved = resolveResourceHref(href);

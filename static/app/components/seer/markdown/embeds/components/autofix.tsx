@@ -50,14 +50,9 @@ export const STEP_LABELS: Record<AutofixExplorerStep, string> = {
 };
 
 /**
- * All of an autofix step that survives as text: the disclosure's own title,
- * naming the step and the issue whose run it belongs to. Progress, the retry
- * and continue buttons, and the step body are the reasons to be looking at the
- * embed rather than at a copy of it.
- *
- * The link is built as a string rather than by rendering a `ResourceLink` with
- * `format="markdown"`, because it is composed into a larger line and this embed
- * draws no resource link otherwise -- there is no icon to give one.
+ * The step's title, which is all that survives as text -- progress, the buttons
+ * and the body are why you would look at the embed instead. A string because it
+ * is composed into a larger line, and there is no icon here for a `ResourceLink`.
  */
 function autofixStepMarkdown(
   step: AutofixExplorerStep,

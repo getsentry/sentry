@@ -77,8 +77,8 @@ export const AgentWriteApprovalEmbed = defineSeerEmbed({
   render(props, level) {
     switch (level) {
       case 'markdown':
-        // An approval prompt is an action, not content. A copy of the
-        // conversation records that it was asked and how it was answered.
+        // An approval prompt is an action, not content: record only that it
+        // was asked and how it was answered.
         return t('Seer permission request (%s)', APPROVAL_STATUS_LABELS[props.status]);
       case 'block':
       case 'inline':

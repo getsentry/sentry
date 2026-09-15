@@ -91,10 +91,8 @@ export const Issues = defineSeerEmbed({
   render({ids}, level) {
     switch (level) {
       case 'markdown':
-        // The table's columns are all live data. What a copy can carry is the
-        // set of issues it was listing, one link each. Built as strings rather
-        // than as `IssueLink`s because the links are being joined into a list,
-        // and there is no element here to hand a `format` to.
+        // The columns are live data; the list of issues is what survives.
+        // Strings rather than `IssueLink`s because they are joined into a list.
         return ids
           .flatMap(id => resourceLinkMarkdown(`/issues/${id}/`, id) ?? [])
           .map(link => `- ${link}`)

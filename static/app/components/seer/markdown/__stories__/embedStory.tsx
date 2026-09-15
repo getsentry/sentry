@@ -1,4 +1,5 @@
 import type {ComponentProps, ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
@@ -7,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {SeerEmbedExample} from 'sentry/components/seer/markdown/embeds/schemas';
 import {SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
+import {useSeerMarkdownText} from 'sentry/components/seer/markdown/markdownText';
 import {Demo} from 'sentry/stories';
 
 type EmbedName = keyof typeof SEER_EMBED_SCHEMAS;
@@ -66,7 +68,10 @@ interface EmbedVariantProps {
 }
 
 export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) {
-  const markdown = formatVariant(name, SEER_EMBED_SCHEMAS[name].level, data);
+  const source = formatVariant(name, SEER_EMBED_SCHEMAS[name].level, data);
+  // The same serialization the copy button performs, so the page shows what
+  // copying this example would produce.
+  const {node: markdownNode, text: markdown} = useSeerMarkdownText(source);
 
   return (
     <Stack gap="sm">
@@ -79,11 +84,25 @@ export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) 
         overflow={undefined}
         {...demoProps}
       >
-        <SeerMarkdown raw={markdown} />
+        <SeerMarkdown raw={source} />
       </Demo>
+      <Text size="sm" variant="muted">
+        Tag
+      </Text>
       <CodeBlock language="markdown" dark>
-        {markdown}
+        {source}
       </CodeBlock>
+      {markdown ? (
+        <Fragment>
+          <Text size="sm" variant="muted">
+            Copied as markdown
+          </Text>
+          <CodeBlock language="markdown" dark>
+            {markdown}
+          </CodeBlock>
+        </Fragment>
+      ) : null}
+      {markdownNode}
     </Stack>
   );
 }

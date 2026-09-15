@@ -169,9 +169,7 @@ export const Chart = defineSeerEmbed({
   render(data, level) {
     switch (level) {
       case 'markdown':
-        // A plot cannot be drawn in text, and restating its points would make
-        // a copy longer than the reply it came from. The heading names the
-        // data, which is what a reader pasting this elsewhere is citing.
+        // A plot has no text form; the heading names the data being cited.
         return data.subtitle ? `${data.title}: ${data.subtitle}` : data.title;
       case 'block':
       case 'inline':

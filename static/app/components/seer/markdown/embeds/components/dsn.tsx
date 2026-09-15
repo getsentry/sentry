@@ -6,8 +6,7 @@ export const Dsn = defineSeerEmbed({
   render({value}, level) {
     switch (level) {
       case 'markdown':
-        // The copy button is what the input is for; in text the DSN itself
-        // carries that. Fenced so a paste target cannot linkify it.
+        // Fenced so a paste target cannot linkify the DSN.
         return `\`${value}\``;
       case 'block':
       case 'inline':

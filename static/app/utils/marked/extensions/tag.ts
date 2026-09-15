@@ -119,3 +119,48 @@ function tokenize(src: string, level: 'block' | 'inline'): Tokens.Generic | unde
   }
   return undefined;
 }
+
+/** One piece of a source string: literal text, or a tag with its parsed body. */
+export type TagSegment =
+  | {type: 'text'; value: string}
+  | {attrs: Record<string, string>; data: unknown; name: string; type: 'tag'};
+
+/**
+ * Splits a source string into its text and its tags, in document order.
+ *
+ * The extensions above find tags while marked builds a render tree; this walks
+ * the same patterns for callers that want the tags themselves.
+ */
+export function splitTags(src: string): TagSegment[] {
+  const segments: TagSegment[] = [];
+  let rest = src;
+
+  while (rest) {
+    const start = findTagStart(rest);
+    if (start === undefined) {
+      break;
+    }
+
+    const token = tokenize(rest.slice(start), 'block') as TagToken | undefined;
+    if (!token) {
+      break;
+    }
+
+    if (start > 0) {
+      segments.push({type: 'text', value: rest.slice(0, start)});
+    }
+    segments.push({
+      type: 'tag',
+      name: token.name,
+      attrs: token.attrs,
+      data: token.data,
+    });
+    rest = rest.slice(start + token.raw.length);
+  }
+
+  if (rest) {
+    segments.push({type: 'text', value: rest});
+  }
+
+  return segments;
+}

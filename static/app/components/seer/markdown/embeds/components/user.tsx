@@ -10,10 +10,7 @@ import {
 } from 'sentry/components/seer/markdown/embeds/utils';
 import type {Actor} from 'sentry/types/core';
 
-/**
- * How the mention reads: a team is written with the `#` its name is always
- * shown with, a user by name alone.
- */
+/** A team is written with the `#` its name always carries. */
 function getActorTitle({type, name}: Pick<EmbedOutput<'user'>, 'type' | 'name'>) {
   return type === 'team' ? `#${name}` : name;
 }
@@ -44,7 +41,7 @@ export const User = defineSeerEmbed({
   render({id, type, name}, level) {
     switch (level) {
       case 'markdown':
-        // The avatar has no text form, and the mention was always the name.
+        // The avatar has no text form; the mention was always the name.
         return getActorTitle({type, name});
       case 'block':
       case 'inline':

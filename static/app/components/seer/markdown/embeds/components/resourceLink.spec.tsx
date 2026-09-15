@@ -4,11 +4,7 @@ import {IconDocs} from 'sentry/icons';
 
 import {ResourceLink, resourceLinkMarkdown} from './resourceLink';
 
-/**
- * Assembled rather than written out, because a `javascript:` literal is what
- * `no-script-url` exists to catch -- and refusing this href is the behaviour
- * under test.
- */
+/** Assembled so the literal does not trip `no-script-url`. */
 const SCRIPT_URL = ['javascript', 'alert(1)'].join(':');
 
 function renderMarkdown(href: string, title: string) {

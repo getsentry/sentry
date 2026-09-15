@@ -25,11 +25,8 @@ export function getEmbedLinkHref(
 }
 
 /**
- * Renders an embed at the markdown level and returns the text it serialized to.
- *
- * Takes the component rather than a tag, because `SeerMarkdown` cannot reach
- * this level: the lexer only ever assigns block and inline. The markdown level
- * is driven by whatever is serializing a reply back out.
+ * Takes the component rather than a tag: the lexer only assigns block and
+ * inline, so `SeerMarkdown` cannot reach the markdown level.
  */
 export function renderEmbedMarkdown(
   Embed: SeerEmbedComponent,

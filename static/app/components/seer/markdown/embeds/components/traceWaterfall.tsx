@@ -16,8 +16,7 @@ export const TraceWaterfall = defineSeerEmbed({
   render(props, level) {
     switch (level) {
       case 'markdown':
-        // A span tree has no text form. What survives is the trace it was
-        // showing, which is the `trace` embed's own link.
+        // A span tree has no text form; the trace it was showing does.
         return <TraceLink {...props} format="markdown" />;
       case 'block':
       case 'inline':

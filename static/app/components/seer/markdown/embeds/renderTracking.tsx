@@ -48,9 +48,8 @@ interface TrackEmbedRenderedOptions {
   level: SeerEmbedRenderLevel;
   name: string;
   /**
-   * False when the embed rendered nothing a reader saw -- its props failed
-   * validation, or it was serialized for the clipboard rather than drawn.
-   * Counting either would overstate what users actually saw.
+   * False when nothing reached the screen -- invalid props, or a clipboard
+   * pass. Counting either would overstate what users saw.
    */
   rendered: boolean;
 }

@@ -10,12 +10,8 @@ import {t} from 'sentry/locale';
 import {getFormat} from 'sentry/utils/dates';
 
 /**
- * The absolute timestamp as text, formatted the way `DateTime` would draw it --
- * same viewer timezone, same clock preference, same shared `getFormat` rules --
- * so a copied date reads as the one on screen rather than as a raw ISO string.
- *
- * A component rather than a plain helper because both preferences come from
- * hooks, and the markdown level is only one branch of the embed's render.
+ * Formatted the way `DateTime` draws it, so a copied date matches the one on
+ * screen. A component because the timezone and clock preferences are hooks.
  */
 function AbsoluteTimestampMarkdown({value}: {value: EmbedOutput<'timestamp'>['value']}) {
   const clockDisplay = useClockDisplay();
@@ -34,8 +30,8 @@ export const Timestamp = defineSeerEmbed({
   render({format, value}, level) {
     switch (level) {
       case 'markdown':
-        // The rendered relative time ticks; a copy is taken once, so it says
-        // how long ago the event was at the moment it was copied.
+        // The rendered relative time ticks; a copy fixes it at the moment
+        // it was taken.
         return format === 'relative' ? (
           getRelativeDate(value, t('ago'), t('in'))
         ) : (

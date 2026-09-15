@@ -1,12 +1,9 @@
 import type {ReactNode} from 'react';
 
 /**
- * How an embed is being asked to render itself.
- *
- * `block` and `inline` are positions in the document, chosen by the markdown
- * lexer. `markdown` is not a position: it is the plain-text pass used when a
- * reply is serialized back out -- copying it to the clipboard -- where React
- * elements are useless. Embeds return a string at that level.
+ * `block` and `inline` are positions the markdown lexer assigns. `markdown` is
+ * not a position -- it is the pass used when a reply is copied, where embeds
+ * return text instead of elements.
  */
 export type SeerEmbedRenderLevel = 'block' | 'inline' | 'markdown';
 
