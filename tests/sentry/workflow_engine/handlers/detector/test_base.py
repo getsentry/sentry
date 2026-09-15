@@ -19,6 +19,7 @@ from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -185,21 +186,30 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
             slug = "handler"
             description = "handler"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorHandler)
 
         class HandlerStateGroupType(GroupType):
             type_id = 3
             slug = "handler_with_state"
             description = "handler with state"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorStateHandler)
 
         class HandlerUpdateGroupType(GroupType):
             type_id = 4
             slug = "handler_update"
             description = "handler update"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDetectorWithUpdateHandler)
+
+        @detector_settings_registry.register(HandlerGroupType.slug)
+        class HandlerDetectorSettings(DetectorSettings):
+            handler = MockDetectorHandler
+
+        @detector_settings_registry.register(HandlerStateGroupType.slug)
+        class HandlerStateDetectorSettings(DetectorSettings):
+            handler = MockDetectorStateHandler
+
+        @detector_settings_registry.register(HandlerUpdateGroupType.slug)
+        class HandlerUpdateDetectorSettings(DetectorSettings):
+            handler = MockDetectorWithUpdateHandler
 
         self.no_handler_type = NoHandlerGroupType
         self.handler_type = HandlerGroupType
