@@ -1724,6 +1724,80 @@ class TestStartFeatureRun(TestCase):
         assert body["agent_run_options"] == {}
 
 
+class TestContinueFeatureRun(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_dispatches_against_existing_mirror(self, mock_request, _mock_access) -> None:
+        mock_request.return_value = Mock(status=200)
+        stale = timezone.now() - timedelta(days=10)
+        run = self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=456,
+            last_triggered_at=stale,
+        )
+        client = SeerAgentClient(self.organization, self.user)
+
+        result = client.continue_feature_run(
+            run_id=456,
+            feature_id="autofix",
+            payload={"existing_run_id": 456, "insert_index": 2},
+            referrer="autofix",
+            user_org_context={"org_slug": self.organization.slug, "all_org_projects": []},
+            proxy_headers={"X-Viewer-Context": "signed-viewer-context"},
+        )
+
+        assert result == run
+        assert SeerRun.objects.filter(organization=self.organization).count() == 1
+        assert not CellOutbox.objects.filter(category=OutboxCategory.SEER_RUN_CREATE).exists()
+        run.refresh_from_db()
+        assert run.last_triggered_at > stale
+        body = mock_request.call_args.args[0]
+        assert body == {
+            "feature_id": "autofix",
+            "payload": {"existing_run_id": 456, "insert_index": 2},
+            "ref": str(run.uuid),
+            "external_idempotency_key": str(run.uuid),
+            "referrer": "autofix",
+            "user_org_context": {"org_slug": self.organization.slug, "all_org_projects": []},
+            "proxy_headers": {"X-Viewer-Context": "signed-viewer-context"},
+        }
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_missing_mirror_does_not_call_seer(self, mock_request, _mock_access) -> None:
+        client = SeerAgentClient(self.organization, self.user)
+
+        with pytest.raises(SeerPermissionError):
+            client.continue_feature_run(
+                run_id=456,
+                feature_id="autofix",
+                payload={},
+                referrer="autofix",
+            )
+
+        mock_request.assert_not_called()
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_feature_run_request")
+    def test_http_error_raises(self, mock_request, _mock_access) -> None:
+        mock_request.return_value = Mock(status=500)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=456)
+        client = SeerAgentClient(self.organization, self.user)
+
+        with pytest.raises(SeerApiError):
+            client.continue_feature_run(
+                run_id=456,
+                feature_id="autofix",
+                payload={},
+                referrer="autofix",
+            )
+
+
 class TestSeerAgentClientLatestRun(TestCase):
     CATEGORY_VALUE = "group-1"
 

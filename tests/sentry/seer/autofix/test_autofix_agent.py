@@ -660,12 +660,20 @@ class TestTriggerAutofixAgent(TestCase):
         self, mock_client_class, mock_feature, mock_broadcast
     ):
         """A root-cause retry reaches RCA-in-Seer with continuation context."""
+        existing_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
         feature_run = self.create_seer_run(
             organization=self.group.organization, type="feature_run", seer_run_state_id=777
         )
         mock_feature.return_value = feature_run
 
-        with self.feature("organizations:autofix-rca-in-seer"):
+        with (
+            self.feature("organizations:autofix-rca-in-seer"),
+            patch("sentry.quotas.backend.check_seer_quota") as mock_check_quota,
+            patch("sentry.quotas.backend.record_seer_run") as mock_record_run,
+        ):
             result = trigger_autofix_agent(
                 group=self.group,
                 step=AutofixStep.ROOT_CAUSE,
@@ -681,6 +689,28 @@ class TestTriggerAutofixAgent(TestCase):
         assert feature_trigger.existing_run_id == 67890
         assert feature_trigger.insert_index == 4
         mock_client_class.return_value.continue_run.assert_not_called()
+        mock_check_quota.assert_not_called()
+        mock_record_run.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    def test_root_cause_rerun_rejects_run_from_another_group_when_flagged(self, mock_feature):
+        other_group = self.create_group()
+        other_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(run=other_run, group=other_group, source="autofix")
+
+        with self.feature("organizations:autofix-rca-in-seer"):
+            with pytest.raises(SeerPermissionError):
+                trigger_autofix_agent(
+                    group=self.group,
+                    step=AutofixStep.ROOT_CAUSE,
+                    referrer=AutofixReferrer.UNKNOWN,
+                    run_id=67890,
+                    insert_index=4,
+                )
+
+        mock_feature.assert_not_called()
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)

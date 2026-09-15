@@ -32,6 +32,7 @@ from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
+    SeerFeatureRunWireRequest,
     UserOrgContext,
     collect_user_org_context,
     enqueue_seer_run,
@@ -40,6 +41,7 @@ from sentry.seer.agent.client_utils import (
     make_agent_chat_request,
     make_agent_repos_request,
     make_agent_update_request,
+    make_feature_run_request,
     poll_until_done,
 )
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
@@ -614,6 +616,44 @@ class SeerAgentClient:
             referrer=referrer,
             flush=flush,
         )
+
+    def continue_feature_run(
+        self,
+        run_id: int,
+        feature_id: str,
+        payload: dict[str, Any],
+        referrer: str,
+        agent_run_options: AgentRunOptions | None = None,
+        user_org_context: UserOrgContext | None = None,
+        proxy_headers: dict[str, str] | None = None,
+    ) -> SeerRun:
+        """Continue a feature-backed Seer run without creating a new run."""
+        run = SeerRun.objects.filter(
+            organization_id=self.organization.id, seer_run_state_id=run_id
+        ).first()
+        if run is None:
+            raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+        body = SeerFeatureRunWireRequest(
+            feature_id=feature_id,
+            payload=payload,
+            ref=str(run.uuid),
+            external_idempotency_key=str(run.uuid),
+            referrer=referrer,
+        )
+        if agent_run_options is not None:
+            body["agent_run_options"] = agent_run_options
+        if user_org_context is not None:
+            body["user_org_context"] = user_org_context
+        if proxy_headers is not None:
+            body["proxy_headers"] = proxy_headers
+
+        response = make_feature_run_request(body, viewer_context=self.viewer_context)
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+
+        run.update(last_triggered_at=now())
+        return run
 
     def _embed_widgets_enabled(self) -> bool:
         """Whether to tell the agent it may emit embed widgets.

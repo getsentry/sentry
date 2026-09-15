@@ -55,10 +55,11 @@ def trigger_autofix_feature(
     # Avoid a circular import through the legacy Autofix dispatcher.
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
+    is_new_run = args.existing_run_id is None
     # Free cohort orgs bypass quota only when called from night shift
     # (allow_free_cohort=True). Not exposed via the API.
-    skip_quota = args.allow_free_cohort and is_free_cohort_org(group.organization)
-    if not skip_quota:
+    skip_quota = is_new_run and args.allow_free_cohort and is_free_cohort_org(group.organization)
+    if is_new_run and not skip_quota:
         has_budget: bool = quotas.backend.check_seer_quota(
             org_id=group.organization.id,
             data_category=DataCategory.SEER_AUTOFIX,
@@ -104,22 +105,31 @@ def trigger_autofix_feature(
     if args.stopping_point is not None:
         extras["stopping_point"] = args.stopping_point.value
 
-    run = client.start_feature_run(
-        feature_id=FEATURE_ID,
-        payload=payload.dict(),
-        title=f"Autofix RCA — {payload.short_id}",
-        flush=args.flush,
-        extras=extras,
-        referrer=args.referrer.value,
-        user_org_context=collect_user_org_context(args.user, group.organization),
-        proxy_headers=get_proxy_headers(),
-        agent_run_options=AgentRunOptions(
+    client_args = {
+        "feature_id": FEATURE_ID,
+        "payload": payload.dict(),
+        "referrer": args.referrer.value,
+        "user_org_context": collect_user_org_context(args.user, group.organization),
+        "proxy_headers": get_proxy_headers(),
+        "agent_run_options": AgentRunOptions(
             is_context_engine_enabled=False,
             enable_frontend_code_search=False,
         ),
-    )
+    }
+    if is_new_run:
+        run = client.start_feature_run(
+            **client_args,
+            title=f"Autofix RCA — {payload.short_id}",
+            flush=args.flush,
+            extras=extras,
+        )
+    else:
+        run = client.continue_feature_run(
+            **client_args,
+            run_id=args.existing_run_id,
+        )
 
-    if not skip_quota:
+    if is_new_run and not skip_quota:
         quotas.backend.record_seer_run(
             group.organization.id, group.project.id, DataCategory.SEER_AUTOFIX
         )
