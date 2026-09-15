@@ -102,8 +102,8 @@ export function getImport(
       ];
 }
 
-function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
-  return defaultMode === 'esm'
+function getProfilingImport(defaultMode?: 'esm' | 'cjs' | 'esm-only'): string {
+  return defaultMode === 'esm' || defaultMode === 'esm-only'
     ? 'import { nodeProfilingIntegration } from "@sentry/profiling-node";'
     : 'const { nodeProfilingIntegration } = require("@sentry/profiling-node");';
 }
@@ -144,7 +144,7 @@ function getDefaultNodeImports({
 }: {
   params: DocsParams;
   sdkImport: 'node' | 'aws' | 'gpc' | 'nestjs' | null;
-  defaultMode?: 'esm' | 'cjs';
+  defaultMode?: 'esm' | 'cjs' | 'esm-only';
 }) {
   if (sdkImport === null || !libraryMap[sdkImport]) {
     return '';
@@ -579,7 +579,7 @@ Sentry.logger.info('User triggered test log', { action: 'test_log' })`,
 export const getSdkInitSnippet = (
   params: DocsParams,
   sdkImport: 'node' | 'aws' | 'gpc' | 'nestjs' | null,
-  defaultMode?: 'esm' | 'cjs'
+  defaultMode?: 'esm' | 'cjs' | 'esm-only'
 ) => `${getDefaultNodeImports({params, sdkImport, defaultMode})}
 
 Sentry.init({
