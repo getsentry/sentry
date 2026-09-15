@@ -28,11 +28,10 @@ export function useIsStuck(
 
     // Sticky offsets are relative to the nearest scroll container, not the viewport.
     let root = el.parentElement;
-    while (root && root !== document.body && root !== document.documentElement) {
-      const {overflowY} = getComputedStyle(root);
-      if (['auto', 'scroll', 'hidden', 'overlay'].includes(overflowY)) {
-        break;
-      }
+    while (
+      root &&
+      !/^(auto|scroll|hidden|overlay)$/.test(getComputedStyle(root).overflowY)
+    ) {
       root = root.parentElement;
     }
 
