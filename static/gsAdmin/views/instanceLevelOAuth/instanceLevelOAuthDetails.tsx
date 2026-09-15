@@ -1,16 +1,18 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ApiForm} from 'sentry/components/forms/apiForm';
-import {TextField} from 'sentry/components/forms/fields/textField';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -32,11 +34,120 @@ type ClientDetails = {
   termsUrl: string | null;
 };
 
-const fieldProps = {
-  stacked: true,
-  inline: false,
-  flexibleControlStateSize: true,
-} as const;
+const clientSchema = z.object({
+  clientID: z.string(),
+  name: z.string().min(1),
+  redirectUris: z.string().min(1),
+  allowedOrigins: z.string(),
+  homepageUrl: z.string(),
+  privacyUrl: z.string(),
+  termsUrl: z.string(),
+});
+
+function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
+  const mutation = useMutation({
+    mutationFn: (data: z.infer<typeof clientSchema>) =>
+      fetchMutation({
+        url: getApiUrl('/_admin/instance-level-oauth/$clientId/', {
+          path: {clientId: clientDetails.clientID ?? ''},
+        }),
+        method: 'PUT',
+        data,
+      }),
+    onSuccess: () => testableWindowLocation.reload(),
+    onError: () => addErrorMessage('Unable to update client settings.'),
+  });
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      clientID: clientDetails.clientID ?? '',
+      name: clientDetails.name ?? '',
+      redirectUris: clientDetails.redirectUris ?? '',
+      allowedOrigins: clientDetails.allowedOrigins ?? '',
+      homepageUrl: clientDetails.homepageUrl ?? '',
+      privacyUrl: clientDetails.privacyUrl ?? '',
+      termsUrl: clientDetails.termsUrl ?? '',
+    },
+    validators: {onDynamic: clientSchema},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
+  const fields = [
+    {
+      name: 'clientID' as const,
+      label: 'Client ID',
+      hintText: 'ID of the selected client (not modifiable)',
+      disabled: true,
+    },
+    {
+      name: 'name' as const,
+      label: 'Client Name',
+      hintText: 'Human readable name for the client',
+      placeholder: 'e.g. CodeCov',
+      required: true,
+    },
+    {
+      name: 'redirectUris' as const,
+      label: 'Redirect URIs (space separated)',
+      hintText: 'The URL that users will redirect to after login/signup',
+      placeholder: 'e.g. https://notsentry.io/redirect',
+      required: true,
+    },
+    {
+      name: 'allowedOrigins' as const,
+      label: 'Allowed Origins (space separated)',
+      hintText: 'Allowed origins for the client',
+      placeholder: 'e.g. https://notsentry.io/origin',
+    },
+    {
+      name: 'homepageUrl' as const,
+      label: 'Homepage URL',
+      hintText: "Client's homepage",
+      placeholder: 'e.g. https://notsentry.io/home',
+    },
+    {
+      name: 'privacyUrl' as const,
+      label: 'Privacy Policy URL',
+      hintText: "URL to client's privacy policy",
+      placeholder: 'e.g. https://notsentry.io/privacy',
+    },
+    {
+      name: 'termsUrl' as const,
+      label: 'Terms and Conditions URL',
+      hintText: "URL to client's terms and conditions",
+      placeholder: 'e.g. https://notsentry.io/terms',
+    },
+  ];
+  return (
+    <form.AppForm form={form}>
+      <Stack gap="lg">
+        {fields.map(fieldConfig => (
+          <form.AppField key={fieldConfig.name} name={fieldConfig.name}>
+            {field => (
+              <field.Layout.Stack
+                label={fieldConfig.label}
+                hintText={fieldConfig.hintText}
+                required={fieldConfig.required}
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={fieldConfig.placeholder}
+                  disabled={fieldConfig.disabled || mutation.isPending}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        ))}
+        <p>
+          <b>Date added:</b> {clientDetails.createdAt}
+        </p>
+        <Button type="submit" variant="primary">
+          Save Client Settings
+        </Button>
+      </Stack>
+    </form.AppForm>
+  );
+}
 
 export function InstanceLevelOAuthDetails() {
   const {openModal} = useModal();
@@ -51,7 +162,9 @@ export function InstanceLevelOAuthDetails() {
   const fetchClientData = useCallback(async () => {
     try {
       const response = await api.requestPromise(
-        `/_admin/instance-level-oauth/${params.clientID}/`,
+        getApiUrl('/_admin/instance-level-oauth/$clientId/', {
+          path: {clientId: params.clientID},
+        }),
         {}
       );
 
@@ -89,76 +202,9 @@ export function InstanceLevelOAuthDetails() {
           <PageHeader
             title={`Details For Instance Level OAuth Client: ${clientDetails.name}`}
           />
-          <ApiForm
-            apiMethod="PUT"
-            apiEndpoint={`/_admin/instance-level-oauth/${clientDetails.clientID}/`}
-            onSubmitSuccess={() => testableWindowLocation.reload()}
-            submitLabel="Save Client Settings"
-          >
-            <TextField
-              {...fieldProps}
-              name="clientID"
-              label="Client ID"
-              defaultValue={clientDetails.clientID}
-              help="ID of the selected client (not modifiable)"
-              disabled
-            />
-            <TextField
-              {...fieldProps}
-              name="name"
-              label="Client Name"
-              defaultValue={clientDetails.name}
-              help="Human readable name for the client"
-              placeholder="e.g. CodeCov"
-              required
-            />
-            <TextField
-              {...fieldProps}
-              name="redirectUris"
-              label="Redirect URIs (space separated)"
-              defaultValue={clientDetails.redirectUris}
-              help="The URL that users will redirect to after login/signup"
-              placeholder="e.g. https://notsentry.io/redirect"
-              required
-            />
-            <TextField
-              {...fieldProps}
-              name="allowedOrigins"
-              label="Allowed Origins (space separated)"
-              placeholder="e.g. https://notsentry.io/origin"
-              defaultValue={clientDetails.allowedOrigins}
-              help="Allowed origins for the client"
-            />
-            <TextField
-              {...fieldProps}
-              name="homepageUrl"
-              label="Homepage URL"
-              placeholder="e.g. https://notsentry.io/home"
-              defaultValue={clientDetails.homepageUrl}
-              help="Client's homepage"
-            />
-            <TextField
-              {...fieldProps}
-              name="privacyUrl"
-              label="Privacy Policy URL"
-              placeholder="e.g. https://notsentry.io/privacy"
-              defaultValue={clientDetails.privacyUrl}
-              help="URL to client's privacy policy"
-            />
-            <TextField
-              {...fieldProps}
-              name="termsUrl"
-              label="Terms and Conditions URL"
-              placeholder="e.g. https://notsentry.io/terms"
-              defaultValue={clientDetails.termsUrl}
-              help="URL to client's terms and conditions"
-            />
-            <p>
-              <b>Date added:</b> {clientDetails.createdAt}
-            </p>
-          </ApiForm>
-          <Flex justify="right">
-            <StyledButton
+          <ClientDetailsForm clientDetails={clientDetails} />
+          <Flex justify="right" padding="lg 0">
+            <Button
               size="sm"
               variant="danger"
               onClick={() =>
@@ -172,7 +218,7 @@ export function InstanceLevelOAuthDetails() {
               }
             >
               Delete client
-            </StyledButton>
+            </Button>
           </Flex>
         </Fragment>
       )}
@@ -180,8 +226,3 @@ export function InstanceLevelOAuthDetails() {
     </div>
   );
 }
-
-const StyledButton = styled(Button)`
-  margin-top: 20px;
-  margin-bottom: 15px;
-`;

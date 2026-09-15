@@ -1,4 +1,4 @@
-import type {Field} from 'sentry/components/forms/types';
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 
 import {
   AVAILABLE_PLANCHOICES,
@@ -10,10 +10,7 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-const mapChoices = (choices: ReadonlyArray<readonly [string, string]>) =>
-  choices.map(([value, label]) => ({value, label}));
-
-export function getBroadcastSchema(): Field[] {
+export function getBroadcastSchema(): JsonFormAdapterFieldConfig[] {
   return [
     {
       name: 'title',
@@ -59,16 +56,14 @@ export function getBroadcastSchema(): Field[] {
       type: 'choice',
       required: false,
       label: 'Category',
-      options: mapChoices(CATEGORYCHOICES),
-      allowClear: true,
+      choices: CATEGORYCHOICES,
     },
     {
       name: 'region',
       type: 'choice',
       required: false,
       label: 'Region',
-      options: mapChoices(REGIONCHOICES),
-      allowClear: true,
+      choices: REGIONCHOICES,
     },
     {
       name: 'platform',
@@ -76,7 +71,9 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Platform',
-      options: platformOptions,
+      choices: platformOptions.flatMap(group =>
+        group.options.map(({value, label}) => [value, label] as const)
+      ),
     },
     {
       name: 'product',
@@ -84,7 +81,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Product',
-      options: mapChoices(PRODUCTCHOICES),
+      choices: PRODUCTCHOICES,
     },
     {
       name: 'roles',
@@ -92,7 +89,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Roles',
-      options: mapChoices(ROLECHOICES),
+      choices: ROLECHOICES,
     },
     {
       name: 'plans',
@@ -100,7 +97,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Plans',
-      options: mapChoices(AVAILABLE_PLANCHOICES),
+      choices: AVAILABLE_PLANCHOICES,
     },
     {
       name: 'trialStatus',
@@ -108,7 +105,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Trial Status',
-      options: mapChoices(TRIALCHOICES),
+      choices: TRIALCHOICES,
     },
     {
       name: 'earlyAdopter',
@@ -118,7 +115,8 @@ export function getBroadcastSchema(): Field[] {
     },
     {
       name: 'dateExpires',
-      type: 'datetime',
+      type: 'string',
+      inputType: 'datetime-local',
       required: false,
       label: 'Expires At',
       help: 'The broadcast will automatically deactivate upon expiration.',
@@ -126,8 +124,9 @@ export function getBroadcastSchema(): Field[] {
     {
       name: 'isActive',
       type: 'boolean',
+      label: 'Active',
       required: false,
       help: 'Activate this broadcast immediately.',
     },
-  ] as Field[];
+  ];
 }

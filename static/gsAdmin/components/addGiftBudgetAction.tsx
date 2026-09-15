@@ -1,17 +1,18 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useMemo, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
-import {Flex, Container} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {InputField} from 'sentry/components/forms/fields/inputField';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
@@ -25,6 +26,12 @@ type Props = {
 
 type ModalProps = Props & ModalRenderProps;
 
+const schema = z.object({
+  giftAmount: z.number().positive().max(10000),
+  ticketUrl: z.string(),
+  notes: z.string().min(1).max(500),
+});
+
 function AddGiftBudgetModal({
   onSuccess,
   organization,
@@ -35,58 +42,54 @@ function AddGiftBudgetModal({
 }: ModalProps) {
   const api = useApi();
   const [selectedBudgetId, setSelectedBudgetId] = useState<string | null>(null);
-  const [giftAmount, setGiftAmount] = useState(0);
-  const [ticketUrl, setTicketUrl] = useState<string | null>(null);
-  const [notes, setNotes] = useState<string | null>(null);
 
   const reservedBudgetOptions = useMemo(
     () => subscription.reservedBudgets?.filter(b => b.reservedBudget > 0) ?? [],
     [subscription.reservedBudgets]
   );
 
-  useEffect(() => {
-    if (reservedBudgetOptions.length > 0 && !selectedBudgetId) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setSelectedBudgetId(reservedBudgetOptions[0]?.id ?? null);
-    }
-  }, [reservedBudgetOptions, selectedBudgetId]);
+  const activeBudgetId = selectedBudgetId ?? reservedBudgetOptions[0]?.id ?? null;
+  const mutation = useMutation({
+    mutationFn: (value: z.infer<typeof schema>) => {
+      if (!activeBudgetId) {
+        throw new Error('A reserved budget is required');
+      }
 
-  const onSubmit = () => {
-    if (!selectedBudgetId || giftAmount <= 0) {
-      return;
-    }
+      const selectedBudget = reservedBudgetOptions.find(
+        budget => budget.id === activeBudgetId
+      );
 
-    const selectedBudget = reservedBudgetOptions.find(
-      budget => budget.id === selectedBudgetId
-    );
-
-    const data = {
-      freeReservedBudget: {
-        id: selectedBudgetId,
-        freeBudget: giftAmount * 100, // convert to cents
-        categories: Object.keys(selectedBudget?.categories ?? []),
-      },
-      ticketUrl,
-      notes,
-    };
-
-    api.request(`/customers/${organization.slug}/`, {
-      method: 'PUT',
-      data,
-      success: () => {
-        addSuccessMessage('Added gifted budget amount.');
-        closeModal();
-        onSuccess();
-      },
-      error: () => {
-        addErrorMessage('Unable to add gifted budget amount for org.');
-      },
-    });
-  };
-
-  function getHelp() {
-    return `Total Gift: $${giftAmount.toLocaleString()}`;
-  }
+      return api.requestPromise(
+        getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          method: 'PUT',
+          data: {
+            freeReservedBudget: {
+              id: activeBudgetId,
+              freeBudget: value.giftAmount * 100,
+              categories: Object.keys(selectedBudget?.categories ?? []),
+            },
+            ticketUrl: value.ticketUrl || null,
+            notes: value.notes,
+          },
+        }
+      );
+    },
+    onSuccess: () => {
+      addSuccessMessage('Added gifted budget amount.');
+      closeModal();
+      onSuccess();
+    },
+    onError: () => addErrorMessage('Unable to add gifted budget amount for org.'),
+  });
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {giftAmount: 0, ticketUrl: '', notes: ''},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
 
   return (
     <Fragment>
@@ -102,11 +105,16 @@ function AddGiftBudgetModal({
         ) : (
           <div />
         )}
-        <Form onSubmit={onSubmit} submitLabel="Confirm" onCancel={closeModal}>
+        <form.AppForm form={form}>
           {reservedBudgetOptions.map(budget => (
-            <BudgetCard
+            <Container
               key={budget.id}
-              isSelected={selectedBudgetId === budget.id}
+              padding="xl"
+              margin="md 0"
+              border="primary"
+              radius="md"
+              background={activeBudgetId === budget.id ? 'secondary' : undefined}
+              cursor="pointer"
               onClick={() => setSelectedBudgetId(budget.id)}
             >
               <Flex justify="between" marginBottom="md">
@@ -132,59 +140,62 @@ function AddGiftBudgetModal({
                   )
                   .join(', ') || 'None'}
               </Container>
-              {selectedBudgetId === budget.id && (
-                <NumberField
-                  inline={false}
-                  stacked
-                  flexibleControlStateSize
-                  label="Gift Amount ($)"
-                  help={
-                    <Fragment>
-                      <Fragment>Enter gift amount in dollars (max $10,000).</Fragment>
-                      <br />
-                      <Fragment>{getHelp()}</Fragment>
-                    </Fragment>
-                  }
-                  name="giftAmount"
-                  value={giftAmount}
-                  defaultValue={0}
-                  onChange={(value: number) => {
-                    const clampedValue = Math.min(10000, Math.max(0, value));
-                    setGiftAmount(clampedValue);
-                  }}
-                  required
-                  onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                />
+              {activeBudgetId === budget.id && (
+                <form.AppField name="giftAmount">
+                  {field => (
+                    <field.Layout.Stack
+                      label="Gift Amount ($)"
+                      hintText="Enter gift amount in dollars (max $10,000)."
+                      required
+                    >
+                      <field.Number
+                        min={0}
+                        max={10000}
+                        value={field.state.value}
+                        onChange={value => field.handleChange(value ?? 0)}
+                        onClick={(event: React.MouseEvent) => event.stopPropagation()}
+                      />
+                      <Text>Total Gift: ${field.state.value.toLocaleString()}</Text>
+                    </field.Layout.Stack>
+                  )}
+                </form.AppField>
               )}
-            </BudgetCard>
+            </Container>
           ))}
           {reservedBudgetOptions.length === 0 && (
             <div>No reserved budgets available.</div>
           )}
-          <Container marginTop="xl">
-            <InputField
-              data-test-id="url-field"
-              name="ticket-url"
-              type="url"
-              label="TicketUrl"
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              onChange={(ticketUrlInput: any) => setTicketUrl(ticketUrlInput)}
-            />
-            <TextField
-              data-test-id="notes-field"
-              name="notes"
-              label="Notes"
-              inline={false}
-              stacked
-              flexibleControlStateSize
-              maxLength={500}
-              required // serializer requires this to be present
-              onChange={(notesInput: any) => setNotes(notesInput)}
-            />
-          </Container>
-        </Form>
+          <Stack gap="lg" marginTop="xl">
+            <form.AppField name="ticketUrl">
+              {field => (
+                <field.Layout.Stack label="Ticket URL">
+                  <field.Input
+                    type="url"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <form.AppField name="notes">
+              {field => (
+                <field.Layout.Stack label="Notes" required>
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    maxLength={500}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <Flex gap="md" justify="end">
+              <Button onClick={closeModal}>Cancel</Button>
+              <Button type="submit" variant="primary">
+                Confirm
+              </Button>
+            </Flex>
+          </Stack>
+        </form.AppForm>
       </Body>
     </Fragment>
   );
@@ -197,12 +208,3 @@ export const addGiftBudgetAction = (opts: Options) => {
     closeEvents: 'escape-key',
   });
 };
-
-const BudgetCard = styled('div')<{isSelected: boolean}>`
-  padding: ${p => p.theme.space.xl};
-  margin: ${p => p.theme.space.md} 0;
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  background-color: ${p => (p.isSelected ? p.theme.colors.surface200 : 'transparent')};
-  cursor: pointer;
-`;
