@@ -197,6 +197,7 @@ describe('SnapshotMainContent', () => {
     expect(screen.getByText('feature/snapshot-updates')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Pick overlay color'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Split'})).toBeChecked();
+    expect(screen.getByRole('radiogroup', {name: 'Diff mode'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Wipe'})).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Onion'})).toBeInTheDocument();
 
