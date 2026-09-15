@@ -482,6 +482,7 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     ):
         result = _process_chunk(session, assignment, 1, 2, 3, 4)
 
+    assert compare.call_args.kwargs["include_masks"] == [True, False]
     assert set(result.images) == {"a.png"}
     assert result.images["a.png"].status == "changed"
     assert result.images["a.png"].diff_mask_key is not None
@@ -493,7 +494,6 @@ def test_process_chunk_routes_sibling_candidates_without_diff_mask() -> None:
     assert sibling.changed_pixels == 10
     assert sibling.diff_mask_key is None
     assert put_mask.call_count == 1
-    assert compare.call_args.kwargs["include_masks"] == [True, False]
 
 
 def test_process_chunk_sibling_fetch_failure_is_errored_in_sibling_images() -> None:
