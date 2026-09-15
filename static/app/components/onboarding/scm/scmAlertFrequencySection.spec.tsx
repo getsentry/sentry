@@ -82,6 +82,21 @@ describe('ScmAlertFrequencySection', () => {
     expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
   });
 
+  it('names the custom threshold fields and the notify group', () => {
+    renderSection({
+      analyticsFlow: 'onboarding',
+      alertRuleConfig: {
+        ...DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+        alertSetting: RuleAction.CUSTOMIZED_ALERTS,
+      },
+    });
+
+    expect(screen.getByRole('spinbutton', {name: 'Alert threshold'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Alert metric'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Alert interval'})).toBeInTheDocument();
+    expect(screen.getByRole('group', {name: 'Notify via'})).toBeInTheDocument();
+  });
+
   it('shows the notification options when alerts are enabled', () => {
     renderSection({analyticsFlow: 'onboarding'});
 
