@@ -1,11 +1,11 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {preferInfoText} from './preferInfoText';
 
 const ruleTester = new RuleTester({
   languageOptions: {
     parserOptions: {
-      ecmaFeatures: {jsx: true},
+      lang: 'tsx',
     },
   },
 });
@@ -19,7 +19,7 @@ function errorWithSuggestion(output: string) {
         output,
       },
     ],
-  } as const;
+  };
 }
 
 ruleTester.run('prefer-info-text', preferInfoText, {
@@ -144,6 +144,40 @@ import {InfoText} from '@sentry/scraps/info';
 import {InfoText} from '@sentry/scraps/info';
 
         const x = <InfoText variant="inherit" title={desc}>{tct('Hello [name]', {name})}</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'tn() i18n call',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {tn} from 'sentry/locale';
+        const x = <Tooltip title={desc}>{tn('%s project', '%s projects', count)}</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {tn} from 'sentry/locale';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title={desc}>{tn('%s project', '%s projects', count)}</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Any locale helper call',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {td} from 'sentry/locale';
+        const x = <Tooltip title="help">{td('Some description')}</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {td} from 'sentry/locale';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="help">{td('Some description')}</InfoText>;
       `),
       ],
     },

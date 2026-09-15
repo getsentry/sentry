@@ -704,7 +704,7 @@ export const SEER_EMBED_SCHEMAS = {
       'When referencing a SET of logs defined by a search, use the `logsQuery` ' +
       'embed instead. ' +
       'Inline: renders a compact link that opens the log row in Explore. ' +
-      'Block: renders the log row with its severity, message, and timestamp — ' +
+      'Block: renders the log row with its message, severity, and timestamp — ' +
       'do NOT duplicate any of that as text. ' +
       'Set `view` to "attributes" to also render the full attribute list for the ' +
       'log, or to "attribute" together with `attribute` to break that one ' +

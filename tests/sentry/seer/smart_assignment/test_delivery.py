@@ -87,6 +87,25 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self._assert_outcome(mock_metrics, "resolved")
 
     @patch(METRICS_PATH)
+    def test_resolves_at_prefixed_username(self, mock_metrics: MagicMock) -> None:
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+
+        self._deliver(
+            {
+                "candidates": [
+                    {
+                        "identifier": "@alice",
+                        "identifier_kind": "username",
+                    }
+                ]
+            }
+        )
+
+        assert self._extras()["predicted_assignee_user_ids"] == [alice.id]
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
     def test_records_run_duration_and_candidate_counts(self, mock_metrics: MagicMock) -> None:
         self.seer_run.update(last_triggered_at=timezone.now() - timedelta(seconds=30))
         alice = self.create_user(username="alice")

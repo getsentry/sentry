@@ -433,7 +433,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.chat",
             operation_type="ai_client",
-            tokens=100,
+            tokens=150,
+            input_tokens=100,
+            output_tokens=50,
+            cache_read_tokens=20,
+            cache_write_tokens=30,
+            reasoning_tokens=10,
             trace_id=trace_id,
         )
         self.store_ai_span(
@@ -460,6 +465,16 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_ids = {span["trace"] for span in response.data["spans"]}
         assert len(trace_ids) == 1
         assert trace_id in trace_ids
+
+        generation_span = next(
+            span for span in response.data["spans"] if span["gen_ai.operation.type"] == "ai_client"
+        )
+        assert generation_span["gen_ai.usage.input_tokens"] == 100
+        assert generation_span["gen_ai.usage.output_tokens"] == 50
+        assert generation_span["gen_ai.usage.cache_read.input_tokens"] == 20
+        assert generation_span["gen_ai.usage.cache_creation.input_tokens"] == 30
+        assert generation_span["gen_ai.usage.reasoning.output_tokens"] == 10
+        assert generation_span["gen_ai.usage.total_tokens"] == 150
 
     def test_repairs_parent_links_with_bulk_fetch(self) -> None:
         now = before_now(days=5).replace(microsecond=0)

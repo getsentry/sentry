@@ -147,6 +147,37 @@ class ProjectReplaySummaryTestCase(
             )
             assert response.status_code == 404
 
+    def test_post_rejects_readonly_token_scope(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"num_segments": 2},
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
+
+    @patch("sentry.replays.endpoints.project_replay_summary.make_replay_summary_start_request")
+    def test_post_allows_write_token_scope(self, mock_seer_request: Mock) -> None:
+        mock_seer_request.return_value = MockSeerResponse(200, json_data={"hello": "world"})
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:write"])
+
+        self.store_replay(dt=datetime.now(UTC) - timedelta(days=3), segment_id=0)
+        self.store_replay(dt=datetime.now(UTC) - timedelta(days=2, hours=23), segment_id=1)
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={"num_segments": 2},
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 200
+
     @patch("sentry.replays.endpoints.project_replay_summary.MAX_SEGMENTS_TO_SUMMARIZE", 1)
     @patch("sentry.replays.endpoints.project_replay_summary.make_replay_summary_start_request")
     def test_post_max_segments_exceeded(self, mock_seer_request: Mock) -> None:

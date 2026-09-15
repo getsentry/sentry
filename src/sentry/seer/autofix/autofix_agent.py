@@ -75,6 +75,7 @@ from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssu
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
+from sentry.utils.tracing import trace
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -466,6 +467,7 @@ def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None
     return repo_pins or None
 
 
+@trace
 def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
@@ -687,6 +689,7 @@ def generate_autofix_handoff_prompt(
     instruction: str | None = None,
     short_id: str | None = None,
     issue_url: str | None = None,
+    pr_description_links: Sequence[str] = (),
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -696,7 +699,15 @@ def generate_autofix_handoff_prompt(
     """
     parts = ["Please fix the following issue. Ensure that your fix is fully working."]
 
-    if short_id:
+    if pr_description_links:
+        formatted_links = "\n".join(pr_description_links)
+        parts.append(
+            "Include these exact references near the bottom of the PR description, one per line:\n"
+            f"{formatted_links}"
+        )
+        if short_id and issue_url:
+            parts.append(f"Also include 'Fixes [{short_id}]({issue_url})' in the commit message.")
+    elif short_id:
         if issue_url:
             parts.append(
                 f"Include 'Fixes [{short_id}]({issue_url})' in the commit message and PR description."
@@ -860,7 +871,12 @@ def trigger_coding_agent_handoff(
     short_id = group.qualified_short_id
     issue_url = group.get_absolute_url() if short_id else None
 
-    prompt = generate_autofix_handoff_prompt(state, short_id=short_id, issue_url=issue_url)
+    prompt = generate_autofix_handoff_prompt(
+        state,
+        short_id=short_id,
+        issue_url=issue_url,
+        pr_description_links=_build_issue_reference_lines(group),
+    )
 
     coding_agents = client.launch_coding_agents(
         run_id=run_id,
@@ -962,7 +978,7 @@ AUTOMATED_AUTOFIX_REFERRERS = frozenset(
 )
 
 
-def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
+def _build_issue_reference_lines(group: Group) -> list[str]:
     lines = []
 
     if group.qualified_short_id:
@@ -984,6 +1000,12 @@ def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
                 continue
             linear_id = external_issue.display_name.replace("#", "-")
             lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+
+    return lines
+
+
+def build_pr_description_suffix(group: Group, run_id: int) -> str | None:
+    lines = _build_issue_reference_lines(group)
 
     if features.has(MANUAL_FLAG, group.organization):
         lines.append(

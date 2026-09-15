@@ -15,6 +15,7 @@ from sentry.incidents.endpoints.organization_alert_rule_details import (
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.project import Project
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
@@ -39,6 +40,7 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
+        enforce_alerts_api_deprecation(project.organization)
         return fetch_alert_rule(request, project.organization, alert_rule)
 
     @track_alert_endpoint_execution("PUT", "sentry-api-0-project-alert-rule-details")
@@ -53,6 +55,7 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
+        enforce_alerts_api_deprecation(project.organization)
         return update_alert_rule(request, project.organization, alert_rule)
 
     @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-alert-rule-details")
@@ -69,4 +72,5 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
         ``````````````````
         :auth: required
         """
+        enforce_alerts_api_deprecation(project.organization)
         return remove_alert_rule(request, project.organization, alert_rule)

@@ -16,6 +16,7 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.project import Project
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 @cell_silo_endpoint
@@ -34,6 +35,7 @@ class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
         Return details of the alert rule if the task is successful
 
         """
+        enforce_alerts_api_deprecation(project.organization)
         client = RedisRuleStatus(task_uuid)
         result = client.get_value()
 

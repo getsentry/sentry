@@ -351,6 +351,11 @@ class SeerAgentClient:
         self.max_iterations = max_iterations
         self.enable_embeds = enable_embeds
         self.enable_streaming = enable_streaming
+        self.enable_assisted_query_code_mode = features.has(
+            "organizations:seer-agent-enable-assisted-query-code-mode",
+            organization,
+            actor=user,
+        )
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
@@ -429,6 +434,7 @@ class SeerAgentClient:
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
             "enable_bash_mode": self.enable_bash_tools,
+            "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -753,6 +759,7 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
+            "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(

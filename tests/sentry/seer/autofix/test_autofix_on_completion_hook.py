@@ -681,6 +681,7 @@ class TestPrIterationCompletionHook(TestCase):
             self.group,
             123,
             state,
+            AutofixReferrer.GITHUB_PR_COMMENT,
         )
         return outcome is None
 
@@ -787,6 +788,7 @@ class TestPrIterationCompletionHook(TestCase):
             self.group,
             123,
             state,
+            AutofixReferrer.GITHUB_PR_COMMENT,
         )
 
         assert outcome == PrIterationOutcome.NO_CODE_CHANGES

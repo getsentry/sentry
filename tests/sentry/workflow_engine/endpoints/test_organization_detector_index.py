@@ -892,18 +892,28 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
-    def test_all_projects_detector_included_in_list(self) -> None:
+    def test_all_projects_detector_excluded_with_specific_project(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
         )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) not in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_with_all_projects_sentinel(self) -> None:
+        response = self.get_success_response(self.organization.slug, qs_params={"project": "-1"})
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.all_projects_detector.id) in detector_ids
+
+    @with_feature("organizations:workflow-engine-all-projects-detector")
+    def test_all_projects_detector_included_without_project_filter(self) -> None:
+        response = self.get_success_response(self.organization.slug)
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) in detector_ids
 
     @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_has_null_project_id(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id}
-        )
+        response = self.get_success_response(self.organization.slug)
         all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
         assert all_proj["projectId"] is None
 
