@@ -10,6 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {ConversationAggregates} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationDetailPage from './conversationDetail';
@@ -49,13 +50,34 @@ const CONVERSATION_BODY = [
   }),
 ];
 
+const DEFAULT_AGGREGATES: ConversationAggregates = {
+  endTimestamp: 2_000_000,
+  generationDuration: 1000,
+  inputTokens: 0,
+  llmCalls: 2,
+  outputTokens: 0,
+  startTimestamp: 1_000_000,
+  toolCalls: 0,
+  toolErrors: 0,
+  toolNames: [],
+  totalCost: 0,
+  totalTokens: 0,
+};
+
 function mockApis(
   title: string | null = null,
-  spans: Array<Record<string, unknown>> = CONVERSATION_BODY
+  spans: Array<Record<string, unknown>> = CONVERSATION_BODY,
+  aggregateOverrides: Partial<ConversationAggregates> = {}
 ) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title, spans},
+    body: {
+      conversationId: CONVERSATION_ID,
+      title,
+      spans,
+      ...DEFAULT_AGGREGATES,
+      ...aggregateOverrides,
+    },
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -151,7 +173,9 @@ describe('ConversationDetailPage breadcrumbs', () => {
     const topBar = screen.getByRole('banner');
 
     expect(
-      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
+      await within(topBar).findByRole('link', {
+        name: CONVERSATIONS_SIDEBAR_LABEL,
+      })
     ).toBeInTheDocument();
     // The conversation id is the top-bar identifier, owned by the TopBar title
     // slot, alongside the copy affordance.
@@ -206,20 +230,24 @@ describe('ConversationDetailPage summary aggregates', () => {
   });
 
   it('uses the reported total when a model breakdown is incomplete', async () => {
-    mockApis(null, [
-      spanFixture({
-        span_id: 'span-partial-tokens',
-        'span.name': 'partial token turn',
-        'precise.start_ts': 1000,
-        'precise.finish_ts': 1000.5,
-        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
-        'gen_ai.response.text': 'Hi',
-        'gen_ai.response.model': '',
-        'gen_ai.request.model': '',
-        'gen_ai.usage.input_tokens': 100,
-        'gen_ai.usage.total_tokens': 150,
-      }),
-    ]);
+    mockApis(
+      null,
+      [
+        spanFixture({
+          span_id: 'span-partial-tokens',
+          'span.name': 'partial token turn',
+          'precise.start_ts': 1000,
+          'precise.finish_ts': 1000.5,
+          'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
+          'gen_ai.response.text': 'Hi',
+          'gen_ai.response.model': '',
+          'gen_ai.request.model': '',
+          'gen_ai.usage.input_tokens': 100,
+          'gen_ai.usage.total_tokens': 150,
+        }),
+      ],
+      {totalTokens: 150}
+    );
     renderPage();
 
     const tokenCount = await screen.findByText('150');
@@ -230,40 +258,44 @@ describe('ConversationDetailPage summary aggregates', () => {
   });
 
   it('groups token usage by model and sorts highest usage first', async () => {
-    mockApis(null, [
-      spanFixture({
-        span_id: 'span-tokens',
-        'span.name': 'tokenized turn',
-        'precise.start_ts': 1000,
-        'precise.finish_ts': 1000.5,
-        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
-        'gen_ai.response.text': 'Hi',
-        'gen_ai.response.model': 'model-alpha',
-        'gen_ai.usage.input_tokens': 150,
-        'gen_ai.usage.output_tokens': 50,
-        'gen_ai.usage.total_tokens': 200,
-      }),
-      spanFixture({
-        span_id: 'span-tokens-second-model',
-        'span.name': 'second model turn',
-        'precise.start_ts': 1001,
-        'precise.finish_ts': 1001.5,
-        'gen_ai.response.model': 'model-beta',
-        'gen_ai.usage.input_tokens': 200,
-        'gen_ai.usage.output_tokens': 100,
-        'gen_ai.usage.total_tokens': 300,
-      }),
-      spanFixture({
-        span_id: 'span-tokens-same-model',
-        'span.name': 'same model turn',
-        'precise.start_ts': 1002,
-        'precise.finish_ts': 1002.5,
-        'gen_ai.response.model': 'model-alpha',
-        'gen_ai.usage.input_tokens': 30,
-        'gen_ai.usage.output_tokens': 20,
-        'gen_ai.usage.total_tokens': 50,
-      }),
-    ]);
+    mockApis(
+      null,
+      [
+        spanFixture({
+          span_id: 'span-tokens',
+          'span.name': 'tokenized turn',
+          'precise.start_ts': 1000,
+          'precise.finish_ts': 1000.5,
+          'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
+          'gen_ai.response.text': 'Hi',
+          'gen_ai.response.model': 'model-alpha',
+          'gen_ai.usage.input_tokens': 150,
+          'gen_ai.usage.output_tokens': 50,
+          'gen_ai.usage.total_tokens': 200,
+        }),
+        spanFixture({
+          span_id: 'span-tokens-second-model',
+          'span.name': 'second model turn',
+          'precise.start_ts': 1001,
+          'precise.finish_ts': 1001.5,
+          'gen_ai.response.model': 'model-beta',
+          'gen_ai.usage.input_tokens': 200,
+          'gen_ai.usage.output_tokens': 100,
+          'gen_ai.usage.total_tokens': 300,
+        }),
+        spanFixture({
+          span_id: 'span-tokens-same-model',
+          'span.name': 'same model turn',
+          'precise.start_ts': 1002,
+          'precise.finish_ts': 1002.5,
+          'gen_ai.response.model': 'model-alpha',
+          'gen_ai.usage.input_tokens': 30,
+          'gen_ai.usage.output_tokens': 20,
+          'gen_ai.usage.total_tokens': 50,
+        }),
+      ],
+      {totalTokens: 550}
+    );
     renderPage();
 
     const tokenCount = await screen.findByText('550');
@@ -304,26 +336,30 @@ describe('ConversationDetailPage summary aggregates', () => {
   });
 
   it('leads the tool tags with the ones that errored', async () => {
-    mockApis(null, [
-      ...CONVERSATION_BODY,
-      spanFixture({
-        span_id: 'span-tool-ok',
-        'span.name': 'alpha call',
-        'gen_ai.operation.type': 'tool',
-        'gen_ai.tool.name': 'alpha_tool',
-        'precise.start_ts': 3000,
-        'precise.finish_ts': 3000.5,
-      }),
-      spanFixture({
-        span_id: 'span-tool-failed',
-        'span.name': 'zeta call',
-        'span.status': 'internal_error',
-        'gen_ai.operation.type': 'tool',
-        'gen_ai.tool.name': 'zeta_tool',
-        'precise.start_ts': 4000,
-        'precise.finish_ts': 4000.5,
-      }),
-    ]);
+    mockApis(
+      null,
+      [
+        ...CONVERSATION_BODY,
+        spanFixture({
+          span_id: 'span-tool-ok',
+          'span.name': 'alpha call',
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': 'alpha_tool',
+          'precise.start_ts': 3000,
+          'precise.finish_ts': 3000.5,
+        }),
+        spanFixture({
+          span_id: 'span-tool-failed',
+          'span.name': 'zeta call',
+          'span.status': 'internal_error',
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': 'zeta_tool',
+          'precise.start_ts': 4000,
+          'precise.finish_ts': 4000.5,
+        }),
+      ],
+      {toolNames: ['alpha_tool', 'zeta_tool']}
+    );
     renderPage();
 
     expect(await screen.findByText('Tools:')).toBeInTheDocument();

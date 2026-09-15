@@ -39,7 +39,7 @@ function toProjectIds(projects: ConversationData['projects']): number[] | undefi
  */
 export default function ConversationBlock({data}: {data: ConversationData}) {
   const organization = useOrganization();
-  const {nodes, isLoading, error, title} = useConversation({
+  const {aggregates, nodes, isLoading, error, title} = useConversation({
     conversationId: data.id,
     projects: toProjectIds(data.projects),
     startTimestamp: toTimestampMs(data.start),
@@ -61,6 +61,7 @@ export default function ConversationBlock({data}: {data: ConversationData}) {
         <Text variant="muted">{t('No messages in this conversation')}</Text>
       ) : (
         <ConversationAggregatesBar
+          aggregates={aggregates}
           conversationId={data.id}
           nodes={nodes}
           isLoading={isLoading}

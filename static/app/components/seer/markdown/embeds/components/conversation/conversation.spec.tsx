@@ -80,6 +80,17 @@ describe('conversation embed', () => {
       body: {
         conversationId: CONVERSATION_ID,
         title: 'Out of memory investigation',
+        endTimestamp: 1_000_500,
+        generationDuration: 500,
+        inputTokens: 0,
+        llmCalls: 1,
+        outputTokens: 0,
+        startTimestamp: 1_000_000,
+        toolCalls: 0,
+        toolErrors: 0,
+        toolNames: [],
+        totalCost: 0,
+        totalTokens: 1200,
         spans: [
           spanFixture({
             span_id: 'span-a',
@@ -166,7 +177,11 @@ describe('conversation embed', () => {
   });
 
   it('shows an error when the conversation cannot be loaded', async () => {
-    MockApiClient.addMockResponse({url: DETAIL_URL, statusCode: 500, body: {}});
+    MockApiClient.addMockResponse({
+      url: DETAIL_URL,
+      statusCode: 500,
+      body: {},
+    });
 
     renderEmbed({name: 'conversation', data: {id: CONVERSATION_ID}});
 
