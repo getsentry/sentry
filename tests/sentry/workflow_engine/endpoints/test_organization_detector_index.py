@@ -22,7 +22,6 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
@@ -891,7 +890,6 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         super().setUp()
         self.all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_excluded_with_specific_project(self) -> None:
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id}
@@ -911,7 +909,6 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) in detector_ids
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_has_null_project_id(self) -> None:
         response = self.get_success_response(self.organization.slug)
         all_proj = next(d for d in response.data if d["id"] == str(self.all_projects_detector.id))
@@ -924,7 +921,6 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         detector_ids = {d["id"] for d in response.data}
         assert str(self.all_projects_detector.id) not in detector_ids
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_all_projects_detector_included_in_id_filter(self) -> None:
         response = self.get_success_response(
             self.organization.slug,
@@ -932,13 +928,6 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
         )
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.all_projects_detector.id)
-
-    def test_all_projects_detector_excluded_from_id_filter_without_feature(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params=[("id", str(self.all_projects_detector.id))],
-        )
-        assert len(response.data) == 0
 
 
 @cell_silo_test
