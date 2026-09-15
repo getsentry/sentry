@@ -564,22 +564,6 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             alert_rule.snuba_query.resolution == DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER * 60
         )
 
-    def test_performance_metric_alert(self) -> None:
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "performance alert",
-            "",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.PerformanceMetrics,
-        )
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
-
     @patch("sentry.incidents.logic.schedule_update_project_config")
     def test_on_demand_metric_alert(self, mocked_schedule_update_project_config: MagicMock) -> None:
         alert_rule = create_alert_rule(
@@ -1076,27 +1060,6 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
         update_alert_rule(self.alert_rule, comparison_delta=None)
         assert self.alert_rule.comparison_delta is None
         assert self.alert_rule.snuba_query.resolution == DEFAULT_ALERT_RULE_RESOLUTION * 60
-
-    def test_performance_metric_alert(self) -> None:
-        alert_rule = create_alert_rule(
-            self.organization,
-            [self.project],
-            "performance alert",
-            "",
-            "count()",
-            1,
-            AlertRuleThresholdType.ABOVE,
-            1,
-            query_type=SnubaQuery.Type.ERROR,
-            dataset=Dataset.Events,
-        )
-        alert_rule = update_alert_rule(
-            alert_rule,
-            query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.PerformanceMetrics,
-        )
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert alert_rule.snuba_query.dataset == Dataset.PerformanceMetrics.value
 
     @patch("sentry.incidents.logic.schedule_update_project_config")
     def test_on_demand_metric_alert(self, mocked_schedule_update_project_config: MagicMock) -> None:
@@ -3632,48 +3595,6 @@ class TestCustomMetricAlertRule(TestCase):
     @patch("sentry.incidents.logic.schedule_invalidate_project_config")
     def test_create_alert_rule(self, mocked_schedule_invalidate_project_config: MagicMock) -> None:
         self.create_alert_rule()
-
-        mocked_schedule_invalidate_project_config.assert_not_called()
-
-    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_alert_rule_extraction(
-        self, mocked_schedule_invalidate_project_config
-    ):
-        with self.feature({"organizations:on-demand-metrics-extraction": True}):
-            self.create_alert_rule(
-                projects=[self.project],
-                dataset=Dataset.PerformanceMetrics,
-                query="transaction.duration:>=100",
-            )
-
-            mocked_schedule_invalidate_project_config.assert_called_once_with(
-                trigger="alerts:create-on-demand-metric", project_id=self.project.id
-            )
-
-    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_alert_rule_prefill(
-        self, mocked_schedule_invalidate_project_config
-    ):
-        with self.feature({"organizations:on-demand-metrics-prefill": True}):
-            self.create_alert_rule(
-                projects=[self.project],
-                dataset=Dataset.PerformanceMetrics,
-                query="transaction.duration:>=50",
-            )
-
-            mocked_schedule_invalidate_project_config.assert_called_once_with(
-                trigger="alerts:create-on-demand-metric", project_id=self.project.id
-            )
-
-    @patch("sentry.incidents.logic.schedule_invalidate_project_config")
-    def test_create_custom_metric_turned_off(
-        self, mocked_schedule_invalidate_project_config: MagicMock
-    ) -> None:
-        self.create_alert_rule(
-            projects=[self.project],
-            dataset=Dataset.PerformanceMetrics,
-            query="transaction.duration:>=100",
-        )
 
         mocked_schedule_invalidate_project_config.assert_not_called()
 

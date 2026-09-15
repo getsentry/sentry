@@ -98,6 +98,7 @@ class SiloRouter:
         "sentry_monitorlocation": SiloMode.CELL,
         "sentry_notificationsetting": SiloMode.CONTROL,
         "sentry_pagerdutyservice": SiloMode.CELL,
+        "sentry_perfstringindexer": SiloMode.CELL,
         "sentry_projectavatar": SiloMode.CELL,
         "sentry_scheduledjob": SiloMode.CONTROL,
         "sentry_projecttemplate": SiloMode.CELL,
