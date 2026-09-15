@@ -8,7 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: ['gen-ai-conversations', 'gen-ai-conversations-querying-enhancements'],
+  features: ['gen-ai-conversations'],
 });
 
 describe('ConversationsOverviewPage', () => {
