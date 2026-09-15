@@ -14,6 +14,9 @@ CURSOR_ORIGIN_INSTALL_URL = "https://cursor.com/codebase/apps/install"
 
 CURSOR_ORIGIN_JWT_AUDIENCE = "origin-apps"
 
+CURSOR_ORIGIN_ISSUER = "https://api.cursor.com/v1/origin"
+CURSOR_ORIGIN_RECEIPT_TYP = "origin-installation-receipt+jwt"
+
 # Origin asks for app JWTs of roughly five minutes.
 JWT_EXPIRY_SECONDS = 240
 
