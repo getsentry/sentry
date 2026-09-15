@@ -3,6 +3,7 @@ import logging
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 
 from sentry.api.serializers.models.project import get_has_logs
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.eap import constants
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
@@ -46,6 +47,12 @@ class OurLogs(rpc_dataset_common.RPCBase):
         so we need to always order by it regardless of what is actually passed to the orderby.
         Additionally, to ensure a strict order in the flex time sampling mode, we also order
         by the item id."""
+        if not selected_columns:
+            # Matches the same guard in sentry.snuba.errors/discover/functions/issue_platform:
+            # reject an empty column list here instead of sending it to the RPC, which
+            # returns a generic 500 rather than a descriptive error for this case.
+            raise InvalidSearchQuery("No columns selected")
+
         if (
             orderby is not None
             and len(orderby) == 1
