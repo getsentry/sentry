@@ -25,10 +25,18 @@ interface EditLayoutProps {
 function EditLayoutComponent({children}: EditLayoutProps) {
   return (
     <FullHeightForm>
-      <Stack flex="unset">{children}</Stack>
+      <FormStack flex="unset">{children}</FormStack>
     </FullHeightForm>
   );
 }
+
+const FormStack = styled(Stack)`
+  > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+`;
 
 interface EditLayoutDeprecatedProps {
   children: React.ReactNode;
@@ -143,6 +151,10 @@ function Footer({children, label, maxWidth}: FooterProps) {
 }
 
 export const EditLayout = Object.assign(EditLayoutComponent, {
+  Header,
+  HeaderContent,
+  Actions,
+  HeaderFields,
   Body,
   Footer,
 });
