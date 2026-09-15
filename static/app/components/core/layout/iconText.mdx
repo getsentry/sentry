@@ -71,7 +71,7 @@ middle of the entire block — away from the line it belongs to.
               }}
             />
           }
-          iconSize="16px"
+          iconSize="md"
         >
           <Text size="sm">
             This text wraps to multiple lines and the icon stays centered with the first
@@ -166,13 +166,13 @@ sync with the text's typographic rhythm, at every font-size.
 
 <Storybook.Demo>
   <Stack gap="md" style={{maxWidth: 300}}>
-    <IconText icon={<IconCheckmark size="xs" color="success" />} iconSize="xs">
+    <IconText icon={<IconCheckmark size="xs" variant="success" />} iconSize="xs">
       <Text size="sm">All tool calls succeeded</Text>
     </IconText>
-    <IconText icon={<IconWarning size="xs" color="warning" />} iconSize="xs">
+    <IconText icon={<IconWarning size="xs" variant="warning" />} iconSize="xs">
       <Text size="sm">Some tool calls failed — hover for details</Text>
     </IconText>
-    <IconText icon={<IconFire size="xs" color="danger" />} iconSize="xs">
+    <IconText icon={<IconFire size="xs" variant="danger" />} iconSize="xs">
       <Text size="sm">
         A longer message that wraps to multiple lines, demonstrating how the icon stays
         anchored to the first line.
@@ -182,7 +182,7 @@ sync with the text's typographic rhythm, at every font-size.
 </Storybook.Demo>
 
 ```jsx
-<IconText icon={<IconCheckmark size="xs" color="success" />} iconSize="xs">
+<IconText icon={<IconCheckmark size="xs" variant="success" />} iconSize="xs">
   <Text size="sm">All tool calls succeeded</Text>
 </IconText>
 ```
