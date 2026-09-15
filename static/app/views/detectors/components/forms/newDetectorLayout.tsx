@@ -12,11 +12,13 @@ import type {
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
+import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
@@ -46,19 +48,27 @@ export function NewDetectorLayout<
   const location = useLocation();
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
+  const organization = useOrganization();
   const {projects} = useProjects();
 
   const initialProjectId = useMemo(() => {
+    const writableProjects = projects.filter(project =>
+      hasDetectorWriteAccess({organization, project})
+    );
     const queryProjectId = location.query.project as string | undefined;
     if (queryProjectId) {
-      const match = projects.find(p => p.id === queryProjectId);
+      const match = writableProjects.find(p => p.id === queryProjectId);
       if (match) {
         return match.id;
       }
     }
-    const sorted = orderBy(projects, ['isMember', 'isBookmarked'], ['desc', 'desc']);
+    const sorted = orderBy(
+      writableProjects,
+      ['isMember', 'isBookmarked'],
+      ['desc', 'desc']
+    );
     return sorted[0]?.id ?? '';
-  }, [location.query.project, projects]);
+  }, [location.query.project, organization, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
