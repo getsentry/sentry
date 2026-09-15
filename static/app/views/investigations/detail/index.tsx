@@ -263,11 +263,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
   const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
       ? summaryBlock
       : undefined;
   const visibleNotebookCells = notebookCells.filter(block =>
-    shouldDisplayInvestigationBlock(block, blocks)
+    shouldDisplayInvestigationBlock(block)
   );
 
   return (
