@@ -411,6 +411,7 @@ def _find_approved_sibling(
             # Human approvals only: chaining through auto-approvals would let
             # sub-threshold drift compound across rebuilds.
             preprodcomparisonapproval__extras__auto_approval__isnull=True,
+            # Required: keeps force-approved failed/missing-base builds from seeding auto-approval.
             preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.SUCCESS,
         )
         .exclude(id=head_artifact.id)
