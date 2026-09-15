@@ -12,6 +12,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Switch} from '@sentry/scraps/switch';
+import {Text} from '@sentry/scraps/text';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -265,6 +266,16 @@ function ManageDashboards() {
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
         />
+        <Flex align="center" gap="md">
+          <Text as="label" htmlFor="show-hidden-dashboards">
+            {t('Show hidden')}
+          </Text>
+          <Switch
+            id="show-hidden-dashboards"
+            checked={showHidden}
+            onChange={handleShowHiddenChange}
+          />
+        </Flex>
         <CompactSelect
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
@@ -275,14 +286,6 @@ function ManageDashboards() {
           position="bottom-end"
           data-test-id="sort-by-select"
         />
-        <Flex as="label" align="center" gap="md" htmlFor="show-hidden-dashboards">
-          {t('Show hidden')}
-          <Switch
-            id="show-hidden-dashboards"
-            checked={showHidden}
-            onChange={handleShowHiddenChange}
-          />
-        </Flex>
         {areAiFeaturesAllowed ? (
           <DashboardCreateLimitWrapper>
             {({
