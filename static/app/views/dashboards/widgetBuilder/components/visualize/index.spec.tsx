@@ -11,7 +11,6 @@ import {
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -23,83 +22,15 @@ import {
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
-jest.mock('sentry/utils/useNavigate');
-jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
-  const actual = jest.requireActual(
-    'sentry/views/explore/components/traceItemSearchQueryBuilder'
-  );
-  return {
-    ...actual,
-    TraceItemSearchQueryBuilder: (props: {
-      initialQuery?: string;
-      onSearch?: (query: string) => void;
-      placeholder?: string;
-    }) => (
-      <input
-        aria-label={props.placeholder ?? 'Filter spans for this series'}
-        defaultValue={props.initialQuery ?? ''}
-        onChange={event => props.onSearch?.(event.target.value)}
-        placeholder={props.placeholder}
-      />
-    ),
-  };
-});
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/widget/new/';
-
-function getNavigateQueryValues(to: unknown, key: string): string[] {
-  if (typeof to === 'string') {
-    return new URL(to, 'http://local.invalid').searchParams.getAll(key);
-  }
-  if (to && typeof to === 'object' && 'query' in to) {
-    const queryValue = (to as {query?: Record<string, unknown>}).query?.[key];
-    if (typeof queryValue === 'string') {
-      return [queryValue];
-    }
-    if (Array.isArray(queryValue)) {
-      return queryValue.filter((value): value is string => typeof value === 'string');
-    }
-  }
-  return [];
-}
-
-function navigateIncludesQueryValue(
-  mockNavigate: jest.Mock,
-  key: string,
-  value: string
-): boolean {
-  return mockNavigate.mock.calls.some(([to]) =>
-    getNavigateQueryValues(to, key).includes(value)
-  );
-}
-
-function navigateIncludesQueryValues(
-  mockNavigate: jest.Mock,
-  key: string,
-  values: string[]
-): boolean {
-  return mockNavigate.mock.calls.some(([to]) => {
-    const actual = getNavigateQueryValues(to, key);
-    return (
-      actual.length === values.length && values.every((value, i) => actual[i] === value)
-    );
-  });
-}
-
-function navigateLastCallOmitsQueryKey(mockNavigate: jest.Mock, key: string): boolean {
-  const lastTo = mockNavigate.mock.calls.at(-1)?.[0];
-  if (lastTo === undefined) {
-    return false;
-  }
-  return getNavigateQueryValues(lastTo, key).length === 0;
-}
+const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   let organizationWithConditionalAggregates!: ReturnType<typeof OrganizationFixture>;
-  let mockNavigate!: jest.Mock;
 
   beforeEach(() => {
     organization = OrganizationFixture({
@@ -176,11 +107,13 @@ describe('Visualize', () => {
       secondaryAliases: {},
     });
 
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
-
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -604,7 +537,7 @@ describe('Visualize', () => {
   });
 
   it('properly transitions between aggregates of higher to no parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -634,12 +567,12 @@ describe('Visualize', () => {
       'count'
     );
     await waitFor(() => {
-      expect(navigateIncludesQueryValue(mockNavigate, 'field', 'count()')).toBe(true);
+      expect(router.location.query).toEqual(expect.objectContaining({field: 'count()'}));
     });
   });
 
   it('properly transitions between aggregates of higher to lower parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -670,9 +603,9 @@ describe('Visualize', () => {
     );
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValue(mockNavigate, 'field', 'count_miserable(user,300)')
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({field: 'count_miserable(user,300)'})
+      );
     });
   });
 
@@ -990,7 +923,7 @@ describe('Visualize', () => {
   });
 
   it('shifts the selected aggregate up when it is the last one and removed', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -1018,7 +951,7 @@ describe('Visualize', () => {
     // is cleared, so the last field is selected
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
     await waitFor(() => {
-      expect(navigateLastCallOmitsQueryKey(mockNavigate, 'selectedAggregate')).toBe(true);
+      expect(router.location.query).not.toHaveProperty('selectedAggregate');
     });
   });
 
@@ -1793,7 +1726,7 @@ describe('Visualize', () => {
     });
 
     it('adds equations', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1836,18 +1769,14 @@ describe('Visualize', () => {
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
       await waitFor(() => {
-        expect(
-          navigateIncludesQueryValue(
-            mockNavigate,
-            'field',
-            'equation|( avg(span.duration)'
-          )
-        ).toBe(true);
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
       });
     });
 
     it('adds equations line chart', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1890,13 +1819,9 @@ describe('Visualize', () => {
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
       await waitFor(() => {
-        expect(
-          navigateIncludesQueryValue(
-            mockNavigate,
-            'field',
-            'equation|( avg(span.duration)'
-          )
-        ).toBe(true);
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
       });
     });
   });
@@ -2124,7 +2049,7 @@ describe('Visualize', () => {
     });
 
     expect(
-      await screen.findByRole('textbox', {name: 'Filter spans for this series'})
+      await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
     ).toBeInTheDocument();
   });
 
@@ -2149,7 +2074,7 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Filter spans for this series'})
+      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
     ).not.toBeInTheDocument();
   });
 
@@ -2176,13 +2101,11 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'span.self_time'
     );
-    expect(
-      screen.getByRole('textbox', {name: 'Filter spans for this series'})
-    ).toHaveValue('span.op:db');
+    expect(screen.getByText('span.op')).toBeInTheDocument();
   });
 
   it('applies visualize filters as _if aggregates', async () => {
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
       organization: organizationWithConditionalAggregates,
       initialRouterConfig: {
@@ -2198,26 +2121,20 @@ describe('Visualize', () => {
       },
     });
 
-    const searchInput = await screen.findByRole('textbox', {
-      name: 'Filter spans for this series',
-    });
-
-    await userEvent.clear(searchInput);
-    await userEvent.type(searchInput, 'span.op:db');
+    const filterInput = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+    await userEvent.click(filterInput);
+    await userEvent.paste('span.op:db');
+    await userEvent.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValue(
-          mockNavigate,
-          'yAxis',
-          'avg_if(`span.op:db`,span.duration)'
-        )
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'avg_if(`span.op:db`,span.duration)'})
+      );
     });
   });
 
   it('preserves field aliases when applying a series filter', async () => {
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
       organization: organizationWithConditionalAggregates,
       initialRouterConfig: {
@@ -2233,21 +2150,17 @@ describe('Visualize', () => {
       },
     });
 
-    const searchInput = await screen.findByRole('textbox', {
-      name: 'Filter spans for this series',
-    });
-
-    await userEvent.clear(searchInput);
-    await userEvent.type(searchInput, 'span.op:db');
+    const filterInput = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+    await userEvent.click(filterInput);
+    await userEvent.paste('span.op:db');
+    await userEvent.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValue(
-          mockNavigate,
-          'field',
-          '{"field":"avg_if(`span.op:db`,span.duration)","alias":"Latency"}'
-        )
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          field: '{"field":"avg_if(`span.op:db`,span.duration)","alias":"Latency"}',
+        })
+      );
     });
   });
 
@@ -2272,12 +2185,12 @@ describe('Visualize', () => {
       await screen.findByRole('button', {name: 'Aggregate Selection'})
     ).toHaveTextContent('failure_rate');
     expect(
-      screen.queryByRole('textbox', {name: 'Filter spans for this series'})
+      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
     ).not.toBeInTheDocument();
   });
 
   it('preserves the series filter when changing the column', async () => {
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
       organization: organizationWithConditionalAggregates,
       initialRouterConfig: {
@@ -2297,18 +2210,14 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
 
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValue(
-          mockNavigate,
-          'yAxis',
-          'avg_if(`span.op:db`,span.self_time)'
-        )
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'avg_if(`span.op:db`,span.self_time)'})
+      );
     });
   });
 
   it('preserves Explore-style _if filters when changing the column with the feature disabled', async () => {
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
       organization,
       initialRouterConfig: {
@@ -2325,25 +2234,21 @@ describe('Visualize', () => {
     });
 
     expect(
-      screen.queryByRole('textbox', {name: 'Filter spans for this series'})
+      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
     ).not.toBeInTheDocument();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
     await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
 
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValue(
-          mockNavigate,
-          'yAxis',
-          'avg_if(`span.op:db`,span.self_time)'
-        )
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'avg_if(`span.op:db`,span.self_time)'})
+      );
     });
   });
 
   it('preserves the series filter when changing the aggregate', async () => {
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       additionalWrapper: WidgetBuilderProvider,
       organization: organizationWithConditionalAggregates,
       initialRouterConfig: {
@@ -2365,13 +2270,9 @@ describe('Visualize', () => {
     await userEvent.click(screen.getByRole('option', {name: 'p95'}));
 
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValue(
-          mockNavigate,
-          'yAxis',
-          'p95_if(`span.op:db`,span.duration)'
-        )
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'p95_if(`span.op:db`,span.duration)'})
+      );
     });
   });
 
@@ -2588,7 +2489,7 @@ describe('Visualize', () => {
       },
     });
 
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       organization,
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -2617,24 +2518,25 @@ describe('Visualize', () => {
     ).toHaveTextContent('span.description');
     expect(await screen.findByRole('listbox')).toBeInTheDocument();
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValues(mockNavigate, 'field', [
-          'span.description',
-          'sum(value,alpha_metric,counter,none)',
-        ])
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
+        })
+      );
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'field'}));
     await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
 
     await waitFor(() => {
-      expect(
-        navigateIncludesQueryValues(mockNavigate, 'field', [
-          'sum(value,alpha_metric,counter,none)',
-          'sum(value,alpha_metric,counter,none)',
-        ])
-      ).toBe(true);
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          field: [
+            'sum(value,alpha_metric,counter,none)',
+            'sum(value,alpha_metric,counter,none)',
+          ],
+        })
+      );
     });
   });
 
