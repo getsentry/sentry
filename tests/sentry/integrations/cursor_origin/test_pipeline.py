@@ -47,8 +47,9 @@ def _receipt(
     subject: str | None = INSTALLATION_ID,
     state: str | None = STATE,
     expires_in: int = 300,
+    issued_in: int = 0,
 ) -> str:
-    now = int(time.time())
+    now = int(time.time()) + issued_in
     claims: dict[str, Any] = {
         "iss": issuer,
         "aud": audience,
@@ -110,6 +111,9 @@ class VerifyReceiptTest(TestCase):
 
     def test_a_receipt_for_another_app_is_refused(self) -> None:
         assert self._verify(_receipt(self.private, audience="app_someone_else")) is None
+
+    def test_a_receipt_issued_slightly_ahead_still_verifies(self) -> None:
+        assert self._verify(_receipt(self.private, issued_in=20)) == INSTALLATION_ID
 
     def test_an_expired_receipt_is_refused(self) -> None:
         assert self._verify(_receipt(self.private, expires_in=-60)) is None

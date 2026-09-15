@@ -11,6 +11,7 @@ from rest_framework import serializers
 
 from sentry import options
 from sentry.integrations.cursor_origin.constants import (
+    CURSOR_ORIGIN_CLOCK_SKEW_SECONDS,
     CURSOR_ORIGIN_ISSUER,
     CURSOR_ORIGIN_RECEIPT_TYP,
 )
@@ -66,6 +67,7 @@ def verify_receipt(receipt: str, expected_state: str) -> str | None:
                 algorithms=["EdDSA"],
                 audience=app_id,
                 issuer=CURSOR_ORIGIN_ISSUER,
+                leeway=CURSOR_ORIGIN_CLOCK_SKEW_SECONDS,
             )
         except (jwt.PyJWTError, ValueError):
             continue
