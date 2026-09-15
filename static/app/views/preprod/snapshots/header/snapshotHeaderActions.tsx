@@ -38,6 +38,10 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {openBuildDebugInfoModal} from 'sentry/views/preprod/snapshots/header/buildDebugInfoModal';
+import {
+  isForceApprovableSnapshotState,
+  isSnapshotApproved,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
@@ -71,8 +75,9 @@ export function SnapshotHeaderActions({
 
   const comparisonState = data.comparison_state;
   const approvalStatus = data.approval_status;
-  const isApproved = approvalStatus === 'approved' || approvalStatus === 'auto_approved';
+  const isApproved = isSnapshotApproved(approvalStatus);
   const isAutoApproved = approvalStatus === 'auto_approved';
+  const canForceApprove = isForceApprovableSnapshotState(comparisonState) && !isApproved;
   const approvers: AvatarUser[] = (data.approvers ?? []).map((a, i) => ({
     id: a.id ?? `approver-${i}`,
     name: a.name ?? '',
@@ -88,10 +93,17 @@ export function SnapshotHeaderActions({
       : undefined,
   }));
 
-  const submitApproval = (successMessage: string) => {
+  const submitApproval = ({
+    forced,
+    successMessage,
+  }: {
+    forced: boolean;
+    successMessage: string;
+  }) => {
     trackAnalytics('preprod.snapshots.details.approve_clicked', {
       organization,
       build_id: data.head_artifact_id,
+      forced,
     });
     setIsApproving(true);
     clientRef.current.request(
@@ -124,8 +136,23 @@ export function SnapshotHeaderActions({
     );
   };
 
-  const handleApprove = () => submitApproval(t('Snapshot approved'));
-  const handleReapprove = () => submitApproval(t('Approval re-sent to GitHub'));
+  const handleApprove = () =>
+    submitApproval({forced: false, successMessage: t('Snapshot approved')});
+  const handleReapprove = () =>
+    submitApproval({forced: false, successMessage: t('Approval re-sent to GitHub')});
+
+  const handleForceApprove = () => {
+    openConfirmModal({
+      header: t('Force approve snapshots'),
+      message: t(
+        'This build has no successful comparison. Approving marks the snapshot status check as passing without reviewing any changes.'
+      ),
+      confirmText: t('Force approve'),
+      priority: 'danger',
+      onConfirm: () =>
+        submitApproval({forced: true, successMessage: t('Snapshot approved')}),
+    });
+  };
 
   const handleRerunStatusChecks = useCallback(() => {
     clientRef.current.request(
@@ -268,6 +295,13 @@ export function SnapshotHeaderActions({
     });
   }, [organizationSlug, data.head_artifact_id]);
 
+  const approverAvatars =
+    approvers.length > 0 ? (
+      <Container display={{zero: 'none', '3xl': 'flex'}}>
+        <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
+      </Container>
+    ) : null;
+
   return (
     <Flex align="center" gap="md">
       {comparisonState === 'success' ? (
@@ -289,11 +323,7 @@ export function SnapshotHeaderActions({
                 </Tooltip>
               )}
             </Flex>
-            {approvers.length > 0 && (
-              <Container display={{zero: 'none', '3xl': 'flex'}}>
-                <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
-              </Container>
-            )}
+            {approverAvatars}
           </Flex>
         ) : approvalStatus === 'requires_approval' ? (
           <Flex align="center" gap="sm">
@@ -314,11 +344,14 @@ export function SnapshotHeaderActions({
           </Flex>
         ) : null
       ) : (
-        <SnapshotStatusBadge
-          comparisonState={comparisonState}
-          approvalStatus={approvalStatus}
-          errorMessage={data.comparison_error_message}
-        />
+        <Flex align="center" gap="xl">
+          <SnapshotStatusBadge
+            comparisonState={comparisonState}
+            approvalStatus={approvalStatus}
+            errorMessage={data.comparison_error_message}
+          />
+          {isApproved && approverAvatars}
+        </Flex>
       )}
 
       <ConfirmDelete
@@ -397,6 +430,22 @@ export function SnapshotHeaderActions({
                     ),
                     onAction: handleReapprove,
                     textValue: t('Re-approve'),
+                    disabled: isApproving,
+                  },
+                ]
+              : []),
+            ...(canForceApprove
+              ? [
+                  {
+                    key: 'force-approve',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconThumb size="sm" />
+                        {t('Force Approve')}
+                      </Flex>
+                    ),
+                    onAction: handleForceApprove,
+                    textValue: t('Force Approve'),
                     disabled: isApproving,
                   },
                 ]
