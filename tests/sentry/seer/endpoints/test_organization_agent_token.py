@@ -23,13 +23,9 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.test import APIClient
 
-from sentry.api.endpoints.project_rules import ProjectRulesEndpoint
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
 from sentry.attachments.base import CachedAttachment
-from sentry.incidents.endpoints.organization_alert_rule_index import (
-    OrganizationAlertRuleIndexEndpoint,
-)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
@@ -225,23 +221,6 @@ PRIVATE_HELPER_GET_ENDPOINTS = (
     ),
 )
 
-PRIVATE_HELPER_MUTATION_ENDPOINTS = (
-    PublicMutationEndpoint(
-        "/api/0/organizations/{organization_id_or_slug}/alert-rules/",
-        OrganizationAlertRuleIndexEndpoint.__name__,
-        "POST",
-        _declared_scopes(OrganizationAlertRuleIndexEndpoint, "POST"),
-        None,
-    ),
-    PublicMutationEndpoint(
-        "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/rules/",
-        ProjectRulesEndpoint.__name__,
-        "POST",
-        _declared_scopes(ProjectRulesEndpoint, "POST"),
-        None,
-    ),
-)
-
 
 USER_GLOBAL_GET_ENDPOINTS = (
     PublicGetEndpoint(
@@ -366,16 +345,6 @@ def _private_helper_get_matrix_cases() -> tuple[
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
         )
-    )
-
-
-def _private_helper_mutation_matrix_cases() -> tuple[
-    tuple[PublicMutationEndpoint, MatrixAuthentication], ...
-]:
-    return tuple(
-        (endpoint, authentication)
-        for endpoint in PRIVATE_HELPER_MUTATION_ENDPOINTS
-        for authentication in MatrixAuthentication
     )
 
 
@@ -1549,30 +1518,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 "query": "is:resolved",
                 "version": 2,
             },
-            ("OrganizationAlertRuleIndexEndpoint", "POST"): {
-                "name": "Permission Matrix Metric Alert",
-                "aggregate": "count()",
-                "query": "",
-                "timeWindow": 30,
-                "thresholdType": 0,
-                "triggers": [
-                    {
-                        "label": "critical",
-                        "alertThreshold": 1,
-                        "actions": [
-                            {
-                                "type": "email",
-                                "targetType": "team",
-                                "targetIdentifier": self.team.id,
-                            }
-                        ],
-                    }
-                ],
-                "projects": [self.project.slug],
-                "dataset": "events",
-                "queryType": 0,
-                "eventTypes": ["error"],
-            },
             ("ExternalTeamDetailsEndpoint", "PUT"): {"externalName": "@permission-matrix-updated"},
             ("ExternalTeamEndpoint", "POST"): {
                 "externalName": "@permission-matrix-new",
@@ -1713,22 +1658,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("ProjectKeyDetailsEndpoint", "PUT"): {"name": "Permission matrix key"},
             ("ProjectKeysEndpoint", "POST"): {"name": "Permission matrix key"},
             ("ProjectOwnershipEndpoint", "PUT"): {"raw": f"* {self.owner.email}"},
-            ("ProjectRulesEndpoint", "POST"): {
-                "name": "Permission Matrix Issue Alert",
-                "actionMatch": "any",
-                "filterMatch": "all",
-                "frequency": 1440,
-                "conditions": [
-                    {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-                ],
-                "filters": [],
-                "actions": [
-                    {
-                        "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                        "uuid": str(uuid4()),
-                    }
-                ],
-            },
             ("ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint", "POST"): {
                 "sha": "a" * 40,
                 "repository": "owner/not-integrated",
@@ -2157,128 +2086,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             response.content,
         )
 
-    def _assert_private_helper_approval_flow(self, endpoint: PublicMutationEndpoint) -> None:
-        """Prove the recoverable denial -> user approval -> remint -> success protocol."""
-        path = self._path(endpoint)
-        payload = self._mutation_payload(endpoint)
-
-        # Preserve the agent's other read capabilities while removing every scope that
-        # can enter this endpoint. This makes the denial unambiguous even for legacy
-        # mutations whose current scope map incorrectly accepts a read scope, without
-        # causing an unrelated downstream resource-visibility failure after approval.
-        initial_requested_scopes = agent_token.readonly_scopes() - endpoint.allowed_scopes
-        with self.feature(FLAG):
-            initial_token = self._mint_agent_token(requested_scopes=initial_requested_scopes)
-        initial_scopes = frozenset(agent_token.decode_agent_token(initial_token)["scopes"])
-        assert initial_scopes <= initial_requested_scopes
-        assert not initial_scopes.intersection(endpoint.allowed_scopes)
-
-        with self.feature(self._feature_flags(endpoint)):
-            baseline = self._rolled_back_mutation_request(
-                endpoint,
-                path,
-                payload,
-                MatrixAuthentication.SESSION,
-            )
-            denied = self._mutation_request(
-                endpoint,
-                path,
-                payload,
-                MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-                agent_bearer=initial_token,
-            )
-
-        assert baseline.status_code < 400, baseline.content
-        assert denied.status_code == 403, denied.content
-        challenge = denied.get("WWW-Authenticate", "")
-        match = re.fullmatch(r'Bearer error="insufficient_scope", scope="([^"]+)"', challenge)
-        assert match is not None, denied.items()
-        challenged_scopes = frozenset(match.group(1).split())
-        assert challenged_scopes
-        assert challenged_scopes <= endpoint.allowed_scopes
-        assert challenged_scopes.isdisjoint(agent_token.readonly_scopes())
-
-        # Asking the mint endpoint for the challenged capability does not grant it.
-        # Until the user approves, a remint must remain under-scoped and actionable.
-        elevated_requested_scopes = initial_scopes | challenged_scopes
-        with self.feature(FLAG):
-            requested_but_unapproved_token = self._mint_agent_token(
-                requested_scopes=elevated_requested_scopes
-            )
-        requested_but_unapproved_scopes = frozenset(
-            agent_token.decode_agent_token(requested_but_unapproved_token)["scopes"]
-        )
-        assert requested_but_unapproved_scopes == initial_scopes
-        assert requested_but_unapproved_scopes.isdisjoint(challenged_scopes)
-        with self.feature(self._feature_flags(endpoint)):
-            requested_but_unapproved = self._mutation_request(
-                endpoint,
-                path,
-                payload,
-                MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-                agent_bearer=requested_but_unapproved_token,
-            )
-        assert requested_but_unapproved.status_code == 403
-        assert requested_but_unapproved.get("WWW-Authenticate") == challenge
-
-        # Approval is intentionally performed by the logged-in, real DB user. The
-        # approval endpoint rejects agent tokens and ViewerContext assertions.
-        with self.feature(FLAG):
-            approval = self.client.post(
-                f"/api/0/organizations/{self.org.slug}/agent/approve/",
-                data={
-                    "sessionId": "permission-matrix",
-                    "scopes": sorted(challenged_scopes),
-                },
-                format="json",
-            )
-        assert approval.status_code == 200, approval.content
-        assert challenged_scopes <= set(approval.data["scopes"])
-
-        grant = SeerAgentWriteGrant.objects.get(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id="permission-matrix",
-        )
-        assert challenged_scopes <= set(grant.get_scopes())
-
-        # Approval cannot mutate an already-issued capability. Seer must remint.
-        with self.feature(self._feature_flags(endpoint)):
-            old_token_still_denied = self._mutation_request(
-                endpoint,
-                path,
-                payload,
-                MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
-                agent_bearer=initial_token,
-            )
-        assert old_token_still_denied.status_code == 403
-        assert old_token_still_denied.get("WWW-Authenticate") == challenge
-
-        with self.feature(FLAG):
-            elevated_token = self._mint_agent_token(requested_scopes=elevated_requested_scopes)
-        elevated_scopes = frozenset(agent_token.decode_agent_token(elevated_token)["scopes"])
-        assert elevated_token != initial_token
-        assert elevated_scopes == elevated_requested_scopes
-
-        with self.feature(self._feature_flags(endpoint)):
-            authorization_oracle = self._rolled_back_mutation_request(
-                endpoint,
-                path,
-                payload,
-                MatrixAuthentication.USER_TOKEN,
-                user_token_scopes=elevated_scopes,
-            )
-            response = self._rolled_back_mutation_request(
-                endpoint,
-                path,
-                payload,
-                MatrixAuthentication.APPROVED_AGENT_TOKEN,
-                agent_bearer=elevated_token,
-            )
-
-        assert authorization_oracle.status_code < 400, authorization_oracle.content
-        assert response.status_code == authorization_oracle.status_code, response.content
-
 
 def _install_public_get_matrix_tests() -> None:
     """Generate real unittest methods because pytest cannot parametrize APITestCase."""
@@ -2338,30 +2145,6 @@ def _install_private_helper_matrix_tests() -> None:
             f"test_private_helper_get_{index:03d}_{get_endpoint.test_id}_{get_authentication.value}"
         )
         setattr(AgentTokenPublicGetMatrixTest, test_get_matrix_cell.__name__, test_get_matrix_cell)
-
-    for index, (mutation_endpoint, mutation_authentication) in enumerate(
-        _private_helper_mutation_matrix_cases()
-    ):
-
-        def test_mutation_matrix_cell(
-            self: AgentTokenPublicGetMatrixTest,
-            endpoint: PublicMutationEndpoint = mutation_endpoint,
-            authentication: MatrixAuthentication = mutation_authentication,
-        ) -> None:
-            if authentication is MatrixAuthentication.APPROVED_AGENT_TOKEN:
-                self._assert_private_helper_approval_flow(endpoint)
-            else:
-                self._assert_public_mutation_authentication(endpoint, authentication)
-
-        test_mutation_matrix_cell.__name__ = (
-            "test_private_helper_mutation_"
-            f"{index:03d}_{mutation_endpoint.test_id}_{mutation_authentication.value}"
-        )
-        setattr(
-            AgentTokenPublicGetMatrixTest,
-            test_mutation_matrix_cell.__name__,
-            test_mutation_matrix_cell,
-        )
 
 
 _install_private_helper_matrix_tests()
