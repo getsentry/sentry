@@ -1427,6 +1427,48 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         ]
         assert len(failure_calls) == 1
 
+    def test_missing_base_manifest_fails_with_base_manifest_missing(self):
+        from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+        from sentry.preprod.snapshots.tasks import compare_snapshots
+
+        head_artifact, base_artifact = self._setup()
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            base_sha="abcdef1234567890abcdef1234567890abcdef12",
+        )
+        head_artifact.commit_comparison = commit_comparison
+        head_artifact.save(update_fields=["commit_comparison"])
+
+        head_manifest = SnapshotManifest(
+            images={"a.png": ImageMetadata(content_hash="h1", width=10, height=10)}
+        )
+        session = _mock_session_with_manifests(
+            {"head_manifest": orjson.dumps(head_manifest.dict())}
+        )
+
+        with (
+            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
+            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs") as vcs,
+        ):
+            compare_snapshots(
+                project_id=self.project.id,
+                org_id=self.organization.id,
+                head_artifact_id=head_artifact.id,
+                base_artifact_id=base_artifact.id,
+            )
+
+        comparison = PreprodSnapshotComparison.objects.get(
+            head_snapshot_metrics__preprod_artifact=head_artifact
+        )
+        assert comparison.state == PreprodSnapshotComparison.State.FAILED
+        assert comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        assert comparison.error_message == "Base snapshot for commit abcdef1 not found."
+        failure_calls = [
+            c for c in vcs.call_args_list if c.kwargs.get("caller") == "compare_failure"
+        ]
+        assert len(failure_calls) == 1
+        assert failure_calls[0].kwargs["preprod_artifact_id"] == head_artifact.id
+
     def test_orchestrator_skips_processing_row_with_chunks_total(self):
         from sentry.preprod.snapshots.models import (
             PreprodSnapshotComparison,

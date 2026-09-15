@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Literal
 from unittest.mock import patch
 
 from sentry.seer.agent.client_models import (
@@ -242,11 +243,15 @@ def _step_checkpoints(mock_metrics) -> list[str]:
     ]
 
 
-def _unsynced_state() -> SeerRunState:
-    return _state(
+def _unsynced_state(
+    status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
+) -> SeerRunState:
+    state = _state(
         [_iteration_block(0, commit_sha="iteration-sha")],
         repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")},
     )
+    state.status = status
+    return state
 
 
 def _synced_state() -> SeerRunState:
@@ -300,6 +305,15 @@ class TestPrIterationStepMetrics(TestCase):
             self._run(_synced_state())
 
         assert _step_checkpoints(mock_metrics) == ["iteration_completed"]
+
+    def test_an_errored_run_counts_nothing(self, mock_metrics, _mock_complete) -> None:
+        with (
+            patch(f"{HOOK_PATH}.pause_pr_iteration", return_value=True),
+            patch(f"{HOOK_PATH}.fetch_run_status", return_value=_unsynced_state(status="error")),
+        ):
+            AutofixOnCompletionHook.execute(self.organization, 1)
+
+        assert _step_checkpoints(mock_metrics) == []
 
     def test_no_code_changes_counts_the_no_change_branch(
         self, mock_metrics, _mock_complete

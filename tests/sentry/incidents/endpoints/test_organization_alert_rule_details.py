@@ -63,14 +63,12 @@ from sentry.snuba.models import (
     SnubaQuery,
     SnubaQueryEventType,
 )
-from sentry.snuba.tasks import update_subscription_in_snuba
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import PriorityLevel
-from sentry.utils.snuba import _snuba_pool
 from sentry.workflow_engine.migration_helpers.alert_rule import (
     dual_write_alert_rule,
     migrate_alert_rule,
@@ -1814,80 +1812,6 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         alert_rule.snuba_query.refresh_from_db()
         assert alert_rule.snuba_query.dataset != Dataset.Transactions.value
         assert alert_rule.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
-
-    def test_does_not_update_with_deprecation_flag_and_dataset_is_generic_metrics(self) -> None:
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        alert_rule = self.alert_rule
-        alert_rule.snuba_query.dataset = Dataset.EventsAnalyticsPlatform.value
-        alert_rule.snuba_query.save()
-
-        alert_rule_dict = deepcopy(self.alert_rule_dict)
-        alert_rule_dict["dataset"] = "generic_metrics"
-
-        with (
-            self.feature(["organizations:discover-saved-queries-deprecation"]),
-            outbox_runner(),
-        ):
-            self.get_error_response(
-                self.organization.slug, alert_rule.id, status_code=400, **alert_rule_dict
-            )
-
-        alert_rule.snuba_query.refresh_from_db()
-        assert alert_rule.snuba_query.dataset != Dataset.PerformanceMetrics.value
-        assert alert_rule.snuba_query.dataset == Dataset.EventsAnalyticsPlatform.value
-
-    @patch(
-        "sentry.snuba.subscriptions.update_subscription_in_snuba.delay",
-        wraps=update_subscription_in_snuba,
-    )
-    def test_am1_org_generic_metrics_update_creates_transactions_snuba_subscription(
-        self, mock_update_subscription_in_snuba: MagicMock
-    ) -> None:
-        """AM1 orgs updating generic_metrics alerts should update the Snuba subscription against
-        the transactions dataset, not generic_metrics."""
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-
-        alert_rule = self.new_alert_rule(
-            data={**deepcopy(self.alert_rule_dict), "dataset": "generic_metrics"}
-        )
-        assert alert_rule.snuba_query.dataset == "transactions"
-
-        put_data = {
-            **deepcopy(self.alert_rule_dict),
-            "dataset": "generic_metrics",
-            "name": "Updated AM1 Transactions Rule",
-        }
-
-        with (
-            outbox_runner(),
-            self.feature("organizations:performance-view"),
-        ):
-            with patch.object(_snuba_pool, "urlopen", side_effect=_snuba_pool.urlopen) as urlopen:
-                resp = self.get_success_response(self.organization.slug, alert_rule.id, **put_data)
-
-                (method, url) = urlopen.call_args[0]
-                assert method == "POST"
-                assert url.startswith("/transactions/")
-
-        assert "id" in resp.data
-        alert_rule.refresh_from_db()
-        assert alert_rule.snuba_query.dataset == "transactions"
-        detector = Detector.objects.get(alertruledetector__alert_rule_id=alert_rule.id)
-        assert resp.data == serialize(detector, self.user, WorkflowEngineDetectorSerializer())
-        assert resp.data["aggregate"] == "count()"
-        assert resp.data["dataset"] == "transactions"
-        assert (
-            SnubaQueryEventType.objects.filter(snuba_query_id=alert_rule.snuba_query_id)
-            .order_by("id")[0]
-            .type
-            == SnubaQueryEventType.EventType.TRANSACTION.value
-        )
 
 
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):

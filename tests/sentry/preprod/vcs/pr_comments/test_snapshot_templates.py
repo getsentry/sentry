@@ -203,6 +203,28 @@ class FormatSnapshotPrCommentFailedTest(SnapshotPrCommentTestBase):
         assert "Comparison failed" in result
         assert "com.example.head" in result
 
+    def test_failed_with_base_manifest_missing_shows_no_base(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics, base_metrics, state=PreprodSnapshotComparison.State.FAILED
+        )
+        comparison.error_code = PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        comparison.save(update_fields=["error_code"])
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert "❌ No base snapshot found" in result
+        assert "Comparison failed" not in result
+
 
 @cell_silo_test
 class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
