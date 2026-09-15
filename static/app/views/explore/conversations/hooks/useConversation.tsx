@@ -78,7 +78,21 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
-interface ConversationApiResponse {
+export interface ConversationAggregates {
+  endTimestamp: number;
+  generationDuration: number;
+  inputTokens: number;
+  llmCalls: number;
+  outputTokens: number;
+  startTimestamp: number;
+  toolCalls: number;
+  toolErrors: number;
+  toolNames: string[];
+  totalCost: number;
+  totalTokens: number;
+}
+
+interface ConversationApiResponse extends ConversationAggregates {
   conversationId: string;
   spans: ConversationApiSpan[];
   title: string | null;
@@ -95,6 +109,7 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 }
 
 interface UseConversationResult {
+  aggregates: ConversationAggregates | null;
   error: boolean;
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
@@ -396,7 +411,9 @@ export function useConversation(
 
   // The title is conversation-level, so it is identical across pages; read it
   // off the first page.
-  const title = data?.pages[0]?.json.title ?? null;
+  const firstPage = data?.pages[0]?.json;
+  const title = firstPage?.title ?? null;
+  const aggregates = firstPage ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -414,11 +431,15 @@ export function useConversation(
       return node;
     });
 
-    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
+    return {
+      nodes: orderDepthFirst(transformedNodes, nodeMap),
+      nodeTraceMap: traceMap,
+    };
   }, [allSpans]);
 
   if (!conversation.conversationId) {
     return {
+      aggregates: null,
       nodes: [],
       nodeTraceMap: new Map(),
       isLoading: false,
@@ -428,6 +449,7 @@ export function useConversation(
   }
 
   return {
+    aggregates,
     nodes,
     nodeTraceMap,
     isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
