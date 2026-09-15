@@ -243,6 +243,7 @@ export class VirtualizedViewManager {
 
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
+  private activeDividerView: {list: number; span_list: number} | null = null;
 
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
@@ -280,6 +281,7 @@ export class VirtualizedViewManager {
 
     this.dividerStartVec = null;
     this.previousDividerClientVec = null;
+    this.activeDividerView = null;
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
     document.removeEventListener('mouseup', this.onDividerMouseUp);
@@ -306,6 +308,7 @@ export class VirtualizedViewManager {
       return;
     }
 
+    this.activeDividerView = {list, span_list};
     this.view.trace_physical_space.width =
       span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
     this.recomputeTimeCompression();
@@ -1610,8 +1613,12 @@ export class VirtualizedViewManager {
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPXMatrix();
 
-    const list_width = options.list ?? this.columns.list.width;
-    const span_list_width = options.span_list ?? this.columns.span_list.width;
+    const list_width =
+      options.list ?? this.activeDividerView?.list ?? this.columns.list.width;
+    const span_list_width =
+      options.span_list ??
+      this.activeDividerView?.span_list ??
+      this.columns.span_list.width;
 
     this.drawContainers(this.container, {
       list_width,
