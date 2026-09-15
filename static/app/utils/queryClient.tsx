@@ -10,7 +10,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Client} from 'sentry/api';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
-import {selectJson} from 'sentry/utils/api/apiOptions';
+import {ApiSchemaValidationError, selectJson} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey, QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -27,6 +27,11 @@ export const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
       retry: (failureCount, err) => {
         // Disable retries for client errors that won't succeed on retry
         if (err instanceof RequestError && nonRetryCodes.has(err.status)) {
+          return false;
+        }
+
+        // A response that doesn't match its schema will not match it on retry
+        if (err instanceof ApiSchemaValidationError) {
           return false;
         }
 
