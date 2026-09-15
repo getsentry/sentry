@@ -312,7 +312,9 @@ class TestPrIterationStepMetrics(TestCase):
 
         assert _step_checkpoints(mock_metrics) == []
 
-    def test_no_code_changes_counts_no_push(self, mock_metrics, _mock_complete) -> None:
+    def test_no_code_changes_counts_the_no_change_branch(
+        self, mock_metrics, _mock_complete
+    ) -> None:
         with patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"):
             self._run(
                 _state(
@@ -321,7 +323,15 @@ class TestPrIterationStepMetrics(TestCase):
                 )
             )
 
-        assert _step_checkpoints(mock_metrics) == []
+        assert _step_checkpoints(mock_metrics) == ["no_code_change"]
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.step",
+            tags={
+                "checkpoint": "no_code_change",
+                "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+            },
+            sample_rate=1.0,
+        )
 
     def test_a_failed_push_counts_the_start_only(self, mock_metrics, _mock_complete) -> None:
         with (

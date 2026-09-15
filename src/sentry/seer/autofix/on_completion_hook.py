@@ -1167,6 +1167,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         if not cls._latest_iteration_touched_files(log_ctx, state):
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes")
+            metrics.incr(
+                "autofix.pr_iteration.step",
+                tags={"checkpoint": "no_code_change", "referrer": referrer.value},
+                sample_rate=1.0,
+            )
             return PrIterationOutcome.NO_CODE_CHANGES
 
         _, is_synced = state.has_code_changes()
