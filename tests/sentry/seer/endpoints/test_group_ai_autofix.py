@@ -19,7 +19,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
@@ -852,7 +852,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_consume.assert_called_once()
         assert mock_consume.call_args.kwargs["run_id"] == 123
         assert mock_consume.call_args.kwargs["organization_id"] == group.organization.id
-        assert mock_consume.call_args.kwargs["bypass"] is True
+        assert mock_consume.call_args.kwargs["source"] == ConsumeTriggerSource.UI_CONSUME
 
     @with_feature(
         {

@@ -26,6 +26,7 @@ from sentry.seer.autofix.pr_iteration.constants import (
 )
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
     MissingCheckSuiteAutofixRun,
@@ -65,7 +66,7 @@ def _retrigger_deferred_iteration(
     if is_github_rate_limit_sensitive(resolved.organization.slug):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by="green_check_suite",
+            trigger_source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
             outcome="not_triggered",
             reason="rate_limit_sensitive",
             countdown=None,
@@ -87,7 +88,7 @@ def _retrigger_deferred_iteration(
     if parked is None:
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by="green_check_suite",
+            trigger_source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
             outcome="not_triggered",
             reason="no_parked_feedback",
             countdown=None,
@@ -99,7 +100,7 @@ def _retrigger_deferred_iteration(
     if should_defer_pr_iteration(resolved):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by="green_check_suite",
+            trigger_source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
             outcome="not_triggered",
             reason="still_deferred",
             countdown=None,
@@ -117,8 +118,7 @@ def _retrigger_deferred_iteration(
         organization_id=resolved.organization.id,
         feedback=parked.feedback,
         run_state=run_state,
-        bypass=True,
-        triggered_by="green_check_suite",
+        source=ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER,
     )
 
 
