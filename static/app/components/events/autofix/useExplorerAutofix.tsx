@@ -270,6 +270,27 @@ function getApiErrorMessage(e: unknown, fallback = 'An error occurred'): string 
   return isString(detail) ? detail : fallback;
 }
 
+/**
+ * A step refused because another one is still running on the same run.
+ *
+ * The endpoint returns two different 409s, and only this one is recoverable, so
+ * the machine-readable code decides — the detail text is free to be reworded.
+ * The body carries the live run's ids in the shape a success response uses.
+ */
+function isRunInFlightError(
+  e: unknown
+): e is {responseJSON: {run_id: number; sentry_run_id?: string | null}} {
+  const error = e as
+    | {responseJSON?: {code?: unknown; run_id?: unknown}; status?: number}
+    | null
+    | undefined;
+  return (
+    error?.status === 409 &&
+    error.responseJSON?.code === 'run_in_flight' &&
+    defined(error.responseJSON.run_id)
+  );
+}
+
 const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResponse => ({
   autofix: {
     run_id: 0,
@@ -851,9 +872,24 @@ export function useExplorerAutofix(
 
         return getAutofixRunId(response)!;
       } catch (e: any) {
+        const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
+
+        // The step lost a race against one that is already running. Nothing is
+        // wrong from the user's side, so say nothing: refetch and let the live
+        // run take the view over. Returning its id keeps the callers that await
+        // startStep on their success path, which is what stops them from
+        // undoing the UI they just put into a loading state.
+        if (isRunInFlightError(e)) {
+          await queryClient.invalidateQueries({queryKey});
+          queryClient.invalidateQueries({
+            queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
+          });
+          setWaitingForResponse(false);
+          return getAutofixRunId(e.responseJSON)!;
+        }
+
         setWaitingForResponse(false);
         const errorMessage = getApiErrorMessage(e);
-        const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
         // Replacing the cached run would wipe out the blocks of a run that already exists.
         if (defined(queryClient.getQueryData(queryKey)?.json?.autofix)) {
           addErrorMessage(errorMessage);

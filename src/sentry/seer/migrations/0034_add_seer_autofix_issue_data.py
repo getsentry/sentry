@@ -43,6 +43,7 @@ class Migration(CheckedMigration):
                 (
                     "group",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
                         on_delete=django.db.models.deletion.CASCADE,
                         to="sentry.group",
                         unique=True,
@@ -51,6 +52,7 @@ class Migration(CheckedMigration):
                 (
                     "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
                         on_delete=django.db.models.deletion.CASCADE,
                         to="sentry.organization",
                     ),
@@ -58,6 +60,7 @@ class Migration(CheckedMigration):
                 (
                     "project",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
                         on_delete=django.db.models.deletion.CASCADE,
                         to="sentry.project",
                     ),
@@ -66,6 +69,7 @@ class Migration(CheckedMigration):
                 (
                     "pull_request",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                        db_constraint=False,
                         null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.pullrequest",

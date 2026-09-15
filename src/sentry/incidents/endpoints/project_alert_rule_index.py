@@ -18,6 +18,7 @@ from sentry.incidents.endpoints.organization_alert_rule_index import (
     AlertRuleFetchMixin,
     create_metric_alert,
 )
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
@@ -40,6 +41,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         """
         Fetches metric alert rules for a project - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
+        enforce_alerts_api_deprecation(project.organization)
         return self.fetch_metric_alerts(request, project.organization, [project])
 
     @track_alert_endpoint_execution("POST", "sentry-api-0-project-alert-rules")
@@ -52,4 +54,5 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint, AlertRuleFetchMixin):
         """
         Create an alert rule - @deprecated. Use OrganizationAlertRuleIndexEndpoint instead.
         """
+        enforce_alerts_api_deprecation(project.organization)
         return create_metric_alert(request, project.organization, project)

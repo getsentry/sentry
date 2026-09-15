@@ -1331,6 +1331,101 @@ describe('useExplorerAutofix - startStep errors', () => {
     expect(result.current.runState).toEqual(existingRun);
   });
 
+  it('recovers quietly when a step loses the race to a run already in flight', async () => {
+    const getMock = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 409,
+      body: {
+        detail: 'A step is already running for this autofix run',
+        code: 'run_in_flight',
+        run_id: 42,
+        sentry_run_id: null,
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    getMock.mockClear();
+
+    // Resolves with the live run instead of throwing, so an awaiting caller stays
+    // on its success path and does not undo the UI it just put into loading.
+    await act(async () => {
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+    });
+
+    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(result.current.runState).toEqual(existingRun);
+    // Refetched, so the live run takes the view over.
+    expect(getMock).toHaveBeenCalled();
+  });
+
+  it('does not replace a missing run with the error state on an in-flight 409', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 409,
+      body: {
+        detail: 'A step is already running for this autofix run',
+        code: 'run_in_flight',
+        run_id: 42,
+        sentry_run_id: null,
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+    });
+
+    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(result.current.runState?.status).not.toBe('error');
+  });
+
+  it('still surfaces the re-run 409, which carries no recovery code', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 409,
+      body: {
+        detail: 'Cannot re-run a step after a pull request or coding agent has started',
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    await act(async () => {
+      await expect(
+        result.current.startStep('solution', {runId: 42, insertIndex: 0})
+      ).rejects.toThrow();
+    });
+
+    expect(addErrorMessage).toHaveBeenCalledWith(
+      'Cannot re-run a step after a pull request or coding agent has started'
+    );
+  });
+
   it('falls back to the error state when a kickoff fails with no existing run', async () => {
     MockApiClient.addMockResponse({
       url: AUTOFIX_URL,

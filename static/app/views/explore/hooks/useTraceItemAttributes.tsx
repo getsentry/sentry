@@ -1,9 +1,10 @@
 import {useMemo} from 'react';
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {hashKey, useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -74,6 +75,16 @@ function isProjectArray(
   return projects.length > 0 && typeof projects[0] === 'object';
 }
 
+function getAttributeScopeHash([url, options]: ApiQueryKey) {
+  return hashKey([
+    url,
+    {
+      ...options,
+      query: {...options?.query, substringMatch: undefined},
+    },
+  ]);
+}
+
 function useTraceItemAttributeConfig({
   traceItemType,
   enabled,
@@ -88,20 +99,26 @@ function useTraceItemAttributeConfig({
   const projectIds =
     rawProjects && !isProjectArray(rawProjects) ? rawProjects : undefined;
 
+  const queryOptions = traceItemAttributeKeysOptions({
+    organization,
+    selection,
+    traceItemType,
+    projectIds,
+    projects,
+    search,
+    query,
+    staleTime,
+  });
+  const scopeHash = getAttributeScopeHash(queryOptions.queryKey);
   const {data, isFetching: attributesLoading} = useQuery({
-    ...traceItemAttributeKeysOptions({
-      organization,
-      selection,
-      traceItemType,
-      projectIds,
-      projects,
-      search,
-      query,
-      staleTime,
-    }),
+    ...queryOptions,
     enabled,
+    // Retain search results, but never register previous-scope attributes in a new scope.
+    placeholderData: (previousData, previousQuery) =>
+      previousQuery && getAttributeScopeHash(previousQuery.queryKey) === scopeHash
+        ? previousData
+        : undefined,
     select: selectTraceItemTagCollection(),
-    placeholderData: keepPreviousData,
   });
 
   const allNumberAttributes = useMemo(() => {

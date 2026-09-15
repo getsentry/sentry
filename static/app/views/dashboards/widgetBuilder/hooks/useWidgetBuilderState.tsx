@@ -401,6 +401,7 @@ export function useWidgetBuilderState(): {
   const [fields, setFields] = useSeededQueryState('field', parseAsColumns);
   const [yAxis, setYAxis] = useSeededQueryState('yAxis', parseAsColumns);
   const [query, setQuery] = useSeededQueryState('query', parseAsQueries);
+  // oxlint-disable-next-line react/refs
   const [sort, setSort] = useSeededQueryState('sort', parseAsWidgetSorts(datasetRef));
   const [limit, setLimit] = useSeededQueryState('limit', parseAsLimit);
   const [legendAlias, setLegendAlias] = useSeededQueryState(

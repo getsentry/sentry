@@ -42,6 +42,7 @@ from sentry.integrations.github.platform_registry import (
 from sentry.integrations.github.platform_registry import (
     _PackageManifest as _PackageManifest,
 )
+from sentry.integrations.source_code_management.repo_trees import segments_are_ignored
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
@@ -190,89 +191,6 @@ def _select_active_platforms(
     return dict(active_platforms)
 
 
-# ---------------------------------------------------------------------------
-# Noise-scoping ignore-list for recursive tree traversal
-#
-# Based on GitHub Linguist's vendor.yml (https://github.com/github/linguist/
-# blob/master/lib/linguist/vendor.yml) — the list GitHub uses to exclude
-# third-party/generated paths from repository language statistics. Sentry has
-# no canonical equivalent; the closest is the JS stacktrace folder regex in
-# sentry/src/sentry/lang/javascript/utils.py.
-#
-# Matching is done on individual path segments (split on "/"), not substring,
-# so a file named "build.gradle" is never confused with a "build/" directory.
-#
-# Deliberately NOT ignored:
-#   packages/   — JS monorepo workspaces (the thing we want to detect)
-#   test/       — often contain real framework signals
-#   tests/      — same
-#   examples/   — borderline; revisit if Mode A shows false positives
-# ---------------------------------------------------------------------------
-
-_IGNORED_TREE_SEGMENTS = frozenset(
-    {
-        # JS / front-end dependency directories
-        "node_modules",
-        "bower_components",
-        "jspm_packages",
-        "web_modules",
-        # General vendored dependencies
-        "vendor",
-        "vendors",
-        "third_party",
-        "third-party",
-        "3rdparty",
-        "extern",
-        "external",
-        # iOS / macOS dependency managers
-        "Pods",
-        "Carthage",
-        # Dart / Flutter tooling
-        ".dart_tool",
-        ".pub-cache",
-        # Python virtual environments committed to repo
-        "site-packages",
-        ".venv",
-        "venv",
-        "virtualenv",
-        # Build / compiled output
-        "dist",
-        "build",
-        "out",
-        "target",
-        "bin",
-        "obj",
-        # Framework-specific build caches
-        ".next",
-        ".nuxt",
-        ".svelte-kit",
-        ".angular",
-        ".output",
-        "__pycache__",
-        "coverage",
-        # VCS internals
-        ".git",
-        ".svn",
-        ".hg",
-        # Tooling / IDE / cache
-        ".gradle",
-        ".idea",
-        ".vscode",
-        ".cache",
-        ".tox",
-        ".mypy_cache",
-        ".pytest_cache",
-        "tmp",
-        "temp",
-    }
-)
-
-
-def _segments_are_ignored(segments: list[str]) -> bool:
-    """Return True if any path segment is in the ignore-list."""
-    return any(segment in _IGNORED_TREE_SEGMENTS for segment in segments)
-
-
 def _get_tree(
     client: GitHubBaseClient,
     repo: str,
@@ -341,7 +259,7 @@ def _build_tree_index(entries: list[dict[str, Any]]) -> _TreeIndex:
 
         # Split once; reuse segments for ignore check and basename.
         segments = path.split("/")
-        if _segments_are_ignored(segments):
+        if segments_are_ignored(segments):
             continue
 
         basename = segments[-1]

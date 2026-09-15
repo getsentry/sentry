@@ -65,6 +65,7 @@ export function LogsAutoRefreshProvider({
   const hasInitialized = useRef(false);
 
   const allowedStates: AutoRefreshState[] = ['enabled', 'timeout', 'rate_limit', 'error'];
+  // oxlint-disable-next-line react/refs
   if (hasInitialized.current) {
     // Paused is not allowed via linking since it requires internal state (pausedAt) to work.
     allowedStates.push('paused');
@@ -77,6 +78,7 @@ export function LogsAutoRefreshProvider({
       : 'idle';
 
   if (autoRefresh !== 'idle') {
+    // oxlint-disable-next-line react/refs
     hasInitialized.current = true;
   }
 
@@ -93,6 +95,7 @@ export function LogsAutoRefreshProvider({
         isTableFrozen,
         pausedAt,
         setPausedAt,
+        // oxlint-disable-next-line react/refs
         hasInitialized: hasInitialized.current,
       }}
     >

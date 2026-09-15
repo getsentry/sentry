@@ -7,12 +7,14 @@ from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.signed_seer_api import (
     SeerViewerContext,
     _resolve_viewer_context,
+    make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
+DYNAMIC_PATH = "/v0/issues/similar-issues/grouping-record/delete/123456"
 
 
 def run_test_case(
@@ -111,17 +113,70 @@ def test_missing_secret_emits_unsigned_request_metric(mock_metrics: MagicMock) -
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("path", [PATH, f"{PATH}?dogs=great"])
+@pytest.mark.parametrize(
+    ("path", "endpoint"),
+    [
+        (PATH, PATH),
+        (f"{PATH}?dogs=great", PATH),
+        (DYNAMIC_PATH, DYNAMIC_PATH),
+    ],
+)
 @patch("sentry.seer.signed_seer_api.metrics.timer")
-def test_times_request(mock_metrics_timer: MagicMock, path: str) -> None:
+def test_times_request(mock_metrics_timer: MagicMock, path: str, endpoint: str) -> None:
     run_test_case(path=path)
     mock_metrics_timer.assert_called_with(
         "seer.request_to_seer",
         sample_rate=1.0,
-        tags={
-            # In both cases the path is the same, because query params are stripped
-            "endpoint": PATH,
-        },
+        tags={"endpoint": endpoint},
+    )
+
+
+@pytest.mark.django_db
+@patch("sentry.seer.signed_seer_api._resolve_viewer_context")
+def test_resolves_viewer_context_with_endpoint(mock_resolve: MagicMock) -> None:
+    mock_resolve.return_value = None
+
+    run_test_case(path=f"{DYNAMIC_PATH}?plan_tier=business")
+
+    mock_resolve.assert_called_once_with(None, endpoint=DYNAMIC_PATH)
+
+
+@pytest.mark.django_db
+@patch("sentry.seer.signed_seer_api._resolve_viewer_context")
+def test_resolves_viewer_context_with_metrics_endpoint(mock_resolve: MagicMock) -> None:
+    mock_resolve.return_value = None
+
+    run_test_case(
+        path=f"{DYNAMIC_PATH}?plan_tier=business",
+        metrics_endpoint=PATH,
+    )
+
+    mock_resolve.assert_called_once_with(None, endpoint=PATH)
+
+
+@patch("sentry.seer.signed_seer_api.metrics.timer")
+def test_times_request_with_metrics_endpoint(mock_metrics_timer: MagicMock) -> None:
+    run_test_case(
+        path=f"{PATH}/12345?dogs=great",
+        metrics_endpoint=PATH,
+    )
+    mock_metrics_timer.assert_called_with(
+        "seer.request_to_seer",
+        sample_rate=1.0,
+        tags={"endpoint": PATH},
+    )
+
+
+@patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")
+def test_delete_grouping_records_uses_generic_metrics_endpoint(
+    mock_seer_request: MagicMock,
+) -> None:
+    make_delete_grouping_records_by_project_request({"project_id": 4512086077276160})
+
+    assert mock_seer_request.call_args.args[1].endswith("/delete/4512086077276160")
+    assert (
+        mock_seer_request.call_args.kwargs["metrics_endpoint"]
+        == "/v0/issues/similar-issues/grouping-record/delete/:project_id"
     )
 
 
@@ -144,7 +199,9 @@ class TestResolveViewerContext:
     def test_explicit_only_warns_contextvar_missing(
         self, mock_logger: MagicMock, mock_metrics: MagicMock
     ) -> None:
-        result = _resolve_viewer_context(SeerViewerContext(organization_id=99, user_id=5))
+        result = _resolve_viewer_context(
+            SeerViewerContext(organization_id=99, user_id=5), endpoint="/v1/automation/summarize"
+        )
         assert result is not None
         assert result.organization_id == 99
         assert result.user_id == 5
@@ -154,11 +211,25 @@ class TestResolveViewerContext:
             extra={
                 "explicit_org_id": 99,
                 "explicit_user_id": 5,
+                "endpoint": "/v1/automation/summarize",
             },
         )
         mock_metrics.incr.assert_called_once_with(
             "seer.viewer_context_resolution",
-            tags={"outcome": "contextvar_missing"},
+            tags={"outcome": "contextvar_missing", "endpoint": "/v1/automation/summarize"},
+        )
+
+    @patch("sentry.seer.signed_seer_api.metrics")
+    @patch("sentry.seer.signed_seer_api.logger")
+    def test_explicit_only_without_endpoint(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        _resolve_viewer_context(SeerViewerContext(organization_id=99))
+
+        assert mock_logger.warning.call_args[1]["extra"]["endpoint"] is None
+        mock_metrics.incr.assert_called_once_with(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "contextvar_missing", "endpoint": "unknown"},
         )
 
     def test_contextvar_with_token(self) -> None:
@@ -198,16 +269,23 @@ class TestResolveViewerContext:
         )
         ctx = ViewerContext(organization_id=42, user_id=7, actor_type=ActorType.USER, token=token)
         with viewer_context_scope(ctx):
-            result = _resolve_viewer_context(SeerViewerContext(organization_id=999))
+            result = _resolve_viewer_context(
+                SeerViewerContext(organization_id=999), endpoint="/v1/automation/summarize"
+            )
 
         assert result is not None
         assert result.organization_id == 999
         assert result.token is None
         mock_logger.warning.assert_called_once()
         assert mock_logger.warning.call_args[0][0] == "seer.viewer_context_mismatch"
+        assert mock_logger.warning.call_args[1]["extra"]["endpoint"] == "/v1/automation/summarize"
         mock_metrics.incr.assert_called_once_with(
             "seer.viewer_context_resolution",
-            tags={"outcome": "mismatch", "has_project": "false"},
+            tags={
+                "outcome": "mismatch",
+                "has_project": "false",
+                "endpoint": "/v1/automation/summarize",
+            },
         )
 
     @patch("sentry.seer.signed_seer_api.metrics")
@@ -222,7 +300,7 @@ class TestResolveViewerContext:
         assert result.project_id == 100
         mock_metrics.incr.assert_called_once_with(
             "seer.viewer_context_resolution",
-            tags={"outcome": "match", "has_project": "true"},
+            tags={"outcome": "match", "has_project": "true", "endpoint": "unknown"},
         )
 
     @patch("sentry.seer.signed_seer_api.metrics")
@@ -235,7 +313,7 @@ class TestResolveViewerContext:
         assert result.project_id is None
         mock_metrics.incr.assert_called_once_with(
             "seer.viewer_context_resolution",
-            tags={"outcome": "match", "has_project": "false"},
+            tags={"outcome": "match", "has_project": "false", "endpoint": "unknown"},
         )
 
     def test_no_mismatch_keeps_token(self) -> None:

@@ -23,6 +23,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
@@ -130,6 +131,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         ``````````````````
         :auth: required
         """
+        enforce_alerts_api_deprecation(organization)
         expand = request.GET.getlist("expand", [])
         return Response(
             serialize(

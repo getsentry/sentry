@@ -5,6 +5,7 @@ from collections import Counter
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
+import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
 from pydantic import ValidationError
@@ -58,6 +59,7 @@ from sentry.seer.autofix.pr_iteration.pr_state import (
     iteration_prs_any_closed,
     record_pr_closed,
 )
+from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
@@ -90,6 +92,7 @@ from sentry.tasks.seer.pr_iteration import (
     consume_queued_autofix_feedback,
 )
 from sentry.utils import metrics
+from sentry.utils.tracing import start_span, trace
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -189,6 +192,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             organization: The organization context
             run_id: The ID of the completed run
         """
+        with (
+            sentry_sdk.isolation_scope(),
+            start_span(
+                name="autofix.on_completion_hook",
+                op="function",
+                transaction=True,
+            ),
+        ):
+            cls._execute(organization, run_id)
+
+    @classmethod
+    def _execute(cls, organization: Organization, run_id: int) -> None:
+        set_pr_iteration_attributes(run_id=run_id, organization_id=organization.id)
         try:
             state = fetch_run_status(run_id, organization)
         except Exception:
@@ -246,9 +262,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             ).update(last_triggered_at=now)
 
         current_step, _ = cls._get_current_step(state)
+        log_ctx = cls._iteration_log_context(organization, group, state)
+        set_pr_iteration_attributes(
+            group_id=group.id,
+            iteration_id=log_ctx.iteration_id,
+        )
         if current_step == AutofixStep.PR_ITERATION:
             has_changes, is_synced = state.has_code_changes()
-            cls._iteration_log_context(organization, group, state).info(
+            log_ctx.info(
                 "autofix.pr_iteration.completion_hook.received",
                 run_status=state.status,
                 iteration_index=get_latest_iteration_index(state),
@@ -360,6 +381,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return None
 
     @classmethod
+    @trace
     def _maybe_react_to_completed_iteration(
         cls,
         organization: Organization,
@@ -885,9 +907,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 )
                 return
 
-            outcome = cls._pr_iteration_push_outcome(log_ctx, group, run_id, state)
+            outcome = cls._pr_iteration_push_outcome(log_ctx, group, run_id, state, referrer)
 
             if outcome is None:
+                metrics.incr(
+                    "autofix.pr_iteration.step",
+                    tags={"checkpoint": "code_change_completed", "referrer": referrer.value},
+                    sample_rate=1.0,
+                )
                 # A push was attempted and succeeded. Not terminal yet -- we wait
                 # for the next completion hook, where the repos show as synced,
                 # to consume queued feedback and complete the iteration details.
@@ -898,6 +925,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             # push's changes as synced, or there was never anything to push.
             # A push that failed leaves the feedback queued rather than risk
             # consuming it as if changes had landed.
+            if outcome == PrIterationOutcome.ALREADY_PUSHED:
+                metrics.incr(
+                    "autofix.pr_iteration.step",
+                    tags={"checkpoint": "iteration_completed", "referrer": referrer.value},
+                    sample_rate=1.0,
+                )
+
             if outcome in (
                 PrIterationOutcome.ALREADY_PUSHED,
                 PrIterationOutcome.NO_CODE_CHANGES,
@@ -975,6 +1009,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
+    @trace
     def _consume_queued_feedback(
         cls,
         log_ctx: PrIterationLogContext,
@@ -1128,12 +1163,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return any(block.merged_file_patches for block in iterations[-1].blocks)
 
     @classmethod
+    @trace
     def _pr_iteration_push_outcome(
         cls,
         log_ctx: PrIterationLogContext,
         group: Group,
         run_id: int,
         state: SeerRunState,
+        referrer: AutofixReferrer,
     ) -> PrIterationOutcome | None:
         """Decide whether this pass needs to push, and how it ended.
 
@@ -1154,6 +1191,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         if not cls._latest_iteration_touched_files(log_ctx, state):
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes")
+            metrics.incr(
+                "autofix.pr_iteration.step",
+                tags={"checkpoint": "no_code_change", "referrer": referrer.value},
+                sample_rate=1.0,
+            )
             return PrIterationOutcome.NO_CODE_CHANGES
 
         _, is_synced = state.has_code_changes()
@@ -1182,6 +1224,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
             return PrIterationOutcome.PR_CLOSED
 
+        metrics.incr(
+            "autofix.pr_iteration.step",
+            tags={"checkpoint": "code_change_started", "referrer": referrer.value},
+            sample_rate=1.0,
+        )
+
         pushed = cls._push_iteration_changes(
             log_ctx,
             group,
@@ -1192,6 +1240,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return None if pushed else PrIterationOutcome.PUSH_FAILED
 
     @classmethod
+    @trace
     def _push_iteration_changes(
         cls,
         log_ctx: PrIterationLogContext,

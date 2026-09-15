@@ -83,6 +83,20 @@ OURLOG_ATTRIBUTE_DEFINITIONS = {
         simple_sentry_field("message.template"),
         simple_sentry_field("release"),
         simple_sentry_field("replay_id"),
+        ResolvedAttribute(
+            public_alias="span_id",
+            internal_name="sentry.span_id",
+            search_type="string",
+            context=AttributeContext(
+                brief=(
+                    "The span the log was emitted from, set from the log's `span_id` field. "
+                    "Empty when no span was active."
+                ),
+                examples=["b0e6f15b45c36b12"],
+            ),
+        ),
+        # trace.parent_span_id is deprecated in sentry-conventions 0.5.0 in favour of the log's `span_id`
+        # field, but older SDKs still send it as an attribute.
         simple_sentry_field("trace.parent_span_id"),
         simple_sentry_field("sdk.name"),
         simple_sentry_field("sdk.version"),

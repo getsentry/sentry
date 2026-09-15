@@ -68,6 +68,7 @@ export function SentryComponentInspector() {
     },
   ]);
 
+  // oxlint-disable-next-line react/refs
   const contextMenu = useContextMenu({container: tooltipRef.current});
   const [contextMenuTrace, setContextMenuTrace] = useState<TraceElement[] | null>(null);
 
@@ -96,6 +97,7 @@ export function SentryComponentInspector() {
 
   // Store the state in a ref to avoid re-rendering inside the listeners
   const stateRef = useRef(state);
+  // oxlint-disable-next-line react/refs
   stateRef.current = state;
 
   useLayoutEffect(() => {
@@ -474,6 +476,7 @@ function MenuItem(props: {
 
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // oxlint-disable-next-line react/refs
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
     modifiers: [
@@ -519,6 +522,7 @@ function MenuItem(props: {
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
+        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           ref: el => {
             triggerRef.current = el;
