@@ -43,6 +43,25 @@ describe('FormattedQuery', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders inert compound filter chips when requested', () => {
+    render(
+      <FormattedQuery
+        {...defaultProps}
+        query="browser.name:[Firefox,Chrome]"
+        useCompoundChips
+      />
+    );
+
+    const property = screen.getByText('browser.name');
+    const chip = property.parentElement?.parentElement;
+
+    expect(chip).toBeInTheDocument();
+    expect(screen.getByText('is')).toBeInTheDocument();
+    expect(screen.getByText('Firefox')).toBeInTheDocument();
+    expect(screen.getByText('Chrome')).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
   it('renders negated filters with multiple values using and', () => {
     render(<FormattedQuery {...defaultProps} query="!browser.name:[Firefox,Chrome]" />);
 
@@ -79,6 +98,16 @@ describe('FormattedQuery', () => {
     expect(screen.getByText('OR')).toBeInTheDocument();
     expect(screen.getByLabelText('OR')).toBeInTheDocument();
     expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
+  });
+
+  it('renders boolean logic as an inert compound chip when requested', () => {
+    render(<FormattedQuery {...defaultProps} query="(a OR b)" useCompoundChips />);
+
+    const booleanChip = screen.getByLabelText('OR');
+
+    expect(booleanChip).toBeInTheDocument();
+    expect(screen.getAllByTestId('icon-parenthesis')).toHaveLength(2);
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('renders explicit string tag correctly', () => {
