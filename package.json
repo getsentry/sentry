@@ -251,7 +251,7 @@
     "eslint-plugin-react-you-might-not-need-an-effect": "0.5.3",
     "eslint-plugin-regexp": "3.1.1",
     "eslint-plugin-testing-library": "7.16.2",
-    "eslint-plugin-unicorn": "64.0.0",
+    "eslint-plugin-unicorn": "74.0.0",
     "expect-type": "1.4.0",
     "jest": "30.4.2",
     "jest-canvas-mock": "^2.5.2",
