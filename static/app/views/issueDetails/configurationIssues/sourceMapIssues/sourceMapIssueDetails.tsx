@@ -69,14 +69,14 @@ export function SourceMapIssueDetails({
   let state: DiagnosisState;
   if (isEventPending) {
     state = {status: 'loading'};
-  } else if (eventError instanceof RequestError && eventError.status === 404) {
+  } else if (!event && eventError instanceof RequestError && eventError.status === 404) {
     state = {
       status: 'unavailable',
       message: t(
         'No sample event is available for diagnosis. Use the troubleshooting suggestions below.'
       ),
     };
-  } else if (eventError) {
+  } else if (!event && eventError) {
     state = {
       status: 'error',
       message: t('Unable to load a sample event for diagnosis.'),
@@ -91,7 +91,7 @@ export function SourceMapIssueDetails({
     };
   } else if (sourceMapQuery.isPending) {
     state = {status: 'loading'};
-  } else if (sourceMapQuery.isError) {
+  } else if (sourceMapQuery.isError && !sourceMapQuery.data) {
     state =
       sourceMapQuery.error instanceof RequestError && sourceMapQuery.error.status === 404
         ? {
