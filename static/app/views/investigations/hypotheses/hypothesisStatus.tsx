@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {humanize} from 'sentry/utils/string/humanize';
 import type {
   InvestigationHypothesis,
   InvestigationHypothesisStatus,
@@ -31,14 +32,9 @@ function isHypothesisSettled(status: InvestigationHypothesisStatus): boolean {
   return SETTLED_STATUSES.has(status);
 }
 
-/**
- * Turn an unrecognized wire value into something readable rather than dropping
- * it. Statuses are an open set — Seer can introduce one before Sentry knows the
- * name — so every lookup here needs a fallback.
- */
-function humanize(status: string): string {
-  return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
-}
+// Statuses are an open set — Seer can introduce one before Sentry knows the
+// name — so every lookup below falls back to `humanize` rather than dropping
+// the value.
 
 function hasRun(step: InvestigationVerificationStep): boolean {
   return Boolean(step.result) || Boolean(step.error);
