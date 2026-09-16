@@ -14,6 +14,7 @@ import {
   DataConditionType,
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {detectorToLLMContext} from 'sentry/views/detectors/utils/detectorLLMContext';
 
 describe('detectorToLLMContext', () => {
@@ -160,6 +161,16 @@ describe('detectorToLLMContext', () => {
         query: null,
       })
     );
+  });
+
+  it.each([
+    ['metric', MetricDetectorFixture()],
+    ['uptime', UptimeDetectorFixture()],
+    ['cron', CronDetectorFixture()],
+  ])('does not throw when a %s detector has null dataSources', (_label, detector) => {
+    const withoutDataSources = {...detector, dataSources: null} as unknown as Detector;
+
+    expect(() => detectorToLLMContext(withoutDataSources, 'project-slug')).not.toThrow();
   });
 
   it.each([

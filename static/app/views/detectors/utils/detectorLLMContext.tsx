@@ -42,45 +42,59 @@ function summarizeConditions(
  * subscription carries `headers` and `body`, which routinely hold auth
  * credentials; a cron data source is an entire `Monitor`, including its project
  * and every environment's recent check-in state. Neither belongs in a prompt.
+ *
+ * `dataSources` is read through `?.` despite its tuple type: the API returns it
+ * null often enough that `insights/uptime/.../overviewRow.tsx` guards for it,
+ * and reporting page context must not throw during render.
  */
 function getDetectorConfig(detector: Detector): Record<string, unknown> {
   const detectorType = detector.type;
   switch (detectorType) {
     case 'metric_issue': {
-      const {snubaQuery} = detector.dataSources[0].queryObj;
+      const snubaQuery = detector.dataSources?.[0]?.queryObj?.snubaQuery;
       const {detectionType} = detector.config;
       return {
-        aggregate: snubaQuery.aggregate,
-        dataset: snubaQuery.dataset,
-        query: snubaQuery.query,
-        eventTypes: snubaQuery.eventTypes,
-        timeWindowSeconds: snubaQuery.timeWindow,
         detectionType,
         comparisonDelta:
           'comparisonDelta' in detector.config ? detector.config.comparisonDelta : null,
         // Without a unit, a threshold of 500 could be milliseconds or a count.
-        thresholdSuffix: getMetricDetectorSuffix(detectionType, snubaQuery.aggregate),
+        thresholdSuffix: getMetricDetectorSuffix(
+          detectionType,
+          snubaQuery?.aggregate ?? ''
+        ),
         thresholds: summarizeConditions(
           detector.conditionGroup,
           detectionType === 'percent'
         ),
+        ...(snubaQuery && {
+          aggregate: snubaQuery.aggregate,
+          dataset: snubaQuery.dataset,
+          query: snubaQuery.query,
+          eventTypes: snubaQuery.eventTypes,
+          timeWindowSeconds: snubaQuery.timeWindow,
+        }),
       };
     }
     case 'uptime_domain_failure': {
-      const subscription = detector.dataSources[0].queryObj;
+      const subscription = detector.dataSources?.[0]?.queryObj;
       return {
-        url: subscription.url,
-        method: subscription.method,
-        intervalSeconds: subscription.intervalSeconds,
-        timeoutMs: subscription.timeoutMs,
-        traceSampling: subscription.traceSampling,
         downtimeThreshold: detector.config.downtimeThreshold,
         recoveryThreshold: detector.config.recoveryThreshold,
         autoDetected: detector.config.mode !== UptimeMonitorMode.MANUAL,
+        ...(subscription && {
+          url: subscription.url,
+          method: subscription.method,
+          intervalSeconds: subscription.intervalSeconds,
+          timeoutMs: subscription.timeoutMs,
+          traceSampling: subscription.traceSampling,
+        }),
       };
     }
     case 'monitor_check_in_failure': {
-      const monitor = detector.dataSources[0].queryObj;
+      const monitor = detector.dataSources?.[0]?.queryObj;
+      if (!monitor) {
+        return {};
+      }
       return {
         schedule: monitor.config.schedule,
         scheduleType: monitor.config.schedule_type,
