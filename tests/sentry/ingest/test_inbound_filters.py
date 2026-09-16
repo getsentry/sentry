@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from django.test import override_settings
 from sentry_relay.processing import is_glob_match, validate_rule_condition
@@ -8,6 +10,7 @@ from sentry.ingest.inbound_filters import (
     InboundFilterFeatures,
     _chunk_load_error_filter,
     _custom_error_filter,
+    _custom_error_message_condition,
     _error_message_condition,
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
@@ -645,3 +648,165 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
     assert (
         get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True)) is None
     )
+
+
+# --- Legacy error message equivalence --------------------------------------------------
+#
+# The legacy error message filter in Relay globs the "{type}: {value}" text of each
+# exception, and the logentry message. The custom error_message condition globs type
+# and value on their own, and additionally the two halves of a "type: value" glob
+# against one exception. The tests below run both against the same synthetic events:
+# the legacy filter through a Python mirror of relay-filter/src/error_messages.rs, the
+# condition through a small evaluator of the DSL subset it compiles to.
+
+
+def _get(item: Any, path: str) -> Any:
+    for part in path.split("."):
+        if not isinstance(item, dict):
+            return None
+        item = item.get(part)
+    return item
+
+
+def _evaluate(condition: dict[str, Any], item: Any) -> bool:
+    op = condition["op"]
+    if op == "glob":
+        value = _get(item, condition["name"])
+        return isinstance(value, str) and any(
+            is_glob_match(value, pattern, case_insensitive=True) for pattern in condition["value"]
+        )
+    if op == "or":
+        return any(_evaluate(inner, item) for inner in condition["inner"])
+    if op == "and":
+        return all(_evaluate(inner, item) for inner in condition["inner"])
+    if op == "any":
+        elements = _get(item, condition["name"])
+        return isinstance(elements, list) and any(
+            _evaluate(condition["inner"], element) for element in elements
+        )
+    raise AssertionError(f"the error message condition should not compile to {op}")
+
+
+def _legacy_error_message_matches(patterns: list[str], event: dict[str, Any]) -> bool:
+    def matches(text: str) -> bool:
+        return any(is_glob_match(text, pattern, case_insensitive=True) for pattern in patterns)
+
+    logentry = _get(event, "event.logentry") or {}
+    message = logentry.get("formatted") or logentry.get("message")
+    if message and matches(message):
+        return True
+
+    for exception in _get(event, "event.exception.values") or []:
+        ty = exception.get("ty") or ""
+        value = exception.get("value") or ""
+        text = value if not ty else ty if not value else f"{ty}: {value}"
+        if matches(text):
+            return True
+    return False
+
+
+def exception_event(*exceptions: tuple[str, str]) -> dict[str, Any]:
+    return {
+        "event": {"exception": {"values": [{"ty": ty, "value": value} for ty, value in exceptions]}}
+    }
+
+
+def message_event(formatted: str) -> dict[str, Any]:
+    return {"event": {"logentry": {"formatted": formatted}}}
+
+
+LEGACY_EVENTS: dict[str, dict[str, Any]] = {
+    "type_error": exception_event(("TypeError", "Cannot read properties of undefined")),
+    "type_error_other_case": exception_event(("typeerror", "CANNOT READ properties")),
+    "value_only": exception_event(("", "boom")),
+    "type_only": exception_event(("OutOfMemoryError", "")),
+    "two_exceptions": exception_event(("ValueError", "bad input"), ("TypeError", "Cannot read y")),
+    "chunk_load": exception_event(("Uncaught ChunkLoadError", "Loading chunk 3 failed")),
+    "message_refused": message_event("Connection refused by upstream"),
+    "message_looks_typed": message_event("TypeError: Cannot read properties of null"),
+}
+
+LEGACY_PATTERNS = [
+    "TypeError: Cannot read*",
+    "*Cannot read*",
+    "TypeError*",
+    "*refused*",
+    "OutOfMemoryError",
+    "boom",
+    "*Error: Cannot*",
+    "*Error: Loading chunk *",
+    "ValueError: Cannot read*",
+    "*undefined",
+    "*Error: Conn*",
+    "https://example.com/*",
+]
+
+
+@pytest.mark.parametrize("event_id", LEGACY_EVENTS)
+@pytest.mark.parametrize("pattern", LEGACY_PATTERNS)
+def test_custom_error_message_condition_matches_like_the_legacy_filter(
+    pattern: str, event_id: str
+) -> None:
+    condition = _custom_error_message_condition([pattern])
+    validate_rule_condition(json.dumps(condition))
+
+    event = LEGACY_EVENTS[event_id]
+    assert _evaluate(condition, event) is _legacy_error_message_matches([pattern], event)
+
+
+def test_custom_error_message_condition_matches_the_whole_list_like_the_legacy_filter() -> None:
+    # A migrated legacy list is one condition with many values, so the values must
+    # behave like the legacy list did as a whole, not only one at a time.
+    condition = _custom_error_message_condition(LEGACY_PATTERNS)
+    validate_rule_condition(json.dumps(condition))
+
+    for event in LEGACY_EVENTS.values():
+        assert _evaluate(condition, event) is _legacy_error_message_matches(LEGACY_PATTERNS, event)
+
+
+def test_custom_error_message_condition_adds_a_typed_match_for_typed_globs() -> None:
+    assert _custom_error_message_condition(["TypeError: Cannot*", "*timeout*"]) == {
+        "op": "or",
+        "inner": [
+            {
+                "op": "any",
+                "name": "event.exception.values",
+                "inner": {
+                    "op": "or",
+                    "inner": [
+                        {"op": "glob", "name": "ty", "value": ["TypeError: Cannot*"]},
+                        {"op": "glob", "name": "ty", "value": ["*timeout*"]},
+                        {"op": "glob", "name": "value", "value": ["TypeError: Cannot*"]},
+                        {"op": "glob", "name": "value", "value": ["*timeout*"]},
+                        {
+                            "op": "and",
+                            "inner": [
+                                {"op": "glob", "name": "ty", "value": ["TypeError"]},
+                                {"op": "glob", "name": "value", "value": ["Cannot*"]},
+                            ],
+                        },
+                    ],
+                },
+            },
+            {"op": "glob", "name": "event.logentry.formatted", "value": ["TypeError: Cannot*"]},
+            {"op": "glob", "name": "event.logentry.formatted", "value": ["*timeout*"]},
+        ],
+    }
+
+
+@pytest.mark.parametrize(
+    "glob",
+    [
+        pytest.param("https://example.com/*", id="colon_without_space"),
+        pytest.param(": leading", id="empty_type"),
+        pytest.param("Trailing: ", id="empty_value"),
+        pytest.param("plain", id="no_separator"),
+    ],
+)
+def test_custom_error_message_condition_does_not_split_globs_without_a_type(glob: str) -> None:
+    [exception_condition, _] = _custom_error_message_condition([glob])["inner"]
+
+    assert exception_condition["inner"]["inner"] == [
+        {"op": "glob", "name": "ty", "value": [glob]},
+        {"op": "glob", "name": "value", "value": [glob]},
+    ]
