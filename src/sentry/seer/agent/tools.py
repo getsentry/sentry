@@ -1206,7 +1206,16 @@ def _get_recommended_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-    """Prefer events with stored spans."""
+    """Prefer events with stored spans.
+
+    The time range defaults to the group's first and last seen times. Search windows
+    from newest to oldest, choosing the highest RECOMMENDED event with stored spans
+    and an available body in the first matching window.
+
+    If no match is found, a query fails, or the search times out, fall back to the
+    highest RECOMMENDED event with an available body from the newest nonempty window,
+    then to the group's regular recommended event.
+    """
     start_time = time.time()
 
     # Config
