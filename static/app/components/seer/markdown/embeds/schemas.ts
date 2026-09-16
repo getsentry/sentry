@@ -1108,9 +1108,20 @@ export const STRUCTURED_SEER_EMBED_SCHEMAS = {
   },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
+const LEGACY_SEER_EMBED_SCHEMAS = {
+  // Parse stored messages that predate `issuesQuery`, but do not expose this
+  // legacy shape to agents through the generated widget schema.
+  issues: {
+    description: 'Legacy multi-issue embed.',
+    level: ['block'],
+    schema: z.object({ids: z.array(z.string())}),
+  },
+} as const satisfies Record<string, SeerEmbedSchema>;
+
 export const ALL_SEER_EMBED_SCHEMAS = {
   ...SEER_EMBED_SCHEMAS,
   ...STRUCTURED_SEER_EMBED_SCHEMAS,
+  ...LEGACY_SEER_EMBED_SCHEMAS,
 };
 
 export type SeerEmbedName = keyof typeof ALL_SEER_EMBED_SCHEMAS;

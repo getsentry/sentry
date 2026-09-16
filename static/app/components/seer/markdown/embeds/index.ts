@@ -10,7 +10,7 @@ import {Dsn} from './components/dsn';
 import {ErrorsQuery} from './components/errorsQuery';
 import {SeerEvent} from './components/event/event';
 import {Issue} from './components/issue';
-import {IssuesQuery} from './components/issuesQuery';
+import {IssuesQuery, LegacyIssues} from './components/issuesQuery';
 import {Log} from './components/log/log';
 import {LogsQuery} from './components/logsQuery';
 import {MetricsQuery} from './components/metricsQuery';
@@ -42,6 +42,7 @@ const embeds = [
   ErrorsQuery,
   Issue,
   IssuesQuery,
+  LegacyIssues,
   Log,
   LogsQuery,
   MetricsQuery,

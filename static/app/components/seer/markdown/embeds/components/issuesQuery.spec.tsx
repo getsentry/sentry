@@ -29,6 +29,35 @@ describe('issues query embed', () => {
     expect(screen.getByRole('link', {name: 'Issue search'})).toBeInTheDocument();
   });
 
+  it('keeps rendering stored legacy issues embeds', async () => {
+    const issue = GroupFixture({shortId: 'JAVASCRIPT-991'});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [issue],
+    });
+
+    renderEmbed({
+      name: 'issues',
+      data: {ids: ['JAVASCRIPT-991', 'JAVASCRIPT-992']},
+    });
+
+    expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(issuesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'issue:[JAVASCRIPT-991,JAVASCRIPT-992]',
+          }),
+        })
+      )
+    );
+  });
+
   it('renders matching issues in a collapsible block', async () => {
     const issue = GroupFixture({
       id: '991',

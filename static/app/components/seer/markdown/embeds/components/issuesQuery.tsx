@@ -16,3 +16,15 @@ export const IssuesQuery = defineSeerEmbed({
     return <IssuesQueryLink {...props} />;
   },
 });
+
+export const LegacyIssues = defineSeerEmbed({
+  name: 'issues',
+  render({ids}) {
+    return (
+      <LazyLoad
+        LazyComponent={LazyIssuesQueryBlock}
+        data={{query: `issue:[${ids.join(',')}]`}}
+      />
+    );
+  },
+});
