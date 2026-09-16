@@ -20,6 +20,7 @@ from sentry.integrations.base import (
 from sentry.integrations.cursor_origin.client import (
     CursorOriginApiClient,
     CursorOriginSetupApiClient,
+    OriginRepositorySummary,
 )
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_INSTALL_URL,
@@ -84,7 +85,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         search endpoint, so `query` filters locally.
         """
 
-        def to_repository_info(raw: list[dict[str, Any]]) -> list[RepositoryInfo]:
+        def to_repository_info(raw: Sequence[OriginRepositorySummary]) -> list[RepositoryInfo]:
             return [
                 {
                     "name": repo["fullName"],

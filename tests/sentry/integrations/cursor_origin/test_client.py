@@ -50,16 +50,36 @@ class SetupApiClientTest(TestCase):
         assert mock_jwt.call_count == 2
 
     @responses.activate
+    def test_get_app_reads_the_registration(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app",
+            json={"id": "app_1", "webhookUrl": "https://sentry.io/hook", "events": ["push"]},
+        )
+
+        app = CursorOriginSetupApiClient().get_app()
+
+        assert app["id"] == "app_1"
+        assert app["events"] == ["push"]
+
+    @responses.activate
     def test_get_installation(self, mock_jwt: mock.MagicMock) -> None:
         responses.add(
             responses.GET,
             f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
-            json={"target": {"slug": "acme"}},
+            json={
+                "id": INSTALLATION_ID,
+                "target": {"slug": "acme", "id": "ns_1", "type": "team"},
+                "repoSelectionMode": "selected",
+                "scopes": ["repository:contents:read"],
+            },
         )
 
         result = CursorOriginSetupApiClient().get_installation(INSTALLATION_ID)
 
-        assert result == {"target": {"slug": "acme"}}
+        assert result["target"]["slug"] == "acme"
+        assert result["repoSelectionMode"] == "selected"
+        assert result["scopes"] == ["repository:contents:read"]
 
     @responses.activate
     def test_delete_installation(self, mock_jwt: mock.MagicMock) -> None:
