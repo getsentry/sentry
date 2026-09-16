@@ -256,6 +256,10 @@ def _step_feedback_kinds(mock_metrics) -> list[str]:
     ]
 
 
+def _manual_feedback() -> list[Feedback]:
+    return [Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go"))]
+
+
 def _check_suite_feedback() -> Feedback:
     return Feedback(
         source=CheckSuiteFeedbackSource(
@@ -280,9 +284,10 @@ def _check_suite_feedback() -> Feedback:
 
 def _unsynced_state(
     status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
+    feedback: Sequence[Feedback] = (),
 ) -> SeerRunState:
     state = _state(
-        [_iteration_block(0, commit_sha="iteration-sha")],
+        [_iteration_block(0, commit_sha="iteration-sha", feedback=feedback)],
         repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")},
     )
     state.status = status
@@ -316,7 +321,7 @@ class TestPrIterationStepMetrics(TestCase):
 
     def test_an_accepted_push_counts_the_code_change(self, mock_metrics, _mock_complete) -> None:
         with patch.object(AutofixOnCompletionHook, "_pr_iteration_push_outcome", return_value=None):
-            self._run(_unsynced_state())
+            self._run(_unsynced_state(feedback=_manual_feedback()))
 
         assert _step_checkpoints(mock_metrics) == ["code_change_completed"]
         mock_metrics.incr.assert_any_call(
@@ -324,6 +329,7 @@ class TestPrIterationStepMetrics(TestCase):
             tags={
                 "checkpoint": "code_change_completed",
                 "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
             },
             sample_rate=1.0,
         )
@@ -355,21 +361,12 @@ class TestPrIterationStepMetrics(TestCase):
     def test_the_iteration_is_tagged_by_its_feedback_kind(
         self, mock_metrics, _mock_complete
     ) -> None:
-        self._complete_iteration(
-            _synced_state([Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go"))])
-        )
+        self._complete_iteration(_synced_state(_manual_feedback()))
 
         assert _step_feedback_kinds(mock_metrics) == ["manual"]
 
     def test_an_iteration_of_both_kinds_is_tagged_mixed(self, mock_metrics, _mock_complete) -> None:
-        self._complete_iteration(
-            _synced_state(
-                [
-                    Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go")),
-                    _check_suite_feedback(),
-                ]
-            )
-        )
+        self._complete_iteration(_synced_state([*_manual_feedback(), _check_suite_feedback()]))
 
         assert _step_feedback_kinds(mock_metrics) == ["mixed"]
 
@@ -395,7 +392,7 @@ class TestPrIterationStepMetrics(TestCase):
         with patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"):
             self._run(
                 _state(
-                    [_iteration_block(0)],
+                    [_iteration_block(0, feedback=[_check_suite_feedback()])],
                     repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo")},
                 )
             )
@@ -406,6 +403,7 @@ class TestPrIterationStepMetrics(TestCase):
             tags={
                 "checkpoint": "no_code_change",
                 "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "automated",
             },
             sample_rate=1.0,
         )
@@ -415,7 +413,7 @@ class TestPrIterationStepMetrics(TestCase):
             patch(f"{HOOK_PATH}.iteration_prs_any_closed", return_value=False),
             patch(f"{HOOK_PATH}.trigger_push_changes", side_effect=RuntimeError("seer is down")),
         ):
-            self._run(_unsynced_state())
+            self._run(_unsynced_state(feedback=_manual_feedback()))
 
         assert _step_checkpoints(mock_metrics) == ["code_change_started"]
         mock_metrics.incr.assert_any_call(
@@ -423,6 +421,7 @@ class TestPrIterationStepMetrics(TestCase):
             tags={
                 "checkpoint": "code_change_started",
                 "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+                "feedback_kind": "manual",
             },
             sample_rate=1.0,
         )
