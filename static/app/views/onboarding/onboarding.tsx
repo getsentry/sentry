@@ -139,7 +139,7 @@ function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
   return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation />;
 }
 
-function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
+function ScmMessagingAdapter({onComplete, genBackButton}: StepProps) {
   const {messagingSetup, selectedPlatform, setMessagingSetup} = useOnboardingContext();
 
   // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
@@ -154,8 +154,8 @@ function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
       messagingSetup={messagingSetup}
       onMessagingSetupChange={setMessagingSetup}
       selectedPlatform={selectedPlatform}
-      genBackButton={genBackButton}
       onComplete={onComplete}
+      genBackButton={genBackButton}
     />
   );
 }
@@ -488,12 +488,7 @@ export function OnboardingWithoutContext() {
   }
 
   return (
-    <Stack
-      as="main"
-      flexGrow={1}
-      background="secondary"
-      data-test-id="targeted-onboarding"
-    >
+    <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
       <Header columns="repeat(2, 1fr)" as="header">
         <LogoSvg showWordmark={!hasScmOnboarding} />
@@ -606,7 +601,7 @@ const OnboardingContainerNewWelcomeUI = styled('div')<{
   flex-direction: column;
   justify-content: center;
   position: relative;
-  background: ${p => p.theme.tokens.background.secondary};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => p.theme.space['2xl']};
   overflow: hidden;
 
@@ -628,7 +623,7 @@ const OnboardingContainer = styled('div')<{
   flex-direction: column;
   position: relative;
   overflow-x: hidden;
-  background: ${p => p.theme.tokens.background.secondary};
+  background: ${p => p.theme.tokens.background.primary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;
   margin: 0 auto;
