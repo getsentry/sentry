@@ -52,8 +52,6 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 
-// Metrics emitted before the `span_id` alias existed
-// use the (unaliased) `sentry.span_id` attribute.
 const MetricAttributesRendererMap = {
   ...LogAttributesRendererMap,
   [TraceMetricKnownFieldKey.OLD_SPAN_ID]: SpanIDRenderer,
