@@ -68,68 +68,80 @@ def _emit_pr_head_comparison_telemetry(
     head_sha: str,
     artifact_id: int | None,
 ) -> None:
-    repository, repository_resolution = Repository.objects.resolve_active(
-        organization_id=organization_id,
-        name=repo_name,
-        normalized_provider=normalize_scm_provider(provider),
-    )
+    try:
+        repository, repository_resolution = Repository.objects.resolve_active(
+            organization_id=organization_id,
+            name=repo_name,
+            normalized_provider=normalize_scm_provider(provider),
+        )
 
-    pull_request_data = None
-    if repository is not None:
-        pull_request_data = (
-            PullRequest.objects.filter(
-                organization_id=organization_id,
-                repository_id=repository.id,
-                key=str(pr_number),
+        pull_request_data = None
+        if repository is not None:
+            pull_request_data = (
+                PullRequest.objects.filter(
+                    organization_id=organization_id,
+                    repository_id=repository.id,
+                    key=str(pr_number),
+                )
+                .values_list("id", "head_commit_sha")
+                .first()
             )
-            .values_list("id", "head_commit_sha")
-            .first()
-        )
 
-    if repository is None:
-        result = f"repository_{repository_resolution}"
-        pr_head_sha = None
-    elif pull_request_data is None:
-        result = "missing_pr"
-        pr_head_sha = None
-    else:
-        _, pr_head_sha = pull_request_data
-        if pr_head_sha is None:
-            result = "missing_head_sha"
-        elif pr_head_sha == head_sha:
-            result = "matched"
+        if repository is None:
+            result = f"repository_{repository_resolution}"
+            pr_head_sha = None
+        elif pull_request_data is None:
+            result = "missing_pr"
+            pr_head_sha = None
         else:
-            result = "mismatched"
+            _, pr_head_sha = pull_request_data
+            if pr_head_sha is None:
+                result = "missing_head_sha"
+            elif pr_head_sha == head_sha:
+                result = "matched"
+            else:
+                result = "mismatched"
 
-    metrics.incr(
-        "preprod.snapshot_pr_comments.head_comparison",
-        sample_rate=1.0,
-        tags={"result": result},
-    )
-
-    if result not in ("matched", "mismatched"):
-        logger.info(
-            "preprod.snapshot_pr_comments.post.head_comparison_unavailable",
-            extra={
-                "commit_comparison_id": commit_comparison_id,
-                "organization_id": organization_id,
-                "preprod_artifact_id": artifact_id,
-                "repo_name": repo_name,
-                "pr_number": pr_number,
-                "reason": result,
-            },
+        metrics.incr(
+            "preprod.snapshot_pr_comments.head_comparison",
+            sample_rate=1.0,
+            tags={"result": result},
         )
-    elif result == "mismatched":
-        logger.info(
-            "preprod.snapshot_pr_comments.post.head_mismatch",
+
+        if result not in ("matched", "mismatched"):
+            logger.info(
+                "preprod.snapshot_pr_comments.post.head_comparison_unavailable",
+                extra={
+                    "commit_comparison_id": commit_comparison_id,
+                    "organization_id": organization_id,
+                    "preprod_artifact_id": artifact_id,
+                    "repo_name": repo_name,
+                    "pr_number": pr_number,
+                    "reason": result,
+                },
+            )
+        elif result == "mismatched":
+            logger.info(
+                "preprod.snapshot_pr_comments.post.head_mismatch",
+                extra={
+                    "commit_comparison_id": commit_comparison_id,
+                    "organization_id": organization_id,
+                    "preprod_artifact_id": artifact_id,
+                    "repo_name": repo_name,
+                    "pr_number": pr_number,
+                    "comparison_head_sha": head_sha,
+                    "pr_head_sha": pr_head_sha,
+                },
+            )
+    except Exception:
+        logger.exception(
+            "preprod.snapshot_pr_comments.post.head_comparison_telemetry_failed",
             extra={
                 "commit_comparison_id": commit_comparison_id,
                 "organization_id": organization_id,
                 "preprod_artifact_id": artifact_id,
                 "repo_name": repo_name,
                 "pr_number": pr_number,
-                "comparison_head_sha": head_sha,
-                "pr_head_sha": pr_head_sha,
             },
         )
 
@@ -368,15 +380,6 @@ def post_snapshot_pr_comment_task(
                 target_id=commit_comparison_id,
                 comment_type="snapshots",
             )
-            _emit_pr_head_comparison_telemetry(
-                organization_id=organization.id,
-                repo_name=repo_name,
-                provider=provider,
-                pr_number=pr_number,
-                commit_comparison_id=cc.id,
-                head_sha=cc.head_sha,
-                artifact_id=artifact_id,
-            )
             is_update = comment_id is not None
 
             try:
@@ -427,6 +430,16 @@ def post_snapshot_pr_comment_task(
             extra={"commit_comparison_id": commit_comparison_id},
         )
         return
+
+    _emit_pr_head_comparison_telemetry(
+        organization_id=organization.id,
+        repo_name=repo_name,
+        provider=provider,
+        pr_number=pr_number,
+        commit_comparison_id=cc.id,
+        head_sha=cc.head_sha,
+        artifact_id=artifact_id,
+    )
 
     # Re-raised outside the transaction so the failure record is committed
     # before the retry fires. Terminal 4xx (except 429) are swallowed; 429,
