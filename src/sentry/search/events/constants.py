@@ -342,7 +342,7 @@ UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\\\|(?P<unsupported>\\[1-9]|\\Z|\(\?(?:
 
 # The reverse: syntax RE2 accepts that Python's `re` cannot parse, so `re` alone cannot say
 # whether one of these patterns is well formed.
-RE2_LIKE_ONLY_SYNTAX = re.compile(r"\\[pPzCQE]|\(\?[imsU-]*U")
+RE2_LIKE_ONLY_SYNTAX = re.compile(r"\\[pPzCQE]|\\x\{|\(\?[imsU-]*U")
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
