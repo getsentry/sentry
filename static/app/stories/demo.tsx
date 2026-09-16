@@ -12,16 +12,26 @@ import {allowOpenOverlayOverflowCss, ResizableWindow} from './resizableWindow';
 
 interface DemoProps extends FlexProps {
   resizable?: boolean;
+  /**
+   * Closes the demo into a box of its own, for the callers that do not put a
+   * code block under it. The default leaves the bottom open and pulls the next
+   * block up to meet it.
+   */
+  standalone?: boolean;
 }
 
-export function Demo({resizable, ...props}: DemoProps) {
+export function Demo({resizable, standalone, ...props}: DemoProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dimensions = useDimensions({elementRef: containerRef});
   const breakpoints = useContainerBreakpoints();
 
   if (!resizable) {
     return (
-      <Container containerType="inline-size">
+      <Container
+        containerType="inline-size"
+        marginTop={standalone ? undefined : 'md'}
+        style={standalone ? undefined : {marginBottom: '-1lh'}}
+      >
         <Flex
           css={allowOpenOverlayOverflowCss}
           data-test-id="storybook-demo"
@@ -34,7 +44,8 @@ export function Demo({resizable, ...props}: DemoProps) {
           borderTop="primary"
           borderLeft="primary"
           borderRight="primary"
-          radius="md md 0 0"
+          borderBottom={standalone ? 'primary' : undefined}
+          radius={standalone ? 'md' : 'md md 0 0'}
           minHeight="160px"
           overflow="auto"
           maxHeight="512px"

@@ -5,6 +5,7 @@ import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
 import {extensions} from 'sentry/utils/marked/extensions';
+import type {TagToken} from 'sentry/utils/marked/extensions/tag';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 export {MarkedLexer};
@@ -16,6 +17,70 @@ marked.use({extensions: [...extensions]});
 
 const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
 const INTERNAL_PATH_PATTERN = /^\/[^/]/;
+
+/** One piece of a source string: literal text, or a tag with its parsed body. */
+export type TagSegment =
+  | {type: 'text'; value: string}
+  | {
+      attrs: Record<string, string>;
+      data: unknown;
+      level: 'block' | 'inline';
+      name: string;
+      type: 'tag';
+    };
+
+function collectTags(tokens: Token[], found: TagToken[]): TagToken[] {
+  for (const token of tokens) {
+    if (token.type === 'tag') {
+      found.push(token as unknown as TagToken);
+      continue;
+    }
+    // `code` and `codespan` hold no child tokens, so this never descends into
+    // one -- which is what keeps a tag written inside them literal.
+    const children = (token as {tokens?: Token[]}).tokens;
+    if (children) {
+      collectTags(children, found);
+    }
+  }
+  return found;
+}
+
+/**
+ * Splits a source string into its text and its tags, in document order.
+ *
+ * Lexed the way the document lexes it, so a tag only counts as one where the
+ * document would render it as one. The text around them is returned exactly as
+ * written -- located by each tag's own source rather than rebuilt from tokens,
+ * which would lose the spacing.
+ */
+export function splitTags(src: string): TagSegment[] {
+  const segments: TagSegment[] = [];
+  let offset = 0;
+
+  for (const tag of collectTags(MarkedLexer.lex(src), [])) {
+    const at = src.indexOf(tag.raw, offset);
+    if (at === -1) {
+      continue;
+    }
+    if (at > offset) {
+      segments.push({type: 'text', value: src.slice(offset, at)});
+    }
+    segments.push({
+      type: 'tag',
+      name: tag.name,
+      attrs: tag.attrs,
+      data: tag.data,
+      level: tag.level,
+    });
+    offset = at + tag.raw.length;
+  }
+
+  if (offset < src.length) {
+    segments.push({type: 'text', value: src.slice(offset)});
+  }
+
+  return segments;
+}
 
 export function isSafeHref(href: string): boolean {
   try {

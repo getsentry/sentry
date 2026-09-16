@@ -1,8 +1,8 @@
 import type {ReactNode} from 'react';
-import {Fragment, createElement, useLayoutEffect, useState} from 'react';
+import {Fragment, createElement, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 
-import {splitTags} from 'sentry/utils/marked/extensions/tag';
+import {splitTags} from 'sentry/utils/marked/marked';
 
 import {SeerEmbedRegistry} from './embeds';
 
@@ -52,16 +52,28 @@ export function useSeerMarkdownText(raw: string): UseSeerMarkdownTextResult {
   const [container] = useState(() => document.createElement('span'));
   const [text, setText] = useState('');
 
-  useLayoutEffect(() => {
-    // Reading a node React wrote but does not hand back is what an effect is
-    // for. It cannot be derived during render: the portal's children only exist
-    // once the commit that returned them has finished.
-    // eslint-disable-next-line react/set-state-in-effect
-    setText(container.textContent ?? '');
-  }, [container, raw]);
+  // Read on mount rather than from an effect. A caller can withhold the node
+  // for a while -- the action bar renders nothing while a block is pending --
+  // and by the time it appears `raw` is long settled, so an effect keyed on it
+  // would never fire.
+  const readText = useCallback((node: HTMLSpanElement | null) => {
+    if (node) {
+      setText(node.textContent ?? '');
+    }
+  }, []);
 
-  return {
-    text,
-    node: createPortal(<SeerMarkdownText raw={raw} />, container),
-  };
+  // Keyed on the reply so a new one remounts the span and re-runs the ref;
+  // reconciling in place would leave the first reading behind.
+  const node = useMemo(
+    () =>
+      createPortal(
+        <span key={raw} ref={readText}>
+          <SeerMarkdownText raw={raw} />
+        </span>,
+        container
+      ),
+    [container, raw, readText]
+  );
+
+  return {text, node};
 }

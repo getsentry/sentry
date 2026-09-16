@@ -80,6 +80,9 @@ export function EmbedVariant({data, demoProps, label, name}: EmbedVariantProps) 
     minHeight: undefined,
     maxHeight: undefined,
     overflow: undefined,
+    // Nothing follows these demos, so they close their own box rather than
+    // leaving the bottom open for a code block.
+    standalone: true,
     ...demoProps,
   };
 

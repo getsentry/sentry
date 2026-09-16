@@ -15,11 +15,11 @@ describe('issues embed', () => {
       ids: ['JAVASCRIPT-22SP', 'PYTHON-4B'],
     });
 
+    // One line: the lexer can hand this tag over inline, where a bulleted list
+    // would break the sentence around it.
     expect(markdown).toBe(
-      [
-        `- [JAVASCRIPT-22SP](${window.location.origin}/issues/JAVASCRIPT-22SP/)`,
-        `- [PYTHON-4B](${window.location.origin}/issues/PYTHON-4B/)`,
-      ].join('\n')
+      `[JAVASCRIPT-22SP](${window.location.origin}/issues/JAVASCRIPT-22SP/), ` +
+        `[PYTHON-4B](${window.location.origin}/issues/PYTHON-4B/)`
     );
   });
 

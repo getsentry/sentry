@@ -91,12 +91,12 @@ export const Issues = defineSeerEmbed({
   render({ids}, level) {
     switch (level) {
       case 'markdown':
-        // The columns are live data; the list of issues is what survives.
-        // Strings rather than `IssueLink`s because they are joined into a list.
+        // The columns are live data; the list of issues is what survives. One
+        // line rather than a bulleted list, because the lexer can hand this tag
+        // over inline and a list would break the sentence around it.
         return ids
           .flatMap(id => resourceLinkMarkdown(`/issues/${id}/`, id) ?? [])
-          .map(link => `- ${link}`)
-          .join('\n');
+          .join(', ');
       case 'block':
       case 'inline':
         return <MultiIssueBlock ids={ids} />;
