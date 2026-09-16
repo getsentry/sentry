@@ -10,7 +10,10 @@ import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
-import {getImageName} from 'sentry/views/preprod/types/snapshotTypes';
+import {
+  getImageName,
+  getSnapshotImageUrlForKey,
+} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {useD3Zoom, useSyncedD3Zoom} from './imageDisplay/useD3Zoom';
 import {ZoomControls, zoomTransformStyle} from './imageDisplay/zoomControls';
@@ -60,7 +63,7 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
   const hasVisibleOverlay = !!overlayColor && overlayColor !== 'transparent';
   const diffMaskUrl =
     hasVisibleOverlay && diffImageKey && diffImageBaseUrl
-      ? `${diffImageBaseUrl}${diffImageKey}/`
+      ? getSnapshotImageUrlForKey(diffImageBaseUrl, diffImageKey)
       : null;
   return (
     <Container position="relative">
@@ -153,8 +156,10 @@ function ZoomPane({
   zoom: ReturnType<typeof useD3Zoom>;
 }) {
   return (
+    // oxlint-disable-next-line react/refs
     <ZoomViewport ref={zoom.containerRef}>
       <ImageSizer {...imageSizerProps(image)}>
+        {/* oxlint-disable-next-line react/refs */}
         <ZoomTransformLayer style={zoomTransformStyle(zoom.transform)}>
           {children}
         </ZoomTransformLayer>

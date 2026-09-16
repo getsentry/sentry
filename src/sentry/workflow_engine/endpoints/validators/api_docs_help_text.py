@@ -168,10 +168,14 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         ```
 
         **De-escalation**
+        - `comparison`: The priority threshold the issue must de-escalate below.
+            - `75`: High priority
+            - `50`: Medium priority
+            - `25`: Low priority
         ```json
             {
                 "type": "issue_priority_deescalating",
-                "comparison": true,
+                "comparison": 75,
                 "conditionResult": true
             }
         ```

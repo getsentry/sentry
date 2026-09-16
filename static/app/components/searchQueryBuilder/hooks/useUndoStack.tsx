@@ -82,6 +82,7 @@ export function useUndoStack(state: ListState<ParseResultToken>) {
   const trimmedQuery = query.trim();
 
   updateUndoStack({
+    // oxlint-disable-next-line react/refs
     undoStack: undoStackRef.current,
     query: trimmedQuery,
     focusOverride,
@@ -105,7 +106,9 @@ export function useUndoStack(state: ListState<ParseResultToken>) {
     }
   }, [dispatch, trimmedQuery]);
 
+  // oxlint-disable-next-line react/refs
   return {
+    // oxlint-disable-next-line react/refs
     undoStack: undoStackRef.current,
     undo,
   };

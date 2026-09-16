@@ -77,6 +77,10 @@ describe('ConversationOnboarding', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(prompt);
+    expect(trackAnalytics).toHaveBeenCalledWith('conversations.onboarding.interaction', {
+      organization,
+      action: 'copy_agent_prompt',
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Show More'}));
     await userEvent.click(screen.getByRole('button', {name: 'Show Less'}));
@@ -315,6 +319,10 @@ describe('ConversationOnboarding', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Copy instructions'}));
 
+    expect(trackAnalytics).not.toHaveBeenCalledWith(
+      'conversations.onboarding.interaction',
+      expect.objectContaining({action: 'copy_agent_prompt'})
+    );
     expect(trackAnalytics).toHaveBeenCalledWith('onboarding.ai_prompt_copied', {
       organization,
       platform: 'node',

@@ -657,6 +657,32 @@ describe('AutomationNewSettings', () => {
     expect(await screen.findByText('member-project')).toBeInTheDocument();
   });
 
+  it('pre-selects a writable project for a team admin', async () => {
+    const readOnlyProject = ProjectFixture({
+      id: '3',
+      slug: 'read-only-project',
+      isMember: true,
+      access: ['project:read', 'alerts:read'],
+    });
+    const writableProject = ProjectFixture({
+      id: '4',
+      slug: 'writable-project',
+      isMember: false,
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([readOnlyProject, writableProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(readOnlyProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+    });
+
+    expect(await screen.findByText('writable-project')).toBeInTheDocument();
+    expect(screen.queryByText('read-only-project')).not.toBeInTheDocument();
+  });
+
   it('surfaces API error message when automation creation fails', async () => {
     jest.spyOn(indicators, 'addErrorMessage');
 

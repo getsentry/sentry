@@ -1,0 +1,201 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+from unittest import mock
+
+import pytest
+
+from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
+from sentry.integrations.cursor_origin.client import CursorOriginApiClient
+from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
+from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiPaginationTruncated,
+    IntegrationError,
+)
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
+
+INSTALLATION_ID = "i_01example"
+REPO = "acme/rocket"
+WEB = "https://cursor.com/codebase"
+
+
+def _iso(offset: timedelta) -> str:
+    return (datetime.now(UTC) + offset).isoformat().replace("+00:00", "Z")
+
+
+def _origin_repo(full_name: str = REPO, repo_id: str = "repo_1") -> dict[str, object]:
+    return {"id": repo_id, "fullName": full_name, "name": "rocket", "defaultBranch": "main"}
+
+
+@control_silo_test
+class CursorOriginIntegrationTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            metadata={
+                "access_token": "oit_stored",
+                "expires_at": _iso(timedelta(minutes=14)),
+                "domain_name": f"{WEB}/acme",
+            },
+            status=ObjectStatus.ACTIVE,
+        )
+        self.install = CursorOriginIntegration(self.integration, self.organization.id)
+
+    def _repo(self, name: str = REPO, default_branch: str = "main") -> Repository:
+        return Repository(name=name, config={"default_branch": default_branch})
+
+    def test_get_repositories_maps_to_the_shared_shape(self) -> None:
+        with mock.patch.object(
+            CursorOriginApiClient, "get_repositories", return_value=[_origin_repo()]
+        ):
+            repos = self.install.get_repositories()
+
+        assert repos == [
+            {
+                "name": REPO,
+                "identifier": REPO,
+                "external_id": "repo_1",
+                "default_branch": "main",
+            }
+        ]
+
+    def test_query_filters_locally(self) -> None:
+        """Origin has no search endpoint, so repo_search is off and query filters here."""
+        repos = [_origin_repo("acme/rocket"), _origin_repo("acme/widget", "repo_2")]
+        with mock.patch.object(CursorOriginApiClient, "get_repositories", return_value=repos):
+            assert [r["name"] for r in self.install.get_repositories(query="WIDG")] == [
+                "acme/widget"
+            ]
+
+        assert self.install.repo_search is False
+
+    def test_a_failed_listing_raises_rather_than_looking_empty(self) -> None:
+        """The sync reads a missing repository as one the provider dropped."""
+        with (
+            mock.patch.object(
+                CursorOriginApiClient,
+                "get_repositories",
+                side_effect=ApiError("boom", code=500),
+            ),
+            mock.patch.object(CursorOriginIntegration, "message_from_error", return_value="boom"),
+            pytest.raises(IntegrationError),
+        ):
+            self.install.get_repositories()
+
+    def test_truncation_raises_only_when_the_caller_opts_in(self) -> None:
+        partial = [_origin_repo()]
+        with mock.patch.object(
+            CursorOriginApiClient,
+            "get_repositories",
+            side_effect=ApiPaginationTruncated(partial),
+        ):
+            assert len(self.install.get_repositories()) == 1
+            with pytest.raises(ApiPaginationTruncated) as excinfo:
+                self.install.get_repositories(raise_on_page_limit=True)
+
+        # Callers read partial_data as RepositoryInfo, not as raw Origin dicts.
+        assert excinfo.value.partial_data == [
+            {
+                "name": REPO,
+                "identifier": REPO,
+                "external_id": "repo_1",
+                "default_branch": "main",
+            }
+        ]
+
+    def test_rate_limit_is_recognised(self) -> None:
+        assert self.install.is_rate_limited_error(ApiError("slow down", code=429)) is True
+        assert self.install.is_rate_limited_error(ApiError("nope", code=404)) is False
+
+    def test_a_failed_token_exchange_is_terminal(self) -> None:
+        """Origin stops minting tokens once uninstalled; every call then fails here."""
+        url = f"/app/installations/{INSTALLATION_ID}/access_tokens"
+        assert (
+            self.install.is_broken_integration_error(ApiError("no", code=401, url=url))
+            == "installation_suspended"
+        )
+        assert (
+            self.install.is_broken_integration_error(ApiError("slow", code=429, url=url))
+            == "rate_limited"
+        )
+
+    def test_a_token_401_survives_the_conversion_to_invalid_identity(self) -> None:
+        """raise_error wraps it, and the base class only unwraps IntegrationError."""
+        url = f"/app/installations/{INSTALLATION_ID}/access_tokens"
+        converted = InvalidIdentity("no")
+        converted.__context__ = ApiError("no", code=401, url=url)
+
+        assert self.install.is_broken_integration_error(converted) == "installation_suspended"
+
+    def test_a_failed_resource_read_is_not_terminal(self) -> None:
+        assert (
+            self.install.is_broken_integration_error(ApiError("no", code=404, url=f"/repos/{REPO}"))
+            is None
+        )
+
+    # -- stack-trace linking ----------------------------------------------
+
+    def test_format_source_url(self) -> None:
+        url = self.install.format_source_url(self._repo(), "src/app.py", "main")
+
+        assert url == f"{WEB}/{REPO}/blob/main/src/app.py"
+
+    def test_a_branch_containing_a_slash_is_one_encoded_segment(self) -> None:
+        """Origin encodes the branch, so danf/x is unambiguous against the file path."""
+        url = self.install.format_source_url(self._repo(), "AGENTS.md", "danf/test-branch")
+
+        assert url == f"{WEB}/{REPO}/blob/danf%2Ftest-branch/AGENTS.md"
+
+    def test_the_slashed_branch_round_trips(self) -> None:
+        repo = self._repo()
+        url = self.install.format_source_url(repo, "src/deep/app.py", "danf/test-branch")
+
+        assert self.install.extract_branch_from_source_url(repo, url) == "danf/test-branch"
+        assert self.install.extract_source_path_from_source_url(repo, url) == "src/deep/app.py"
+
+    def test_a_path_needing_encoding_round_trips(self) -> None:
+        repo = self._repo()
+        url = self.install.format_source_url(repo, "src/my file.py", "main")
+
+        assert self.install.extract_source_path_from_source_url(repo, url) == "src/my file.py"
+
+    def test_falls_back_to_the_repo_default_branch(self) -> None:
+        url = self.install.format_source_url(self._repo(default_branch="trunk"), "a.py", None)
+
+        assert url == f"{WEB}/{REPO}/blob/trunk/a.py"
+
+    def test_a_line_anchor_is_not_part_of_the_path(self) -> None:
+        """Origin file URLs carry #L5, which must not reach the code mapping."""
+        repo = self._repo()
+        url = f"{WEB}/{REPO}/blob/main/src/app.py#L5"
+
+        assert self.install.extract_source_path_from_source_url(repo, url) == "src/app.py"
+        assert self.install.extract_branch_from_source_url(repo, url) == "main"
+
+    def test_a_decoded_slashed_branch_reads_as_its_first_segment(self) -> None:
+        """The code mapping endpoint unquotes the path first, as GitHub also sees."""
+        repo = self._repo()
+        url = f"{WEB}/{REPO}/blob/danf/test-branch/AGENTS.md"
+
+        assert self.install.extract_branch_from_source_url(repo, url) == "danf"
+
+    def test_an_unrecognised_url_extracts_nothing(self) -> None:
+        repo = self._repo()
+
+        assert self.install.extract_branch_from_source_url(repo, "https://example.com/x") == ""
+        assert self.install.extract_source_path_from_source_url(repo, "https://example.com/x") == ""
+
+    def test_source_url_matches_this_installation_only(self) -> None:
+        assert self.install.source_url_matches(f"{WEB}/acme/rocket/blob/main/a.py") is True
+        assert self.install.source_url_matches(f"{WEB}/other-org/repo/blob/main/a.py") is False
+
+    def test_a_longer_org_name_is_not_a_match(self) -> None:
+        """An install on "acme" must not claim URLs owned by "acme-corp"."""
+        assert self.install.source_url_matches(f"{WEB}/acme-corp/repo/blob/main/a.py") is False

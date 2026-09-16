@@ -165,6 +165,7 @@ export function useScmProjectDetails({
   // rendered in ScmAlertFrequencySection) and resolves its selected action for
   // the workflow created alongside the project.
   const {getIntegrationAction, notificationProps} = useScmNotificationAction(
+    // oxlint-disable-next-line react/refs
     restoredNotificationSelectionRef.current
   );
 
@@ -306,6 +307,7 @@ export function useScmProjectDetails({
   const notificationRestoreComplete =
     notificationProps.queryError ||
     (notificationProps.querySuccess && notificationPickerSettled);
+  // oxlint-disable-next-line react/refs
   if (!notificationRestoreCompleteRef.current && notificationRestoreComplete) {
     notificationRestoreCompleteRef.current = true;
   }
@@ -320,6 +322,7 @@ export function useScmProjectDetails({
     !isCompleting &&
     !isLoadingTeams &&
     projectsLoaded &&
+    // oxlint-disable-next-line react/refs
     notificationRestoreCompleteRef.current;
 
   const existingProject = createdProjectSlug
@@ -330,19 +333,28 @@ export function useScmProjectDetails({
   // snapshot because the Project model tracks it; alert fields are not on the
   // Project record so we compare those against the saved form snapshot.
   const samePlatform = existingProject?.platform === selectedPlatform?.key;
+  // oxlint-disable-next-line react/refs
   const savedForm = savedFormRef.current;
   const savedAlert = savedForm?.alertRuleConfig;
   const nothingChanged =
     samePlatform &&
+    // oxlint-disable-next-line react/refs
     !!savedForm &&
+    // oxlint-disable-next-line react/refs
     projectNameResolved === savedForm.projectName &&
+    // oxlint-disable-next-line react/refs
     teamSlugResolved === savedForm.teamSlug &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.alertSetting === savedAlert?.alertSetting &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.interval === savedAlert?.interval &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.metric === savedAlert?.metric &&
+    // oxlint-disable-next-line react/refs
     alertRuleConfig.threshold === savedAlert?.threshold &&
     isEqual(
       hasNotificationAction ? buildNotificationSelection(notificationProps) : undefined,
+      // oxlint-disable-next-line react/refs
       savedForm?.notificationSelection
     );
 
@@ -475,6 +487,7 @@ export function useScmProjectDetails({
     teamSlugResolved,
   ]);
 
+  // oxlint-disable-next-line react/refs
   return {
     projectName: projectNameResolved,
     onProjectNameChange,

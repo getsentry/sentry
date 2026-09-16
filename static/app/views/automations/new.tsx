@@ -45,6 +45,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -81,6 +82,7 @@ const INITIAL_FORM_DATA_DEFAULTS = {
 };
 
 function useInitialFormData() {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const [connectedIds] = useQueryState(
     'connectedIds',
@@ -88,6 +90,9 @@ function useInitialFormData() {
   );
   const [projectId] = useQueryState('project', parseAsString);
   const {projects} = useProjects();
+  const writableProjects = projects.filter(project =>
+    hasAutomationWriteAccess({organization, project})
+  );
 
   // If URL params are passed, use them
   if (connectedIds.length > 0) {
@@ -96,7 +101,7 @@ function useInitialFormData() {
       detectorIds: connectedIds,
     };
   }
-  if (projectId) {
+  if (projectId && writableProjects.some(project => project.id === projectId)) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
       projectIds: [projectId],
@@ -104,17 +109,19 @@ function useInitialFormData() {
   }
 
   // If any specific projects are selected, use the first one
-  const intitialSelectedProject = selection.projects.find(p => p > 0);
-  if (intitialSelectedProject) {
+  const initialSelectedProject = writableProjects.find(project =>
+    selection.projects.includes(Number(project.id))
+  );
+  if (initialSelectedProject) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
-      projectIds: [String(intitialSelectedProject)],
+      projectIds: [initialSelectedProject.id],
     };
   }
 
-  // Otherwise use the first project that the user has access to
+  // Otherwise use the first project where the user can create an alert.
   const sortedUserProjects = orderBy(
-    projects,
+    writableProjects,
     ['isMember', 'isBookmarked'],
     ['desc', 'desc']
   );

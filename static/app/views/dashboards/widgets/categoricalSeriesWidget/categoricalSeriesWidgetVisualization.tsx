@@ -370,6 +370,7 @@ export function CategoricalSeriesWidgetVisualization(
       renderer="canvas"
       series={seriesFromPlottables}
       legend={
+        // oxlint-disable-next-line react/refs
         showLegend
           ? {
               top: 0,
@@ -381,6 +382,7 @@ export function CategoricalSeriesWidgetVisualization(
                   false
                 );
               },
+              // oxlint-disable-next-line react/refs
               selected: props.legendSelection,
             }
           : undefined

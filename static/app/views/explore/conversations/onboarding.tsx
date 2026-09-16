@@ -134,7 +134,13 @@ function ConversationWaitingIndicator({
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button variant="primary" onClick={onDismiss}>
+    <Button
+      variant="primary"
+      analyticsEventKey="conversations.onboarding.interaction"
+      analyticsEventName="Conversations: Onboarding Interaction"
+      analyticsParams={{action: 'view_conversations'}}
+      onClick={onDismiss}
+    >
       {t('View Conversations')}
     </Button>
   ) : (
@@ -165,8 +171,18 @@ function ConversationStepRenderer({
         <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
       </StepIndexProvider>
       <GuidedSteps.ButtonWrapper>
-        <GuidedSteps.BackButton size="md" />
-        <GuidedSteps.NextButton size="md" />
+        <GuidedSteps.BackButton
+          size="md"
+          analyticsEventKey="conversations.onboarding.interaction"
+          analyticsEventName="Conversations: Onboarding Interaction"
+          analyticsParams={{action: 'previous_step', step: stepIndex + 1}}
+        />
+        <GuidedSteps.NextButton
+          size="md"
+          analyticsEventKey="conversations.onboarding.interaction"
+          analyticsEventName="Conversations: Onboarding Interaction"
+          analyticsParams={{action: 'next_step', step: stepIndex + 1}}
+        />
         {isLastStep && (
           <ConversationWaitingIndicator project={project} onDismiss={onDismiss} />
         )}
@@ -186,6 +202,7 @@ function AgentSetupInstructions({
   prompt: string;
 }) {
   const {copy} = useCopyToClipboard();
+  const organization = useOrganization();
 
   return (
     <Stack gap="xl" align="start" paddingTop="md">
@@ -202,6 +219,18 @@ function AgentSetupInstructions({
             defaultClipped
             collapsible
             buttonProps={{variant: 'secondary', size: 'xs'}}
+            onReveal={() => {
+              trackAnalytics('conversations.onboarding.interaction', {
+                organization,
+                action: 'expand_prompt',
+              });
+            }}
+            onCollapse={() => {
+              trackAnalytics('conversations.onboarding.interaction', {
+                organization,
+                action: 'collapse_prompt',
+              });
+            }}
           >
             <Text
               as="div"
@@ -228,6 +257,10 @@ function AgentSetupInstructions({
           source: 'prompt',
         }}
         onClick={() => {
+          trackAnalytics('conversations.onboarding.interaction', {
+            organization,
+            action: 'copy_agent_prompt',
+          });
           copy(prompt, {
             successMessage: t('Copied setup prompt to clipboard'),
           });
@@ -301,6 +334,13 @@ function ConversationOnboardingPanel({
                     key={defaultTab}
                     defaultValue={defaultTab}
                     aria-label={t('Setup instructions')}
+                    onChange={tab => {
+                      trackAnalytics('conversations.onboarding.interaction', {
+                        organization,
+                        action: 'switch_tab',
+                        tab,
+                      });
+                    }}
                   >
                     <TabList variant="floating">
                       <TabList.Item
@@ -712,6 +752,14 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             <PlatformOptionDropdown
               platformOptions={platformOptions}
               connectors={{deploymentTarget: t('on')}}
+              onChange={(option, value) => {
+                trackAnalytics('conversations.onboarding.interaction', {
+                  organization,
+                  action: 'select_setup_option',
+                  option,
+                  value,
+                });
+              }}
               lockedValues={
                 integrationDeploymentTarget
                   ? {deploymentTarget: integrationDeploymentTarget}

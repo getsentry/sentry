@@ -507,8 +507,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
-    API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
-    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
@@ -645,21 +643,13 @@ class Referrer(StrEnum):
     DASHBOARDS_SLACK_UNFURL = "dashboards.slack.unfurl"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
-    DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
-        "dynamic_sampling.counters.get_org_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
-        "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
-    )
+    INGESTION_DELAY_MEASUREMENT = "ingestion_delay.measurement"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_project_volumes"
     )
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
-        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
     )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
