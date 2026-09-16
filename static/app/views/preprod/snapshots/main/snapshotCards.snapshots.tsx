@@ -1,6 +1,3 @@
-import {ThemeProvider} from '@emotion/react';
-
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import type {
   SnapshotDiffPair,
   SnapshotImage,
@@ -108,7 +105,6 @@ jest.mock('./imageDisplay/useD3Zoom', () => {
   };
 });
 
-const themes = {light: lightTheme, dark: darkTheme};
 const noop = () => {};
 const imageBaseUrl = '/visual-snapshots/images/';
 const diffImageBaseUrl = '/visual-snapshots/diffs/';
@@ -120,7 +116,7 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
-    tags: {lang: 'en', dir: 'ltr', theme: 'light'},
+    tags: {lang: 'en', dir: 'ltr'},
     width: 320,
     ...overrides,
   };
@@ -158,239 +154,233 @@ const renamedPair: SnapshotDiffPair = {
 };
 
 describe('SnapshotCards', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    function Wrapper({children}: {children: React.ReactNode}) {
-      return (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{width: 720}}>{children}</div>
-        </ThemeProvider>
-      );
-    }
+  function Wrapper({children}: {children: React.ReactNode}) {
+    return <div style={{width: 720}}>{children}</div>;
+  }
 
-    const headerProps = {
-      copyData: headImage,
-      copyUrl,
-      fileName: 'button.light.png',
-      isDark: false,
-      onToggleDark: noop,
-      tags: {lang: 'en', dir: 'ltr', theme: 'light'} as Record<string, string>,
-    };
+  const headerProps = {
+    copyData: headImage,
+    copyUrl,
+    fileName: 'button.light.png',
+    isDark: false,
+    onToggleDark: noop,
+    tags: {lang: 'en', dir: 'ltr'} as Record<string, string>,
+  };
 
+  it.snapshot(
+    'card-header-display-name-and-filename',
+    () => (
+      <Wrapper>
+        <CardHeader
+          {...headerProps}
+          displayName="Button / light"
+          status={DiffStatus.CHANGED}
+          diffPercent={0.042}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  it.snapshot(
+    'card-header-filename-only',
+    () => (
+      <Wrapper>
+        <CardHeader {...headerProps} displayName={null} status={DiffStatus.CHANGED} />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  function snapshotCardHeaderStatus({
+    state,
+    status,
+    diffPercent,
+  }: {
+    state: string;
+    diffPercent?: number | null;
+    status?: DiffStatus | null;
+  }) {
     it.snapshot(
-      'card-header-display-name-and-filename',
+      `card-header-${state}`,
       () => (
         <Wrapper>
           <CardHeader
             {...headerProps}
             displayName="Button / light"
-            status={DiffStatus.CHANGED}
-            diffPercent={0.042}
+            status={status}
+            diffPercent={diffPercent}
           />
         </Wrapper>
       ),
       {tags: {area: 'snapshots'}}
     );
+  }
 
-    it.snapshot(
-      'card-header-filename-only',
-      () => (
-        <Wrapper>
-          <CardHeader {...headerProps} displayName={null} status={DiffStatus.CHANGED} />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    function snapshotCardHeaderStatus({
-      state,
-      status,
-      diffPercent,
-    }: {
-      state: string;
-      diffPercent?: number | null;
-      status?: DiffStatus | null;
-    }) {
-      it.snapshot(
-        `card-header-${state}`,
-        () => (
-          <Wrapper>
-            <CardHeader
-              {...headerProps}
-              displayName="Button / light"
-              status={status}
-              diffPercent={diffPercent}
-            />
-          </Wrapper>
-        ),
-        {tags: {area: 'snapshots'}}
-      );
-    }
-
-    snapshotCardHeaderStatus({
-      state: 'changed-with-diff-percent',
-      status: DiffStatus.CHANGED,
-      diffPercent: 0.042,
-    });
-    snapshotCardHeaderStatus({
-      state: 'changed-without-diff-percent',
-      status: DiffStatus.CHANGED,
-      diffPercent: null,
-    });
-    snapshotCardHeaderStatus({state: 'added', status: DiffStatus.ADDED});
-    snapshotCardHeaderStatus({state: 'removed', status: DiffStatus.REMOVED});
-    snapshotCardHeaderStatus({state: 'renamed', status: DiffStatus.RENAMED});
-    snapshotCardHeaderStatus({state: 'unchanged', status: DiffStatus.UNCHANGED});
-    snapshotCardHeaderStatus({state: 'no-status', status: null});
-
-    it.snapshot(
-      'card-header-static',
-      () => (
-        <Wrapper>
-          <CardHeader
-            {...headerProps}
-            displayName="Button / light"
-            status={DiffStatus.CHANGED}
-            diffPercent={0.042}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    function snapshotPairCard({
-      state,
-      pair,
-      diffMode,
-      isSelected,
-    }: {
-      diffMode: 'split' | 'wipe' | 'onion';
-      isSelected: boolean;
-      pair: SnapshotDiffPair;
-      state: string;
-    }) {
-      it.snapshot(
-        `pair-card-${state}`,
-        () => (
-          <Wrapper>
-            <PairCard
-              pair={pair}
-              imageBaseUrl={imageBaseUrl}
-              headBranch="Current Branch"
-              isSelected={isSelected}
-              copyUrl={copyUrl}
-              diffMode={diffMode}
-              overlayColor="rgba(219, 66, 66, 0.65)"
-              diffImageBaseUrl={diffImageBaseUrl}
-              snapshotKey={`button-light-${state}`}
-              onSelectSnapshot={noop}
-              onOpenSnapshot={noop}
-            />
-          </Wrapper>
-        ),
-        {tags: {area: 'snapshots'}}
-      );
-    }
-
-    snapshotPairCard({
-      state: 'changed-split',
-      pair: changedPair,
-      diffMode: 'split',
-      isSelected: false,
-    });
-    snapshotPairCard({
-      state: 'changed-wipe',
-      pair: changedPair,
-      diffMode: 'wipe',
-      isSelected: false,
-    });
-    snapshotPairCard({
-      state: 'changed-onion',
-      pair: changedPair,
-      diffMode: 'onion',
-      isSelected: false,
-    });
-    snapshotPairCard({
-      state: 'selected-changed-split',
-      pair: changedPair,
-      diffMode: 'split',
-      isSelected: true,
-    });
-
-    it.snapshot(
-      'image-card-added-selected-with-display-name',
-      () => (
-        <Wrapper>
-          <ImageCard
-            image={headImage}
-            cardType="added"
-            imageBaseUrl={imageBaseUrl}
-            isSelected
-            copyUrl={copyUrl}
-            snapshotKey="button-light-added"
-            onSelectSnapshot={noop}
-            onOpenSnapshot={noop}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    it.snapshot(
-      'image-card-removed-unselected',
-      () => (
-        <Wrapper>
-          <ImageCard
-            image={baseImage}
-            cardType="removed"
-            imageBaseUrl={imageBaseUrl}
-            isSelected={false}
-            copyUrl={copyUrl}
-            snapshotKey="button-light-removed"
-            onSelectSnapshot={noop}
-            onOpenSnapshot={noop}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    it.snapshot(
-      'image-card-renamed-with-pair-metadata',
-      () => (
-        <Wrapper>
-          <ImageCard
-            image={renamedPair.head_image}
-            cardType="renamed"
-            copyData={renamedPair}
-            imageBaseUrl={imageBaseUrl}
-            isSelected={false}
-            copyUrl={copyUrl}
-            snapshotKey="button-light-renamed"
-            onSelectSnapshot={noop}
-            onOpenSnapshot={noop}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
-
-    it.snapshot(
-      'image-card-solo-filename-only-no-status',
-      () => (
-        <Wrapper>
-          <ImageCard
-            image={image({display_name: null})}
-            cardType="solo"
-            imageBaseUrl={imageBaseUrl}
-            isSelected={false}
-            copyUrl={copyUrl}
-            snapshotKey="button-light-solo"
-            onSelectSnapshot={noop}
-            onOpenSnapshot={noop}
-          />
-        </Wrapper>
-      ),
-      {tags: {area: 'snapshots'}}
-    );
+  snapshotCardHeaderStatus({
+    state: 'changed-with-diff-percent',
+    status: DiffStatus.CHANGED,
+    diffPercent: 0.042,
   });
+  snapshotCardHeaderStatus({
+    state: 'changed-without-diff-percent',
+    status: DiffStatus.CHANGED,
+    diffPercent: null,
+  });
+  snapshotCardHeaderStatus({state: 'added', status: DiffStatus.ADDED});
+  snapshotCardHeaderStatus({state: 'removed', status: DiffStatus.REMOVED});
+  snapshotCardHeaderStatus({state: 'renamed', status: DiffStatus.RENAMED});
+  snapshotCardHeaderStatus({state: 'unchanged', status: DiffStatus.UNCHANGED});
+  snapshotCardHeaderStatus({state: 'no-status', status: null});
+
+  it.snapshot(
+    'card-header-static',
+    () => (
+      <Wrapper>
+        <CardHeader
+          {...headerProps}
+          displayName="Button / light"
+          status={DiffStatus.CHANGED}
+          diffPercent={0.042}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  function snapshotPairCard({
+    state,
+    pair,
+    diffMode,
+    isSelected,
+  }: {
+    diffMode: 'split' | 'wipe' | 'onion';
+    isSelected: boolean;
+    pair: SnapshotDiffPair;
+    state: string;
+  }) {
+    it.snapshot(
+      `pair-card-${state}`,
+      () => (
+        <Wrapper>
+          <PairCard
+            pair={pair}
+            imageBaseUrl={imageBaseUrl}
+            headBranch="Current Branch"
+            isSelected={isSelected}
+            copyUrl={copyUrl}
+            diffMode={diffMode}
+            overlayColor="rgba(219, 66, 66, 0.65)"
+            diffImageBaseUrl={diffImageBaseUrl}
+            snapshotKey={`button-light-${state}`}
+            onSelectSnapshot={noop}
+            onOpenSnapshot={noop}
+          />
+        </Wrapper>
+      ),
+      {tags: {area: 'snapshots'}}
+    );
+  }
+
+  snapshotPairCard({
+    state: 'changed-split',
+    pair: changedPair,
+    diffMode: 'split',
+    isSelected: false,
+  });
+  snapshotPairCard({
+    state: 'changed-wipe',
+    pair: changedPair,
+    diffMode: 'wipe',
+    isSelected: false,
+  });
+  snapshotPairCard({
+    state: 'changed-onion',
+    pair: changedPair,
+    diffMode: 'onion',
+    isSelected: false,
+  });
+  snapshotPairCard({
+    state: 'selected-changed-split',
+    pair: changedPair,
+    diffMode: 'split',
+    isSelected: true,
+  });
+
+  it.snapshot(
+    'image-card-added-selected-with-display-name',
+    () => (
+      <Wrapper>
+        <ImageCard
+          image={headImage}
+          cardType="added"
+          imageBaseUrl={imageBaseUrl}
+          isSelected
+          copyUrl={copyUrl}
+          snapshotKey="button-light-added"
+          onSelectSnapshot={noop}
+          onOpenSnapshot={noop}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  it.snapshot(
+    'image-card-removed-unselected',
+    () => (
+      <Wrapper>
+        <ImageCard
+          image={baseImage}
+          cardType="removed"
+          imageBaseUrl={imageBaseUrl}
+          isSelected={false}
+          copyUrl={copyUrl}
+          snapshotKey="button-light-removed"
+          onSelectSnapshot={noop}
+          onOpenSnapshot={noop}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  it.snapshot(
+    'image-card-renamed-with-pair-metadata',
+    () => (
+      <Wrapper>
+        <ImageCard
+          image={renamedPair.head_image}
+          cardType="renamed"
+          copyData={renamedPair}
+          imageBaseUrl={imageBaseUrl}
+          isSelected={false}
+          copyUrl={copyUrl}
+          snapshotKey="button-light-renamed"
+          onSelectSnapshot={noop}
+          onOpenSnapshot={noop}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
+
+  it.snapshot(
+    'image-card-solo-filename-only-no-status',
+    () => (
+      <Wrapper>
+        <ImageCard
+          image={image({display_name: null})}
+          cardType="solo"
+          imageBaseUrl={imageBaseUrl}
+          isSelected={false}
+          copyUrl={copyUrl}
+          snapshotKey="button-light-solo"
+          onSelectSnapshot={noop}
+          onOpenSnapshot={noop}
+        />
+      </Wrapper>
+    ),
+    {tags: {area: 'snapshots'}}
+  );
 });

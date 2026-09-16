@@ -1,8 +1,4 @@
-import {ThemeProvider} from '@emotion/react';
-
 import {Button} from '@sentry/scraps/button';
-
-import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {KeyValueTable, KeyValueTableRow} from './keyValueTable';
 import {KeyValueTableCard} from './keyValueTableCard';
@@ -11,8 +7,6 @@ import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
 } from './keyValueTableDataRow';
-
-const themes = {light: lightTheme, dark: darkTheme};
 
 const contentItems: KeyValueTableDataRowProps[] = [
   {item: {key: 'string', subject: 'string', value: 'A plain string value.'}},
@@ -29,185 +23,163 @@ const listData = [
 ];
 
 describe('KeyValueTable', () => {
-  describe.each(['light', 'dark'] as const)('%s', themeName => {
-    it.snapshot(
-      'inline',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 400}}>
-            <KeyValueTable>
-              <KeyValueTableRow keyName="Created" value="Jan 15, 2025" />
-              <KeyValueTableRow keyName="Version" value="2.1.0" />
-              <KeyValueTableRow keyName="Environment" value="production" />
-            </KeyValueTable>
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'inline'}}
-    );
+  it.snapshot(
+    'inline',
+    () => (
+      <div style={{padding: 8, width: 400}}>
+        <KeyValueTable>
+          <KeyValueTableRow keyName="Created" value="Jan 15, 2025" />
+          <KeyValueTableRow keyName="Version" value="2.1.0" />
+          <KeyValueTableRow keyName="Environment" value="production" />
+        </KeyValueTable>
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'inline'}}
+  );
 
-    it.snapshot.each<'error' | 'warning'>(['error', 'warning'])(
-      'inline-%s',
-      (type: 'error' | 'warning') => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 400}}>
-            <KeyValueTable>
-              <KeyValueTableRow keyName="Status" value="Failing" type={type} />
-              <KeyValueTableRow keyName="Version" value="2.1.0" />
-            </KeyValueTable>
-          </div>
-        </ThemeProvider>
-      ),
-      (type: 'error' | 'warning') => ({tags: {area: 'core', variant: 'inline', type}})
-    );
+  it.snapshot.each<'error' | 'warning'>(['error', 'warning'])(
+    'inline-%s',
+    (type: 'error' | 'warning') => (
+      <div style={{padding: 8, width: 400}}>
+        <KeyValueTable>
+          <KeyValueTableRow keyName="Status" value="Failing" type={type} />
+          <KeyValueTableRow keyName="Version" value="2.1.0" />
+        </KeyValueTable>
+      </div>
+    ),
+    (type: 'error' | 'warning') => ({tags: {area: 'core', variant: 'inline', type}})
+  );
 
-    it.snapshot(
-      'card',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableCard
-              title="Dataset KeyValueTableCardTitle"
-              contentItems={contentItems}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'card'}}
-    );
+  it.snapshot(
+    'card',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableCard
+          title="Dataset KeyValueTableCardTitle"
+          contentItems={contentItems}
+        />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
 
-    it.snapshot(
-      'card-truncated',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableCard
-              title="Truncated"
-              contentItems={contentItems}
-              truncateLength={2}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'card'}}
-    );
+  it.snapshot(
+    'card-truncated',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableCard
+          title="Truncated"
+          contentItems={contentItems}
+          truncateLength={2}
+        />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
 
-    it.snapshot(
-      'card-row-states',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableCard
-              contentItems={[
-                {
-                  item: {
-                    key: 'action-button',
-                    subject: 'action button',
-                    value: 'Hover to reveal',
-                    actionButton: <Button size="zero">{'Edit'}</Button>,
-                    actionButtonAlwaysVisible: true,
-                  },
-                },
-                {
-                  item: {key: 'suspect', subject: 'suspect flag', value: 'true'},
-                  isSuspectFlag: true,
-                },
-                {
-                  item: {key: 'errored', subject: 'errored', value: ''},
-                  errors: [['invalid_data', {reason: 'This is a reason'}]],
-                },
-                {
-                  item: {
-                    key: 'full-width',
-                    subject: 'full width',
-                    subjectNode: null,
-                    value: 'Spans both columns',
-                  },
-                },
-              ]}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'card'}}
-    );
+  it.snapshot(
+    'card-row-states',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableCard
+          contentItems={[
+            {
+              item: {
+                key: 'action-button',
+                subject: 'action button',
+                value: 'Hover to reveal',
+                actionButton: <Button size="zero">{'Edit'}</Button>,
+                actionButtonAlwaysVisible: true,
+              },
+            },
+            {
+              item: {key: 'suspect', subject: 'suspect flag', value: 'true'},
+              isSuspectFlag: true,
+            },
+            {
+              item: {key: 'errored', subject: 'errored', value: ''},
+              errors: [['invalid_data', {reason: 'This is a reason'}]],
+            },
+            {
+              item: {
+                key: 'full-width',
+                subject: 'full width',
+                subjectNode: null,
+                value: 'Spans both columns',
+              },
+            },
+          ]}
+        />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
 
-    it.snapshot(
-      'card-expand-left',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableCard contentItems={contentItems} expandLeft />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'card'}}
-    );
+  it.snapshot(
+    'card-expand-left',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableCard contentItems={contentItems} expandLeft />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
 
-    it.snapshot(
-      'card-standalone-row',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableDataRow
-              item={{key: 'string', subject: 'string', value: 'A plain string value.'}}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'card'}}
-    );
+  it.snapshot(
+    'card-standalone-row',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableDataRow
+          item={{key: 'string', subject: 'string', value: 'A plain string value.'}}
+        />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'card'}}
+  );
 
-    it.snapshot(
-      'list',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableDataList data={listData} />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'list'}}
-    );
+  it.snapshot(
+    'list',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableDataList data={listData} />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'list'}}
+  );
 
-    it.snapshot(
-      'list-context-data',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableDataList data={listData} isContextData />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'list'}}
-    );
+  it.snapshot(
+    'list-context-data',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableDataList data={listData} isContextData />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'list'}}
+  );
 
-    it.snapshot(
-      'list-multi-value',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8, width: 500}}>
-            <KeyValueTableDataList
-              shouldSort={false}
-              data={[
-                {
-                  key: 'tags',
-                  subject: 'Tags',
-                  value: ['alpha', 'beta', 'gamma'],
-                  isMultiValue: true,
-                },
-                {
-                  key: 'action-button',
-                  subject: 'Action',
-                  value: 'With a button',
-                  actionButton: <Button size="zero">{'Edit'}</Button>,
-                },
-              ]}
-            />
-          </div>
-        </ThemeProvider>
-      ),
-      {tags: {area: 'core', variant: 'list'}}
-    );
-  });
+  it.snapshot(
+    'list-multi-value',
+    () => (
+      <div style={{padding: 8, width: 500}}>
+        <KeyValueTableDataList
+          shouldSort={false}
+          data={[
+            {
+              key: 'tags',
+              subject: 'Tags',
+              value: ['alpha', 'beta', 'gamma'],
+              isMultiValue: true,
+            },
+            {
+              key: 'action-button',
+              subject: 'Action',
+              value: 'With a button',
+              actionButton: <Button size="zero">{'Edit'}</Button>,
+            },
+          ]}
+        />
+      </div>
+    ),
+    {tags: {area: 'core', variant: 'list'}}
+  );
 });
