@@ -25,7 +25,7 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
 
     Accumulated on a ``SeerRunPrIteration`` row from the first queued feedback
     item and flushed here. An iteration that never reaches its completion hook
-    is not recorded.
+    is emitted by the stale-row sweep, with the ``no_completion_hook`` outcome.
     """
 
     iteration_id: int
@@ -35,6 +35,7 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     group_id: int
     run_id: int
     referrer: str | None
+    # -1 if the feedback batch timed out/errored and was picked up by the sweep task
     iteration_index: int
 
     # Why the drain that claimed this iteration ran, written at claim time.
