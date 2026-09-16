@@ -23,12 +23,10 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json, redis
 
 HOLD_OPTION = "crons.clock_tick.hold_on_missing_partitions"
-HOLD_MAX_SECONDS_OPTION = "crons.clock_tick.hold_max_seconds"
 
 BASE_OPTIONS = {
     "crons.system_incidents.collect_metrics": False,
     HOLD_OPTION: False,
-    HOLD_MAX_SECONDS_OPTION: 0,
 }
 
 
@@ -394,10 +392,10 @@ def test_hold_clock_tick_only_clock_set_lost(dispatch_tick: mock.MagicMock) -> N
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
 @override_options({**BASE_OPTIONS, HOLD_OPTION: True})
-def test_hold_clock_tick_no_bound_by_default(dispatch_tick: mock.MagicMock) -> None:
+def test_hold_clock_tick_holds_while_set_is_short(dispatch_tick: mock.MagicMock) -> None:
     """
-    With the hold bound at its default of zero, the clock holds for as long as
-    the partition set is short. Nothing lets the clock advance on its own.
+    The clock holds for as long as the partition set is short. Nothing lets the
+    clock advance on its own.
     """
     seed_pulse(4)
 
@@ -418,47 +416,6 @@ def test_hold_clock_tick_no_bound_by_default(dispatch_tick: mock.MagicMock) -> N
         assert dispatch_tick.mock_calls == [mock.call(now)]
         last_ts = get_redis_client().get(MONITOR_TASKS_LAST_TRIGGERED_KEY)
         assert int(last_ts) == int(now.timestamp())
-
-
-@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({**BASE_OPTIONS, HOLD_OPTION: True, HOLD_MAX_SECONDS_OPTION: 600})
-def test_hold_clock_tick_max_seconds(dispatch_tick: mock.MagicMock) -> None:
-    """
-    With a hold bound set, the clock holds until the set has been short for
-    that long, then advances on the partitions that are present. The held
-    minutes are backfilled, and the clock keeps moving while the set stays
-    short.
-    """
-    seed_pulse(4)
-
-    with freeze_time() as frozen_time:
-        now = timezone.now().replace(second=0, microsecond=0)
-
-        fill_partition_set(now, 4)
-        assert dispatch_tick.mock_calls == [mock.call(now)]
-
-        get_redis_client().delete(MONITOR_TASKS_PARTITION_CLOCKS)
-
-        # The set goes short at minute 1. The stall gap reaches the bound of
-        # ten minutes at minute 11, so the clock holds through minute 10.
-        for minute in range(1, 11):
-            frozen_time.shift(timedelta(minutes=1))
-            try_monitor_clock_tick(ts=now + timedelta(minutes=minute), partition=0)
-        assert dispatch_tick.mock_calls == [mock.call(now)]
-
-        # At minute 11 the bound releases the hold. The clock follows partition
-        # 0 and backfills the ten minutes it held.
-        frozen_time.shift(timedelta(minutes=1))
-        try_monitor_clock_tick(ts=now + timedelta(minutes=11), partition=0)
-        assert dispatch_tick.mock_calls == [
-            mock.call(now + timedelta(minutes=minute)) for minute in range(0, 12)
-        ]
-
-        # The set is still short, so the clock keeps following partition 0
-        frozen_time.shift(timedelta(minutes=1))
-        try_monitor_clock_tick(ts=now + timedelta(minutes=12), partition=0)
-        assert dispatch_tick.mock_calls[-1] == mock.call(now + timedelta(minutes=12))
-        assert dispatch_tick.call_count == 13
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
