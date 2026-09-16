@@ -2796,11 +2796,11 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
 
     def test_only_loads_selected_event_body(self) -> None:
         now = datetime.now(UTC)
-        events = [
-            self.store_event_helper(now - timedelta(hours=2), self.project.id, "a" * 32, "1" * 16),
-            self.store_event_helper(now - timedelta(hours=1), self.project.id, "b" * 32, "2" * 16),
-        ]
-        group = events[0].group
+        selected = self.store_event_helper(
+            now - timedelta(hours=2), self.project.id, "a" * 32, "1" * 16
+        )
+        self.store_event_helper(now - timedelta(hours=1), self.project.id, "b" * 32, "2" * 16)
+        group = selected.group
         assert group is not None
         with (
             patch(
@@ -2817,8 +2817,8 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             result = _get_recommended_event(group, self.organization, now - timedelta(days=1), now)
 
         assert result is not None
-        assert result.event_id == events[0].event_id
-        get_body.assert_called_once_with(events[0].data.id)
+        assert result.event_id == selected.event_id
+        get_body.assert_called_once_with(selected.data.id)
         get_bodies.assert_not_called()
 
     def test_skips_missing_event_body(self) -> None:
@@ -2962,14 +2962,13 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
                 )
 
     def test_get_recommended_event_fallback_if_no_events_in_clamped_range(self) -> None:
-        """Falls back to the recommended event in the full range, even if it is older."""
         project = self.create_project()
         now = datetime.now(UTC)
         start = now - timedelta(days=30)
         end = now
         clamped_start = end - self.max_date_range
 
-        # Both events are outside the search window; the older sampled trace ranks higher.
+        # The older sampled trace ranks higher.
         event1 = self.store_event_helper(
             dt=clamped_start - timedelta(hours=12),
             project_id=project.id,
@@ -2994,7 +2993,6 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         assert result.event_id == event1.event_id
 
     def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self) -> None:
-        """Falls back to a recommended candidate if none has stored spans."""
         project = self.create_project()
         now = datetime.now(UTC)
         start = now - timedelta(days=30)

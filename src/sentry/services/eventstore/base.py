@@ -210,7 +210,6 @@ class EventStorage(Service):
         *,
         load_bodies: bool = True,
     ) -> list[Event]:
-        """Query ordered events, optionally deferring body loading until data is accessed."""
         raise NotImplementedError
 
     def get_unfetched_events(

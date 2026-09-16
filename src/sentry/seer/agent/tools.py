@@ -1206,7 +1206,7 @@ def _get_recommended_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-    """Prefer a recommended event with stored spans, falling back to the normal recommendation."""
+    """Prefer events with stored spans."""
     start_time = time.time()
 
     # Config
@@ -1221,7 +1221,6 @@ def _get_recommended_event(
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
     window_start = max(end - window_size, start)
     window_end = end
-    # Fallback to the most recommended available event in the most recent window.
     fallback_events: list[Event] = []
 
     if group.issue_category == GroupCategory.ERROR:
@@ -1275,13 +1274,13 @@ def _get_recommended_event(
             )
             break
 
-        if events and not fallback_events:
+        if not fallback_events:
             fallback_events = events
 
         trace_ids = list({event.trace_id for event in events if event.trace_id})
 
         try:
-            # Include spans either side of the event window, within retention.
+            # Spans may fall outside the event window.
             traces_with_spans = _get_traces_with_spans(
                 organization.id,
                 trace_ids,
@@ -1337,7 +1336,7 @@ def _get_traces_with_spans(
 
 
 def _load_first_available_event(group: Group, events: Sequence[Event]) -> GroupEvent | None:
-    # Checking data loads the body on demand; skip missing bodies.
+    # Checking data loads the body on demand.
     event = next((candidate for candidate in events if candidate.data), None)
     return event.for_group(group) if event is not None else None
 
