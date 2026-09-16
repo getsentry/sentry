@@ -73,11 +73,7 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        <Tag variant="muted">
-          {data.mode === 'aggregate' ? t('Aggregate') : t('Spans')}
-        </Tag>
-      }
+      badge={data.mode === 'aggregate' ? null : <Tag variant="muted">{t('Spans')}</Tag>}
       href={getSpansQueryHref(data, organization)}
       icon={IconSpan}
       linkLabel={t('View Spans')}

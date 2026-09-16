@@ -141,7 +141,9 @@ describe('spans query embed', () => {
     expect(await screen.findByText('http.server')).toBeInTheDocument();
     // A duration aggregate reads as a duration, not as a bare millisecond count.
     expect(screen.getByText('1.23s')).toBeInTheDocument();
-    expect(screen.getByText('Aggregate')).toBeInTheDocument();
+    // Aggregate mode carries no badge: the chart already says the rows are
+    // grouped, so a tag repeating it would only crowd the header.
+    expect(screen.queryByText('Spans')).not.toBeInTheDocument();
     // A group-by column is present, so the table is still worth rendering —
     // now beneath the chart.
     expect(screen.getByRole('table')).toBeInTheDocument();
