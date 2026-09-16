@@ -241,7 +241,10 @@ describe('ScmPlatformFeatures', () => {
     });
     await userEvent.click(changeButton);
 
-    expect(screen.getByText('Language or framework')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Back to what we found'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
   it('falls back to manual picker when platform detection fails', async () => {
@@ -256,14 +259,14 @@ describe('ScmPlatformFeatures', () => {
       {organization}
     );
 
-    expect(await screen.findByText('Language or framework')).toBeInTheDocument();
+    expect(await screen.findByText('Search')).toBeInTheDocument();
     expect(screen.queryByText(/^Detected from /)).not.toBeInTheDocument();
   });
 
   it('renders manual picker when no repository in context', async () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
-    expect(await screen.findByText('Language or framework')).toBeInTheDocument();
+    expect(await screen.findByText('Search')).toBeInTheDocument();
     expect(screen.queryByText(/^Detected from /)).not.toBeInTheDocument();
   });
 
@@ -271,7 +274,7 @@ describe('ScmPlatformFeatures', () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
     // Wait for the component to fully settle (CompactSelect triggers async popper updates)
-    await screen.findByText('Language or framework');
+    await screen.findByText('Search');
 
     expect(screen.getByRole('button', {name: 'Continue'})).toBeDisabled();
   });
@@ -331,7 +334,7 @@ describe('ScmPlatformFeatures', () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
     renderGlobalModal();
 
-    await screen.findByText('Language or framework');
+    await screen.findByText('Search');
 
     // Type into the Select to search and pick a base language
     await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
@@ -349,7 +352,7 @@ describe('ScmPlatformFeatures', () => {
     });
     renderGlobalModal();
 
-    await screen.findByText('Language or framework');
+    await screen.findByText('Search');
 
     // Type into the Select to search and pick a console platform
     await userEvent.type(screen.getByRole('textbox'), 'Nintendo');
@@ -411,7 +414,7 @@ describe('ScmPlatformFeatures', () => {
     it('fires step viewed event on mount', async () => {
       render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
 
-      await screen.findByText('Language or framework');
+      await screen.findByText('Search');
 
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'onboarding.scm_platform_features_step_viewed',

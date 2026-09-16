@@ -11,7 +11,7 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
-import {IconBusiness, IconInfo} from 'sentry/icons';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -22,7 +22,11 @@ import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmFeatureInfoCards} from './scmFeatureInfoCards';
 import {ScmFeatureSelectionCards} from './scmFeatureSelectionCards';
-import {DEFAULT_SCM_FEATURES, FEATURE_DISPLAY_ORDER} from './scmPlatformHelpers';
+import {
+  DEFAULT_SCM_FEATURES,
+  FEATURE_DISPLAY_ORDER,
+  getPlatformName,
+} from './scmPlatformHelpers';
 import {useScmFeatureMeta} from './useScmFeatureMeta';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
@@ -165,6 +169,46 @@ export function ScmFeatureSelectionPanel({
   );
 
   const hasFeatureCards = featureMode !== 'none';
+  const currentPlatformName = getPlatformName(currentPlatformKey);
+  const isInformational = featureMode === 'informational';
+
+  // Onboarding frames the list as a question; project creation renders its own
+  // "Products" heading above instead. Both list variants share this header so
+  // the section reads the same whether or not the products are selectable.
+  const sectionHeader = isOnboarding ? (
+    <Stack gap="xs">
+      <Heading as="h3" size="lg">
+        {isInformational && currentPlatformName
+          ? tct('What you can track with [platformName]', {
+              platformName: (
+                <Text as="span" bold variant="accent">
+                  {currentPlatformName}
+                </Text>
+              ),
+            })
+          : t('What do you want to track?')}
+      </Heading>
+      {isInformational ? (
+        <Text size="lg" variant="muted" density="comfortable">
+          {t('Your setup wizard will ask which of these to turn on in the next step.')}
+        </Text>
+      ) : null}
+      {isInformational ? null : (
+        <Text size="lg" variant="muted" density="comfortable">
+          {tct(
+            'You’ve got [promo:unlimited volume for 14 days]. After that, free plan volumes apply. No card required.',
+            {
+              promo: (
+                <Text as="span" variant="promotion">
+                  {null}
+                </Text>
+              ),
+            }
+          )}
+        </Text>
+      )}
+    </Stack>
+  ) : null;
 
   let featureCards: ReactNode = null;
   if (featureMode === 'toggleable') {
@@ -185,8 +229,6 @@ export function ScmFeatureSelectionPanel({
         availableFeatures={availableFeatures}
         disabledProducts={disabledProducts}
         featureMeta={featureMeta}
-        isVolumeLoading={isFeatureMetaLoading}
-        isOnboarding={isOnboarding}
       />
     );
   }
@@ -200,30 +242,6 @@ export function ScmFeatureSelectionPanel({
         <MotionStack layout="position" width="100%">
           {/* Padding, unlike a flex gap, is clipped during the card reveal. */}
           <Stack gap="0" paddingTop={isOnboarding ? 'xs' : undefined}>
-            {isOnboarding ? (
-              <Flex
-                padding="xl"
-                background="tertiary"
-                border="primary"
-                radius="xl"
-                gap="lg"
-              >
-                <IconBusiness size="lg" variant="accent" />
-                <Text size="md" density="comfortable">
-                  {tct(
-                    'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                    {
-                      bold: (
-                        <Text as="span" bold variant="accent">
-                          {null}
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Text>
-              </Flex>
-            ) : null}
-
             {isOnboarding ? null : (
               <Flex justify="between" align="center" gap="md">
                 <Heading as="h4">{t('Products')}</Heading>
@@ -239,7 +257,10 @@ export function ScmFeatureSelectionPanel({
 
             <ScmCollapsibleReveal open={hasFeatureCards}>
               <Container paddingTop={isOnboarding ? '2xl' : 'lg'}>
-                {featureCards}
+                <Stack gap="lg" width="100%">
+                  {sectionHeader}
+                  {featureCards}
+                </Stack>
               </Container>
             </ScmCollapsibleReveal>
           </Stack>

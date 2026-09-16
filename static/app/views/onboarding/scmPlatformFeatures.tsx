@@ -1,7 +1,7 @@
 import {LayoutGroup, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -12,12 +12,12 @@ import {
   getPlatformInfo,
   toSelectedSdk,
 } from 'sentry/components/onboarding/scm/scmPlatformHelpers';
+import {ScmStepLayout} from 'sentry/components/onboarding/scm/scmStepLayout';
 import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {useScmProjectCreation} from 'sentry/components/onboarding/scm/useScmProjectCreation';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import type {StepProps} from './types';
 
@@ -119,38 +119,37 @@ export function ScmPlatformFeatures({
     // The onboarding flow has no page-level query container (project creation
     // resolves against `#main`), and the flow's fixed footers preclude one
     // higher up, so each SCM step declares its own.
-    <Stack align="center" gap="2xl" containerType="inline-size">
-      <Stack gap="3xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`}>
-        <Stack gap="lg" paddingBottom="xl">
+    <Stack containerType="inline-size">
+      <ScmStepLayout>
+        <Stack gap="lg" paddingBottom="2xl">
           <Heading as="h2" size="3xl" align="center">
             {t('Create your first project')}
           </Heading>
-          <Text align="center" variant="muted" size="lg" density="comfortable">
+          <Text
+            align="center"
+            variant="muted"
+            size="lg"
+            density="comfortable"
+            wrap="pre-line"
+          >
             {t(
-              'A project holds everything Sentry collects from one app or service. Start with one, add more later.'
+              'A project holds everything Sentry collects from one app or service.\nStart with one, add more later.'
             )}
           </Text>
         </Stack>
         <LayoutGroup>
-          <Stack gap="md" paddingTop="sm">
+          <Stack gap="lg">
             <Heading as="h3" size="lg">
-              {t('What are you building with?')}
+              {t('What’s your app built with?')}
             </Heading>
-            <Container>
-              <Text variant="muted" size="md" density="comfortable">
-                {t(
-                  'Pick one language or framework. This decides which SDK you’ll install next.'
-                )}
-              </Text>
-            </Container>
+            <ScmPlatformFeaturesCore
+              analyticsFlow="onboarding"
+              selectedRepository={selectedRepository}
+              selectedPlatform={selectedPlatform}
+              onPlatformChange={onPlatformChange}
+              onFeaturesChange={onFeaturesChange}
+            />
           </Stack>
-          <ScmPlatformFeaturesCore
-            analyticsFlow="onboarding"
-            selectedRepository={selectedRepository}
-            selectedPlatform={selectedPlatform}
-            onPlatformChange={onPlatformChange}
-            onFeaturesChange={onFeaturesChange}
-          />
           <ScmFeatureSelectionPanel
             analyticsFlow="onboarding"
             selectedRepository={selectedRepository}
@@ -162,8 +161,9 @@ export function ScmPlatformFeatures({
             layout="position"
             align="center"
             justify="between"
+            gap="md"
             width="100%"
-            paddingTop="sm"
+            paddingTop="2xl"
           >
             <Flex align="center">{genBackButton?.()}</Flex>
             <Flex align="center" gap="md">
@@ -184,7 +184,7 @@ export function ScmPlatformFeatures({
             </Flex>
           </MotionFlex>
         </LayoutGroup>
-      </Stack>
+      </ScmStepLayout>
     </Stack>
   );
 }
