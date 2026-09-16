@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
 import {type ReactElement} from 'react';
-import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
@@ -69,15 +69,13 @@ jest.mock('lodash/debounce', () =>
     return fn;
   })
 );
-// Preserve the synchronous test behavior of the global lodash/debounce mock when
-// migrating callback-style debounces to Pacer. Other Pacer primitives retain
-// their real scheduling and state behavior.
+// Keep callback and value debounces synchronous by default in tests. Suites that
+// assert scheduling behavior can load the real Pacer implementations explicitly.
 jest.mock('@tanstack/react-pacer', () => ({
   ...jest.requireActual('@tanstack/react-pacer'),
-  asyncDebounce: jest.fn(fn => fn),
-  debounce: jest.fn(fn => fn),
-  useAsyncDebouncedCallback: jest.fn(fn => fn),
-  useDebouncedCallback: jest.fn(fn => fn),
+  useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedValue: <T>(value: T) => [value] as const,
 }));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
@@ -216,7 +214,12 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-afterEach(resetResizeObservers);
+afterEach(() => {
+  const {toast} =
+    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+  act(() => void toast.dismiss());
+  resetResizeObservers();
+});
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -385,6 +388,8 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
+HTMLElement.prototype.setPointerCapture ??= jest.fn();
+
 window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
@@ -418,7 +423,6 @@ if (globalThis.setImmediate === undefined) {
  */
 const FLAKY_RERUN_COUNT = 50;
 
-/* eslint-disable jest/valid-title */
 it.isKnownFlake = function isKnownFlake(
   name: string,
   fn: jest.ProvidesCallback,
@@ -435,4 +439,3 @@ it.isKnownFlake = function isKnownFlake(
     }
   });
 };
-/* eslint-enable jest/valid-title */

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,13 +6,14 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconClock, IconContract, IconExpand, IconGraph} from 'sentry/icons';
+import {IconClock, IconContract, IconExpand, IconGraph, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -40,6 +41,10 @@ import {
   getSamplingWarningReason,
   prettifyAggregation,
 } from 'sentry/views/explore/utils';
+import {
+  getConditionalFilterInvalidSeriesMessageForYAxis,
+  isConditionalAggregateYAxisValid,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   ChartType,
   useSynchronizeCharts,
@@ -72,6 +77,8 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
 ];
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
+
+const DROPPED_DATA_LAYER = 'dropped-data';
 
 export function ExploreCharts({
   query,
@@ -162,8 +169,14 @@ function Chart({
   samplingMode,
   topEvents,
 }: ChartProps) {
+  const organization = useOrganization();
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
+  const droppedData = organization.features.includes('explore-data-fidelity-annotations')
+    ? timeseriesResult.meta?.annotations
+    : undefined;
+  const hasDroppedData = defined(droppedData) && droppedData.length > 0;
+  const [showDroppedData, setShowDroppedData] = useState(true);
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -196,11 +209,31 @@ function Chart({
       samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
     }
 
+    // Invalid `_if` filters skip the backend request; surface that as a chart error
+    // instead of an empty/no-data state.
+    const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
+    const resultForChart = (
+      hasValidConditionalFilter
+        ? timeseriesResult
+        : {
+            ...timeseriesResult,
+            error: new Error(
+              getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
+            ),
+            isError: true,
+            isPending: false,
+            isLoading: false,
+            isFetching: false,
+            isSuccess: false,
+            status: 'error' as const,
+          }
+    ) as SortedTimeSeries;
+
     return {
       chartType,
       confidence: combineConfidenceForSeries(confidenceSeries),
-      series,
-      timeseriesResult,
+      series: hasValidConditionalFilter ? series : [],
+      timeseriesResult: resultForChart,
       yAxis: visualize.yAxis,
       dataScanned: samplingMeta.dataScanned,
       isSampled: samplingMeta.isSampled,
@@ -238,6 +271,30 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
+      {hasDroppedData ? (
+        <Tooltip title={t('Show or hide additional layers on this chart')}>
+          <CompactSelect
+            multiple
+            value={showDroppedData ? [DROPPED_DATA_LAYER] : []}
+            options={[{value: DROPPED_DATA_LAYER, label: t('Dropped Data')}]}
+            menuTitle={t('Layers')}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                aria-label={t('Chart layers')}
+                icon={<IconStack />}
+                variant="transparent"
+                showChevron={false}
+                size="xs"
+              />
+            )}
+            onChange={selected => {
+              const values = selected.map(option => option.value);
+              setShowDroppedData(values.includes(DROPPED_DATA_LAYER));
+            }}
+          />
+        </Tooltip>
+      ) : null}
       <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
         <CompactSelect
           trigger={triggerProps => (
@@ -309,6 +366,8 @@ function Chart({
             <ChartVisualization
               chartInfo={chartInfo}
               chartRef={chartRef}
+              droppedData={droppedData}
+              showDroppedData={showDroppedData}
               chartXRangeSelection={{
                 initialSelection: initialChartSelection,
                 onSelectionEnd: () => {

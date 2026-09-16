@@ -5,7 +5,6 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -24,7 +23,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -68,9 +67,6 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         # be removed and this override eliminated in favour of a WE-aware IncidentEndpoint.
         args, kwargs = OrganizationEndpoint.convert_args(self, request, *args, **kwargs)
         organization = kwargs["organization"]
-
-        if not features.has("organizations:incidents", organization, actor=request.user):
-            raise ResourceDoesNotExist
 
         if request.method == "GET":
             gop: GroupOpenPeriod | None = None
@@ -121,7 +117,6 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
 
         return args, kwargs
 
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-details")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(
         self,
@@ -134,6 +129,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         ``````````````````
         :auth: required
         """
+        enforce_alerts_api_deprecation(organization)
         expand = request.GET.getlist("expand", [])
         return Response(
             serialize(

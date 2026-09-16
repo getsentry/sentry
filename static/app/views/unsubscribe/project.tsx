@@ -1,15 +1,18 @@
 import {Fragment} from 'react';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
 
-import {ApiForm} from 'sentry/components/forms/apiForm';
-import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -53,10 +56,28 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
       path: {organizationIdOrSlug: orgSlug, id: issueId},
     }
   );
-  const {isPending, isError, data} = useApiQuery<UnsubscribeResponse>(
-    [endpoint, {query: {_: signature}}],
-    {staleTime: 0}
+  const {isPending, isError, data} = useQuery(
+    apiOptions.as<UnsubscribeResponse>()(
+      '/organizations/$organizationIdOrSlug/unsubscribe/project/$id/',
+      {
+        path: {organizationIdOrSlug: orgSlug, id: issueId},
+        query: {_: signature},
+        staleTime: 0,
+      }
+    )
   );
+  const mutation = useMutation({
+    mutationFn: (value: {cancel: number}) =>
+      fetchMutation({url: `${endpoint}?_=${signature}`, method: 'POST', data: value}),
+    onSuccess: () => {
+      testableWindowLocation.assign('/auth/login/');
+    },
+  });
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {cancel: 1},
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+  });
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -87,23 +108,19 @@ function UnsubscribeBody({orgSlug, issueId, signature}: BodyProps) {
         </strong>
       </p>
       <p>{t('You can subscribe to it again by going to your account settings.')}</p>
-      <ApiForm
-        apiEndpoint={`${endpoint}?_=${signature}`}
-        apiMethod="POST"
-        submitLabel={t('Unsubscribe')}
-        cancelLabel={t('Cancel')}
-        onCancel={() => {
-          // Use window.location as we're going to an HTML view
-          testableWindowLocation.assign('/auth/login/');
-        }}
-        onSubmitSuccess={() => {
-          // Use window.location as we're going to an HTML view
-          testableWindowLocation.assign('/auth/login/');
-        }}
-        initialData={{cancel: 1}}
-      >
-        <HiddenField name="cancel" />
-      </ApiForm>
+      <form.AppForm form={form}>
+        <Flex gap="sm" justify="end">
+          <Button
+            onClick={() => {
+              // Use window.location as we're going to an HTML view
+              testableWindowLocation.assign('/auth/login/');
+            }}
+          >
+            {t('Cancel')}
+          </Button>
+          <form.SubmitButton>{t('Unsubscribe')}</form.SubmitButton>
+        </Flex>
+      </form.AppForm>
     </Fragment>
   );
 }

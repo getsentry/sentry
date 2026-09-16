@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -222,8 +222,8 @@ function UsageHistoryRow({history}: RowProps) {
   return (
     <StyledPanelItem>
       <Flex
-        justify={{'screen:xs': 'start', 'screen:md': 'between'}}
-        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+        justify={{zero: 'start', '3xl': 'between'}}
+        direction={{zero: 'column', '3xl': 'row'}}
         gap="xl"
       >
         <Flex gap="lg">
@@ -245,7 +245,7 @@ function UsageHistoryRow({history}: RowProps) {
             <Text bold>{tct('[planName] Plan', {planName: history.planName})}</Text>
           </Stack>
         </Flex>
-        <Grid flow="column" align="center" gap="md">
+        <Flex align="center" gap="md" wrap="wrap">
           <Button
             icon={<IconDownload />}
             onClick={() => {
@@ -279,7 +279,7 @@ function UsageHistoryRow({history}: RowProps) {
               window.open(`${history.links.csvPerProject}${option.value}/`, '_blank');
             }}
           />
-        </Grid>
+        </Flex>
       </Flex>
       {expanded && (
         <Container padding="xl 0">

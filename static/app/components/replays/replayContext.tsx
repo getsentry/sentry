@@ -233,6 +233,7 @@ export function Provider({
     []
   );
 
+  // oxlint-disable-next-line react/refs
   const isFinished = getCurrentPlayerTime() === finishedAtMS;
   const setReplayFinished = useCallback(() => {
     setFinishedAtMS(getCurrentPlayerTime());
@@ -507,7 +508,7 @@ export function Provider({
   }, [replayId, isFetching]);
 
   const togglePlayPause = useCallback(
-    (play: boolean) => {
+    (play: boolean, {seek = true} = {}) => {
       const replayer = replayerRef.current;
       if (!replayer) {
         return;
@@ -515,8 +516,10 @@ export function Provider({
 
       if (play) {
         replayer.play(getCurrentPlayerTime());
-      } else {
+      } else if (seek) {
         replayer.pause(getCurrentPlayerTime());
+      } else {
+        replayer.pause();
       }
       setIsPlaying(play);
 
@@ -539,7 +542,10 @@ export function Provider({
 
     const handleVisibilityChange = () => {
       if (document.visibilityState !== 'visible' && replayerRef.current) {
-        togglePlayPause(false);
+        togglePlayPause(false, {seek: isVideoReplay});
+        // Pausing without a seek skips rrweb's `backToNormal()`, so `SkipEnd`
+        // never fires to clear this
+        setFFSpeed(0);
       }
     };
 
@@ -548,7 +554,7 @@ export function Provider({
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [togglePlayPause, isPlaying]);
+  }, [togglePlayPause, isPlaying, isVideoReplay]);
 
   // Initialize replayer for Video Replays
   useEffect(() => {
@@ -625,6 +631,7 @@ export function Provider({
 
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setBufferTime({target: -1, previous: -1});
     }
   }, [isBuffering, buffer.target]);

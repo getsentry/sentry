@@ -1,5 +1,4 @@
-import {mutationOptions} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -10,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
@@ -43,7 +43,9 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
     ) => {
       return fetchMutation<RepositoryWithSettings[]>({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/repos/settings/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/repos/settings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {...data, repositoryIds: [repoWithSettings.id]},
       });
     },

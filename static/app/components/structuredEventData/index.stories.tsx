@@ -17,7 +17,7 @@ export default Storybook.story('StructuredEventData', story => {
         </p>
         <StructuredEventData data="foo" />
         <StructuredEventData data={100} />
-        <StructuredEventData data={null} />
+        <StructuredEventData />
         <StructuredEventData data={false} />
         <StructuredEventData data={{foo: 'bar', arr: [1, 2, 3, 4, 5, 6]}} />
         <StructuredEventData data={['one', 2, null]} />

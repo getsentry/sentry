@@ -3,17 +3,18 @@ import {useInfiniteQuery, useMutation, useQueryClient} from '@tanstack/react-que
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {AddAutofixRepoModal} from 'sentry/components/seer/legacy/addAutofixRepoModal';
 import {AutofixRepositoriesItem} from 'sentry/components/seer/projectDetails/autofixRepositoriesItem';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -26,6 +27,12 @@ import {
 } from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+const REPOSITORY_COLUMNS: TableColumnConfig[] = [
+  {key: 'repositories', width: '1fr'},
+  {key: 'integration', width: 'max-content'},
+  {key: 'actions', width: 'max-content'},
+];
+
 interface Props {
   canWrite: boolean;
   includeInstructions: boolean;
@@ -35,8 +42,7 @@ interface Props {
 const getTableHeaders = (organization: Organization): React.ReactNode[] => [
   <Flex key="connected-repositories" align="center" gap="md">
     {t('Connected Repositories')}
-    <QuestionTooltip
-      isHoverable
+    <InfoTip
       size="xs"
       title={tct(
         'Seer will only be able to see code from, and make PRs to, the repos connected here. The [link:GitHub integration] is required for Seer to access these repos.',
@@ -115,27 +121,35 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
 
   if (!data.length) {
     return (
-      <PanelTable headers={tableHeaders.slice(0, 1)}>
-        <Flex padding="2xl" align="center" justify="center" gap="xl">
-          <img src={seerConfigBug1} alt="" width="130px" height="130px" />
-          <Stack gap="lg">
-            <Heading as="h4">{t('Connect a repository')}</Heading>
-            <Flex maxWidth="250px">
-              {t(
-                'Connect at least one repository so Seer can gather more insights from your code.'
-              )}
-            </Flex>
-            <Button
-              disabled={!canWrite}
-              variant="primary"
-              icon={<IconAdd />}
-              onClick={handleAddRepoClick}
-            >
-              {t('Add Repositories to Project')}
-            </Button>
-          </Stack>
-        </Flex>
-      </PanelTable>
+      <SimpleTable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{tableHeaders[0]}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        <SimpleTable.Empty>
+          <Flex padding="2xl" align="center" justify="center" gap="xl">
+            <img src={seerConfigBug1} alt="" width="130px" height="130px" />
+            <Stack gap="lg">
+              <Heading as="h4">{t('Connect a repository')}</Heading>
+              <Flex maxWidth="250px">
+                {t(
+                  'Connect at least one repository so Seer can gather more insights from your code.'
+                )}
+              </Flex>
+              <Button
+                disabled={!canWrite}
+                variant="primary"
+                icon={<IconAdd />}
+                onClick={handleAddRepoClick}
+              >
+                {t('Add Repositories to Project')}
+              </Button>
+            </Stack>
+          </Flex>
+        </SimpleTable.Empty>
+      </SimpleTable>
     );
   }
   return (
@@ -151,7 +165,16 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
         </Button>
       </Flex>
 
-      <StyledPanelTable headers={tableHeaders}>
+      <StyledSimpleTable
+        columns={REPOSITORY_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            {tableHeaders.map((header, i) => (
+              <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+            ))}
+          </SimpleTable.HeaderRow>
+        }
+      >
         {data.map(repository => (
           <AutofixRepositoriesItem
             key={repository.repositoryId}
@@ -163,12 +186,11 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
             repository={repository}
           />
         ))}
-      </StyledPanelTable>
+      </StyledSimpleTable>
     </Stack>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   margin-bottom: 0;
-  grid-template-columns: 1fr repeat(2, max-content);
 `;

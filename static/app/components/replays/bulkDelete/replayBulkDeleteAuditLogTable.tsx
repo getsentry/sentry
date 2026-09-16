@@ -1,14 +1,21 @@
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ReplayBulkDeleteAuditLog} from 'sentry/components/replays/bulkDelete/types';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {ERROR_MAP} from 'sentry/utils/requestError/requestError';
+import {RequestError, ERROR_MAP} from 'sentry/utils/requestError/requestError';
+
+const AUDIT_LOG_COLUMNS: TableColumnConfig[] = [
+  {key: 'id', width: 'max-content'},
+  {key: 'dateCreated', width: 'max-content'},
+  {key: 'query', width: '1fr'},
+  {key: 'countDeleted', width: 'max-content'},
+  {key: 'status', width: 'max-content'},
+];
 
 export function ReplayBulkDeleteAuditLogTable({
   error,
@@ -20,18 +27,20 @@ export function ReplayBulkDeleteAuditLogTable({
   rows: ReplayBulkDeleteAuditLog[] | undefined;
 }) {
   return (
-    <SimpleTableWithColumns>
-      <SimpleTable.Header>
-        <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Date Created')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Query')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Count Deleted')}</SimpleTable.HeaderCell>
-        <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
-      </SimpleTable.Header>
+    <SimpleTable
+      columns={AUDIT_LOG_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('ID')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Date Created')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Query')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Count Deleted')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
+    >
       {isPending ? (
-        <SimpleTable.Empty>
-          <LoadingIndicator />
-        </SimpleTable.Empty>
+        <SimpleTable.Loading />
       ) : error ? (
         <SimpleTable.Empty>
           <Alert variant="danger">
@@ -71,13 +80,9 @@ export function ReplayBulkDeleteAuditLogTable({
       ) : (
         <SimpleTable.Empty>{t('No deletes found')}</SimpleTable.Empty>
       )}
-    </SimpleTableWithColumns>
+    </SimpleTable>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: max-content max-content 1fr max-content max-content;
-`;
 
 function getErrorMessage(fetchError: Error | string) {
   if (typeof fetchError === 'string') {

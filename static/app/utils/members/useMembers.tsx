@@ -8,10 +8,9 @@ import {memberUsersQueryOptions, normalizeMemberValues} from './shared';
 interface UseMembersOptions {
   enabled?: boolean;
   ids?: string[];
-  limit?: number;
 }
 
-export function useMembers({enabled = true, ids, limit}: UseMembersOptions = {}) {
+export function useMembers({enabled = true, ids}: UseMembersOptions = {}) {
   const organization = useOrganization();
   const normalizedIds = useMemo(() => normalizeMemberValues(ids), [ids]);
   const hasIdFilter = ids !== undefined;
@@ -21,7 +20,6 @@ export function useMembers({enabled = true, ids, limit}: UseMembersOptions = {})
     ...memberUsersQueryOptions({
       orgSlug: organization.slug,
       ids: hasIdFilter ? normalizedIds : undefined,
-      limit,
     }),
     enabled: enabled && (!hasIdFilter || hasIds),
   });

@@ -61,7 +61,6 @@ export default function ReplayInlineOnboardingPanel({
           </Container>
           <Flex gap="md">
             <Button
-              type="button"
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
               analyticsEventKey="issue_details.replay-onboarding-cta-set-up-button-clicked"
               analyticsParams={{platform}}

@@ -27,10 +27,7 @@ from sentry.lang.native.sources import (
 from sentry.lang.native.utils import Backoff
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.objectstore import (
-    get_attachments_session,
-    get_internal_download_url,
-)
+from sentry.objectstore import UsecaseId, get_internal_download_url, get_session
 from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
@@ -232,12 +229,12 @@ class Symbolicator:
     def process_minidump(
         self, platform: str, minidump: CachedAttachment, rewrite_first_module: list[Any]
     ):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if minidump.stored_id:
             stored_id = minidump.stored_id
-            session = get_attachments_session(self.project.organization_id, self.project.id)
+            session = get_session(UsecaseId.ATTACHMENTS, self.project)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -276,12 +273,12 @@ class Symbolicator:
         return process_response(res)
 
     def process_applecrashreport(self, platform: str, report: CachedAttachment):
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
 
         if report.stored_id:
             stored_id = report.stored_id
-            session = get_attachments_session(self.project.organization_id, self.project.id)
+            session = get_session(UsecaseId.ATTACHMENTS, self.project)
             json: dict[str, Any] = {
                 "platform": platform,
                 "sources": sources,
@@ -332,7 +329,7 @@ class Symbolicator:
         :param signal: A numeric crash signal value. This is optional.
         :param apply_source_context: Whether to add source context to frames.
         """
-        (sources, process_response) = sources_for_symbolication(self.project)
+        (sources, process_response) = sources_for_symbolication(self.project, self.event_id)
         scraping_config = get_scraping_config(self.project)
         json = {
             "platform": platform,

@@ -71,14 +71,11 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.data["attributeValue"] == "checkout.requests"
         assert response.data["dataset"] == "tracemetrics"
         assert response.data["attributeType"] == "counter"
-        # Context is always org-level for now, even though a project was passed.
-        assert response.data["project"] is None
         assert response.data["brief"] == "Checkout requests"
         assert response.data["additionalContext"] == "Longer notes about the metric."
 
         context = TraceItemAttributeValueContext.objects.get(
             organization=self.organization,
-            project=None,
             attribute_value="checkout.requests",
         )
         assert context.attribute_name == "metric.name"
@@ -212,8 +209,8 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert "metricType" in response.data
 
     def test_writes_org_level_for_multiple_projects(self) -> None:
-        # Any project selection (including multiple projects) writes org-level
-        # context — the project scope is not used.
+        # Any project selection (including multiple projects) writes a single
+        # org-level row — context is never scoped to a project.
         other_project = self.create_project(organization=self.organization)
         self.store_metric("checkout.requests")
 
@@ -233,9 +230,12 @@ class OrganizationTraceItemMetricContextEndpointTest(
             )
 
         assert response.status_code == 201, response.data
-        assert response.data["project"] is None
-        context = TraceItemAttributeValueContext.objects.get(attribute_value="checkout.requests")
-        assert context.project_id is None
+        assert (
+            TraceItemAttributeValueContext.objects.filter(
+                organization=self.organization, attribute_value="checkout.requests"
+            ).count()
+            == 1
+        )
 
     def test_rejects_nonexistent_metric(self) -> None:
         self.store_metric("checkout.requests")

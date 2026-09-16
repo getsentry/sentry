@@ -16,6 +16,10 @@ from sentry.seer.models.run import SeerRunPullRequest
 
 
 class PullRequestDeletionTask(ModelDeletionTask[PullRequest]):
+    # Each PR deletion fans out to seven child relations, so a burst costs far more
+    # than its row count suggests.
+    rate_limit_option_default = "deletions.pull-request.rate-limit"
+
     def get_query_filter(self) -> Q:
         """
         Returns a Q object that filters for unused PRs.

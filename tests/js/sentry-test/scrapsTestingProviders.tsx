@@ -1,5 +1,29 @@
+import {createPortal} from 'react-dom';
+
+import {ToastProvider} from '@sentry/scraps/toast';
+import {
+  TranslationContextProvider,
+  type TranslationContextValue,
+} from '@sentry/scraps/translationContext';
+
+import {SentryFormErrorProvider} from 'sentry/scrapsProviders/formError';
 import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';
 
+const testTranslation: TranslationContextValue = {
+  t: (string, ...args) =>
+    string.replace('%s', typeof args[0] === 'string' ? args[0] : ''),
+  tct: template => template,
+};
+
 export function ScrapsTestingProviders({children}: {children: React.ReactNode}) {
-  return <SentryLinkBehaviorProvider>{children}</SentryLinkBehaviorProvider>;
+  return (
+    <SentryFormErrorProvider>
+      <TranslationContextProvider value={testTranslation}>
+        <SentryLinkBehaviorProvider>
+          {children}
+          {createPortal(<ToastProvider />, document.body)}
+        </SentryLinkBehaviorProvider>
+      </TranslationContextProvider>
+    </SentryFormErrorProvider>
+  );
 }

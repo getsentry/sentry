@@ -51,7 +51,7 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import launchpad_tasks, preprod_tasks
+from sentry.taskworker.namespaces import launchpad_tasks, preprod_size_tasks
 from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.sdk import bind_organization_context
@@ -67,7 +67,11 @@ logger = logging.getLogger(__name__)
     processing_deadline_duration=60 * 15,
 )
 def process_artifact(
-    artifact_id: str, project_id: str, organization_id: str, **kwargs: Any
+    artifact_id: str,
+    project_id: str,
+    organization_id: str,
+    organization_slug: str | None = None,
+    **kwargs: Any,
 ) -> None:
     pass
 
@@ -75,7 +79,7 @@ def process_artifact(
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact",
     retry=Retry(times=3),
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
@@ -167,7 +171,9 @@ def assemble_preprod_artifact(
         except Exception:
             pass
 
-    taskbroker_dispatched = dispatch_taskbroker(project_id, org_id, artifact_id)
+    taskbroker_dispatched = dispatch_taskbroker(
+        project_id, org_id, artifact_id, organization_slug=organization.slug
+    )
     if not taskbroker_dispatched:
         return
 
@@ -689,7 +695,7 @@ def _assemble_preprod_artifact_size_analysis(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_size_analysis",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
@@ -811,7 +817,7 @@ def _assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.assemble_preprod_artifact_installable_app",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
 )
@@ -832,7 +838,7 @@ def assemble_preprod_artifact_installable_app(
 
 @instrumented_task(
     name="sentry.preprod.tasks.detect_expired_preprod_artifacts",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
@@ -1017,7 +1023,9 @@ def detect_expired_preprod_artifacts(**kwargs: Any) -> None:
     )
 
 
-def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
+def dispatch_taskbroker(
+    project_id: int, org_id: int, artifact_id: int, organization_slug: str | None = None
+) -> bool:
     try:
         logger.info(
             "preprod.dispatch_taskbroker",
@@ -1032,6 +1040,7 @@ def dispatch_taskbroker(project_id: int, org_id: int, artifact_id: int) -> bool:
             artifact_id=str(artifact_id),
             project_id=str(project_id),
             organization_id=str(org_id),
+            organization_slug=organization_slug,
         )
         return True
     except Exception:

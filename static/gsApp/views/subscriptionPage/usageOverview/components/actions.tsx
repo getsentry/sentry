@@ -1,32 +1,23 @@
-import {useTheme} from '@emotion/react';
-
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useMedia} from 'sentry/utils/useMedia';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import {useCurrentBillingHistory} from 'getsentry/hooks/useCurrentBillingHistory';
+import type {Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-export function UsageOverviewActions({organization}: {organization: Organization}) {
-  const {layout} = usePrimaryNavigation();
-  const {view} = useSecondaryNavigation();
-  const navIsCollapsed = view !== 'expanded';
-  const theme = useTheme();
-  const shouldCollapseOnLargeScreen =
-    useMedia(
-      `(min-width: ${theme.breakpoints.lg}) and (max-width: ${theme.breakpoints.xl})`
-    ) && !navIsCollapsed;
-  const shouldCollapseOnMobile =
-    useMedia(`(max-width: ${theme.breakpoints.sm})`) && layout === 'mobile';
-
-  const shouldCollapseActions = shouldCollapseOnLargeScreen || shouldCollapseOnMobile;
+export function UsageOverviewActions({
+  organization,
+  subscription,
+}: {
+  organization: Organization;
+  subscription: Subscription;
+}) {
+  const shouldCollapseActions = useResponsivePropValue({zero: true, xl: false});
 
   const {currentHistory, isPending, isError} = useCurrentBillingHistory();
   const hasBillingPerms = organization.access.includes('org:billing');
@@ -43,7 +34,11 @@ export function UsageOverviewActions({organization}: {organization: Organization
   }> = [
     {
       label: t('View all usage'),
-      to: `/settings/${organization.slug}/billing/usage/`,
+      // Legacy orgs keep the billing usage history page. Only orgs migrated to
+      // the billing platform get the Stats & Usage page.
+      to: subscription.hasMigratedToBillingPlatform
+        ? `/settings/${organization.slug}/stats/`
+        : `/settings/${organization.slug}/billing/usage/`,
       icon: <IconTable />,
     },
     {

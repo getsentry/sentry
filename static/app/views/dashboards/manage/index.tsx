@@ -239,7 +239,6 @@ function ManageDashboards() {
         marginBottom="xl"
       >
         <SearchBar
-          defaultQuery=""
           query={getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => handleSearch(query)}
@@ -314,7 +313,6 @@ function ManageDashboards() {
                 icon={<IconAdd />}
                 disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
                 tooltipProps={{
-                  isHoverable: true,
                   title: limitMessage,
                 }}
               >

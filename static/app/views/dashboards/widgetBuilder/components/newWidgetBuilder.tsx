@@ -103,8 +103,8 @@ export function WidgetBuilderV2({
     }
 
     const navigationElement = document.querySelector(
-      'nav[aria-label="Primary Navigation"]'
-    )?.parentElement;
+      '[data-navigation-component="navigation-layout"]'
+    );
     if (navigationElement) {
       navigationElementRef.current = navigationElement as HTMLDivElement;
     }
@@ -152,6 +152,7 @@ export function WidgetBuilderV2({
   // reset the drag position when the draggable preview is not visible
   useEffect(() => {
     if (!isPreviewDraggable) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTranslate(DEFAULT_WIDGET_DRAG_POSITIONING);
     }
   }, [isPreviewDraggable]);
@@ -170,7 +171,9 @@ export function WidgetBuilderV2({
           <Backdrop zIndex="widgetBuilderDrawer" />
           <WidgetBuilderProvider>
             <ContainerWithoutSidebar
+              data-test-id="widget-builder-container"
               style={
+                // oxlint-disable-next-line react/refs
                 navigationElementRef.current
                   ? isMediumScreen
                     ? {
@@ -285,9 +288,10 @@ export function WidgetPreviewContainer({
       )
     );
 
+  const organization = useOrganization();
   const message =
     (hasOnlyBlankEquation ? t('Enter an equation to preview results') : undefined) ??
-    getWidgetConfigError(widget) ??
+    getWidgetConfigError(widget, organization) ??
     (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
 
   let previewStatus: WidgetPreviewStatus;
@@ -303,7 +307,6 @@ export function WidgetPreviewContainer({
   } else {
     previewStatus = {status: 'ready'};
   }
-  const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);

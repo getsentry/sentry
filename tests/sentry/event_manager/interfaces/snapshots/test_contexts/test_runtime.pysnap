@@ -1,5 +1,5 @@
 ---
-source: tests/sentry/event_manager/interfaces/test_contexts.py
+source: tests/sentry/event_manager/interfaces/test_contexts.py::test_runtime
 ---
 errors: null
 tags:
@@ -14,3 +14,8 @@ to_json:
     runtime: Java 1.2.3
     type: runtime
     version: 1.2.3
+  trace:
+    span_id: d718bb6c40be4ac9
+    status: unknown
+    trace_id: d718bb6c40be4ac9a0c55c4df1640130
+    type: trace

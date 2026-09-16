@@ -11,9 +11,9 @@ from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_http_spans,
     get_notification_attachment_body,
+    get_numeric_value_from_span,
     get_span_duration,
     get_span_evidence_value,
-    log_invalid_span_data,
 )
 from ..performance_problem import PerformanceProblem
 from ..types import Span
@@ -46,29 +46,16 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         if not self._is_span_eligible(span):
             return
 
-        data = span.get("data", None)
-        if not data:
-            return
-
-        encoded_body_size = data.get("http.response_content_length", None)
+        encoded_body_size = get_numeric_value_from_span(
+            span,
+            keys=["http.response_content_length"],
+            detector="large_http_payload",
+            number_type=int,
+        )
         if not encoded_body_size:
             return
 
         payload_size_threshold = self.settings["payload_size_threshold"]
-
-        if isinstance(encoded_body_size, str):
-            try:
-                encoded_body_size = int(encoded_body_size)
-            except (ValueError, OverflowError) as err:
-                # Track instances of this happening so we know if it's a widespread problem
-                log_invalid_span_data(
-                    span,
-                    detector="large_http_payload",
-                    key="http.response_content_length",
-                    value=encoded_body_size,
-                    error=err,
-                )
-                return
 
         if encoded_body_size > payload_size_threshold:
             self._store_performance_problem(span)

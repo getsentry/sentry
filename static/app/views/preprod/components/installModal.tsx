@@ -34,11 +34,7 @@ function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) 
         </Container>
       </Grid>
       <Container padding="xl">
-        <InstallDetailsContent
-          artifactId={artifactId}
-          size="sm"
-          projectSlug={projectSlug}
-        />
+        <InstallDetailsContent artifactId={artifactId} projectSlug={projectSlug} />
       </Container>
     </Stack>
   );

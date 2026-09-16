@@ -69,6 +69,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   }
 
   const navigationRef = useRef<HTMLDivElement>(null);
+  // oxlint-disable-next-line react/refs
   const [isSmallNav, setSmallNav] = useState(checkNavIsSmall);
 
   useResizeObserver({
@@ -144,6 +145,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
       <Flex align="center" gap="2xs" flexShrink={0}>
         <DropdownMenu
+          usePortal
+          zIndex={theme.zIndex.stickyHeader + 1}
           onAction={key => {
             trackAnalytics('issue_details.issue_content_selected', {
               organization,
@@ -280,7 +283,9 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                     </Feature>
                   )}
                   <CopyAsDropdown
+                    usePortal
                     size="xs"
+                    zIndex={theme.zIndex.stickyHeader + 1}
                     items={CopyAsDropdown.makeDefaultCopyAsOptions({
                       text: undefined,
                       json: undefined,

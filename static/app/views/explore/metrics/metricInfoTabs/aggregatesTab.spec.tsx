@@ -1,13 +1,17 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
 import {
   createTraceMetricFixtures,
   initializeTraceMetricsTest,
 } from 'sentry-fixture/tracemetrics';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {AggregatesTab} from 'sentry/views/explore/metrics/metricInfoTabs/aggregatesTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
@@ -17,8 +21,6 @@ import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function createWrapper({
   queryParams,
@@ -52,7 +54,6 @@ describe('AggregatesTab', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
     setupPageFilters();
 
     // Mock the trace-items attributes endpoint
@@ -102,10 +103,14 @@ describe('AggregatesTab', () => {
     expect(screen.getByRole('columnheader', {name: /sum/i})).toBeInTheDocument();
 
     // Metric name column should be prepended when no group bys are selected
-    expect(screen.getByRole('columnheader', {name: 'Application Metric'}).tagName).toBe(
-      'DIV'
-    );
-    expect(screen.getByRole('columnheader', {name: /avg/i}).tagName).toBe('BUTTON');
+    expect(
+      within(screen.getByRole('columnheader', {name: 'Application Metric'})).queryByRole(
+        'button'
+      )
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByRole('columnheader', {name: /avg/i})).getByRole('button')
+    ).toBeInTheDocument();
   });
 
   it('renders table with groupBys and aggregate columns', async () => {
@@ -297,18 +302,16 @@ describe('AggregatesTab', () => {
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
 
-    expect(await screen.findByRole('cell', {name: 'foo'})).toBeInTheDocument();
+    const fooCell = await screen.findByRole('cell', {name: 'foo'});
 
-    const fooCellButton = screen.getAllByRole('button')[0]!;
-    expect(fooCellButton).toHaveTextContent('foo');
-    await userEvent.click(fooCellButton);
+    await userEvent.click(within(fooCell).getByRole('button', {name: 'Actions'}));
 
     expect(await screen.findAllByRole('menuitemradio')).toHaveLength(1);
     expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();
 
-    const envCellButton = screen.getAllByRole('button')[1]!;
-    expect(envCellButton).toHaveTextContent('production');
-    await userEvent.click(envCellButton);
+    const envCell = screen.getByRole('cell', {name: 'production'});
+
+    await userEvent.click(within(envCell).getByRole('button', {name: 'Actions'}));
 
     expect(await screen.findAllByRole('menuitemradio')).toHaveLength(3);
     expect(screen.getByText('Copy to clipboard')).toBeInTheDocument();

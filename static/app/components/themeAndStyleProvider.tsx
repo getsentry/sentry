@@ -8,13 +8,12 @@ import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {GlobalStyles} from 'sentry/styles/global';
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 const SentryComponentInspector =
   NODE_ENV === 'development'
     ? lazy(() =>
-        import('@sentry/scraps/inspector').then(module => ({
+        import('sentry/components/inspector').then(module => ({
           default: module.SentryComponentInspector,
         }))
       )
@@ -44,6 +43,7 @@ export function ThemeAndStyleProvider({children}: Props) {
   const theme = config.theme === 'dark' ? darkTheme : lightTheme;
 
   const didPrintBanner = useRef(false);
+  // oxlint-disable-next-line react/refs
   if (!didPrintBanner.current && NODE_ENV !== 'development' && NODE_ENV !== 'test') {
     didPrintBanner.current = true;
     printConsoleBanner(theme.tokens.content.accent, theme.font.family.mono);

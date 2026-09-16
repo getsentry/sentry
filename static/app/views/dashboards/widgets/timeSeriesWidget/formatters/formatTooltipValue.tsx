@@ -52,7 +52,7 @@ export function formatTooltipValue(
         maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
       });
     case 'percentage':
-      return formatPercentage(value, 2);
+      return formatPercentage(value);
     case 'duration': {
       const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
       const durationInSeconds = convertDuration(value, durationUnit, DurationUnit.SECOND);

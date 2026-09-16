@@ -3,11 +3,12 @@ from unittest.mock import call, patch
 from django.conf import settings
 from django.test import override_settings
 
-from sentry.analytics.events.ai_autofix_pr_events import (
+from sentry.analytics.events.autofix_events import (
     AiAutofixPrClosedEvent,
     AiAutofixPrMergedEvent,
     AiAutofixPrOpenedEvent,
 )
+from sentry.models.group import Group
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestAttribution,
@@ -16,6 +17,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.webhooks import handle_github_pr_webhook_for_autofix
+from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
@@ -29,6 +31,15 @@ class AutofixPrWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, provider="integrations:github")
 
+    def create_autofix_issue_data(self, group: Group) -> SeerAutofixIssueData:
+        return SeerAutofixIssueData.objects.create(
+            group=group,
+            organization=group.project.organization,
+            project=group.project,
+            source="night_shift",
+            raw_issue_data={"status": "autofix", "event_id": "event-id"},
+        )
+
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
     @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
@@ -37,6 +48,8 @@ class AutofixPrWebhookTest(APITestCase):
         self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
         group = self.create_group(project=self.project)
+        issue_data = self.create_autofix_issue_data(group)
+        previous_date_updated = issue_data.date_updated
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
             run_id=1,
             blocks=[],
@@ -45,7 +58,9 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(
+            ["organizations:pr-metrics", "organizations:seer-fixability-training-data"]
+        ):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "opened",
@@ -76,6 +91,11 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
         pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        issue_data.refresh_from_db()
+        assert issue_data.pull_request_id == pull_request.id
+        assert issue_data.raw_issue_data == {"status": "pr_opened", "event_id": "event-id"}
+        assert issue_data.date_updated > previous_date_updated
+
         attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
         assert attribution.signal_type == PullRequestAttributionSignalType.SENTRY_APP
         assert attribution.source == PullRequestAttributionSource.SEER_DATA
@@ -101,20 +121,21 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        handle_github_pr_webhook_for_autofix(
-            self.organization,
-            "opened",
-            {
-                "id": 1,
-                "number": 42,
-                "html_url": PR_URL,
-                "merged": False,
-                "created_at": "2025-01-15T10:30:00Z",
-                "updated_at": "2025-01-15T10:30:00Z",
-            },
-            {"id": settings.SENTRY_GITHUB_APP_USER_ID},
-            self.repo.id,
-        )
+        with self.feature(["organizations:seer-fixability-training-data"]):
+            handle_github_pr_webhook_for_autofix(
+                self.organization,
+                "opened",
+                {
+                    "id": 1,
+                    "number": 42,
+                    "html_url": PR_URL,
+                    "merged": False,
+                    "created_at": "2025-01-15T10:30:00Z",
+                    "updated_at": "2025-01-15T10:30:00Z",
+                },
+                {"id": settings.SENTRY_GITHUB_APP_USER_ID},
+                self.repo.id,
+            )
 
         mock_metrics_incr.assert_any_call("ai.autofix.pr.opened", tags={"mode": "explorer"})
         assert_last_analytics_event(
@@ -130,7 +151,8 @@ class AutofixPrWebhookTest(APITestCase):
             ),
         )
 
-        # Feature flag defaults off — no attribution row without it.
+        # No issue-data row means the lifecycle update is a no-op, including PR creation.
+        assert not PullRequest.objects.exists()
         assert not PullRequestAttribution.objects.exists()
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
@@ -141,6 +163,7 @@ class AutofixPrWebhookTest(APITestCase):
         self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
         group = self.create_group(project=self.project)
+        issue_data = self.create_autofix_issue_data(group)
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
             run_id=1,
             blocks=[],
@@ -149,7 +172,9 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(
+            ["organizations:pr-metrics", "organizations:seer-fixability-training-data"]
+        ):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "closed",
@@ -180,6 +205,10 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
         pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        issue_data.refresh_from_db()
+        assert issue_data.pull_request_id == pull_request.id
+        assert issue_data.raw_issue_data["status"] == "pr_closed"
+
         attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
         assert attribution.source == PullRequestAttributionSource.SEER_DATA
         assert attribution.signal_details == {
@@ -196,6 +225,7 @@ class AutofixPrWebhookTest(APITestCase):
         self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
         group = self.create_group(project=self.project)
+        issue_data = self.create_autofix_issue_data(group)
         mock_get_agent_state_from_pr_id.return_value = SeerRunState(
             run_id=1,
             blocks=[],
@@ -204,7 +234,9 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(
+            ["organizations:pr-metrics", "organizations:seer-fixability-training-data"]
+        ):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "closed",
@@ -234,6 +266,9 @@ class AutofixPrWebhookTest(APITestCase):
         )
 
         pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        issue_data.refresh_from_db()
+        assert issue_data.pull_request_id == pull_request.id
+        assert issue_data.raw_issue_data["status"] == "pr_merged"
         assert PullRequestAttribution.objects.filter(pull_request=pull_request).exists()
 
     @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
@@ -275,7 +310,7 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "closed",
@@ -315,7 +350,7 @@ class AutofixPrWebhookTest(APITestCase):
             metadata={"group_id": group.id},
         )
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "opened",
@@ -368,7 +403,7 @@ class AutofixPrWebhookTest(APITestCase):
         )
         mock_record_attribution_signal.side_effect = RuntimeError("boom")
 
-        with self.feature("organizations:pr-metrics-attribution"):
+        with self.feature(["organizations:pr-metrics"]):
             handle_github_pr_webhook_for_autofix(
                 self.organization,
                 "opened",

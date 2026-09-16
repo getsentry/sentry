@@ -14,6 +14,7 @@ class GithubAppPermissionsWarning(BaseModel):
     warning_type: Literal["github_app_permissions"] = "github_app_permissions"
     repo_name: str
     installation_id: str
+    installation_url: str | None = None
 
 
 # Discriminated on `warning_type`; add new warning models to this union.

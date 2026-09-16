@@ -86,6 +86,7 @@ export function useKeyboardNavigation() {
 
   function getItemProps() {
     const idx = items.length;
+    // oxlint-disable-next-line react/immutability
     items.push({id: idx, node: null});
 
     return {

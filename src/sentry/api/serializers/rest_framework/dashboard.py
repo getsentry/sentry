@@ -7,12 +7,12 @@ from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Max
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
@@ -29,7 +29,9 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
     DatasetSourcesTypes,
     get_max_widget_limit,
+    get_min_widget_height,
 )
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
 from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
@@ -44,6 +46,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 from sentry.utils.tracing import set_span_data, start_span
 
@@ -180,11 +183,11 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
 }
 
 
-class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
+class BaseWidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
     """Widget grid layout position and dimensions.
 
-    The dashboard uses a 6-column grid. Required keys: x, y, w, h, minH.
-    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), minH (>= 1), and x + w <= 6.
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), and x + w <= 6.
     """
 
     x = serializers.IntegerField(
@@ -195,12 +198,42 @@ class WidgetLayoutSerializer(CamelSnakeSerializer[Dashboard]):
         min_value=1, max_value=MAX_WIDGET_COLS, help_text="Width in grid columns (1-6)."
     )
     h = serializers.IntegerField(min_value=1, help_text="Height in grid rows.")
-    min_h = serializers.IntegerField(min_value=1, help_text="Minimum height in grid rows.")
 
     def validate(self, data):
         if data["x"] + data["w"] > MAX_WIDGET_COLS:
             raise serializers.ValidationError(f"x + w must not exceed {MAX_WIDGET_COLS}")
         return convert_dict_key_case(data, snake_to_camel_case)
+
+
+class WidgetLayoutSerializer(BaseWidgetLayoutSerializer):
+    """Widget grid layout position and dimensions.
+
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h, minH.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), minH (>= 1), and x + w <= 6.
+    """
+
+    min_h = serializers.IntegerField(min_value=1, help_text="Minimum height in grid rows.")
+
+
+class DashboardCreateWidgetLayoutSerializer(BaseWidgetLayoutSerializer):
+    """Widget grid layout position and dimensions for dashboard creation.
+
+    The dashboard uses a 6-column grid. Required keys: x, y, w, h.
+    Constraints: x (0-5), y (>= 0), w (1-6), h (>= 1), and x + w <= 6.
+    """
+
+
+def get_widget_layout_height_error(display_type: int, layout: dict[str, Any] | None) -> str | None:
+    if layout is None:
+        return None
+
+    min_height = get_min_widget_height(display_type)
+    height = layout.get("h")
+    if isinstance(height, int) and height >= min_height:
+        return None
+
+    display_type_name = DashboardWidgetDisplayTypes.get_type_name(display_type)
+    return f"Height must be at least {min_height} for {display_type_name} widgets."
 
 
 class DashboardWidgetQueryOnDemandSerializer(CamelSnakeSerializer[Dashboard]):
@@ -282,10 +315,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             # Subtract one because the equation is injected to fields
             orderby = f"{orderby_prefix}equation[{len(equations) - 1}]"
 
+        validation_projects = self._get_validation_projects()
         params: ParamsType = {
             "start": datetime.now() - timedelta(days=1),
             "end": datetime.now(),
-            "project_id": [p.id for p in self.context["projects"]],
+            "project_id": [project.id for project in validation_projects],
+            "project_objects": validation_projects,
             "organization_id": self.context["organization"].id,
             "environment": self.context.get("environment", []),
         }
@@ -333,6 +368,12 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
+        except UnqualifiedQueryError:
+            # Fixed message: sibling SnubaError types leak Snuba internals.
+            data["discover_query_error"] = {
+                "conditions": ["Could not validate query: no project available."]
+            }
+            return data
 
         # TODO(dam): Add validation for metrics fields/queries
         try:
@@ -351,6 +392,13 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
+    def _get_validation_projects(self) -> list[Project]:
+        """Projects for the query builder. Non-request callers supply only `projects`."""
+        projects = self.context.get("validation_projects")
+        if projects is None:
+            projects = self.context["projects"]
+        return projects
+
     def _get_attr(self, data, attr, empty_value=None):
         value = data.get(attr)
         if value is not None:
@@ -365,7 +413,11 @@ class ThresholdMaxKeys(Enum):
     MAX_2 = "max2"
 
 
-@extend_schema_serializer(exclude_fields=["dataset_source"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "dataset_source": "Records whether the widget's dataset was chosen by the user or inferred; internal provenance.",
+    }
+)
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
@@ -381,7 +433,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
     )
     limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    layout = WidgetLayoutSerializer(required=False, allow_null=True)
+    layout: BaseWidgetLayoutSerializer = WidgetLayoutSerializer(required=False, allow_null=True)
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
         required=False,
@@ -411,11 +463,9 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 config is not None
                 and display_type_id not in config["supported_display_types"]
                 # Existing tracemetrics table widgets (those sent with an ``id``)
-                # are allowed to save. The Widget Builder doesn't offer table for
-                # tracemetrics, but some widgets were created with this combo
-                # before display-type validation existed, and those dashboards
-                # must still be saveable. New widgets are still rejected.
-                and not self._is_existing_tracemetrics_table(widget_type_id, display_type_id)
+                # are allowed to save. New tracemetrics table widgets are enabled
+                # by the feature flag.
+                and not self._allows_tracemetrics_table(widget_type_id, display_type_id)
             ):
                 supported_names = sorted(
                     DashboardWidgetDisplayTypes.get_type_name(d) or str(d)
@@ -429,11 +479,17 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return display_type_id
 
-    def _is_existing_tracemetrics_table(self, widget_type_id, display_type_id):
-        return (
-            self.context.get("widget_id") is not None
-            and widget_type_id == DashboardWidgetTypes.TRACEMETRICS
-            and display_type_id == DashboardWidgetDisplayTypes.TABLE
+    def _allows_tracemetrics_table(self, widget_type_id, display_type_id):
+        if (
+            widget_type_id != DashboardWidgetTypes.TRACEMETRICS
+            or display_type_id != DashboardWidgetDisplayTypes.TABLE
+        ):
+            return False
+
+        return self.context.get("widget_id") is not None or features.has(
+            "organizations:tracemetrics-dashboard-table",
+            self.context["organization"],
+            actor=self.context["request"].user,
         )
 
     def _validate_widget_type(self, data):
@@ -915,6 +971,47 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         return validate_project_ids(projects, {project.id for project in self.context["projects"]})
 
+    def validate_widget_layout_updates(self, widgets: list[dict[str, Any]]) -> None:
+        if not isinstance(self.instance, Dashboard) or self.context.get(
+            "allow_legacy_widget_heights", False
+        ):
+            return
+
+        widget_ids = [widget["id"] for widget in widgets if "id" in widget]
+        existing_widgets = DashboardWidget.objects.filter(
+            dashboard=self.instance, id__in=widget_ids
+        ).in_bulk()
+        widget_errors: list[dict[str, Any]] = [{} for _ in widgets]
+
+        for index, widget_data in enumerate(widgets):
+            widget_id = widget_data.get("id")
+            existing_widget = existing_widgets.get(widget_id) if widget_id is not None else None
+            if widget_id is not None and existing_widget is None:
+                continue
+
+            old_display_type = existing_widget.display_type if existing_widget else None
+            old_layout = (
+                existing_widget.detail.get("layout")
+                if existing_widget is not None and existing_widget.detail
+                else None
+            )
+            new_display_type = widget_data.get("display_type", old_display_type)
+            new_layout = widget_data.get("layout", old_layout)
+            if new_display_type is None:
+                continue
+
+            old_error = (
+                get_widget_layout_height_error(old_display_type, old_layout)
+                if old_display_type is not None
+                else None
+            )
+            new_error = get_widget_layout_height_error(new_display_type, new_layout)
+            if new_error is not None and (existing_widget is None or old_error is None):
+                widget_errors[index] = {"layout": {"h": new_error}}
+
+        if any(widget_errors):
+            raise serializers.ValidationError({"widgets": widget_errors})
+
     def validate(self, data):
         start = data.get("start")
         end = data.get("end")
@@ -926,6 +1023,8 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 f"Number of widgets must be less than {Dashboard.MAX_WIDGETS}"
             )
+
+        self.validate_widget_layout_updates(data.get("widgets", []))
 
         permissions = data.get("permissions")
         if permissions and self.instance:
@@ -1434,7 +1533,30 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         DashboardWidgetQuery.objects.filter(widget_id=widget_id).exclude(id__in=keep_ids).delete()
 
 
+class DashboardCreateWidgetSerializer(DashboardWidgetSerializer):
+    layout: BaseWidgetLayoutSerializer = DashboardCreateWidgetLayoutSerializer(
+        required=False, allow_null=True
+    )
+
+    def validate(self, data):
+        data = super().validate(data)
+        layout = data.get("layout")
+        display_type = data.get("display_type")
+        if layout is None or display_type is None:
+            return data
+
+        height_error = get_widget_layout_height_error(display_type, layout)
+        if height_error is not None:
+            raise serializers.ValidationError({"layout": {"h": height_error}})
+
+        layout["minH"] = get_min_widget_height(display_type)
+        return data
+
+
 class DashboardSerializer(DashboardDetailsSerializer):
+    widgets = DashboardCreateWidgetSerializer(
+        many=True, required=False, help_text="A json list of widgets saved in this dashboard."
+    )
     title = serializers.CharField(
         required=True, max_length=255, help_text="The user defined title for this dashboard."
     )

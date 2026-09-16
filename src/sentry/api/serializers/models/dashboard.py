@@ -14,6 +14,7 @@ from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -458,6 +459,7 @@ class DashboardListResponse(TypedDict):
     widgetPreview: list[dict[str, str]]
     permissions: DashboardPermissionsResponse | None
     isFavorited: bool
+    isHidden: bool
     projects: list[int]
     prebuiltId: int | None
 
@@ -473,6 +475,7 @@ class _Widget(TypedDict):
     created_by: dict[str, Any] | None
     permissions: NotRequired[dict[str, Any]]
     is_favorited: NotRequired[bool]
+    is_hidden: NotRequired[bool]
     projects: list[int]
     environment: list[str]
     filters: DashboardFilters
@@ -554,6 +557,12 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             ).values_list("dashboard_id", flat=True)
         )
 
+        hidden_dashboard_ids = set(
+            DashboardHiddenUser.objects.filter(
+                user_id=user.id, dashboard_id__in=item_dict.keys()
+            ).values_list("dashboard_id", flat=True)
+        )
+
         permissions = DashboardPermissions.objects.filter(
             dashboard_id__in=item_dict.keys()
         ).prefetch_related("teams_with_edit_access")
@@ -614,6 +623,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
 
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
+            result[dashboard]["is_hidden"] = dashboard.id in hidden_dashboard_ids
 
             page_filters, tag_filters = self.get_filters(dashboard)
             result[dashboard]["projects"] = page_filters.get("projects", [])
@@ -632,6 +642,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             "widgetPreview": attrs.get("widget_preview", []),
             "permissions": attrs.get("permissions", None),
             "isFavorited": attrs.get("is_favorited", False),
+            "isHidden": attrs.get("is_hidden", False),
             "projects": attrs.get("projects", []),
             "environment": attrs.get("environment", []),
             "filters": attrs.get("filters", {}),
@@ -682,9 +693,20 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             user=user,
         )
 
+        creator_ids = [d.created_by_id for d in item_list if d.created_by_id is not None]
+        serialized_creators = (
+            user_service.serialize_many(filter={"user_ids": creator_ids}) if creator_ids else []
+        )
+        serialized_users = {u["id"]: u for u in serialized_creators}
+
         for dashboard in item_list:
             dashboard_widgets = [w for w in widgets if w and w["dashboardId"] == str(dashboard.id)]
-            result[dashboard] = {"widgets": dashboard_widgets}
+            created_by = (
+                serialized_users.get(str(dashboard.created_by_id))
+                if dashboard.created_by_id is not None
+                else None
+            )
+            result[dashboard] = {"widgets": dashboard_widgets, "created_by": created_by}
 
         return result
 
@@ -695,11 +717,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
             "id": str(obj.id),
             "title": obj.title,
             "dateCreated": obj.date_added,
-            "createdBy": (
-                user_service.serialize_many(filter={"user_ids": [obj.created_by_id]})[0]
-                if obj.created_by_id
-                else None
-            ),
+            "createdBy": attrs.get("created_by"),
             "widgets": attrs["widgets"],
             "filters": tag_filters,
             "permissions": serialize(obj.permissions) if hasattr(obj, "permissions") else None,

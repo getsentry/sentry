@@ -61,12 +61,6 @@ class ProjectAlertRuleEndpoint(ProjectEndpoint):
         project = kwargs["project"]
         validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
 
-        # Allow orgs that have downgraded plans to delete metric alerts
-        if request.method != "DELETE" and not features.has(
-            "organizations:incidents", project.organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
-
         if not request.access.has_project_access(project):
             raise PermissionDenied
 
@@ -90,12 +84,6 @@ class OrganizationAlertRuleEndpoint(OrganizationEndpoint):
         organization = kwargs["organization"]
         validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
 
-        # Allow orgs that have downgraded plans to delete metric alerts
-        if request.method != "DELETE" and not features.has(
-            "organizations:incidents", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
-
         try:
             kwargs["alert_rule"] = AlertRule.objects.get(
                 organization=organization, id=validated_alert_rule_id
@@ -113,12 +101,6 @@ class WorkflowEngineProjectAlertRuleEndpoint(ProjectAlertRuleEndpoint):
         args, kwargs = super(ProjectAlertRuleEndpoint, self).convert_args(request, *args, **kwargs)
         project = kwargs["project"]
         validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
-
-        # Allow orgs that have downgraded plans to delete metric alerts
-        if request.method != "DELETE" and not features.has(
-            "organizations:incidents", project.organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
 
         if not request.access.has_project_access(project):
             raise PermissionDenied
@@ -164,12 +146,6 @@ class WorkflowEngineOrganizationAlertRuleEndpoint(OrganizationAlertRuleEndpoint)
         )
         organization = kwargs["organization"]
         validated_alert_rule_id = to_valid_int_id("alert_rule_id", alert_rule_id, raise_404=True)
-
-        # Allow orgs that have downgraded plans to delete metric alerts
-        if request.method != "DELETE" and not features.has(
-            "organizations:incidents", organization, actor=request.user
-        ):
-            raise ResourceDoesNotExist
 
         if request.method in ("GET", "DELETE") or features.has(
             "organizations:workflow-engine-rule-serializers", organization

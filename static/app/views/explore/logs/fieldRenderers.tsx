@@ -406,7 +406,6 @@ function FilteredTooltip({
           ),
         }
       )}
-      isHoverable
     >
       {children}
     </Tooltip>
@@ -606,7 +605,13 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
     castValue = Number(props.item.value);
   }
   if (attributeType === 'bool' || attributeType === 'boolean') {
-    castValue = Boolean(props.item.value);
+    // Keep empty values null so the formatter renders "(no value)", not false.
+    castValue =
+      props.item.value === null ||
+      props.item.value === undefined ||
+      props.item.value === ''
+        ? null
+        : Boolean(props.item.value);
   }
   return (
     <LogBasicRendererContainer align={align}>

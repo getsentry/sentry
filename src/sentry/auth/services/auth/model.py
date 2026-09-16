@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from django.http.request import HttpRequest
 from pydantic.fields import Field
 
+from sentry.auth.scope_declaration import check_scope_declaration
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.users.services.user import RpcUser
 
@@ -127,6 +128,7 @@ class AuthenticatedToken(RpcModel):
         return self.scopes
 
     def has_scope(self, scope: str) -> bool:
+        check_scope_declaration(scope)
         if self.kind == "system":
             return True
         return scope in self.get_scopes()

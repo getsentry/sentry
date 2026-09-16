@@ -36,7 +36,9 @@ from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
-TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(hour=6)
+TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(
+    hour=6, minute=30, second=0, microsecond=0
+)
 
 
 class BaseGroupCounts(TestCase):
@@ -93,7 +95,6 @@ class HistoricGroupCounts(
             self._create_hourly_bucket(1, event)
         ]
 
-    @pytest.mark.skip(reason="flaky: #95139")
     @freeze_time(TIME_YESTERDAY)
     def test_query_different_group_categories(self) -> None:
         from django.utils import timezone
@@ -243,7 +244,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         group.substatus = GroupSubStatus.UNTIL_ESCALATING
         group.save()
 
-    @pytest.mark.skip(reason="flaky: #93732")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_issue(self) -> None:
         """Test when an archived until escalating issue starts escalating"""
@@ -286,7 +286,7 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         assert group.status == GroupStatus.IGNORED
         assert not GroupInbox.objects.filter(group=group).exists()
 
-    @freeze_time(TIME_YESTERDAY.replace(minute=12, second=40, microsecond=0))
+    @freeze_time(TIME_YESTERDAY)
     def test_hourly_count_query(self) -> None:
         """Test the hourly count query only aggregates events from within the current hour"""
         self._create_events_for_group(count=2, hours_ago=1)  # An hour ago -> It will not count
@@ -296,7 +296,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
         # Events are aggregated in the hourly count query by date rather than the last 24hrs
         assert get_group_hourly_count_snuba(group) == (1, False)
 
-    @pytest.mark.skip(reason="flaky")
     @freeze_time(TIME_YESTERDAY)
     def test_is_forecast_out_of_range(self) -> None:
         """
@@ -319,7 +318,6 @@ class DailyGroupCountsEscalating(BaseGroupCounts):
             assert is_escalating(archived_group) == (True, 1)
             logger.error.assert_called_once()
 
-    @pytest.mark.skip(reason="flaky: #94622")
     @freeze_time(TIME_YESTERDAY)
     def test_is_escalating_two_weeks(self) -> None:
         """

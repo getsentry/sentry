@@ -7,10 +7,6 @@ CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr
 # PR-state lookup pass the specific repo's ``provider`` instead.
 SEER_GITHUB_PROVIDERS = ("integrations:github", "integrations:github_enterprise")
 
-# An issue group must have >= this number of occurrences in order to be
-# a target for 'workflow' autofix.
-AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10
-
 
 class FixabilityScoreThresholds(enum.Enum):
     SUPER_HIGH = 0.76

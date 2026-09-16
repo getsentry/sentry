@@ -64,7 +64,6 @@ export const enum SectionKey {
   CONTEXTS = 'contexts',
   EXTRA = 'extra',
   PACKAGES = 'packages',
-  DEVICE = 'device',
   VIEW_HIERARCHY = 'view-hierarchy',
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',
@@ -119,6 +118,7 @@ interface IssueDetailsContextType extends IssueDetailsState {
 const initialState: IssueDetailsState = {
   sectionData: {},
   detectorDetails: {},
+  eventNavigationHeight: 0,
   isSidebarOpen: true,
   eventCount: 0,
   navScrollMargin: 0,
@@ -143,6 +143,10 @@ interface IssueDetailsState {
    */
   eventCount: number;
   /**
+   * Height of the sticky issue event navigation. Used to stack the event title below it.
+   */
+  eventNavigationHeight: number;
+  /**
    * Controls whether the sidebar is open.
    */
   isSidebarOpen: boolean;
@@ -166,6 +170,11 @@ type UpdateNavScrollMarginAction = {margin: number; type: 'UPDATE_NAV_SCROLL_MAR
 
 type UpdateEventCountAction = {count: number; type: 'UPDATE_EVENT_COUNT'};
 
+type UpdateEventNavigationHeightAction = {
+  height: number;
+  type: 'UPDATE_EVENT_NAVIGATION_HEIGHT';
+};
+
 type UpdateSidebarAction = {isOpen: boolean; type: 'UPDATE_SIDEBAR_STATE'};
 
 type UpdateDetectorDetailsAction = {
@@ -182,6 +191,7 @@ type IssueDetailsActions =
   | UpdateEventSectionAction
   | UpdateNavScrollMarginAction
   | UpdateEventCountAction
+  | UpdateEventNavigationHeightAction
   | UpdateSidebarAction
   | UpdateDetectorDetailsAction
   | RemoveEventSectionAction;
@@ -218,6 +228,10 @@ export function IssueDetailsContextProvider({children}: {children: React.ReactNo
           return updateEventSection(state, action.key, action.config ?? {});
         case 'UPDATE_EVENT_COUNT':
           return {...state, eventCount: action.count};
+        case 'UPDATE_EVENT_NAVIGATION_HEIGHT':
+          return state.eventNavigationHeight === action.height
+            ? state
+            : {...state, eventNavigationHeight: action.height};
         case 'UPDATE_DETECTOR_DETAILS':
           return {...state, detectorDetails: action.detectorDetails};
         case 'REMOVE_EVENT_SECTION': {

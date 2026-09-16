@@ -36,4 +36,6 @@ New features should be gated behind a feature flag.
 
 5. **Rollout**: FlagPole YAML config lives in the `sentry-options-automator` repo, not here.
 
+6. **Removal**: once the rollout is finished, the flag comes out in a fixed three-PR order — see the `remove-option-or-flag` skill.
+
 See https://develop.sentry.dev/feature-flags/ for full docs.

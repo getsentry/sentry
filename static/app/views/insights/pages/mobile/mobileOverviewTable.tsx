@@ -19,7 +19,10 @@ import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SPAN_HEADER_TOOLTIPS} from 'sentry/views/insights/common/components/headerTooltips/headerTooltips';
-import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {
+  getColumnSort,
+  renderHeadCell,
+} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {StarredSegmentCell} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -155,21 +158,11 @@ export function MobileOverviewTable({response, sort}: Props) {
         error={response.error}
         data={data}
         columnOrder={columns}
-        columnSortBy={[
-          {
-            key: sort.field,
-            order: sort.kind,
-          },
-        ]}
         grid={{
           prependColumnWidths: ['max-content'],
           renderPrependColumns,
-          renderHeadCell: column =>
-            renderHeadCell({
-              column,
-              sort,
-              location,
-            }),
+          getColumnSort: column => getColumnSort({column, location, sort}),
+          renderHeadCell: column => renderHeadCell({column}),
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),
           onResizeColumn: handleResizeColumn,

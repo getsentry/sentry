@@ -2,7 +2,7 @@
 source: tests/sentry/grouping/test_enhancer.py::test_basic_parsing
 ---
 bases:
-- common:v1
+- all-platforms:2026-01-20
 classifier_rules:
 - actions:
   - flag: true

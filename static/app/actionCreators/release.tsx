@@ -6,6 +6,7 @@ import {
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {ReleaseStatus} from 'sentry/types/release';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type ParamsGet = {
@@ -20,14 +21,19 @@ export function archiveRelease(api: Client, params: ParamsGet) {
   addLoadingMessage(t('Archiving Release\u2026'));
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/releases/`, {
-      method: 'POST',
-      data: {
-        status: ReleaseStatus.ARCHIVED,
-        projects: [],
-        version: releaseVersion,
-      },
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        method: 'POST',
+        data: {
+          status: ReleaseStatus.ARCHIVED,
+          projects: [],
+          version: releaseVersion,
+        },
+      }
+    )
     .then(() => {
       addSuccessMessage(t('Release was successfully archived.'));
     })
@@ -50,14 +56,19 @@ export function restoreRelease(api: Client, params: ParamsGet) {
   addLoadingMessage(t('Restoring Release\u2026'));
 
   return api
-    .requestPromise(`/organizations/${orgSlug}/releases/`, {
-      method: 'POST',
-      data: {
-        status: ReleaseStatus.ACTIVE,
-        projects: [],
-        version: releaseVersion,
-      },
-    })
+    .requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/releases/', {
+        path: {organizationIdOrSlug: orgSlug},
+      }),
+      {
+        method: 'POST',
+        data: {
+          status: ReleaseStatus.ACTIVE,
+          projects: [],
+          version: releaseVersion,
+        },
+      }
+    )
     .then(() => {
       addSuccessMessage(t('Release was successfully restored.'));
     })

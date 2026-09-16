@@ -8,6 +8,7 @@ import {
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -23,18 +24,22 @@ export async function sendReplayOnboardRequest({
 }: {
   api: Client;
   currentPlan: 'am2-beta' | 'am2-non-beta' | 'am1-beta' | 'am1-non-beta';
-  data?: Record<string, any>;
   onError?: () => void;
   onSuccess?: () => void;
   orgSlug?: Organization['slug'];
 }) {
   try {
-    await api.requestPromise(`/organizations/${orgSlug}/replay-onboard-request/`, {
-      method: 'POST',
-      data: {
-        name: currentPlan,
-      },
-    });
+    await api.requestPromise(
+      getApiUrl('/organizations/$organizationIdOrSlug/replay-onboard-request/', {
+        path: {organizationIdOrSlug: String(orgSlug)},
+      }),
+      {
+        method: 'POST',
+        data: {
+          name: currentPlan,
+        },
+      }
+    );
 
     addSuccessMessage(
       tct('An owner has been [annoyed] notified!', {annoyed: <s>annoyed</s>})
@@ -55,7 +60,6 @@ export function sendUpgradeRequest({
 }: {
   api: Client;
   organization: Organization;
-  data?: Record<string, any>;
   handleSuccess?: () => void;
   type?: string;
 }) {
@@ -99,7 +103,6 @@ export function sendAddEventsRequest({
   api: Client;
   organization: Organization;
   eventTypes?: EventType[];
-  handleSuccess?: () => void;
   notificationType?: string;
 }) {
   const endpoint = `/organizations/${organization.slug}/event-limit-increase-request/`;

@@ -1,37 +1,34 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {useFetchEventsTimeSeries} from './useFetchEventsTimeSeries';
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
 describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: {
-          datetime: {
-            period: '10d',
-            start: null,
-            end: null,
-            utc: false,
-          },
-          environments: ['prod'],
-          projects: [42],
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        datetime: {
+          period: '10d',
+          start: null,
+          end: null,
+          utc: false,
         },
+        environments: ['prod'],
+        projects: [42],
       })
     );
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     jest.resetAllMocks();
   });
 
@@ -276,6 +273,47 @@ describe('useFetchEventsTimeSeries', () => {
           logQuery: ['span.op:db*'],
           metricQuery: ['span.op:db*'],
         }),
+      })
+    );
+  });
+
+  it('omits includeAnnotations by default', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(DiscoverDatasets.SPANS, {yAxis: 'epm()'}, REFERRER)
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request.mock.calls[0][1].query).not.toHaveProperty('includeAnnotations');
+  });
+
+  it('opts in to annotations when includeAnnotations is set', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {yAxis: 'epm()', includeAnnotations: true},
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({includeAnnotations: 1}),
       })
     );
   });

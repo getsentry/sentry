@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -11,7 +11,11 @@ import {Heading} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BackendJsonSubmitForm} from 'sentry/components/backendJsonFormAdapter/backendJsonSubmitForm';
-import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
+import type {
+  JsonFormAdapterChoice,
+  JsonFormAdapterChoiceValue,
+  JsonFormAdapterFieldConfig,
+} from 'sentry/components/backendJsonFormAdapter/types';
 import {
   applySavedDefaultToField,
   getSavedChoicesMap,
@@ -25,16 +29,23 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {TicketActionData} from 'sentry/types/alerts';
 import type {Choices} from 'sentry/types/core';
-import type {IntegrationIssueConfig, IssueConfigField} from 'sentry/types/integrations';
+import type {IntegrationIssueConfig} from 'sentry/types/integrations';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const IGNORED_FIELDS = ['Sprint'];
+
+function mergeChoices(
+  ...choiceGroups: Array<readonly JsonFormAdapterChoice[]>
+): JsonFormAdapterChoice[] {
+  return [
+    ...new Map(choiceGroups.flat().map(choice => [String(choice[0]), choice])).values(),
+  ];
+}
 
 interface TicketRuleModalProps extends ModalRenderProps {
   instance: TicketActionData;
@@ -85,29 +96,23 @@ export function TicketRuleModal({
   // override any inputs with these instance values.
   const [showInstanceValues, setShowInstanceValues] = useState(true);
 
-  const [hasUpdatedCache, setHasUpdatedCache] = useState(false);
-  const [issueConfigFieldsCache, setIssueConfigFieldsCache] = useState<
-    IssueConfigField[]
-  >(() => {
-    return Object.values(instance?.dynamic_form_fields || {});
-  });
-
   const [isDynamicallyRefetching, setIsDynamicallyRefetching] = useState(false);
 
   // Track async select options fetched via search so they can be persisted
   // in the rule config when the form is submitted.
-  const [asyncOptionsCache, setAsyncOptionsCache] = useState<Record<string, Choices>>({});
+  const [asyncOptionsCache, setAsyncOptionsCache] = useState<
+    Record<string, JsonFormAdapterChoice[]>
+  >({});
   const handleAsyncOptionsFetched = useCallback(
-    (fieldName: string, options: Array<SelectValue<string | number>>) => {
+    (fieldName: string, options: Array<SelectValue<JsonFormAdapterChoiceValue>>) => {
+      const fetchedChoices = options.map((option): JsonFormAdapterChoice => {
+        const label =
+          typeof option.label === 'string' ? option.label : String(option.value);
+        return [option.value, label];
+      });
       setAsyncOptionsCache(prev => ({
         ...prev,
-        [fieldName]: options.map(
-          o =>
-            [o.value, typeof o.label === 'string' ? o.label : String(o.value)] as [
-              string | number,
-              string,
-            ]
-        ),
+        [fieldName]: mergeChoices(prev[fieldName] ?? [], fetchedChoices),
       }));
     },
     []
@@ -148,17 +153,10 @@ export function TicketRuleModal({
     {staleTime: Infinity, retry: false, refetchOnMount: 'always'}
   );
 
-  // After the first fetch, update this config cache state
-  useEffect(() => {
-    if (isPending || !defined(integrationDetails) || hasUpdatedCache) {
-      return;
-    }
-    const newConfigCache = integrationDetails[getConfigName(action)];
-    if (newConfigCache) {
-      setIssueConfigFieldsCache(newConfigCache);
-      setHasUpdatedCache(true);
-    }
-  }, [isPending, integrationDetails, action, hasUpdatedCache]);
+  // Dynamic reloads can change the schema, so always submit the latest field config.
+  const issueConfigFields =
+    integrationDetails?.[getConfigName(action)] ??
+    Object.values(instance?.dynamic_form_fields || {});
 
   const {dynamicFieldValues, setDynamicFieldValue} = useDynamicFields({
     action,
@@ -166,10 +164,10 @@ export function TicketRuleModal({
   });
 
   const validAndSavableFieldNames = useMemo(() => {
-    return issueConfigFieldsCache
+    return issueConfigFields
       .filter(field => Object.hasOwn(field, 'name'))
       .map(field => field.name);
-  }, [issueConfigFieldsCache]);
+  }, [issueConfigFields]);
 
   /**
    * XXX: This function seems illegal but it's necessary.
@@ -233,7 +231,7 @@ export function TicketRuleModal({
       if (instance && Object.hasOwn(instance, 'integration')) {
         formData.integration = instance.integration;
       }
-      formData.dynamic_form_fields = issueConfigFieldsCache;
+      formData.dynamic_form_fields = issueConfigFields;
       for (const [key, value] of Object.entries(data)) {
         if (validAndSavableFieldNames.includes(key)) {
           formData[key] = value;
@@ -241,7 +239,7 @@ export function TicketRuleModal({
       }
       return formData;
     },
-    [validAndSavableFieldNames, issueConfigFieldsCache, instance]
+    [validAndSavableFieldNames, issueConfigFields, instance]
   );
 
   const handleSubmit = useCallback(
@@ -252,8 +250,12 @@ export function TicketRuleModal({
       const fieldOptionsCache: Record<string, Choices> = {};
       const config = integrationDetails?.[getConfigName(action)] || [];
       for (const field of config) {
-        if (field.url && field.choices) {
-          fieldOptionsCache[field.name] = field.choices as Choices;
+        if (
+          (field.type === 'select' || field.type === 'choice') &&
+          field.url &&
+          field.choices
+        ) {
+          fieldOptionsCache[field.name] = field.choices;
         }
       }
       // Merge async search results (overwrites static choices for the same field)
@@ -291,8 +293,23 @@ export function TicketRuleModal({
    */
   const cleanFields = useMemo((): JsonFormAdapterFieldConfig[] => {
     const savedChoicesMap = getSavedChoicesMap(instance);
-    const configFields = (integrationDetails?.[getConfigName(action)] ||
-      []) as JsonFormAdapterFieldConfig[];
+    const configFields = (integrationDetails?.[getConfigName(action)] || []).map(
+      field => {
+        const cachedChoices = asyncOptionsCache[field.name];
+        // Keep backend and prior search options so later searches cannot hide the selection.
+        if (
+          (field.type === 'select' || field.type === 'choice') &&
+          field.url &&
+          cachedChoices
+        ) {
+          return {
+            ...field,
+            choices: mergeChoices(field.choices ?? [], cachedChoices),
+          };
+        }
+        return field;
+      }
+    );
 
     const cleanedFields = configFields
       // Don't overwrite the default values for title and description.
@@ -309,7 +326,7 @@ export function TicketRuleModal({
         });
       });
     return [...STATIC_TICKET_FIELDS, ...cleanedFields];
-  }, [instance, integrationDetails, showInstanceValues]);
+  }, [instance, integrationDetails, showInstanceValues, asyncOptionsCache]);
 
   const formErrors = useMemo(() => {
     const errors: Record<string, React.ReactNode> = {};
@@ -324,7 +341,7 @@ export function TicketRuleModal({
         if ('url' in field && field.url) {
           continue;
         }
-        const fieldChoices = (field.choices || []) as Choices;
+        const fieldChoices = field.choices || [];
         const found = fieldChoices.find(([value, _]) =>
           Array.isArray(field.default)
             ? (field.default as unknown[]).includes(value)

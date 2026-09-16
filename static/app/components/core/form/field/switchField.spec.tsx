@@ -101,7 +101,7 @@ describe('SwitchField', () => {
   });
 
   it('displays unchecked state correctly', () => {
-    render(<TestForm label="Enable Feature" defaultValue={false} />);
+    render(<TestForm label="Enable Feature" />);
 
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });
@@ -147,7 +147,7 @@ describe('SwitchField auto-save', () => {
   it('shows spinner when auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{enabled: boolean}>(() => {}));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
@@ -161,7 +161,7 @@ describe('SwitchField auto-save', () => {
   it('shows checkmark when auto-save succeeds', async () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
@@ -178,7 +178,7 @@ describe('SwitchField auto-save', () => {
   it('disables switch while auto-save is pending', async () => {
     const mutationFn = jest.fn(() => new Promise<{enabled: boolean}>(() => {}));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
@@ -191,7 +191,7 @@ describe('SwitchField auto-save', () => {
   it('triggers mutation on every toggle because form resets after each save', async () => {
     const mutationFn = jest.fn((data: {enabled: boolean}) => Promise.resolve(data));
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const checkbox = screen.getByRole('checkbox');
 
@@ -212,9 +212,7 @@ describe('SwitchField auto-save', () => {
     const mutationFn = jest.fn(() => Promise.reject(new Error('Network error')));
     const onError = jest.fn();
 
-    render(
-      <AutoSaveTestForm mutationFn={mutationFn} onError={onError} initialValue={false} />
-    );
+    render(<AutoSaveTestForm mutationFn={mutationFn} onError={onError} />);
 
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);
@@ -244,7 +242,7 @@ describe('SwitchField auto-save', () => {
         })
     );
 
-    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue={false} />);
+    render(<AutoSaveTestForm mutationFn={mutationFn} />);
 
     const checkbox = screen.getByRole('checkbox');
     await userEvent.click(checkbox);

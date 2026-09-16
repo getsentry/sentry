@@ -208,6 +208,9 @@ class RedisBuffer(Buffer):
     key_expire = 60 * 60  # 1 hour
     pending_key = "b:p"
 
+    # Super generous expiry guarantees zset will always outlive every row it points to
+    pending_key_expire = 60 * 60 * 24  # 1 day
+
     def __init__(self, incr_batch_size: int = 2, **options: object):
         self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
             "SENTRY_BUFFER_OPTIONS", options
@@ -411,6 +414,7 @@ class RedisBuffer(Buffer):
 
         pipe.expire(key, self.key_expire)
         pipe.zadd(self.pending_key, {key: time()})
+        pipe.expire(self.pending_key, self.pending_key_expire)
         pipe.execute()
 
         metrics.incr(

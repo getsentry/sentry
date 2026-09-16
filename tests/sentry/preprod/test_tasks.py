@@ -416,7 +416,12 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             artifact_id=artifact.id,
         )
 
-        mock_dispatch.assert_called_once_with(self.project.id, self.organization.id, artifact.id)
+        mock_dispatch.assert_called_once_with(
+            self.project.id,
+            self.organization.id,
+            artifact.id,
+            organization_slug=self.organization.slug,
+        )
 
 
 class CreatePreprodArtifactTest(TestCase):

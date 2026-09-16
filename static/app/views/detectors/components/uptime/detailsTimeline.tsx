@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 
 import {
   GridLineLabels,
@@ -8,7 +9,6 @@ import {
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
 import {Panel} from 'sentry/components/panels/panel';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {OverviewRow} from 'sentry/views/insights/uptime/components/overviewTimeline/overviewRow';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
@@ -27,7 +27,7 @@ export function DetailsTimeline({uptimeDetector, onStatsLoaded}: Props) {
   const {id} = uptimeDetector;
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
-  const timelineWidth = useDebouncedValue(containerWidth, 500);
+  const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
 
   const timeWindowConfig = useTimeWindowConfig({
     timelineWidth,

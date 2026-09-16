@@ -77,6 +77,26 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.data["event_id"] == self.event.event_id
 
     @with_feature("organizations:event-attachments")
+    def test_non_integer_attachment_id(self) -> None:
+        self.login_as(user=self.user)
+        self.create_attachment()
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/invalid/"
+
+        response = self.client.get(path)
+
+        assert response.status_code == 404
+
+    @with_feature("organizations:event-attachments")
+    def test_out_of_range_attachment_id(self) -> None:
+        self.login_as(user=self.user)
+        self.create_attachment()
+        path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/events/{self.event.event_id}/attachments/999999999999999999999/"
+
+        response = self.client.delete(path)
+
+        assert response.status_code == 404
+
+    @with_feature("organizations:event-attachments")
     def test_download(self) -> None:
         self.login_as(user=self.user)
 
@@ -153,7 +173,7 @@ class EventAttachmentDetailsTest(APITestCase, CreateAttachmentMixin):
         assert response.data["id"] == str(self.attachment.id)
         assert response.data["event_id"] == self.event.event_id
         assert response.data["size"] == 0
-        assert response.data["sha1"] == "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+        assert response.data["sha1"] is None
 
         path = f"{path}?download"
 

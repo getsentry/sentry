@@ -6,13 +6,15 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-interface TokenReferenceProps {
-  renderToken: (props: {token: string; value: string | number}) => React.ReactNode;
+interface TokenReferenceProps<T extends Record<string, string | number>> {
+  renderToken: (props: {token: keyof T; value: T[keyof T]}) => React.ReactNode;
   scale: string;
-  tokens: Record<string, string | number>;
+  tokens: T;
 }
 
-export function TokenReference(props: TokenReferenceProps) {
+export function TokenReference<T extends Record<string, string | number>>(
+  props: TokenReferenceProps<T>
+) {
   return (
     <Flex
       align="center"
@@ -27,7 +29,7 @@ export function TokenReference(props: TokenReferenceProps) {
     >
       {Object.entries(props.tokens).map(([token, value]) => (
         <Token key={token} scale={props.scale} {...{token, value}}>
-          {props.renderToken({value, token})}
+          {props.renderToken({value: value as T[keyof T], token})}
         </Token>
       ))}
     </Flex>

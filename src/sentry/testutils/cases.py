@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import hashlib
 import random
 import re
@@ -138,8 +139,7 @@ from sentry.search.events.constants import (
 )
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
-from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
@@ -1555,6 +1555,8 @@ class BaseMetricsTestCase(SnubaTestCase):
         parsed = parse_mri(mri)
         metric_type = parsed.entity
         use_case_id = UseCaseID(parsed.namespace)
+        if use_case_id is not UseCaseID.SESSIONS:
+            return
 
         mapping_meta = {}
 
@@ -1582,9 +1584,6 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         def tag_value(name):
             assert isinstance(name, str)
-
-            if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
-                return name
 
             res = indexer.record(
                 use_case_id=use_case_id,
@@ -1626,7 +1625,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             # making up a sentry_received_timestamp, but it should be sometime
             # after the timestamp of the event
             "sentry_received_timestamp": timestamp + 10,
-            "version": (2 if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE else 1),
+            "version": 1,
         }
 
         msg["mapping_meta"] = {}
@@ -1638,13 +1637,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         if sampling_weight:
             msg["sampling_weight"] = sampling_weight
 
-        if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
-            # Generic metrics sets/gauges/distributions are no longer registered in Snuba.
-            if metric_type in {"s", "d", "g"}:
-                return
-            entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
-        else:
-            entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
+        entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
 
         cls.__send_buckets([msg], entity)
 
@@ -1653,10 +1646,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         # DO NOT USE THIS METHOD IN YOUR TESTS, use store_metric instead. we
         # need to be able to make changes to the indexer's output protocol
         # without having to update a million tests
-        if entity.startswith("generic_"):
-            codec = get_topic_codec(Topic.SNUBA_GENERIC_METRICS)
-        else:
-            codec = get_topic_codec(Topic.SNUBA_METRICS)
+        codec = get_topic_codec(Topic.SNUBA_METRICS)
 
         for bucket in buckets:
             codec.validate(bucket)
@@ -3333,7 +3323,7 @@ class SpanTestCase(BaseTestCase):
             start_ts = datetime.now() - timedelta(minutes=1)
         if extra_data is None:
             extra_data = {}
-        span = self.base_span.copy()
+        span = copy.deepcopy(self.base_span)
         # Load some defaults
         span.update(
             {

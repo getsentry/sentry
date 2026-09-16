@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
 
 describe('VirtualizedTreeNode', () => {

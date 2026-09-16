@@ -7,10 +7,11 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -39,6 +40,7 @@ from sentry.dashboards.endpoints.organization_dashboards import OrganizationDash
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -153,6 +155,14 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         if dashboard.prebuilt_id is not None:
             return self.respond({"detail": "Cannot delete prebuilt Dashboards."}, status=409)
 
+        audit_data = dashboard.get_audit_log_data()
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=audit_data["id"],
+            event=audit_log.get_event_id("DASHBOARD_REMOVE"),
+            data=audit_data,
+        )
         dashboard.delete()
 
         return self.respond(status=204)
@@ -194,13 +204,17 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
         is_prebuilt = dashboard.prebuilt_id is not None
 
+        projects = self.get_projects(request, organization)
         serializer = DashboardDetailsSerializer(
             data=request.data,
             instance=dashboard,
             context={
                 "organization": organization,
                 "request": request,
-                "projects": self.get_projects(request, organization),
+                "projects": projects,
+                # allow_joinleave grants project access without team membership.
+                "validation_projects": projects
+                or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
             },
         )
@@ -237,7 +251,17 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
         except IntegrityError:
             return self.respond({"detail": "Dashboard with that title already exists."}, status=409)
 
-        body: DashboardDetailsResponse = serialize(serializer.instance, request.user)
+        updated_dashboard = serializer.instance
+        assert updated_dashboard is not None
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=updated_dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_EDIT"),
+            data=updated_dashboard.get_audit_log_data(),
+        )
+
+        body: DashboardDetailsResponse = serialize(updated_dashboard, request.user)
         return self.respond(body, status=200)
 
 
@@ -322,5 +346,43 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
             return Response(status=204)
 
         dashboard.favorited_by = current_favorites
+
+        return Response(status=204)
+
+
+class DashboardHiddenSerializer(serializers.Serializer[dict[str, bool]]):
+    shouldHide = serializers.BooleanField(required=True)
+
+
+@cell_silo_endpoint
+class OrganizationDashboardHiddenEndpoint(OrganizationDashboardBase):
+    """
+    Endpoint for managing the hidden status of dashboards for users
+    """
+
+    publish_status = {
+        "PUT": ApiPublishStatus.PRIVATE,
+    }
+
+    def put(self, request: Request, organization: Organization, dashboard: Dashboard) -> Response:
+        """
+        Toggle hidden status for current user by hiding or unhiding the dashboard
+        """
+        if not features.has(EDIT_FEATURE, organization, actor=request.user):
+            return Response(status=404)
+
+        if not request.user.is_authenticated:
+            return Response(status=401)
+
+        serializer = DashboardHiddenSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        if serializer.validated_data["shouldHide"]:
+            DashboardHiddenUser.objects.get_or_create(user_id=request.user.id, dashboard=dashboard)
+        else:
+            DashboardHiddenUser.objects.filter(
+                user_id=request.user.id, dashboard=dashboard
+            ).delete()
 
         return Response(status=204)

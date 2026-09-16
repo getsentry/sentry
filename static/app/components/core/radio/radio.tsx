@@ -30,6 +30,7 @@ const radioConfig = {
 const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
   width: radioConfig[props.size ?? 'md'].outerSize,
   height: radioConfig[props.size ?? 'md'].outerSize,
+  flexShrink: 0,
 
   borderRadius: props.theme.radius.full,
   display: 'inline-flex',

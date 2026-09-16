@@ -18,9 +18,11 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSignupLocalities} from 'sentry/utils/cells';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {
@@ -72,7 +74,7 @@ function OrganizationCreate() {
   const mutation = useMutation({
     mutationFn: (data: CreateOrganizationPayload) =>
       fetchMutation<OrganizationSummary>({
-        url: '/organizations/',
+        url: getApiUrl('/organizations/'),
         method: 'POST',
         data,
         options: {host: links.sentryUrl},
@@ -126,7 +128,10 @@ function OrganizationCreate() {
 
       return mutation.mutateAsync(data).catch((error: unknown) => {
         // Surface field-specific errors inline; otherwise show a toast.
-        if (error instanceof RequestError && setFieldErrors(formApi, error)) {
+        if (
+          error instanceof RequestError &&
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values))
+        ) {
           clearIndicators();
           return;
         }

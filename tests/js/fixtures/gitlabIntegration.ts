@@ -24,6 +24,7 @@ export function GitLabIntegrationFixture(
       canDisable: false,
       slug: '',
     },
+    scopes: null,
     externalIssues: [],
     accountType: '',
     gracePeriodEnd: '',

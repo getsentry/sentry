@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
-
 import breadcrumbsImg from 'sentry-images/spot/breadcrumbs-generic.svg';
 import docsImg from 'sentry-images/spot/code-arguments-tags-mirrored.svg';
 import releasesImg from 'sentry-images/spot/releases.svg';
+
+import {Container, Grid} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ResourceCard} from 'sentry/components/resourceCard';
@@ -10,9 +10,15 @@ import {t} from 'sentry/locale';
 
 export function Resources() {
   return (
-    <ResourcesWrapper data-test-id="resources">
+    <Container borderTop="primary" padding="xl 3xl">
       <Layout.Title>{t('Resources')}</Layout.Title>
-      <ResourceCards>
+      <Grid
+        columns={{
+          zero: 'minmax(100px, 1fr)',
+          '3xl': 'repeat(auto-fit, minmax(100px, 1fr))',
+        }}
+        gap="2xl"
+      >
         <ResourceCard
           link="https://docs.sentry.io/product/releases/"
           imgUrl={releasesImg}
@@ -24,22 +30,7 @@ export function Resources() {
           title={t('Sentry vs Logging')}
         />
         <ResourceCard link="https://docs.sentry.io/" imgUrl={docsImg} title={t('Docs')} />
-      </ResourceCards>
-    </ResourcesWrapper>
+      </Grid>
+    </Container>
   );
 }
-
-const ResourcesWrapper = styled('div')`
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-`;
-
-const ResourceCards = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  gap: ${p => p.theme.space['2xl']};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  }
-`;

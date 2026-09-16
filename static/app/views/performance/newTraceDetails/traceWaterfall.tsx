@@ -11,6 +11,7 @@ import {
 } from 'react';
 import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
+import type {Placement} from '@popperjs/core';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
@@ -29,12 +30,12 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useApi} from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayTrace} from 'sentry/views/explore/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import {TraceLinksNavigation} from 'sentry/views/performance/newTraceDetails/traceLinksNavigation/traceLinksNavigation';
@@ -42,12 +43,11 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
-import {getTraceMetaSpanCount, type TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
@@ -69,14 +69,20 @@ import type {TraceReducer} from './traceState';
 import {TraceWaterfallState} from './traceWaterfallState';
 import {useTraceOnLoad} from './useTraceOnLoad';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import {useTraceScrollToPath} from './useTraceScrollToPath';
+import {useTraceScrollToPath, type UseTraceScrollToPath} from './useTraceScrollToPath';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
+
+// The settings trigger is the toolbar's last item and the search input beside it grows to
+// fill, so the trigger always sits flush right. In the narrow Seer embed the 300px menu would
+// run past the embed's `overflow: hidden` edge, so let it right-align there instead.
+const SEER_EMBED_MENU_FALLBACKS: Placement[] = ['bottom-end'];
 
 export type TraceWaterfallSource =
   | 'feedback'
   | 'issues'
   | 'performance'
   | 'replay'
+  | 'seer_embed'
   | 'trace_view';
 
 export interface TraceWaterfallProps {
@@ -89,20 +95,31 @@ export interface TraceWaterfallProps {
   traceEventView: EventView;
   traceSlug: string;
   tree: TraceTree;
+  /**
+   * Embedded waterfalls (e.g. a Seer response) set this to stop the waterfall reading from and
+   * writing to the host page's query string. Without it, clicking a span or typing in the
+   * waterfall search rewrites `?node=`/`?search=` on the surrounding page, so several embeds on
+   * one page fight over the same params. Pair it with `disableUrlSync` on `TraceStateProvider`,
+   * and pass `scrollToNode` to focus a span instead of relying on `?node=`.
+   */
+  disableUrlSync?: boolean;
   // If set to true, the entire waterfall will not render if it is empty.
   hideIfNoData?: boolean;
   replayTraces?: ReplayTrace[];
+  /**
+   * Node to focus on load. Overrides the URL-derived target; must be referentially stable.
+   */
+  scrollToNode?: UseTraceScrollToPath;
 }
 
 export function TraceWaterfall(props: TraceWaterfallProps) {
+  const disableUrlSync = props.disableUrlSync ?? false;
   const api = useApi();
+  const routerLocation = useLocation();
   const navigate = useNavigate();
   const filters = usePageFilters();
   const {projects} = useProjects();
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
-
-  const isEAP = useIsEAPTraceEnabled();
 
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
@@ -124,7 +141,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const projectsRef = useRef(projects);
   projectsRef.current = projects;
 
-  const scrollQueueRef = useTraceScrollToPath({traceSlug: props.traceSlug});
+  const scrollQueueRef = useTraceScrollToPath({
+    traceSlug: props.traceSlug,
+    // `null` (rather than undefined) keeps the hook from falling back to the host page's
+    // `?node=`/`?eventId=`, which may point at a span in a completely different trace.
+    scrollToNode: disableUrlSync ? (props.scrollToNode ?? null) : props.scrollToNode,
+  });
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
@@ -145,7 +167,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     const cleanup = props.tree.fetchAdditionalTraces({
-      type: isEAP ? 'eap' : 'non-eap',
       api,
       filters,
       replayTraces: props.replayTraces,
@@ -280,6 +301,23 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           cancelAnimationTimeout(queryStringAnimationTimeoutRef.current);
         }
 
+        if (disableUrlSync) {
+          if (resultsLookup.has(node) && typeof index === 'number') {
+            traceDispatch({
+              type: 'set search iterator index',
+              resultIndex: index,
+              resultIteratorIndex: resultsLookup.get(node)!,
+            });
+          }
+
+          traceDispatch({
+            type: 'activate tab',
+            payload: node,
+            pin_previous: event?.metaKey,
+          });
+          return;
+        }
+
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
           const currentQueryStringPath = qs.parse(location.search).node;
           const nextNodePath = node.pathToNode();
@@ -317,7 +355,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [navigate, traceDispatch]
+    [disableUrlSync, navigate, traceDispatch]
   );
 
   const onRowClick = useCallback(
@@ -370,6 +408,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     (node: BaseNode): Promise<BaseNode | null> => {
       return onScrollToNode(node).then(maybeNode => {
         if (maybeNode) {
+          if (traceStateRef.current.preferences.drawer.minimized) {
+            traceDispatch({type: 'minimize drawer', payload: false});
+          }
           setRowAsFocused(
             maybeNode,
             null,
@@ -382,7 +423,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         return maybeNode;
       });
     },
-    [onScrollToNode, setRowAsFocused]
+    [onScrollToNode, setRowAsFocused, traceDispatch]
   );
 
   useEffect(() => {
@@ -394,7 +435,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
-    const metaSpanCount = getTraceMetaSpanCount(props.meta.data);
+    const metaSpanCount = props.meta.data?.spansCount;
 
     if (traceNode && props.tree.eap_spans_count !== metaSpanCount) {
       Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
@@ -425,9 +466,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     // We will autogroup and inject missing instrumentation if the preferences are set.
     // and then we will perform a search to find the node the user is interested in.
 
-    const query = qs.parse(location.search);
-    if (query.fov && typeof query.fov === 'string') {
-      viewManager.maybeInitializeTraceViewFromQS(query.fov);
+    if (!disableUrlSync) {
+      const query = qs.parse(location.search);
+      if (query.fov && typeof query.fov === 'string') {
+        viewManager.maybeInitializeTraceViewFromQS(query.fov);
+      }
     }
 
     // Construct the visual representation of the tree
@@ -483,6 +526,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       });
     });
   }, [
+    disableUrlSync,
     setRowAsFocused,
     traceDispatch,
     onTraceSearch,
@@ -581,11 +625,79 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     tree: props.tree,
   });
 
+  const handledZoomQueryRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (disableUrlSync) {
+      return;
+    }
+
+    const query = qs.parse(routerLocation.search);
+    if (typeof query.zoomToNode !== 'string') {
+      handledZoomQueryRef.current = null;
+      return;
+    }
+
+    if (
+      onLoadScrollStatus !== 'success' ||
+      handledZoomQueryRef.current === routerLocation.search
+    ) {
+      return;
+    }
+    handledZoomQueryRef.current = routerLocation.search;
+
+    const node = props.tree.root.findChild(candidate =>
+      candidate.matchByPath(query.zoomToNode as TraceTree.NodePath)
+    );
+
+    const {
+      zoomToNode: _zoomToNode,
+      zoomToTimestamp: _zoomToTimestamp,
+      zoomToVital: _zoomToVital,
+      ...nextQuery
+    } = query;
+    navigate(
+      {
+        pathname: routerLocation.pathname,
+        query: nextQuery,
+      },
+      {replace: true}
+    );
+
+    if (!node) {
+      return;
+    }
+
+    void onTabScrollToNode(node);
+    const timestamp =
+      typeof query.zoomToTimestamp === 'string'
+        ? Number.parseFloat(query.zoomToTimestamp)
+        : Number.NaN;
+    if (Number.isFinite(timestamp)) {
+      viewManager.onZoomToVital(
+        timestamp,
+        typeof query.zoomToVital === 'string' ? query.zoomToVital : `${timestamp}`
+      );
+    } else {
+      viewManager.onZoomIntoSpace(node.space);
+    }
+  }, [
+    disableUrlSync,
+    navigate,
+    onLoadScrollStatus,
+    onTabScrollToNode,
+    props.tree,
+    routerLocation.pathname,
+    routerLocation.search,
+    viewManager,
+  ]);
+
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
     return {search: traceState.search.query};
   }, [traceState.search.query]);
-  useTraceQueryParamStateSync(traceQueryStateSync);
+  useTraceQueryParamStateSync(traceQueryStateSync, {
+    disabled: disableUrlSync,
+  });
 
   const onAutogroupChange = useCallback(() => {
     const value = !traceState.preferences.autogroup.parent;
@@ -692,7 +804,8 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
   // On the standalone trace page these two moved into the page-title crumb.
   // Embedded waterfalls (issues, replay) have no such crumb, so they keep them.
-  const showToolbarTraceActions = !(props.source === 'performance' && hasNewBreadcrumbs);
+  const showToolbarTraceActions =
+    props.source !== 'performance' && props.source !== 'seer_embed';
 
   return (
     <Stack flex={1}>
@@ -717,6 +830,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           organization={props.organization}
         />
         <TracePreferencesDropdown
+          fallbackPlacements={
+            props.source === 'seer_embed' ? SEER_EMBED_MENU_FALLBACKS : undefined
+          }
           rootEventResults={props.rootEventResults}
           autogroup={
             traceState.preferences.autogroup.parent &&
@@ -746,6 +862,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
                 rerender={rerender}
                 trace_id={waterfallTraceId}
                 onRowClick={onRowClick}
+                onScrollToNode={onTabScrollToNode}
                 onTraceSearch={onTraceSearch}
                 previouslyFocusedNodeRef={previouslyFocusedNodeRef}
                 manager={viewManager}

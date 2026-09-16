@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 from django.core.cache import cache
@@ -35,11 +35,13 @@ from sentry.seer.agent.tools import (
     get_baseline_tag_distribution,
     get_dsn,
     get_event_details,
+    get_group_assignees,
     get_issue_committers,
     get_issue_details,
     get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
+    get_project_members,
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
@@ -1462,6 +1464,40 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         assert len(result["user_activity"]) == 1
         assert result["user_activity"][0]["type"] == "note"
 
+    @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
+    @patch("sentry.seer.agent.tools.get_all_tags_overview")
+    def test_user_attributed_seer_actions_are_included(self, mock_tags, mock_ts):
+        mock_ts.return_value = ({"count()": {"data": []}}, "6h", "15m")
+        mock_tags.return_value = {"tags_overview": []}
+
+        event = self._make_error_event()
+        group = event.group
+        assert isinstance(group, Group)
+
+        for activity_type, user_id in (
+            (ActivityType.TRIGGER_AUTOFIX, self.user.id),
+            (ActivityType.SEER_ITERATION_STARTED, self.user.id),
+            (ActivityType.TRIGGER_AUTOFIX, None),
+        ):
+            Activity.objects.create(
+                group=group,
+                project=self.project,
+                type=activity_type.value,
+                user_id=user_id,
+            )
+
+        result = get_issue_details(
+            organization_id=self.organization.id,
+            issue_id=str(group.id),
+        )
+
+        assert result is not None
+        assert {activity["type"] for activity in result["user_activity"]} == {
+            "trigger_autofix",
+            "seer_iteration_started",
+        }
+        assert all(activity["user"] is not None for activity in result["user_activity"])
+
     # --- assignee ---
 
     @patch("sentry.seer.agent.tools._get_issue_event_timeseries")
@@ -1850,6 +1886,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert len(owners) == 1
         assert owners[0]["type"] == "user"
         assert owners[0]["email"] == self.user.email
+        assert owners[0]["username"] == self.user.username
         assert owners[0]["slug"] is None
         assert "*checkout.py" in result["matched_rules"]
         assert result["auto_assignment"] is False
@@ -1869,6 +1906,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
         assert owners[0]["type"] == "team"
         assert owners[0]["slug"] == self.team.slug
         assert owners[0]["email"] is None
+        assert owners[0]["username"] is None
 
     def test_resolves_by_qualified_short_id(self):
         group = self._make_event_on_path("src/app/checkout.py")
@@ -1942,8 +1980,8 @@ class TestGetTeamMembers(APITestCase):
     agent can drill from a team-level owner (from get_issue_ownership) down to people."""
 
     def test_returns_active_members(self):
-        dev = self.create_user(email="dev@example.com")
-        lead = self.create_user(email="lead@example.com")
+        dev = self.create_user(email="dev@example.com", username="dev")
+        lead = self.create_user(email="lead@example.com", username="lead")
         team = self.create_team(organization=self.organization, members=[dev, lead])
 
         result = get_team_members(
@@ -1957,9 +1995,23 @@ class TestGetTeamMembers(APITestCase):
         assert result["team_name"] == team.name
         members = result["members"]
         assert {m["email"] for m in members} == {"dev@example.com", "lead@example.com"}
+        assert {m["username"] for m in members} == {"dev", "lead"}
         assert all(m["type"] == "user" for m in members)
         assert all(m["slug"] is None for m in members)
         assert all(m["name"] for m in members)
+
+    def test_member_without_email_retains_username(self):
+        user = self.create_user(email="", username="sso-user")
+        team = self.create_team(organization=self.organization, members=[user])
+
+        result = get_team_members(
+            organization_id=self.organization.id,
+            team_slug=team.slug,
+        )
+
+        assert result is not None
+        assert result["members"][0]["email"] == ""
+        assert result["members"][0]["username"] == "sso-user"
 
     def test_empty_team_returns_no_members(self):
         team = self.create_team(organization=self.organization, members=[])
@@ -2006,6 +2058,226 @@ class TestGetTeamMembers(APITestCase):
         assert result is None
 
 
+class TestGetProjectMembers(APITestCase):
+    def _create_assignment_activity(
+        self,
+        *,
+        group: Group,
+        user_id: int,
+        when: datetime,
+        integration: str | None = None,
+    ) -> None:
+        data = {
+            "assignee": str(user_id),
+            "assigneeType": "user",
+        }
+        if integration is not None:
+            data["integration"] = integration
+        Activity.objects.create_without_group_action(
+            project=group.project,
+            group=group,
+            type=ActivityType.ASSIGNED.value,
+            data=data,
+            datetime=when,
+        )
+
+    def test_returns_active_project_members_with_recent_assignees_first(self):
+        alice = self.create_user(email="alice@example.com", name="Alice")
+        bob = self.create_user(email="bob@example.com", name="Bob")
+        carol = self.create_user(email="carol@example.com", name="Carol")
+        dana = self.create_user(email="dana@example.com", name="Dana")
+        erin = self.create_user(email="erin@example.com", name="Erin")
+        team = self.create_team(
+            organization=self.organization,
+            members=[alice, bob, carol, dana, erin],
+        )
+        project = self.create_project(organization=self.organization, teams=[team])
+        current_group = self.create_group(project=project)
+        now = datetime.now(UTC)
+
+        for days_ago in (5, 10):
+            self._create_assignment_activity(
+                group=self.create_group(project=project),
+                user_id=alice.id,
+                when=now - timedelta(days=days_ago),
+            )
+        self._create_assignment_activity(
+            group=self.create_group(project=project),
+            user_id=bob.id,
+            when=now - timedelta(days=30),
+        )
+        self._create_assignment_activity(
+            group=self.create_group(project=project),
+            user_id=carol.id,
+            when=now - timedelta(days=1),
+            integration="seerSuggested",
+        )
+        self._create_assignment_activity(
+            group=current_group,
+            user_id=dana.id,
+            when=now,
+        )
+        self._create_assignment_activity(
+            group=self.create_group(project=project),
+            user_id=erin.id,
+            when=now - timedelta(days=100),
+        )
+
+        result = get_project_members(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            exclude_group_id=current_group.id,
+            limit=5,
+        )
+
+        assert result is not None
+        assert result["members"] == [
+            {"id": carol.id, "username": carol.username},
+            {"id": alice.id, "username": alice.username},
+            {"id": bob.id, "username": bob.username},
+            {"id": erin.id, "username": erin.username},
+            {"id": dana.id, "username": dana.username},
+        ]
+
+    def test_defaults_to_three_and_randomizes_members_without_assignment_history(self):
+        users = [
+            self.create_user(email=f"user-{index}@example.com", name=f"User {index}")
+            for index in range(4)
+        ]
+        team = self.create_team(organization=self.organization, members=users)
+        project = self.create_project(organization=self.organization, teams=[team])
+
+        with (
+            patch(
+                "sentry.seer.agent.tools.random.sample",
+                return_value=[users[2].id, users[0].id, users[3].id],
+            ) as sample,
+            patch("sentry.seer.agent.tools.metrics.incr") as incr,
+        ):
+            result = get_project_members(
+                organization_id=self.organization.id,
+                project_id=project.id,
+            )
+
+        assert result is not None
+        assert [member["id"] for member in result["members"]] == [
+            users[2].id,
+            users[0].id,
+            users[3].id,
+        ]
+        population, sample_size = sample.call_args.args
+        assert set(population) == {user.id for user in users}
+        assert sample_size == 3
+        incr.assert_any_call(
+            "seer.get_project_members.fallback",
+            tags={"fallback_count": "3"},
+            sample_rate=1.0,
+        )
+
+    def test_returns_none_for_project_outside_organization(self):
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+
+        result = get_project_members(
+            organization_id=self.organization.id,
+            project_id=other_project.id,
+        )
+
+        assert result is None
+
+    def test_rejects_invalid_limit(self):
+        for limit in (0, 21, True):
+            with self.subTest(limit=limit), pytest.raises(BadRequest):
+                get_project_members(
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                    limit=limit,
+                )
+
+
+class TestGetGroupAssignees(APITestCase):
+    def test_returns_active_user_assignees_by_group_id(self):
+        second_user = self.create_user(email="second@example.com")
+        self.create_member(user=second_user, organization=self.organization)
+        first_group = self.create_group(project=self.project)
+        second_group = self.create_group(project=self.project)
+        team_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=first_group,
+            user_id=self.user.id,
+        )
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=second_group,
+            user_id=second_user.id,
+        )
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=team_group,
+            team=self.team,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[second_group.id, team_group.id, first_group.id],
+        )
+
+        assert result["assignees"] == {
+            str(second_group.id): {
+                "id": second_user.id,
+                "username": second_user.username,
+            },
+            str(first_group.id): {
+                "id": self.user.id,
+                "username": self.user.username,
+            },
+        }
+
+    @patch("sentry.seer.agent.tools.user_service.get_many")
+    def test_skips_user_service_when_no_groups_have_user_assignees(self, get_many):
+        team_group = self.create_group(project=self.project)
+        GroupAssignee.objects.create(
+            project=self.project,
+            group=team_group,
+            team=self.team,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[team_group.id],
+        )
+
+        assert result["assignees"] == {}
+        get_many.assert_not_called()
+
+    def test_excludes_groups_from_other_organizations(self):
+        other_organization = self.create_organization()
+        other_project = self.create_project(organization=other_organization)
+        other_group = self.create_group(project=other_project)
+        other_user = self.create_user(email="other@example.com")
+        self.create_member(user=other_user, organization=other_organization)
+        GroupAssignee.objects.create(
+            project=other_project,
+            group=other_group,
+            user_id=other_user.id,
+        )
+
+        result = get_group_assignees(
+            organization_id=self.organization.id,
+            group_ids=[other_group.id],
+        )
+
+        assert result["assignees"] == {}
+
+    def test_rejects_more_than_one_hundred_groups(self):
+        with pytest.raises(BadRequest):
+            get_group_assignees(
+                organization_id=self.organization.id,
+                group_ids=list(range(101)),
+            )
+
+
 class TestGetEventDetails(
     APITransactionTestCase, SnubaTestCase, SearchIssueTestMixin, SpanTestCase
 ):
@@ -2022,7 +2294,7 @@ class TestGetEventDetails(
         return self.store_event(data=data, project_id=self.project.id)
 
     def _assert_event_response_shape(
-        self, result, expected_event_id: str | None, expected_trace_id: str | None = None
+        self, result, expected_event_id: str | None, expected_trace_id: Any = ANY
     ):
         assert result is not None
         assert result["project_id"] == self.project.id
@@ -2063,7 +2335,9 @@ class TestGetEventDetails(
             project_slug=self.project.slug,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     def test_format_returns_shared_formatter_output(self) -> None:
         event = self._make_error_event()
@@ -2169,7 +2443,9 @@ class TestGetEventDetails(
             event_id=event.event_id,
         )
 
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     def test_by_event_id_not_found_returns_none(self) -> None:
         result = get_event_details(
@@ -2244,7 +2520,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_qualified_short_id(self, mock_recommended):
@@ -2264,7 +2542,9 @@ class TestGetEventDetails(
         assert args[1].id == self.organization.id
         assert args[2] is None  # no start
         assert args[3] is None  # no end
-        self._assert_event_response_shape(result, expected_event_id=event.event_id)
+        self._assert_event_response_shape(
+            result, expected_event_id=event.event_id, expected_trace_id=event.trace_id
+        )
 
     @patch("sentry.seer.agent.tools._get_recommended_event")
     def test_by_issue_id_with_time_range(self, mock_recommended):

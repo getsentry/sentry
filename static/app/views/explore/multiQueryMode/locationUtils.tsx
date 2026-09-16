@@ -17,6 +17,10 @@ import {
   DEFAULT_VISUALIZATION,
   DEFAULT_VISUALIZATION_FIELD,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {
+  buildConditionalAggregate,
+  parseConditionalAggregate,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -81,6 +85,68 @@ function validateSortBys(
   return [];
 }
 
+/**
+ * AND binds tighter than OR in search syntax, so concatenating
+ * `base left OR right` is `(base AND left) OR right`. Wrap sides that
+ * contain OR so Compare keeps `base AND (left OR right)`.
+ */
+function wrapQueryForMerge(query: string): string {
+  return /\bOR\b/.test(query) ? `(${query})` : query;
+}
+
+function mergeCompareQueryFilters(baseQuery: string, seriesFilter: string): string {
+  const base = baseQuery.trim();
+  const filter = seriesFilter.trim();
+  if (!filter) {
+    return base;
+  }
+  if (!base) {
+    return filter;
+  }
+  return `${wrapQueryForMerge(base)} ${wrapQueryForMerge(filter)}`;
+}
+
+/**
+ * Compare queries use the top-level filter bar instead of per-series `_if` filters.
+ * Move any EAP conditional aggregate into `{query, yAxes}` form the compare UI can edit.
+ */
+export function normalizeCompareQueryParts(
+  query: WritableExploreQueryParts
+): WritableExploreQueryParts {
+  let mergedQuery = query.query ?? '';
+  const normalizedYAxes: string[] = [];
+  const yAxisReplacements = new Map<string, string>();
+
+  for (const yAxis of query.yAxes ?? []) {
+    const conditional = parseConditionalAggregate(yAxis);
+    if (!conditional?.filter) {
+      normalizedYAxes.push(yAxis);
+      continue;
+    }
+
+    mergedQuery = mergeCompareQueryFilters(mergedQuery, conditional.filter);
+    const plainYAxis = buildConditionalAggregate({
+      name: conditional.name,
+      arguments: conditional.arguments,
+      filter: '',
+    });
+    yAxisReplacements.set(yAxis, plainYAxis);
+    normalizedYAxes.push(plainYAxis);
+  }
+
+  const normalizedSortBys = query.sortBys?.map(sort => {
+    const replacement = yAxisReplacements.get(sort.field);
+    return replacement ? {...sort, field: replacement} : sort;
+  });
+
+  return {
+    ...query,
+    query: mergedQuery,
+    yAxes: normalizedYAxes,
+    sortBys: normalizedSortBys,
+  };
+}
+
 function parseQuery(raw: string): ReadableExploreQueryParts {
   try {
     const parsed = JSON.parse(raw);
@@ -107,14 +173,31 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
 
     const caseInsensitive = parsed.caseInsensitive ?? undefined;
 
-    return {
+    const normalized = normalizeCompareQueryParts({
       yAxes,
       chartType,
       sortBys,
       query: parsed.query ?? '',
       groupBys,
-      fields,
       caseInsensitive,
+    });
+
+    const normalizedFields = getFieldsForConstructedQuery(normalized.yAxes ?? yAxes);
+    const normalizedSortBys = validateSortBys(
+      [...(normalized.sortBys ?? sortBys)],
+      groupBys,
+      normalizedFields,
+      normalized.yAxes ?? yAxes
+    );
+
+    return {
+      yAxes: normalized.yAxes ?? yAxes,
+      chartType: normalized.chartType ?? chartType,
+      sortBys: normalizedSortBys,
+      query: normalized.query ?? '',
+      groupBys,
+      fields: normalizedFields,
+      caseInsensitive: normalized.caseInsensitive ?? caseInsensitive,
     };
   } catch (error) {
     return DEFAULT_QUERY;
@@ -284,7 +367,8 @@ export function getFieldsForConstructedQuery(yAxes: string[]): string[] {
   const fields: string[] = ['id'];
 
   for (const yAxis of yAxes) {
-    const arg = parseFunction(yAxis)?.arguments[0];
+    // Prefer parseConditionalAggregate so EAP `_if` filters are not treated as columns.
+    const arg = parseConditionalAggregate(yAxis)?.arguments[0];
     if (!arg) {
       continue;
     }
@@ -324,13 +408,17 @@ export function generateExploreCompareRoute({
   queries,
 }: CompareRouteProps): LocationDescriptorObject {
   const url = getCompareBaseUrl(organization);
-  const compareQueries = queries.map(query => ({
-    ...query,
-    // Filter out empty strings which are used to indicate no grouping
-    // in Trace Explorer. The same assumption does not exist for the
-    // comparison view.
-    groupBys: mode === Mode.AGGREGATE ? query.groupBys?.filter(Boolean) : [],
-  }));
+  const compareQueries = queries.map(query => {
+    const normalized = normalizeCompareQueryParts({
+      ...query,
+      yAxes: query.yAxes ?? [],
+    });
+    return {
+      ...normalized,
+      fields: getFieldsForConstructedQuery(normalized.yAxes ?? []),
+      groupBys: mode === Mode.AGGREGATE ? normalized.groupBys?.filter(Boolean) : [],
+    };
+  });
 
   if (compareQueries.length < 2) {
     compareQueries.push(DEFAULT_QUERY);

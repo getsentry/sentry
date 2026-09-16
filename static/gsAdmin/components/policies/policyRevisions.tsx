@@ -5,7 +5,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {ResultGrid} from 'admin/components/resultGrid';
+import {ResultGrid} from 'sentry/components/resultGrid';
+
 import type {Policy, PolicyRevision} from 'getsentry/types';
 
 type Props = {
@@ -59,7 +60,6 @@ export function PolicyRevisions({policy, onUpdate}: Props) {
       panelTitle="Revisions"
       path={`/_admin/policies/${policy.slug}/revisions/`}
       endpoint={`/policies/${policy.slug}/revisions/`}
-      method="GET"
       columns={[
         <th key="customer">Version</th>,
         <th key="date" style={{width: 200, textAlign: 'right'}}>

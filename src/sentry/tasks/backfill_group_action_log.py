@@ -1,16 +1,18 @@
 import logging
+import time
 from datetime import datetime
 
 from django.utils import timezone
 from taskbroker_client.state import current_task
 
-from sentry import features, options
+from sentry import features, options, projectoptions
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log.backfill import (
     BACKFILL_ACTIVITY_SOURCE,
     bulk_insert_action_log_entries,
 )
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
@@ -32,8 +34,6 @@ _TASK_KEY = "backfill_group_action_log_for_project"
 _COORDINATOR_TASK_KEY = "backfill_group_action_log_coordinator"
 _ENROLLMENT_TASK_KEY = "enroll_projects_for_group_action_log_backfill"
 _ORGANIZATION_ENROLLMENT_TASK_KEY = "enroll_organization_projects_for_group_action_log_backfill"
-GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION = "sentry:group_action_log_backfill_completed"
-
 _GROUP_ACTION_LOG_WRITE_FEATURE = "projects:issue-action-log-write-to-db"
 
 
@@ -428,10 +428,12 @@ def enroll_organization_projects_for_group_action_log_backfill(
 
     projects = list(
         Project.objects.filter(
-            organization_id=organization_id,
+            organization=organization,
             status=ObjectStatus.ACTIVE,
             id__gt=last_project_id,
-        ).order_by("id")[:batch_size]
+        )
+        .select_related("organization")
+        .order_by("id")[:batch_size]
     )
     if not projects:
         logger.info(
@@ -440,48 +442,41 @@ def enroll_organization_projects_for_group_action_log_backfill(
         )
         return
 
-    feature_results = features.batch_has(
-        [_GROUP_ACTION_LOG_WRITE_FEATURE],
-        projects=projects,
-        organization=organization,
-    )
-    if feature_results is None:
-        raise RuntimeError("Unable to evaluate group action log write feature")
+    eligible_projects = [
+        project for project in projects if features.has(_GROUP_ACTION_LOG_WRITE_FEATURE, project)
+    ]
 
-    eligible_project_ids = [
-        project.id
-        for project in projects
-        if feature_results.get(f"project:{project.id}", {}).get(
-            _GROUP_ACTION_LOG_WRITE_FEATURE, False
+    backfill_states = ProjectOption.objects.get_value_bulk(
+        eligible_projects, GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+    )
+    projects_to_enroll = []
+    for project in eligible_projects:
+        # Note that backfill_states[project] uses get_value_bulk, which will return None, ignoring the default
+        # project option value of True. This is good for us here, since we want to only enroll projects that
+        # explicitly have a None value.
+        if backfill_states[project] is not None:
+            continue
+        default_backfill_state = projectoptions.get_well_known_default(
+            GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+            project=project,
         )
-    ]
+        if default_backfill_state is not True:
+            projects_to_enroll.append(project)
 
-    # Track missing rows so we only invalidate caches for newly enrolled projects.
-    project_ids_with_option = set(
-        ProjectOption.objects.filter(
-            project_id__in=eligible_project_ids,
-            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
-        ).values_list("project_id", flat=True)
-    )
-    project_ids_to_enroll = [
-        project_id
-        for project_id in eligible_project_ids
-        if project_id not in project_ids_with_option
-    ]
     ProjectOption.objects.bulk_create(
         [
             ProjectOption(
-                project_id=project_id,
+                project_id=project.id,
                 key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
                 value=False,
             )
-            for project_id in project_ids_to_enroll
+            for project in projects_to_enroll
         ],
         ignore_conflicts=True,
     )
-    for project_id in project_ids_to_enroll:
+    for project in projects_to_enroll:
         ProjectOption.objects.reload_cache(
-            project_id,
+            project.id,
             "group_action_log_backfill.enrollment",
             GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
         )
@@ -491,7 +486,7 @@ def enroll_organization_projects_for_group_action_log_backfill(
         extra={
             "organization_id": organization_id,
             "batch_size": len(projects),
-            "eligible_projects": len(eligible_project_ids),
+            "eligible_projects": len(eligible_projects),
             "first_project_id": projects[0].id,
             "last_project_id": projects[-1].id,
         },
@@ -602,6 +597,14 @@ def backfill_group_action_log_for_all_projects(
     """Dispatch project backfills in batches for projects explicitly marked with a false backfill option."""
     task_state = current_task()
     activation_id = task_state.id if task_state else None
+    logger.info(
+        "backfill_group_action_log.coordinator.started",
+        extra={
+            "activation_id": activation_id,
+            "last_project_option_id": last_project_option_id,
+            "project_reset": project_reset,
+        },
+    )
     if activation_id and already_spawned(_COORDINATOR_TASK_KEY, activation_id):
         logger.info(
             "backfill_group_action_log.coordinator.duplicate_redelivery.skipped",
@@ -626,15 +629,30 @@ def backfill_group_action_log_for_all_projects(
         )
         return
 
+    logger.info(
+        "backfill_group_action_log.coordinator.query_started",
+        extra={
+            "batch_size": batch_size,
+            "last_project_option_id": last_project_option_id,
+        },
+    )
+    query_started_at = time.monotonic()
     project_options = list(
         ProjectOption.objects.filter(
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
             value=False,
-            project__status=ObjectStatus.ACTIVE,
             id__gt=last_project_option_id,
         )
         .order_by("id")
         .values_list("id", "project_id")[:batch_size]
+    )
+    logger.info(
+        "backfill_group_action_log.coordinator.query_completed",
+        extra={
+            "duration_ms": (time.monotonic() - query_started_at) * 1000,
+            "incomplete_option_count": len(project_options),
+            "option_count": len(project_options),
+        },
     )
 
     if not project_options:
@@ -644,6 +662,10 @@ def backfill_group_action_log_for_all_projects(
         )
         return
 
+    logger.info(
+        "backfill_group_action_log.coordinator.dispatch_started",
+        extra={"project_count": len(project_options)},
+    )
     for _, project_id in project_options:
         backfill_group_action_log_for_project.apply_async(
             kwargs={
@@ -661,6 +683,7 @@ def backfill_group_action_log_for_all_projects(
             "first_project_option_id": project_options[0][0],
             "last_project_option_id": project_options[-1][0],
             "project_reset": project_reset,
+            "project_count": len(project_options),
         },
     )
 
@@ -672,6 +695,10 @@ def backfill_group_action_log_for_all_projects(
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
+        )
+        logger.info(
+            "backfill_group_action_log.coordinator.self_chain_scheduled",
+            extra={"last_project_option_id": project_options[-1][0]},
         )
         if activation_id:
             mark_spawned(_COORDINATOR_TASK_KEY, activation_id)

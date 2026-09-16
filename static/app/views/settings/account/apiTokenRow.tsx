@@ -1,11 +1,10 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
@@ -25,20 +24,20 @@ export function ApiTokenRow({
   onRemoveConfirmMessage,
 }: Props) {
   return (
-    <Fragment>
-      <div>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
         {token.name}
         <TokenPreview aria-label={t('Token preview')}>
           {tokenPreview(token.tokenLastCharacters)}
         </TokenPreview>
-      </div>
-      <div>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <DateTime date={token.dateCreated} />
-      </div>
-      <div>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <ScopeList>{token.scopes.join(', ')}</ScopeList>
-      </div>
-      <Actions>
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end" gap="md">
         {canEdit && (
           <LinkButton size="sm" to={`/settings/account/api/auth-tokens/${token.id}/`}>
             {t('Edit')}
@@ -58,8 +57,8 @@ export function ApiTokenRow({
             {t('Revoke')}
           </Button>
         </Confirm>
-      </Actions>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
 
@@ -67,12 +66,6 @@ const ScopeList = styled('div')`
   font-family: ${p => p.theme.font.family.mono};
   font-size: ${p => p.theme.font.size.sm};
   max-width: 400px;
-`;
-
-const Actions = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  justify-content: flex-end;
 `;
 
 const TokenPreview = styled('div')`

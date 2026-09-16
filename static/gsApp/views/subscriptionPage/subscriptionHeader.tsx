@@ -42,8 +42,8 @@ export function SubscriptionHeader(props: Props) {
       <Stack gap="md" background="primary" borderBottom="primary" padding="2xl 3xl">
         <Flex
           justify="between"
-          align={{'screen:xs': 'start', 'screen:sm': 'center'}}
-          direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+          align={{zero: 'start', xl: 'center'}}
+          direction={{zero: 'column', xl: 'row'}}
           gap="xl"
         >
           <Flex align="center" gap="sm">

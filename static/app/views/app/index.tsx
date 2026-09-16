@@ -10,9 +10,7 @@ import {
 } from 'sentry/actionCreators/developmentAlerts';
 import {fetchGuides} from 'sentry/actionCreators/guides';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
-import {initApiClientErrorHandling} from 'sentry/api';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import Indicators from 'sentry/components/indicators';
 import {Override} from 'sentry/components/override';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -24,6 +22,7 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import {shouldPreloadData} from 'sentry/utils/shouldPreloadData';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
+import {useAuthV2Rollout} from 'sentry/utils/useAuthV2Rollout';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
@@ -96,6 +95,7 @@ export function App() {
   const user = useUser();
   const config = useLegacyStore(ConfigStore);
   const preloadData = shouldPreloadData(config);
+  useAuthV2Rollout();
 
   /**
    * Loads the users organization list into the OrganizationsStore
@@ -129,6 +129,8 @@ export function App() {
   useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
+    getOverride('analytics:init-user')?.(user);
+
     // Skip loading organization-related data before the user is logged in,
     // because it triggers a 401 error in the UI.
     if (!preloadData) {
@@ -136,13 +138,6 @@ export function App() {
     }
 
     loadOrganizations();
-
-    // Set the user for analytics
-    if (user) {
-      getOverride('analytics:init-user')?.(user);
-    }
-
-    initApiClientErrorHandling();
     fetchGuides();
 
     // When the app is unloaded clear the organizationst list
@@ -221,7 +216,6 @@ export function App() {
         <MainContainer tabIndex={-1}>
           <AppAlerts />
           <GlobalModal />
-          <Indicators className="indicators-container" />
           <Override name="component:replay-init" />
           <ErrorBoundary>{renderBody()}</ErrorBoundary>
         </MainContainer>

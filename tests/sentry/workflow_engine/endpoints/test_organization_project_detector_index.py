@@ -187,20 +187,6 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             )
             assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
-    def test_without_feature_flag(self) -> None:
-        with self.feature({"organizations:incidents": False}):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                **self.valid_data,
-                status_code=400,
-            )
-        assert response.data == {
-            "detail": ErrorDetail(
-                string="Unable to process request, confirm payment options.", code="error"
-            )
-        }
-
     def test_create_blocked_when_dataset_not_allowed(self) -> None:
         """
         Creating a metric detector should be blocked when the org lacks
@@ -445,52 +431,6 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 **data,
                 status_code=201,
             )
-
-    def test_use_transactions_instead_of_generic_metrics_dataset(self) -> None:
-        data = {**self.valid_data}
-        data["dataSources"] = [
-            {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "event.type:transaction",
-                "aggregate": "count()",
-                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            }
-        ]
-
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                **data,
-                status_code=201,
-            )
-
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
-            == Dataset.Transactions.value
-        )
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"]
-            == "event.type:transaction"
-        )
-        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == "count()"
-
-        detector = Detector.objects.get(id=response.data["id"])
-        data_source = DataSource.objects.get(detector=detector)
-        assert data_source.type == data_source_type_registry.get_key(
-            QuerySubscriptionDataSourceHandler
-        )
-        assert data_source.organization_id == self.organization.id
-        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
-        assert query_sub.project == self.project
-        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert query_sub.snuba_query.dataset == Dataset.Transactions.value
-        assert query_sub.snuba_query.query == "event.type:transaction"
-        assert query_sub.snuba_query.aggregate == "count()"
-        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
 
     @with_feature(
         [

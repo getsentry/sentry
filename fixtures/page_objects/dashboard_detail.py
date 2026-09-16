@@ -38,6 +38,10 @@ class DashboardDetailPage(BasePage):
         self.wait_until_loaded()
 
     def enter_edit_state(self):
+        actions_button = self.browser.element('[aria-label="Dashboard actions"]')
+        self.browser.wait_until_clickable('[aria-label="Dashboard actions"]')
+        actions_button.click()
+
         button = self.browser.element('[data-test-id="dashboard-edit"]')
         self.browser.wait_until_clickable('[data-test-id="dashboard-edit"]')
         button.click()
@@ -79,7 +83,7 @@ class DashboardDetailPage(BasePage):
         # until the API call finishes. Since the loading indicator isn't used
         # we can't rely on self.wait_until_loaded(). The UI shows a
         # success toast, however if a previous step of a test shows a success
-        # toast, a wait_until([data-test-id="toast-success"]) will return
+        # toast, a wait for the status role will return
         # immediately due to the previous toast still being in the DOM.
         # Since clicking the save dasboard button is removed once the API
         # call is complete, we can wait for that as a signal

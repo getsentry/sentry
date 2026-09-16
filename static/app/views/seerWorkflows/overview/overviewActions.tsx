@@ -109,6 +109,7 @@ export function useNextAction({
       group_id: run.groupId,
       run_id: run.seerRunId,
       action: config.action,
+      section: sectionKey,
     });
     try {
       await config.trigger(autofix, run.seerRunId);
@@ -133,7 +134,15 @@ export function useNextAction({
       });
       setIsDispatched(false);
     }
-  }, [autofix, config, organization, queryClient, run.groupId, run.seerRunId]);
+  }, [
+    autofix,
+    config,
+    organization,
+    queryClient,
+    run.groupId,
+    run.seerRunId,
+    sectionKey,
+  ]);
 
   return {autofix, config, isDispatched, trigger};
 }

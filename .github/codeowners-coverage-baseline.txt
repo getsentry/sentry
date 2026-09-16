@@ -1951,7 +1951,6 @@ tests/sentry/digests/test_utilities.py
 tests/sentry/discover/__init__.py
 tests/sentry/discover/test_arithmetic.py
 tests/sentry/discover/test_compare_tables.py
-tests/sentry/discover/test_compare_timeseries.py
 tests/sentry/discover/test_dashboard_widget_split.py
 tests/sentry/discover/test_dataset_split.py
 tests/sentry/discover/test_models.py
