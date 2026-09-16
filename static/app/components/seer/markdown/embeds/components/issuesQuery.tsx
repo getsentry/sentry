@@ -1,47 +1,18 @@
-import queryString from 'query-string';
+import {lazy} from 'react';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {
-  defineSeerEmbed,
-  type EmbedOutput,
-} from 'sentry/components/seer/markdown/embeds/utils';
-import {IconIssues} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 
-function IssuesQueryLink({
-  query,
-  sort,
-  title,
-  projects,
-  environments,
-  statsPeriod,
-  start,
-  end,
-}: EmbedOutput<'issuesQuery'>) {
-  const organization = useOrganization();
-  const href = queryString.stringifyUrl({
-    url: normalizeUrl(`/organizations/${organization.slug}/issues/`),
-    query: {
-      query,
-      sort,
-      project: projects,
-      environment: environments,
-      statsPeriod,
-      start,
-      end,
-    },
-  });
+import {IssuesQueryLink} from './issuesQueryLink';
 
-  return (
-    <ResourceLink icon={IconIssues} href={href} title={title ?? t('Issue search')} />
-  );
-}
+const LazyIssuesQueryBlock = lazy(() => import('./issuesQueryBlock'));
 
 export const IssuesQuery = defineSeerEmbed({
   name: 'issuesQuery',
-  render(props) {
+  render(props, level) {
+    if (level === 'block') {
+      return <LazyLoad LazyComponent={LazyIssuesQueryBlock} data={props} />;
+    }
     return <IssuesQueryLink {...props} />;
   },
 });

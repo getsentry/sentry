@@ -984,7 +984,7 @@
   },
   {
     "name": "issuesQuery",
-    "description": "Link to the issue stream filtered by a search query. Use this when pointing the user at a SET of issues defined by a search rather than specific known issues — if you already have the short IDs, use the `issue` or `issues` embed instead. `query` uses issue search syntax, e.g. \"is:unresolved level:error\".",
+    "description": "Preview the issue stream filtered by a search query. Use this when pointing the user at a SET of issues defined by a search rather than specific known issues — if you already have the short IDs, use the `issue` or `issues` embed instead. `query` uses issue search syntax, e.g. \"is:unresolved level:error\". Inline renders a link; block renders the first five matching issues. The block already lists those issues, so do NOT repeat them as a markdown table.",
     "level": ["inline", "block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
