@@ -1,81 +1,96 @@
 ---
 name: scraps-review
-description: Filter scraps migration PRs for review by classifying files as noise (import-only, pure renames, codeowners baseline, snapshot mocks) vs substantive, marking noise as viewed on GitHub, and reporting what's left. Use when reviewing a "move X into scraps" PR, "ref(scraps)" PR, scraps migration, or any PR with bulk import path changes. Trigger on "review scraps PR", "filter scraps noise", "mark imports as viewed", "scraps migration review".
+description: Filter large Sentry Scraps design-system migration PRs for review by separating mechanical import-path changes, generated baseline updates, snapshot mocks, and pure renames from substantive destination-component and logic changes. Use when asked to review a large "ref(scraps)" PR, a "move component into Scraps" PR, or to filter Scraps migration noise. Do not use for general refactors or migrations outside getsentry/sentry.
 allowed-tools: Bash
+disable-model-invocation: true
+argument-hint: '[getsentry/sentry PR number or URL]'
 ---
 
 # Scraps Review
 
-Classify files in a scraps migration PR as noise or substantive, mark noise as viewed on GitHub, and report substantive files for review.
+Classify files in a large `getsentry/sentry` Scraps migration, confirm the proposed noise set with the user, mark the approved files as viewed, and report the substantive files left to review.
 
-**Requires**: `gh` CLI authenticated, `uv` for script execution.
+This skill uses Claude-specific invocation metadata and `$ARGUMENTS`; invoke it manually on other Agent Skills hosts.
 
-## Step 1: Identify the PR
+**Requires**: authenticated `gh` and `uv` CLIs.
 
-Accept a PR number or full GitHub URL from `$ARGUMENTS` or ask:
+## 1. Resolve the PR
 
-> Which PR should I review? (number or URL)
+Accept a `getsentry/sentry` PR number or full URL from `$ARGUMENTS`. With no argument, the script resolves the pull request for the current branch. Ask for a PR only if that lookup fails.
 
-## Step 2: Classify and mark
+Do not run this workflow against another repository or a PR that is not a large Scraps design-system migration.
+
+## 2. Classify without mutation
+
+Run from this skill directory so bundled paths remain skill-root-relative:
 
 ```bash
-uv run .agents/skills/scraps-review/scripts/classify_pr_files.py <pr> --mark-viewed
+uv run scripts/classify_pr_files.py [<pr>]
 ```
 
-If the PR is in a different repo, pass `--repo owner/repo` or let the script extract it from the URL.
+The non-interactive script emits JSON to stdout and exits nonzero on fatal or partial mutation failure. It does not modify GitHub state unless `--mark-viewed` is explicitly supplied.
 
-### Script output
+Successful and partial results use this shape:
 
 ```json
 {
+  "status": "success",
+  "repository": "getsentry/sentry",
+  "pr": 12345,
+  "head_sha": "abc123...",
+  "approval_token": "def456...",
   "summary": {
     "total": 139,
     "noise": 128,
     "substantive": 11,
-    "marked_viewed": 128
+    "marked_viewed": 0,
+    "failed_to_mark": 0
   },
-  "substantive": [
-    {
-      "path": "static/app/components/core/dropdownMenu/index.tsx",
-      "classification": "substantive",
-      "reason": "destination-dir"
-    }
-  ],
-  "noise": [
-    {
-      "path": "static/app/components/actions/archive.tsx",
-      "classification": "noise",
-      "reason": "import-only"
-    }
-  ]
+  "substantive": [{"path": "...", "classification": "substantive", "reason": "..."}],
+  "noise": [{"path": "...", "classification": "noise", "reason": "..."}],
+  "failed_to_mark": []
 }
 ```
 
+Fatal failures emit `{"status": "error", "error": "..."}` and exit nonzero. The script does not emit progress output or expose `gh` stderr.
+
 Classification reasons:
 
-| Reason                    | Meaning                                        |
-| ------------------------- | ---------------------------------------------- |
-| `import-only`             | all hunks are import path swaps or blank lines |
-| `known-noise-file`        | codeowners baseline, snapshot mocks            |
-| `destination-dir`         | inside the `components/core/` target directory |
-| `pure-rename`             | git rename with no content diff                |
-| `has-substantive-changes` | real logic changes beyond imports              |
+| Reason                    | Classification | Meaning                                                              |
+| ------------------------- | -------------- | -------------------------------------------------------------------- |
+| `import-path-only`        | noise          | import or re-export declarations differ only by module path          |
+| `known-noise-file`        | noise          | generated codeowners baseline or snapshot mock                       |
+| `pure-rename`             | noise          | GitHub reports a rename with zero changed lines                      |
+| `destination-dir`         | substantive    | file is in a component directory being moved into `components/core/` |
+| `patch-unavailable`       | substantive    | GitHub omitted the patch, so the script fails closed                 |
+| `has-substantive-changes` | substantive    | changes are not a recognized mechanical migration                    |
 
-## Step 3: Report
+## 3. Confirm the mutation
 
-Show the substantive files as a table with the reason column. End with the count summary.
+Show the user the noise files and substantive files with their reasons and the count summary. Retain the `approval_token`, then ask whether to mark that exact proposed noise set as viewed.
 
-| File                                                   | Reason                  |
-| ------------------------------------------------------ | ----------------------- |
-| `static/app/components/core/dropdownMenu/index.tsx`    | destination-dir         |
-| `static/app/components/dropdownMenu/index.stories.tsx` | has-substantive-changes |
+Do not run the mutation command until the user explicitly approves the displayed set. Approval applies only to that classification result.
+
+## 4. Mark the approved files
+
+After approval, rerun the same PR with:
+
+```bash
+uv run scripts/classify_pr_files.py [<pr>] --mark-viewed --approval-token <token>
+```
+
+The token binds approval to the PR head SHA and exact noise-path set. If the PR or classification changed, stop and show the new classification for fresh approval. The mutation uses GraphQL variables for PR-controlled paths and is idempotent: marking an already viewed file leaves it viewed.
+
+If `status` is `partial`, report every path in `failed_to_mark`; do not claim the batch succeeded. Rerun only after resolving the reported GitHub CLI or permission failure.
+
+## 5. Report
+
+Show the substantive files as a table with the reason column. End with the total, noise, substantive, marked, and failed counts.
+
+Do not perform the substantive code review unless the user also asks for it.
 
 ## Fallback
 
-If the script fails, classify manually:
+If classification fails, use `gh pr diff <pr> --repo getsentry/sentry` to classify files manually with the table above. Treat ambiguous files as substantive.
 
-1. `gh pr diff <pr> --repo getsentry/sentry` to get the diff.
-2. For each file, check whether all added/removed lines are import statements.
-3. Files inside the `components/core/` destination directory are always substantive.
-4. Get the PR node ID with `gh pr view <pr> --repo getsentry/sentry --json id --jq .id`.
-5. Mark noise via GraphQL: `gh api graphql -f query='mutation { markFileAsViewed(input: {pullRequestId: "<id>", path: "<path>"}) { pullRequest { id } } }'`
+If marking fails, leave the files unmodified and report the failure. Do not construct an inline GraphQL mutation or interpolate a filename into a shell command.
