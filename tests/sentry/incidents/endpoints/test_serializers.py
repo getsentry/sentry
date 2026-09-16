@@ -46,8 +46,7 @@ from sentry.seer.anomaly_detection.types import StoreDataResponse
 from sentry.sentry_apps.services.app import app_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
-from sentry.snuba.snuba_query_validator import QUERY_TYPE_VALID_DATASETS
+from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -188,49 +187,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert not serializer.is_valid()
         assert "Invalid Time Window" in serializer.errors["nonFieldErrors"][0]
-
-    def test_dataset(self) -> None:
-        invalid_values = ["Invalid dataset, valid values are %s" % [item.value for item in Dataset]]
-        self.run_fail_validation_test({"dataset": "events_wrong"}, {"dataset": invalid_values})
-        valid_datasets_for_type = sorted(
-            dataset.name.lower()
-            for dataset in QUERY_TYPE_VALID_DATASETS[SnubaQuery.Type.PERFORMANCE]
-        )
-        self.run_fail_validation_test(
-            {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.Events.value,
-            },
-            {
-                "nonFieldErrors": [
-                    f"Invalid dataset for this query type. Valid datasets are {valid_datasets_for_type}"
-                ]
-            },
-        )
-        valid_datasets_for_type = sorted(
-            dataset.name.lower() for dataset in QUERY_TYPE_VALID_DATASETS[SnubaQuery.Type.ERROR]
-        )
-        self.run_fail_validation_test(
-            {
-                "queryType": SnubaQuery.Type.ERROR.value,
-                "dataset": Dataset.Metrics.value,
-            },
-            {
-                "nonFieldErrors": [
-                    f"Invalid dataset for this query type. Valid datasets are {valid_datasets_for_type}"
-                ]
-            },
-        )
-        base_params = self.valid_params.copy()
-        base_params["queryType"] = SnubaQuery.Type.PERFORMANCE.value
-        base_params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-        base_params["dataset"] = Dataset.PerformanceMetrics.value
-        base_params["query"] = ""
-        serializer = AlertRuleSerializer(context=self.context, data=base_params)
-        assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
-        assert alert_rule.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert alert_rule.snuba_query.dataset == Dataset.Transactions.value
 
     def test_aggregate(self) -> None:
         self.run_fail_validation_test(
@@ -850,18 +806,6 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert serializer.is_valid()
         alert_rule = serializer.save()
         assert alert_rule.snuba_query.query == "status:unresolved"
-
-    def test_performance_score(self) -> None:
-        params = self.valid_params.copy()
-        params["query"] = "has:measurements.score.total"
-        params["aggregate"] = "performance_score(measurements.score.lcp)"
-        params["event_types"] = [SnubaQueryEventType.EventType.TRANSACTION.name.lower()]
-        params["dataset"] = Dataset.PerformanceMetrics.value
-        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-        assert serializer.is_valid(), serializer.errors
-        alert_rule = serializer.save()
-        assert alert_rule.snuba_query.query == "has:measurements.score.total"
-        assert alert_rule.snuba_query.aggregate == "performance_score(measurements.score.lcp)"
 
     @patch("sentry.incidents.serializers.alert_rule.are_any_projects_error_upsampled")
     def test_count_aggregate_gets_converted_to_upsampled_count_for_upsampled_projects(

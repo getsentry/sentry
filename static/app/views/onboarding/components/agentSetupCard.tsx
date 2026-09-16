@@ -1,3 +1,5 @@
+import {useRef} from 'react';
+
 import {Tag} from '@sentry/scraps/badge';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -8,6 +10,8 @@ import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {selectText} from 'sentry/utils/selectText';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
 import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from 'sentry/views/onboarding/consts';
 
@@ -23,6 +27,7 @@ const SUPPORTED_AGENTS_LABEL = new Intl.ListFormat(undefined, {
 
 interface AgentSetupCardProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
+  onSelectSnippet: (source: AgentSetupCopySource) => void;
   prompt: string;
   hasSetupFailed?: boolean;
   onboardingCode?: string;
@@ -32,8 +37,39 @@ export function AgentSetupCard({
   hasSetupFailed,
   onboardingCode,
   onCopyCommand,
+  onSelectSnippet,
   prompt,
 }: AgentSetupCardProps) {
+  const organization = useOrganization();
+  const installCommand = onboardingCode
+    ? `${INSTALL_PLUGIN_COMMAND} ${organization.slug}#${onboardingCode}`
+    : INSTALL_PLUGIN_COMMAND;
+  const installCommandRef = useRef<HTMLDivElement>(null);
+  const promptRef = useRef<HTMLDivElement>(null);
+
+  const handleSelectSnippet = (
+    event: React.MouseEvent<HTMLElement>,
+    snippet: HTMLDivElement | null,
+    source: AgentSetupCopySource
+  ) => {
+    if (
+      !snippet ||
+      !(event.target instanceof Element) ||
+      !snippet.contains(event.target) ||
+      event.target.closest('button')
+    ) {
+      return;
+    }
+
+    const code = snippet.querySelector('code');
+    if (!code) {
+      return;
+    }
+
+    selectText(code);
+    onSelectSnippet(source);
+  };
+
   return (
     <Grid
       columns={`${SETUP_CARD_MARKER_PX} 1fr`}
@@ -72,15 +108,23 @@ export function AgentSetupCard({
       <Container area="steps">
         <List symbol="colored-numeric">
           <ListItem>
-            <Stack gap="lg" paddingTop="xs" paddingBottom="2xl">
+            <Stack
+              gap="lg"
+              paddingTop="xs"
+              paddingBottom="2xl"
+              onClick={event =>
+                handleSelectSnippet(event, installCommandRef.current, 'install_command')
+              }
+            >
               <Text size="md">{t('Install the Sentry plugin for your agent')}</Text>
               <CodeBlock
+                ref={installCommandRef}
                 dark
                 alwaysShowCopyButton
                 onCopy={() => onCopyCommand('install_command')}
                 wrapMode="wrap"
               >
-                {INSTALL_PLUGIN_COMMAND}
+                {installCommand}
               </CodeBlock>
             </Stack>
             <Flex
@@ -96,7 +140,11 @@ export function AgentSetupCard({
             </Flex>
           </ListItem>
           <ListItem>
-            <Stack gap="lg" paddingTop="xs">
+            <Stack
+              gap="lg"
+              paddingTop="xs"
+              onClick={event => handleSelectSnippet(event, promptRef.current, 'prompt')}
+            >
               <Stack gap="xs">
                 <Text size="md">{t('Ask your agent to set up Sentry')}</Text>
                 <Text variant="muted" size="md">
@@ -104,6 +152,7 @@ export function AgentSetupCard({
                 </Text>
               </Stack>
               <CodeBlock
+                ref={promptRef}
                 dark
                 alwaysShowCopyButton={!hasSetupFailed}
                 hideCopyButton={hasSetupFailed}

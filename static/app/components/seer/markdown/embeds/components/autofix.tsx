@@ -1,9 +1,7 @@
-import {useEffect, useMemo, type ReactNode} from 'react';
+import {useEffect, useMemo, type ComponentType, type ReactNode} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
@@ -28,12 +26,14 @@ import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetai
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {resourceLinkMarkdown} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -63,38 +63,35 @@ function autofixStepMarkdown(
   return issue ? `${STEP_LABELS[step]}: ${issue}` : STEP_LABELS[step];
 }
 
-const STEP_ICONS: Record<AutofixExplorerStep, ReactNode> = {
-  root_cause: <IconBug />,
-  solution: <IconList />,
-  code_changes: <IconCode />,
-  pr_iteration: <IconPullRequest />,
+const STEP_ICONS: Record<AutofixExplorerStep, ComponentType<SVGIconProps>> = {
+  root_cause: IconBug,
+  solution: IconList,
+  code_changes: IconCode,
+  pr_iteration: IconPullRequest,
 };
 
-interface AutofixDisclosureProps extends Pick<Group, 'id' | 'shortId'> {
+interface AutofixBlockProps extends Pick<Group, 'id' | 'shortId'> {
   children: ReactNode;
   step: AutofixExplorerStep;
 }
 
 /**
- * The collapsible shell autofix embeds render into: an icon + step label title
- * with a link back to the issue, and arbitrary step content below.
+ * The shared block shell autofix embeds render into, with a link back to the
+ * issue and arbitrary step content below.
  */
-function AutofixDisclosure({id, shortId, step, children}: AutofixDisclosureProps) {
+function AutofixBlock({id, shortId, step, children}: AutofixBlockProps) {
   const organization = useOrganization();
   return (
-    <Disclosure>
-      <Disclosure.Title
-        trailingItems={
-          <Link to={`/organizations/${organization.slug}/issues/${id}/`}>{shortId}</Link>
-        }
-      >
-        <Flex gap="md">
-          {STEP_ICONS[step]}
-          <Text>{STEP_LABELS[step]}</Text>
-        </Flex>
-      </Disclosure.Title>
-      <Disclosure.Content>{children}</Disclosure.Content>
-    </Disclosure>
+    <SeerEmbedBlock
+      defaultExpanded={false}
+      href={`/organizations/${organization.slug}/issues/${id}/`}
+      icon={STEP_ICONS[step]}
+      linkLabel={shortId}
+      testId="seer-autofix-embed"
+      title={STEP_LABELS[step]}
+    >
+      {children}
+    </SeerEmbedBlock>
   );
 }
 
@@ -148,9 +145,9 @@ export const Autofix = defineSeerEmbed({
       case 'block':
       case 'inline':
         return (
-          <AutofixDisclosure id={id} shortId={shortId} step={content.step}>
+          <AutofixBlock id={id} shortId={shortId} step={content.step}>
             <AutofixStepBody {...content} />
-          </AutofixDisclosure>
+          </AutofixBlock>
         );
     }
   },
@@ -235,7 +232,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const canAct = !!sendMessage && !isPolling;
 
   return (
-    <AutofixDisclosure id={id} shortId={shortId} step={step}>
+    <AutofixBlock id={id} shortId={shortId} step={step}>
       <Stack gap="lg">
         <AutofixRefBody isLoading={isLoading} section={section} step={step} />
         {section?.status === 'error' && (
@@ -270,7 +267,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
           </Flex>
         )}
       </Stack>
-    </AutofixDisclosure>
+    </AutofixBlock>
   );
 }
 

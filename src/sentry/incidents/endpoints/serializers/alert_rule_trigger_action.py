@@ -12,7 +12,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 logger = logging.getLogger(__name__)
 
@@ -107,9 +106,6 @@ class AlertRuleTriggerActionSerializer(Serializer[dict[str, Any]]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        # Mark that we're using legacy AlertRuleTriggerAction models
-        report_used_legacy_models()
-
         from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 
         priority: str | None = (

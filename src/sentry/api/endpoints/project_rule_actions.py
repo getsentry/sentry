@@ -34,6 +34,7 @@ from sentry.workflow_engine.migration_helpers.rule_action import (
 )
 from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +70,7 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
             }}
 
         """
+        enforce_alerts_api_deprecation(project.organization)
         serializer = DummyRuleSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )

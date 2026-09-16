@@ -178,6 +178,12 @@ def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | Non
     return None
 
 
+# sources that we want to bypass `should_trigger` checks for
+_BYPASSES_SHOULD_TRIGGER = frozenset(
+    {ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER, ConsumeTriggerSource.UI_CONSUME}
+)
+
+
 def _organization_for_gate(run_id: int, organization_id: int) -> Organization | None:
     try:
         return Organization.objects.get_from_cache(id=organization_id)
@@ -197,10 +203,10 @@ def trigger_consume_pr_iteration_feedback(
     organization_id: int,
     feedback: Feedback,
     run_state: SeerRunState,
-    bypass: bool = False,
+    source: str = ConsumeTriggerSource.FEEDBACK,
     delay: int | None = None,
-    triggered_by: str = "feedback",
 ) -> None:
+    bypass = source in _BYPASSES_SHOULD_TRIGGER
     set_pr_iteration_attributes(
         run_id=run_id,
         organization_id=organization_id,
@@ -219,12 +225,13 @@ def trigger_consume_pr_iteration_feedback(
             run_id=run_id,
             organization_id=organization_id,
             outcome=outcome_for_pause(
-                log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+                get_pause_reason(run_id=run_id, organization_id=organization_id)
+                or PauseReason.USER_STOP
             ),
         )
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by=triggered_by,
+            trigger_source=source,
             outcome="not_triggered",
             reason="paused",
             countdown=None,
@@ -248,7 +255,7 @@ def trigger_consume_pr_iteration_feedback(
     ):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by=triggered_by,
+            trigger_source=source,
             outcome="not_triggered",
             reason="missing_github_permissions",
             countdown=None,
@@ -263,14 +270,10 @@ def trigger_consume_pr_iteration_feedback(
 
     if bypass:
         decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
-        trigger_source = ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
     else:
         decision = feedback.source.should_trigger(run_state)
-        trigger_source = (
-            ConsumeTriggerSource.TIME_LIMIT_DEFER
-            if isinstance(decision.task, ConsumeTask.Later)
-            else ConsumeTriggerSource.FEEDBACK
-        )
+        if isinstance(decision.task, ConsumeTask.Later):
+            source = ConsumeTriggerSource.TIME_LIMIT_DEFER
 
     countdown = None
     trigger_id = None
@@ -286,7 +289,7 @@ def trigger_consume_pr_iteration_feedback(
                 "run_id": run_id,
                 "organization_id": organization_id,
                 "trigger_id": trigger_id,
-                "trigger_source": trigger_source,
+                "trigger_source": source,
             },
             countdown=countdown,
         )
@@ -300,12 +303,11 @@ def trigger_consume_pr_iteration_feedback(
 
     log_ctx.info(
         "autofix.pr_iteration.feedback.trigger",
-        triggered_by=triggered_by,
         outcome=outcome,
         reason=decision.reason,
         countdown=countdown,
         trigger_id=trigger_id,
-        trigger_source=trigger_source,
+        trigger_source=source,
         bypass=bypass,
         delay=delay,
         feedback_source=feedback.source.type,
@@ -469,7 +471,8 @@ def consume_queued_autofix_feedback(
                 run_id=run_id,
                 organization_id=organization_id,
                 outcome=outcome_for_pause(
-                    log_ctx, get_pause_reason(run_id=run_id, organization_id=organization_id)
+                    get_pause_reason(run_id=run_id, organization_id=organization_id)
+                    or PauseReason.USER_STOP
                 ),
             )
             clear_queued_autofix_feedback(run_id)
@@ -501,7 +504,7 @@ def consume_queued_autofix_feedback(
                 run_state=state,
                 run_id=run_id,
                 organization_id=organization_id,
-                outcome=outcome_for_pause(log_ctx, PauseReason.PR_CLOSED.value),
+                outcome=outcome_for_pause(PauseReason.PR_CLOSED),
             )
             log_ctx.info(
                 "autofix.pr_iteration.consume_feedback.skipped",

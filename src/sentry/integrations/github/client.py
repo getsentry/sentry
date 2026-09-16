@@ -498,6 +498,8 @@ class GitHubBaseClient(
 
     base_url = "https://api.github.com"
     integration_name = IntegrationProviderSlug.GITHUB.value
+    # /languages is precomputed and independent of the tree.
+    has_languages_endpoint = True
     # Github gives us links to navigate, however, let's be safe in case we're fed garbage
     page_number_limit = 200  # With a default of 100 per page -> 20,000 items
 
@@ -629,11 +631,12 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}", api_request_type=GitHubApiRequestType.GET_REPO)
 
-    def get_languages(self, repo: str) -> dict[str, int]:
+    def get_languages(self, repo: str, tree: list[dict[str, Any]] | None = None) -> dict[str, int]:
         """
         https://docs.github.com/en/rest/repos/repos#list-repository-languages
 
         :param repo: "owner/repo" format
+        :param tree: ignored; GitHub serves language byte counts directly.
         :returns: {"Python": 50000, "JavaScript": 30000, ...}
                   Keys are GitHub Linguist names, values are bytes of code.
         """
@@ -1172,6 +1175,14 @@ class GitHubBaseClient(
             page_number_limit=page_number_limit,
             api_request_type=GitHubApiRequestType.GET_LABELS,
         )
+
+    def get_contents(self, repo: str, path: str, ref: str | None = None) -> Any:
+        """
+        https://docs.github.com/en/rest/repos/contents#get-repository-content
+
+        :param repo: "owner/repo" format
+        """
+        return self.get(f"/repos/{repo}/contents/{path}", params={"ref": ref} if ref else {})
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         return self.head_cached(

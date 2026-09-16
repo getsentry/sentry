@@ -184,11 +184,9 @@ SENTRY_RULE_TASK_REDIS_CLUSTER = "default"
 SENTRY_TRANSACTION_NAMES_REDIS_CLUSTER = "default"
 SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
-SENTRY_INTEGRATION_ERROR_LOG_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
-SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
 # on this cluster because add-buffer.lua checks lock existence atomically.
@@ -1799,16 +1797,12 @@ SENTRY_METRICS_INDEXER_REINDEXED_INTS: dict[int, str] = {}
 
 # Rate limits during string indexing for our metrics product.
 # Which cluster to use. Example: {"cluster": "default"}
+# Release-health indexer only; generic metrics consumers are gone.
 SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS: dict[str, str] = {}
-SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS_PERFORMANCE = (
-    SENTRY_METRICS_INDEXER_WRITES_LIMITER_OPTIONS
-)
 
 # Controls the sample rate with which we report errors to Sentry for metric messages
 # dropped due to rate limits.
 SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 0.01
-
-SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER = False
 
 # Render charts on the backend. This uses the Chartcuterie external service.
 SENTRY_CHART_RENDERER = "sentry.charts.chartcuterie.Chartcuterie"
@@ -2220,8 +2214,6 @@ SENTRY_WATCHERS = (
 SENTRY_USE_RELAY = False
 SENTRY_RELAY_PORT = 7899
 
-SENTRY_DEV_USE_REDIS_CLUSTER = bool(os.getenv("SENTRY_DEV_USE_REDIS_CLUSTER", False))
-
 # The chunk size for attachments in blob store. Should be a power of two.
 SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
@@ -2308,6 +2300,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
+    "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
 )
 
 
@@ -2910,7 +2903,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 0.006
+SAMPLED_DEFAULT_RATE = 0.003
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
@@ -3089,36 +3082,9 @@ GATEWAY_PROXY_TIMEOUT: int | None = (
     else None
 )
 
-SENTRY_SLICING_LOGICAL_PARTITION_COUNT = 256
-# This maps a Sliceable for slicing by name and (lower logical partition, upper physical partition)
-# to a given slice. A slice is a set of physical resources in Sentry and Snuba.
-#
-# For each Sliceable, the range [0, SENTRY_SLICING_LOGICAL_PARTITION_COUNT) must be mapped
-# to a slice ID
-SENTRY_SLICING_CONFIG: Mapping[str, Mapping[tuple[int, int], int]] = {}
-
 # Mapping of (logical topic names, slice id) to physical topic names
 # and kafka broker names. The kafka broker names are used to construct
 # the broker config from KAFKA_CLUSTERS. This is used for slicing only.
-# Example:
-# SLICED_KAFKA_TOPICS = {
-#   ("snuba-generic-metrics", 0): {
-#       "topic": "generic_metrics_0",
-#       "cluster": "cluster_1",
-#   },
-#   ("snuba-generic-metrics", 1): {
-#       "topic": "generic_metrics_1",
-#       "cluster": "cluster_2",
-# }
-# And then in KAFKA_CLUSTERS:
-# KAFKA_CLUSTERS = {
-#   "cluster_1": {
-#       "bootstrap.servers": "kafka1:9092",
-#   },
-#   "cluster_2": {
-#       "bootstrap.servers": "kafka2:9092",
-#   },
-# }
 SLICED_KAFKA_TOPICS: Mapping[tuple[str, int], Mapping[str, Any]] = {}
 
 # Used by silo tests -- activate all silo mode test decorators even if not marked stable

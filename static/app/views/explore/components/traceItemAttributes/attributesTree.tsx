@@ -360,8 +360,8 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
 
   return (
     <RevealOnHover>
-      {({className}) => (
-        <TreeRow hasErrors={hasErrors} {...props} className={className}>
+      {revealOnHoverProps => (
+        <TreeRow hasErrors={hasErrors} {...props} {...revealOnHoverProps}>
           <TreeKeyTrunk spacerCount={spacerCount}>
             {spacerCount > 0 && (
               <Fragment>

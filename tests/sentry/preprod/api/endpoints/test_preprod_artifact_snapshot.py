@@ -1012,6 +1012,19 @@ class ProjectPreprodSnapshotGetTest(APITestCase):
         assert response.status_code == 500
         assert response.data["detail"] == "Internal server error"
 
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
+    def test_get_snapshot_missing_manifest_returns_404(self, mock_get_session):
+        artifact, _, _, _, _ = self._create_artifact_with_manifest()
+        mock_session = MagicMock()
+        mock_session.get.return_value = None
+        mock_get_session.return_value = mock_session
+
+        url = self._get_detail_url(artifact.id)
+        response = self.client.get(url)
+
+        assert response.status_code == 404
+        assert response.data["detail"] == "Snapshot manifest not found"
+
     def test_get_snapshot_no_metrics(self) -> None:
         """Artifact without snapshot metrics should return 404."""
         artifact = PreprodArtifact.objects.create(

@@ -19,7 +19,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
@@ -55,6 +55,22 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         self.organization.update_option("sentry:gen_ai_consent_v2024_11_14", True)
         self.organization.flags.allow_joinleave = True
         self.organization.save()
+
+        # The kickoff setup guard mirrors the frontend gate; POST tests assume a
+        # configured org/project. Default the checks to pass and flip them in the
+        # guard-specific tests.
+        self._scm_patcher = patch(
+            "sentry.seer.endpoints.group_ai_autofix.has_supported_scm_integration",
+            return_value=True,
+        )
+        self.mock_has_scm = self._scm_patcher.start()
+        self.addCleanup(self._scm_patcher.stop)
+        self._repos_patcher = patch(
+            "sentry.seer.endpoints.group_ai_autofix.has_project_connected_repos",
+            return_value=True,
+        )
+        self.mock_has_repos = self._repos_patcher.start()
+        self.addCleanup(self._repos_patcher.stop)
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_returns_state(self, mock_get_explorer_state):
@@ -391,6 +407,60 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 123
+        mock_trigger_explorer.assert_called_once()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_kickoff_requires_scm_integration(self, mock_trigger_explorer):
+        group = self.create_group()
+        self.mock_has_scm.return_value = False
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 409, response.data
+        assert response.data["code"] == "scm_integration_required"
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_kickoff_requires_project_repos(self, mock_trigger_explorer):
+        group = self.create_group()
+        self.mock_has_repos.return_value = False
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 409, response.data
+        assert response.data["code"] == "repos_not_linked"
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_kickoff_legacy_seer_org_allowed_without_setup(self, mock_trigger_explorer):
+        """Legacy seer-added orgs skip the setup gate, mirroring AutofixContent."""
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
+        mock_trigger_explorer.return_value = run
+
+        self.mock_has_scm.return_value = False
+        self.mock_has_repos.return_value = False
+
+        with with_feature("organizations:seer-added"):
+            self.login_as(user=self.user)
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"step": "root_cause"},
+                format="json",
+            )
+
+        assert response.status_code == 202, response.data
+        assert response.data["run_id"] == 777
         mock_trigger_explorer.assert_called_once()
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -932,7 +1002,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         mock_consume.assert_called_once()
         assert mock_consume.call_args.kwargs["run_id"] == 123
         assert mock_consume.call_args.kwargs["organization_id"] == group.organization.id
-        assert mock_consume.call_args.kwargs["bypass"] is True
+        assert mock_consume.call_args.kwargs["source"] == ConsumeTriggerSource.UI_CONSUME
 
     @with_feature(
         {

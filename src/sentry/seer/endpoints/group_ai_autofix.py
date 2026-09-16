@@ -41,6 +41,8 @@ from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
     get_autofix_agent_state,
@@ -61,6 +63,7 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -82,6 +85,10 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
+    has_project_connected_repos,
+)
+from sentry.seer.endpoints.organization_seer_onboarding_check import (
+    has_supported_scm_integration,
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
@@ -105,6 +112,17 @@ PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
 }
 
+AUTOFIX_SETUP_REQUIRED_DETAIL = {
+    "scm_integration_required": (
+        "Seer Autofix requires a supported SCM integration (GitHub or GitLab) "
+        "to be installed for your organization before a new run can be started."
+    ),
+    "repos_not_linked": (
+        "Seer Autofix requires repositories to be connected to this project "
+        "before a new run can be started."
+    ),
+}
+
 
 def _is_unknown_run_id_error(error: SeerPermissionError) -> bool:
     return getattr(error, "message", None) == UNKNOWN_RUN_ID_FOR_GROUP
@@ -122,6 +140,25 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+
+
+def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
+    """Return the setup code blocking a new autofix run, or None if it can start.
+
+    Mirrors the frontend gate in AutofixContent: legacy usage-based Seer plans
+    (organizations:seer-added) may run autofix without an SCM integration or
+    linked repos, so the checks are skipped for them.
+    """
+    if features.has("organizations:seer-added", organization):
+        return None
+
+    if not has_supported_scm_integration(organization):
+        return "scm_integration_required"
+
+    if not has_project_connected_repos(organization, project):
+        return "repos_not_linked"
+
+    return None
 
 
 class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
@@ -446,12 +483,27 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     organization_id=group.organization.id,
                     feedback=feedback,
                     run_state=run_state,
-                    bypass=True,
+                    source=ConsumeTriggerSource.UI_CONSUME,
                 )
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
             case _:
+                # New runs require Seer setup (SCM integration and linked
+                # repos), mirroring the frontend gate in AutofixContent. The
+                # handoff/open_pr/pr_iteration steps and continuations
+                # (resolved_run_id is not None) are never gated here.
+                if is_autofix_kickoff:
+                    setup_code = _check_autofix_setup(group.organization, group.project)
+                    if setup_code is not None:
+                        return Response(
+                            {
+                                "detail": AUTOFIX_SETUP_REQUIRED_DETAIL[setup_code],
+                                "code": setup_code,
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
                 if resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)

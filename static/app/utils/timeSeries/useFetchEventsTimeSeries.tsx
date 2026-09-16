@@ -8,8 +8,10 @@ import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {formatSearchStringForQueryParam} from 'sentry/utils/url/formatSearchStringForQueryParam';
+import {
+  type AnyMutableSearch,
+  formatSearchStringForQueryParam,
+} from 'sentry/utils/url/formatSearchStringForQueryParam';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -45,17 +47,21 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
+   * Whether to request annotations (dropped-data outcomes) on the response's `meta.annotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
+   */
+  includeAnnotations?: boolean;
+  /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
   /**
    * Query to apply in addition to the base `query` to the log data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
    */
-  logQuery?: Array<MutableSearch | string>;
+  logQuery?: Array<AnyMutableSearch | string>;
   /**
    * Query to apply in addition to the base `query` to the metric data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
    */
-  metricQuery?: Array<MutableSearch | string>;
+  metricQuery?: Array<AnyMutableSearch | string>;
   /**
    * Page filters to apply to the request. This applies the date selection, projects, and environments. By default uses the currently applied filters after waiting for them to become available. If `pageFilters` are passed as a prop, does not wait for readiness.
    */
@@ -63,7 +69,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
   /**
    * Query to apply to the data set. Can be either a `MutableSearch` object (preferred) or a plain string.
    */
-  query?: MutableSearch | string;
+  query?: AnyMutableSearch | string;
   queryOptions?: {enabled?: boolean; staleTime?: number};
   /**
    * Sampling mode. Only specify this if you're sure you require a specific sampling mode. In most cases, the backend will automatically decide this.
@@ -76,7 +82,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
   /**
    * Query to apply in addition to the base `query` to the span data set, used for cross-event querying. Can be either an array of `MutableSearch` objects (preferred) or plain strings.
    */
-  spanQuery?: Array<MutableSearch | string>;
+  spanQuery?: Array<AnyMutableSearch | string>;
   /**
    * Number of groups for a `groupBy` request. e.g., if `topEvents` is `5` and `groupBy` is `["transaction"]` this will group the results by `transaction` and fetch the top 5 results
    */
@@ -107,6 +113,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled,
     groupBy,
     extrapolate,
+    includeAnnotations,
     query,
     sampling,
     caseInsensitive,
@@ -168,6 +175,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
+          includeAnnotations: includeAnnotations ? 1 : undefined,
         },
         staleTime: Infinity,
       }
@@ -180,11 +188,22 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
+export interface Annotation {
+  category: string;
+  droppedCount: number;
+  end: number;
+  label: string;
+  reason: string;
+  start: number;
+  type: string;
+}
+
 export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
+    annotations?: Annotation[];
   };
 };
