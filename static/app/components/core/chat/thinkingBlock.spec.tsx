@@ -137,6 +137,17 @@ describe('ThinkingBlock', () => {
     expect(screen.queryByText('Querying spans')).not.toBeInTheDocument();
   });
 
+  it('uses a static Seer icon while thinking', () => {
+    render(
+      <ThinkingBlock title="Thinking" startTime={new Date()}>
+        <div>content</div>
+      </ThinkingBlock>
+    );
+
+    const [seerIcon] = screen.getAllByRole('img');
+    expect(seerIcon).toHaveAttribute('viewBox', '0 0 16 16');
+  });
+
   it('formats minutes for long durations', () => {
     const start = new Date('2025-01-01T00:00:00Z');
     const end = new Date('2025-01-01T00:01:30.000Z');
