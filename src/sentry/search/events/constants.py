@@ -340,6 +340,10 @@ REGEX_OPERATOR = f"{WILDCARD_UNICODE}Matches{WILDCARD_UNICODE}"
 # like `\\1` reads as a literal backslash followed by a digit.
 UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\\\|(?P<unsupported>\\[1-9]|\\Z|\(\?(?:[=!>#(]|<[=!]|P=))")
 
+# The reverse: syntax RE2 accepts that Python's `re` cannot parse, so `re` alone cannot say
+# whether one of these patterns is well formed.
+RE2_LIKE_ONLY_SYNTAX = re.compile(r"\\[pPzCQE]|\(\?[imsU-]*U")
+
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
 SEMVER_WILDCARDS = frozenset(["X", "*"])

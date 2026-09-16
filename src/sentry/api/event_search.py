@@ -17,6 +17,7 @@ from sentry.search.events.constants import (
     DURATION_UNITS,
     NOT_HAS_FILTER_ERROR_MESSAGE,
     OPERATOR_NEGATION_MAP,
+    RE2_LIKE_ONLY_SYNTAX,
     REGEX_OPERATOR,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -459,7 +460,8 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
     try:
         re.compile(pattern)
     except re.error as exc:
-        raise InvalidSearchQuery(f"{key}: Invalid regex: {exc.msg}")
+        if RE2_LIKE_ONLY_SYNTAX.search(pattern) is None:
+            raise InvalidSearchQuery(f"{key}: Invalid regex: {exc.msg}")
 
 
 def as_regex_value(key: str, value: SearchValue) -> SearchValue:
