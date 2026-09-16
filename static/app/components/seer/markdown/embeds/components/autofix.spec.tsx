@@ -223,6 +223,24 @@ async function expand(name: string) {
 }
 
 describe('autofix embed', () => {
+  it('renders in the shared block shell', () => {
+    renderAutofixEmbed({
+      step: 'root_cause',
+      result: 'The cart total throws on an empty cart.',
+    });
+
+    expect(screen.getByTestId('seer-autofix-embed')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Root Cause'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.getByRole('link', {name: 'CHECKOUT-42'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/${ISSUE.id}/`
+    );
+    expect(screen.queryByText('The cart total throws on an empty cart.')).not.toBeVisible();
+  });
+
   it('renders the root cause sections a live run shows', async () => {
     renderAutofixEmbed({
       step: 'root_cause',
