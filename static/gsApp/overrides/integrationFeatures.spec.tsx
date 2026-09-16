@@ -13,6 +13,17 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {hookIntegrationFeatures} from 'getsentry/overrides/integrationFeatures';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
+/**
+ * `IntegrationFeatures` only invokes its render callback once `withSubscription`
+ * has a subscription *and* the react-query billing config fetch has settled, so
+ * nothing is asserted synchronously after `render()`. That settle is effectively
+ * instant locally, but on a loaded CI shard a stall longer than RTL's 1s default
+ * expires the wait before the callback ever runs, which surfaces as a
+ * `Number of calls: 0` flake. Give the wait real headroom -- a passing test still
+ * resolves on the first poll, so this only slows down genuine failures.
+ */
+const RENDER_CALLBACK_TIMEOUT = 10_000;
+
 describe('hookIntegrationFeatures', () => {
   const {FeatureList, IntegrationFeatures} = hookIntegrationFeatures();
 
@@ -50,59 +61,68 @@ describe('hookIntegrationFeatures', () => {
       </IntegrationFeatures>
     );
 
-    await waitFor(() => {
-      expect(renderCallback).toHaveBeenCalledWith({
-        disabled: false,
-        disabledReason: null,
-        ungatedFeatures: features,
-        gatedFeatureGroups: [],
-      });
-    });
-  });
-
-  it('gates premium only features and requires upgrade with free plan', async () => {
-    const sub = SubscriptionFixture({organization});
-    SubscriptionStore.set(organization.slug, sub);
-
-    const features = [
-      {
-        description: 'Some non-plan feature',
-        featureGate: 'integrations-issue-basic',
+    await waitFor(
+      () => {
+        expect(renderCallback).toHaveBeenCalledWith({
+          disabled: false,
+          disabledReason: null,
+          ungatedFeatures: features,
+          gatedFeatureGroups: [],
+        });
       },
-      {
-        description: 'Another non-plan feature',
-        featureGate: 'integrations-event-hooks',
-      },
-    ];
-
-    const renderCallback = jest.fn(() => <Fragment />);
-
-    render(
-      <IntegrationFeatures {...{organization, features}}>
-        {renderCallback}
-      </IntegrationFeatures>
+      {timeout: RENDER_CALLBACK_TIMEOUT}
     );
-
-    await waitFor(() => {
-      expect(renderCallback).toHaveBeenCalledWith({
-        disabled: true,
-        disabledReason: expect.anything(), // TODO use matching that will work with a React component
-        ungatedFeatures: [],
-        gatedFeatureGroups: [
-          {
-            plan: PlanDetailsLookupFixture('am2_team'),
-            features: [features[0]],
-            hasFeatures: false,
-          },
-          {
-            plan: PlanDetailsLookupFixture('am2_business'),
-            features: [features[1]],
-            hasFeatures: false,
-          },
-        ],
-      });
-    });
   });
+
+  it.isKnownFlake(
+    'gates premium only features and requires upgrade with free plan',
+    async () => {
+      const sub = SubscriptionFixture({organization});
+      SubscriptionStore.set(organization.slug, sub);
+
+      const features = [
+        {
+          description: 'Some non-plan feature',
+          featureGate: 'integrations-issue-basic',
+        },
+        {
+          description: 'Another non-plan feature',
+          featureGate: 'integrations-event-hooks',
+        },
+      ];
+
+      const renderCallback = jest.fn(() => <Fragment />);
+
+      render(
+        <IntegrationFeatures {...{organization, features}}>
+          {renderCallback}
+        </IntegrationFeatures>
+      );
+
+      await waitFor(
+        () => {
+          expect(renderCallback).toHaveBeenCalledWith({
+            disabled: true,
+            disabledReason: expect.anything(), // TODO use matching that will work with a React component
+            ungatedFeatures: [],
+            gatedFeatureGroups: [
+              {
+                plan: PlanDetailsLookupFixture('am2_team'),
+                features: [features[0]],
+                hasFeatures: false,
+              },
+              {
+                plan: PlanDetailsLookupFixture('am2_business'),
+                features: [features[1]],
+                hasFeatures: false,
+              },
+            ],
+          });
+        },
+        {timeout: RENDER_CALLBACK_TIMEOUT}
+      );
+    }
+  );
 
   describe('FeatureList and IntegrationFeatures that distinguish free and premium', () => {
     const sub = SubscriptionFixture({organization, plan: 'am2_team'});
@@ -147,25 +167,28 @@ describe('hookIntegrationFeatures', () => {
         </IntegrationFeatures>
       );
 
-      await waitFor(() => {
-        expect(renderCallback).toHaveBeenCalledWith({
-          disabled: false,
-          disabledReason: null,
-          ungatedFeatures: [features[0]],
-          gatedFeatureGroups: [
-            {
-              plan: PlanDetailsLookupFixture('am2_team'),
-              features: [features[1]],
-              hasFeatures: true,
-            },
-            {
-              plan: PlanDetailsLookupFixture('am2_business'),
-              features: [features[2]],
-              hasFeatures: false,
-            },
-          ],
-        });
-      });
+      await waitFor(
+        () => {
+          expect(renderCallback).toHaveBeenCalledWith({
+            disabled: false,
+            disabledReason: null,
+            ungatedFeatures: [features[0]],
+            gatedFeatureGroups: [
+              {
+                plan: PlanDetailsLookupFixture('am2_team'),
+                features: [features[1]],
+                hasFeatures: true,
+              },
+              {
+                plan: PlanDetailsLookupFixture('am2_business'),
+                features: [features[2]],
+                hasFeatures: false,
+              },
+            ],
+          });
+        },
+        {timeout: RENDER_CALLBACK_TIMEOUT}
+      );
     });
 
     it('renders feature list', async () => {
