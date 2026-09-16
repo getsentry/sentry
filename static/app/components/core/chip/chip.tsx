@@ -138,7 +138,7 @@ function useRovingController(
 /**
  * Wires a section into the chip's roving-tabindex when it is interactive and the
  * chip is in `roving` focus mode. Returns the props to spread onto the focusable
- * element (empty in manual mode or for inert sections).
+ * element (empty when roving focus is disabled or for inert sections).
  */
 function useChipSegment(interactive: boolean): ChipSegmentProps {
   const {roving} = useChipContext('Chip section');
@@ -211,6 +211,18 @@ interface ChipSectionProps extends Omit<
   variant?: TextProps<'span'>['variant'];
 }
 
+interface ChipValueProps extends ChipSectionProps {
+  /**
+   * Constrains the value section while allowing the rest of the chip to retain
+   * its intrinsic width.
+   */
+  maxWidth?: string;
+}
+
+type ChipValueStyle = React.CSSProperties & {
+  '--chip-value-max-width'?: string;
+};
+
 function resolveTone(tone: SectionTone, readonly: boolean): TextProps<'span'>['variant'] {
   if (tone === 'operator') {
     return 'secondary';
@@ -228,6 +240,8 @@ function ChipSection({
   interactive,
   onClick,
   ref,
+  className,
+  style,
   ...rest
 }: ChipSectionProps & {tone: SectionTone}) {
   const {size, readonly} = useChipContext('Chip section');
@@ -236,32 +250,36 @@ function ChipSection({
   const textVariant = variant ?? resolveTone(tone, readonly);
   const textSize = SIZES[size].font;
 
+  const SectionContent = tone === 'value' ? ValueText : SectionText;
   const content = (
-    <Text size={textSize} variant={textVariant} wrap="nowrap">
+    <SectionContent size={textSize} variant={textVariant} wrap="nowrap">
       {children}
-    </Text>
+    </SectionContent>
   );
 
   if (!isInteractive) {
+    const Segment = tone === 'value' ? InertValueSegment : Flex;
     return (
-      <Flex display="inline-flex" align="center">
+      <Segment display="inline-flex" align="center" className={className} style={style}>
         {content}
-      </Flex>
+      </Segment>
     );
   }
 
+  const Segment = tone === 'value' ? InteractiveValueSegment : InteractiveSegment;
   return (
-    <InteractiveSegment
+    <Segment
       ref={ref}
       type="button"
       data-chip-interactive=""
-      // `segmentProps` comes last so the roving-managed tabIndex/handlers stay
-      // authoritative over any caller-supplied `tabIndex`. In manual mode
-      // `segmentProps` is empty, so caller props win there instead.
+      className={className}
+      style={style}
+      // `segmentProps` comes last so the roving-managed tabIndex and handlers
+      // stay authoritative over caller-supplied values.
       {...mergeProps(rest, segmentProps, {onClick})}
     >
       {content}
-    </InteractiveSegment>
+    </Segment>
   );
 }
 
@@ -282,8 +300,13 @@ function ChipOperator(props: ChipSectionProps) {
 /**
  * The filter value. Becomes a button when given an `onClick`.
  */
-function ChipValue(props: ChipSectionProps) {
-  return <ChipSection tone="value" {...props} />;
+function ChipValue({maxWidth, style, ...props}: ChipValueProps) {
+  const valueStyle: ChipValueStyle = {
+    ...style,
+    ...(maxWidth === undefined ? {} : {'--chip-value-max-width': maxWidth}),
+  };
+
+  return <ChipSection tone="value" style={valueStyle} {...props} />;
 }
 
 interface ChipDismissProps extends Omit<
@@ -419,6 +442,8 @@ const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
   display: inline-flex;
   align-items: stretch;
   box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
   height: ${p => SIZES[p.chipSize].height};
   /* Inert layout: generous end padding, tight gap between the value parts. */
   gap: ${p => p.theme.space.xs};
@@ -514,6 +539,29 @@ const InteractiveSegment = styled('button')`
     ${p => p.theme.focusRing()};
     z-index: 1;
   }
+`;
+
+const InteractiveValueSegment = styled(InteractiveSegment)`
+  min-width: 0;
+  max-width: var(--chip-value-max-width, 100%);
+  overflow: hidden;
+`;
+
+const SectionText = styled(Text)`
+  display: block;
+`;
+
+const InertValueSegment = styled(Flex)`
+  min-width: 0;
+  max-width: var(--chip-value-max-width, 100%);
+  overflow: hidden;
+`;
+
+const ValueText = styled(SectionText)`
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
 `;
 
 const DismissButton = styled(Button)<{chipSize: ChipSize}>`

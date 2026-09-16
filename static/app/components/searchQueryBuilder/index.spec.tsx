@@ -6995,8 +6995,12 @@ describe('SearchQueryBuilder', () => {
       const options = within(screen.getByRole('listbox')).getAllByRole('option');
       expect(options).toHaveLength(2);
 
-      expect(options[0]).toHaveTextContent('span.description contains test\\*');
-      expect(options[1]).toHaveTextContent('span.description is test*');
+      expect(within(options[0]!).getByText('span.description')).toBeInTheDocument();
+      expect(within(options[0]!).getByText('contains')).toBeInTheDocument();
+      expect(within(options[0]!).getByText('test\\*')).toBeInTheDocument();
+      expect(within(options[1]!).getByText('span.description')).toBeInTheDocument();
+      expect(within(options[1]!).getByText('is')).toBeInTheDocument();
+      expect(within(options[1]!).getByText('test*')).toBeInTheDocument();
     });
 
     describe('selecting suggestions', () => {

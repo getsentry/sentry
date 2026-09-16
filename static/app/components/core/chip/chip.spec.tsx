@@ -62,6 +62,27 @@ describe('Chip', () => {
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
+    it('forwards inert styling props and constrains values', () => {
+      render(
+        <Chip.Root>
+          <Chip.Property className="property" style={{maxWidth: 100}}>
+            browser
+          </Chip.Property>
+          <Chip.Operator>is</Chip.Operator>
+          <Chip.Value maxWidth="300px">Chrome</Chip.Value>
+        </Chip.Root>
+      );
+
+      const property = screen.getByText('browser').parentElement;
+      expect(property).toHaveClass('property');
+      expect(property).toHaveStyle({maxWidth: '100px'});
+      expect(
+        screen
+          .getByText('Chrome')
+          .parentElement?.style.getPropertyValue('--chip-value-max-width')
+      ).toBe('300px');
+    });
+
     it('renders a section as a button when given onClick and fires it', async () => {
       const editValue = jest.fn();
       render(
