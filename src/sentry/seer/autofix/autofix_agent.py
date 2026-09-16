@@ -551,6 +551,7 @@ def trigger_autofix_agent(
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
+        step_args: RCAStepArgs | SolutionStepArgs
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
         elif step == AutofixStep.SOLUTION:
