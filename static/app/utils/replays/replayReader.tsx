@@ -137,6 +137,12 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 const DUPLICATE_NAV_THRESHOLD_MS = 2;
 
 /**
+ * How much of the replay to fall back to when the requested clip window lands
+ * outside the recording, in either direction.
+ */
+const FALLBACK_CLIP_DURATION_MS = 10 * 1000;
+
+/**
  * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
  * there is a matching navigation.* span to replace it.
  *
@@ -347,12 +353,22 @@ export class ReplayReader {
     const replayStart = this._replayRecord.started_at.getTime();
     const replayEnd = this._replayRecord.finished_at.getTime();
 
-    // error event for this clip is before the replay started.
-    // use the start of the replay as the start of the clip.
-    // set the clip to be at most 10 seconds long.
-    if (eventTimestampMs && eventTimestampMs < replayStart) {
+    // The window is derived from an event timestamp that nothing guarantees to
+    // fall inside this replay — Seer, for one, has the model supply it. An
+    // unusable one has to fall back to the whole replay, otherwise `clamp`
+    // passes the NaN straight through into the duration and every offset.
+    if (
+      !Number.isFinite(clipWindow.startTimestampMs) ||
+      !Number.isFinite(clipWindow.endTimestampMs)
+    ) {
       clipStartTimestampMs = replayStart;
-      clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
+      clipEndTimestampMs = replayEnd;
+    } else if (eventTimestampMs && eventTimestampMs < replayStart) {
+      // error event for this clip is before the replay started.
+      // use the start of the replay as the start of the clip.
+      // set the clip to be at most 10 seconds long.
+      clipStartTimestampMs = replayStart;
+      clipEndTimestampMs = Math.min(replayStart + FALLBACK_CLIP_DURATION_MS, replayEnd);
       this._errorBeforeReplayStart = true;
     } else {
       clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
@@ -360,6 +376,19 @@ export class ReplayReader {
         clipWindow.endTimestampMs,
         clipStartTimestampMs,
         replayEnd
+      );
+    }
+
+    // The mirror of the case above: an event at or past the end of the replay
+    // clamps both edges to the same instant, which leaves a zero duration. That
+    // reads as "this replay has nothing to play" everywhere downstream — callers
+    // branch on `getDurationMs() <= 0` and render a static, unsized preview
+    // instead of the player. Show the tail of the replay instead, the same way
+    // an event before the start shows the head of it.
+    if (clipEndTimestampMs <= clipStartTimestampMs) {
+      clipStartTimestampMs = Math.max(
+        replayStart,
+        clipEndTimestampMs - FALLBACK_CLIP_DURATION_MS
       );
     }
 

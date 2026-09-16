@@ -593,6 +593,78 @@ describe('ReplayReader', () => {
     });
   });
 
+  describe('clip window outside the replay', () => {
+    const replayStartedAt = new Date('2024-01-01T00:02:00');
+    const replayFinishedAt = new Date('2024-01-01T00:04:00');
+
+    function readerWithClipWindow(clipWindow: {
+      endTimestampMs: number;
+      startTimestampMs: number;
+    }) {
+      return ReplayReader.factory({
+        attachments: [
+          RRWebFullSnapshotFrameEventFixture({
+            timestamp: new Date('2024-01-01T00:02:30'),
+          }),
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord: ReplayRecordFixture({
+          started_at: replayStartedAt,
+          finished_at: replayFinishedAt,
+        }),
+        clipWindow,
+      });
+    }
+
+    it('plays the tail of the replay when the window starts after it ended', () => {
+      // An event a minute past `finished_at` clamps both edges of the window to
+      // the same instant, which used to leave the reader with no duration at all.
+      const eventTimestampMs = replayFinishedAt.getTime() + 60_000;
+      const replay = readerWithClipWindow({
+        startTimestampMs: eventTimestampMs - 5_000,
+        endTimestampMs: eventTimestampMs + 5_000,
+      });
+
+      expect(replay?.getDurationMs()).toBe(10_000);
+      expect(replay?.getStartTimestampMs()).toBe(replayFinishedAt.getTime() - 10_000);
+    });
+
+    it('clips to the replay when the replay is shorter than the fallback', () => {
+      const shortReplayFinishedAt = new Date(replayStartedAt.getTime() + 4_000);
+      const replay = ReplayReader.factory({
+        attachments: [RRWebFullSnapshotFrameEventFixture({timestamp: replayStartedAt})],
+        errors: [],
+        fetching: false,
+        replayRecord: ReplayRecordFixture({
+          started_at: replayStartedAt,
+          finished_at: shortReplayFinishedAt,
+        }),
+        clipWindow: {
+          startTimestampMs: shortReplayFinishedAt.getTime() + 60_000,
+          endTimestampMs: shortReplayFinishedAt.getTime() + 70_000,
+        },
+      });
+
+      // Never reaches back past the start of the recording.
+      expect(replay?.getDurationMs()).toBe(4_000);
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+    });
+
+    it('falls back to the whole replay when the window is not a real time', () => {
+      // `new Date('nonsense').getTime()` is NaN, and NaN survives `clamp`.
+      const replay = readerWithClipWindow({
+        startTimestampMs: NaN,
+        endTimestampMs: NaN,
+      });
+
+      expect(replay?.getDurationMs()).toBe(
+        replayFinishedAt.getTime() - replayStartedAt.getTime()
+      );
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+    });
+  });
+
   describe('getRRWebFramesWithoutStyles', () => {
     it('should remove style nodes and their content', () => {
       const reader = ReplayReader.factory({
