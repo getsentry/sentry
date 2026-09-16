@@ -9,7 +9,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import (
     AutomaticDynamicSamplingConfiguration,
-    BaseDynamicSamplingConfiguration,
     CustomDynamicSamplingOrganizationConfiguration,
     CustomDynamicSamplingProjectConfiguration,
     NoDynamicSamplingConfiguration,
@@ -21,7 +20,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
 )
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
-from sentry.dynamic_sampling.types import DynamicSamplingMode, SamplingMeasure
+from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.testutils.cases import TestCase
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     BLENDED_SAMPLE_RATE,
@@ -34,14 +33,6 @@ from tests.sentry.dynamic_sampling.per_org.test_helpers import (
 )
 
 
-def assert_measure(
-    configuration: BaseDynamicSamplingConfiguration, expected: SamplingMeasure
-) -> None:
-    assert configuration.measure == expected
-    assert configuration.is_span_based == (expected == SamplingMeasure.SPANS)
-    assert configuration.is_segment_based == (expected == SamplingMeasure.SEGMENTS)
-
-
 class DynamicSamplingOrgConfigurationTest(TestCase):
     def test_subscription_backed_org_uses_blended_sample_rate(self) -> None:
         org = self.create_organization()
@@ -51,7 +42,6 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
         assert configuration.is_enabled
-        assert_measure(configuration, SamplingMeasure.SEGMENTS)
         assert configuration.sample_rate == 0.5
         assert configuration.project_sample_rates == {}
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
@@ -101,10 +91,9 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             configuration = get_configuration(org.id)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        # get_sample_rate stays ungated so balancing + comparison align with the legacy cache,
-        # which is also ungated (usage-based).
+        # get_sample_rate stays ungated so balancing runs on the usage-based rate.
         assert configuration.get_sample_rate() == 0.25
-        # The blended-100% gate applies only at serve time, mirroring legacy serving.
+        # The blended-100% gate applies only at serve time.
         assert configuration.get_serving_sample_rate() == 1.0
 
     def test_subscription_backed_org_falls_back_to_blended_sample_rate_without_volume(
@@ -187,8 +176,7 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
             configuration.recalibrate(org_volume)
 
         assert isinstance(configuration, AutomaticDynamicSamplingConfiguration)
-        # Recorded as computed, so the comparison log reports it. write_caches is what
-        # rejects it against the rebalance bounds.
+        # Recorded as computed. write_caches is what rejects it against the rebalance bounds.
         assert configuration.results.recalibration_factor == 50.0
 
     def test_subscription_backed_org_leaves_recalibration_factor_when_not_computed(
@@ -320,7 +308,6 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, CustomDynamicSamplingOrganizationConfiguration)
         assert configuration.is_enabled
-        assert_measure(configuration, SamplingMeasure.SEGMENTS)
         assert configuration.sample_rate == 0.3
         assert configuration.get_sample_rate() == 0.3
         assert configuration.project_sample_rates == {}
@@ -341,7 +328,6 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
         assert configuration.is_enabled
-        assert_measure(configuration, SamplingMeasure.SEGMENTS)
         assert configuration.project_sample_rates == {
             project.id: 0.2,
             project_without_rate.id: None,
@@ -362,7 +348,6 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
         assert not configuration.is_enabled
-        assert configuration.measure == SamplingMeasure.SEGMENTS
         assert configuration.project_sample_rates == {project.id: None}
         assert configuration.sample_rate is None
 
@@ -375,7 +360,6 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
 
         assert isinstance(configuration, CustomDynamicSamplingProjectConfiguration)
         assert not configuration.is_enabled
-        assert configuration.measure == SamplingMeasure.SEGMENTS
         assert configuration.project_sample_rates == {}
         assert configuration.sample_rate is None
 

@@ -16,7 +16,7 @@ import {getTimeSeriesInterval} from 'sentry/utils/timeSeries/getTimeSeriesInterv
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {parseGroupBy} from 'sentry/utils/timeSeries/parseGroupBy';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type {AnyMutableSearch} from 'sentry/utils/url/formatSearchStringForQueryParam';
 import {
   isEventsStats,
   isGroupedMultiSeriesEventsStats,
@@ -44,7 +44,7 @@ interface Options<Fields> {
   orderby?: string | string[];
   referrer?: string;
   samplingMode?: SamplingMode;
-  search?: MutableSearch;
+  search?: AnyMutableSearch;
   spanQuery?: string[];
   topEvents?: number;
   yAxis?: Fields;
@@ -138,7 +138,6 @@ export const useSortedTimeSeries = <
   }, [result.data]);
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...result,
     data,
     meta: result.data?.meta,

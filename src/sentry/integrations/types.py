@@ -66,6 +66,7 @@ class IntegrationProviderSlug(StrEnum):
     GITLAB = "gitlab"
     BITBUCKET = "bitbucket"
     BITBUCKET_SERVER = "bitbucket_server"
+    CURSOR_ORIGIN = "cursor_origin"
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"

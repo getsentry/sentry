@@ -20,6 +20,7 @@ import {
   NEXT_STEP,
   STEP_LABELS,
 } from 'sentry/components/seer/markdown/embeds/components/autofix';
+import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconArrow} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
@@ -34,8 +35,21 @@ import type {
 
 const ISSUE = {id: '6789012345', shortId: 'CHECKOUT-42'};
 
-function autofix(step: AutofixExplorerStep, result: string): string {
-  return `{% autofix %}${JSON.stringify({...ISSUE, step, result})}{% /autofix %}`;
+/**
+ * Taken from the embed schema so these fixtures fail to compile rather than
+ * silently drop a field if the structured payload changes shape.
+ */
+type AutofixDetails = Pick<
+  EmbedOutput<'autofix'>,
+  'fiveWhys' | 'reproductionSteps' | 'steps'
+>;
+
+function autofix(
+  step: AutofixExplorerStep,
+  result: string,
+  details: AutofixDetails = {}
+): string {
+  return `{% autofix %}${JSON.stringify({...ISSUE, step, result, ...details})}{% /autofix %}`;
 }
 
 function autofixRefTag(
@@ -48,23 +62,69 @@ function autofixRefTag(
 
 const ROOT_CAUSE = autofix(
   'root_cause',
-  '`CartService.total()` calls `items.reduce((sum, item) => sum + item.price)` without an initial accumulator. When a customer empties their cart the array is empty, so `reduce` throws `TypeError: Reduce of empty array with no initial value` and the checkout request 500s.'
+  '`CartService.total()` reduces the line items without an initial accumulator, so an empty cart throws `TypeError: Reduce of empty array with no initial value` and `POST /api/checkout/quote` 500s.',
+  {
+    fiveWhys: [
+      '`POST /api/checkout/quote` returned a 500 for every request carrying an empty cart.',
+      '`CartService.total()` threw `TypeError: Reduce of empty array with no initial value`.',
+      '`items.reduce((sum, item) => sum + item.price)` is called without a second argument.',
+      'Without an initial value `reduce` seeds itself from the first element, which an empty array does not have.',
+      'The empty-cart path was never exercised — every fixture in `cartService.test.ts` seeds at least one line item.',
+    ],
+    reproductionSteps: [
+      'Sign in as any customer and add one item to the cart.',
+      'Remove that item, leaving the cart empty.',
+      'Navigate to `/checkout`, which calls `POST /api/checkout/quote` on mount.',
+      'The request 500s and the page falls back to the generic error state.',
+    ],
+  }
 );
 
 const SOLUTION = autofix(
   'solution',
-  'Seed the reduction with `0` so an empty cart totals to zero instead of throwing: `items.reduce((sum, item) => sum + item.price, 0)`.'
+  'Seed the reduction with `0` so an empty cart totals to zero instead of throwing.',
+  {
+    steps: [
+      {
+        title: 'Pass an initial accumulator to `CartService.total()`',
+        description:
+          'Change `items.reduce((sum, item) => sum + item.price)` to pass `0` as the second argument.',
+      },
+      {
+        title: 'Cover the empty cart in `cartService.test.ts`',
+        description: 'Assert `total()` returns `0` for an empty line-item array.',
+      },
+    ],
+  }
 );
 
 const CODE_CHANGES = autofix(
   'code_changes',
-  'Updated `src/checkout/cartService.ts` to pass the initial value and added a regression test covering the empty-cart path.'
+  '2 files changed in 1 repo — `src/checkout/cartService.ts` now passes the initial value, and `src/checkout/cartService.test.ts` covers the empty-cart path.'
 );
 
 // Autofix has no "plan" step — a plan is the write-up of the solution step.
 const PLANNED_SOLUTION = autofix(
   'solution',
-  'Guard `CartService.total()` with an initial accumulator of `0`, add a regression test covering the empty-cart path, then backfill a smoke test that renders the checkout page with zero items.'
+  'Guard `CartService.total()` against an empty cart, then close the coverage gap that let this ship.',
+  {
+    steps: [
+      {
+        title: 'Pass an initial accumulator to `CartService.total()`',
+        description:
+          'Change `items.reduce((sum, item) => sum + item.price)` to pass `0` as the second argument.',
+      },
+      {
+        title: 'Cover the empty cart in `cartService.test.ts`',
+        description: 'Assert `total()` returns `0` for an empty line-item array.',
+      },
+      {
+        title: 'Add a checkout smoke test with zero items',
+        description:
+          'Render `/checkout` with an empty cart and assert the quote renders `$0.00` instead of the error state.',
+      },
+    ],
+  }
 );
 
 function User({children}: {children: ReactNode}) {

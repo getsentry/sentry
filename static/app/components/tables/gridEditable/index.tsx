@@ -116,9 +116,9 @@ export function GridEditable<
       props.columnOrder.map(column => ({
         key: String(column.key),
         resizable,
-        width: column.width,
+        width: grid.staticColumnWidths?.[String(column.key)] ?? column.width,
       })),
-    [props.columnOrder, resizable]
+    [grid.staticColumnWidths, props.columnOrder, resizable]
   );
 
   const onColumnResize = (columnIndex: number, width: number) => {

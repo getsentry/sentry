@@ -57,7 +57,7 @@ function SpikeProtectionRoot({subscription}: Props) {
       <SettingsPageHeader
         title={t('Spike Protection')}
         subtitle={tct(
-          'Spike Protection establishes a spike threshold based on a project’s historical event volume. Once that threshold is reached, events from the project will be dropped and you will receive a notification. Configure personal notifications for spike protection [personalNotifsLink: here]. [docsLink: Learn more].',
+          'Spike Protection establishes a spike threshold based on a project’s historical event volume. Once that threshold is reached, events from the project will be dropped. You can set an action to send notifications in the project settings below. Configure personal notifications for spike protection [personalNotifsLink: here]. [docsLink: Learn more].',
           {docsLink, personalNotifsLink}
         )}
       />

@@ -3,12 +3,14 @@ from typing import cast
 from unittest.mock import MagicMock, patch
 
 import orjson
+import pytest
 import responses
 from django.test import RequestFactory
 
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import IntegrationFormError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_URL_HEADER, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegratedApiTestCase, TestCase
@@ -48,37 +50,15 @@ class GitHubEnterpriseIssueBasicTest(TestCase, IntegratedApiTestCase):
         assert request.headers[PROXY_BASE_URL_HEADER] == f"https://{self._IP_ADDRESS}"
         assert PROXY_SIGNATURE_HEADER in request.headers
 
-    @responses.activate
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    def test_get_allowed_assignees(self, mock_get_jwt: MagicMock) -> None:
-        responses.add(
-            responses.POST,
-            f"https://{self._IP_ADDRESS}/api/v3/app/installations/installation_id/access_tokens",
-            json={"token": "token_1", "expires_at": "2018-10-11T22:14:10Z"},
+    def test_issue_url_uses_enterprise_host(self) -> None:
+        self.create_repo(
+            name="getsentry/sentry", project=self.project, integration_id=self.model.id
         )
-
-        responses.add(
-            responses.GET,
-            f"https://{self._IP_ADDRESS}/api/v3/repos/getsentry/sentry/assignees",
-            json=[{"login": "MeredithAnya"}],
-        )
-
-        repo = "getsentry/sentry"
-        assert self.install.get_allowed_assignees(repo) == (
-            ("", "Unassigned"),
-            ("MeredithAnya", "MeredithAnya"),
-        )
-
-        if self.should_call_api_without_proxying():
-            assert len(responses.calls) == 2
-
-            request = responses.calls[0].request
-            assert request.headers["Authorization"] == "Bearer jwt_token_1"
-
-            request = responses.calls[1].request
-            assert request.headers["Authorization"] == "Bearer token_1"
-        else:
-            self._check_proxying()
+        assert self.install.get_issue_link_data(
+            f"https://{self._IP_ADDRESS}/getsentry/sentry/pull/321/files"
+        ) == {"repo": "getsentry/sentry", "externalIssue": "321"}
+        with pytest.raises(IntegrationFormError):
+            self.install.get_issue_link_data("https://github.com/getsentry/sentry/pull/321")
 
     @responses.activate
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")

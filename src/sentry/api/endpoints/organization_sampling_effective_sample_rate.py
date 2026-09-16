@@ -15,21 +15,26 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.dynamic_sampling.tasks.common import get_organization_volume
+from sentry.constants import ObjectStatus
+from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
+from sentry.dynamic_sampling.tasks.common import get_effective_sample_rate
 from sentry.models.organization import Organization
+from sentry.models.project import Project
+
+SAMPLE_RATE_WINDOW = timedelta(hours=24)
 
 
 class OrganizationSamplingEffectiveSampleRateResponse(TypedDict):
-    effectiveSampleRate: float | None
+    eapEffectiveSampleRate: float | None
 
 
 @cell_silo_endpoint
 class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
     """Return the organization's effective sample rate over the last 24h.
 
-    The effective sample rate is computed as indexed / total where:
-    - total = total number of transactions received
-    - indexed = number of transactions kept (indexed)
+    The rate is stored / received, computed from EAP: received is the extrapolated number of
+    segments and stored is the number of segments kept. Segments that dynamic sampling kept but
+    that a quota or a pipeline drop removed later lower this rate.
     """
 
     owner = ApiOwner.TELEMETRY_EXPERIENCE
@@ -58,11 +63,13 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dynamic-sampling", organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        org_volume = get_organization_volume(organization.id, time_interval=timedelta(hours=24))
-        rate: float | None
-        if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
-            rate = org_volume.indexed / org_volume.total
-        else:
-            rate = None
+        projects = list(
+            Project.objects.filter(organization_id=organization.id, status=ObjectStatus.ACTIVE)
+        )
+        volume = get_eap_organization_volume(
+            organization, projects, time_interval=SAMPLE_RATE_WINDOW
+        )
 
-        return Response(status=200, data={"effectiveSampleRate": rate})
+        return Response(
+            status=200, data={"eapEffectiveSampleRate": get_effective_sample_rate(volume)}
+        )

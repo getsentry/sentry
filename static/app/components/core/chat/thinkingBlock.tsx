@@ -10,24 +10,22 @@ import {IconSeer} from 'sentry/icons';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {SECOND} from 'sentry/utils/formatters';
 
+const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
+
 /**
  * Returns elapsed ms between `startTime` and `endTime`.
- * While `endTime` is undefined, ticks every `intervalMs` to keep the value live.
+ * While `endTime` is undefined, ticks every ELAPSED_TIME_TICK_INTERVAL_MS to keep the value live.
  */
-function useElapsedTime(
-  startTime: Date,
-  endTime: Date | undefined,
-  intervalMs = 100
-): number {
+function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     if (endTime) {
       return;
     }
-    const id = setInterval(() => setNow(new Date()), intervalMs);
+    const id = setInterval(() => setNow(new Date()), ELAPSED_TIME_TICK_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [endTime, intervalMs]);
+  }, [endTime]);
 
   return (endTime ?? now).getTime() - startTime.getTime();
 }
@@ -38,13 +36,15 @@ function useElapsedTime(
  * in even thirds so they fit the reserved space and never shift layout as the
  * count changes. Decorative — hidden from AT.
  */
-function AnimatedEllipsis({intervalMs = 400}: {intervalMs?: number}) {
+const ELLIPSIS_TICK_INTERVAL_MS = 400;
+
+function AnimatedEllipsis() {
   const [count, setCount] = useState(1);
 
   useEffect(() => {
-    const id = setInterval(() => setCount(c => (c % 3) + 1), intervalMs);
+    const id = setInterval(() => setCount(c => (c % 3) + 1), ELLIPSIS_TICK_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [intervalMs]);
+  }, []);
 
   return (
     <span
@@ -81,6 +81,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
 
   useEffect(() => {
     if (!isActive) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setOverride(null);
     }
   }, [isActive]);
@@ -103,7 +104,7 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
     >
       <Global styles={streamingAnimationStyles} />
       <Disclosure.Title
-        leadingItems={<IconSeer size="xs" animation={isActive ? 'waiting' : undefined} />}
+        leadingItems={<IconSeer size="xs" animation={isActive ? 'loading' : undefined} />}
         trailingItems={
           <Text variant="secondary" size="sm" align="right" monospace>
             {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}

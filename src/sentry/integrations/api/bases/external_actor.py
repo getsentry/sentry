@@ -3,13 +3,13 @@ from typing import Any, TypedDict
 
 from django.db import IntegrityError
 from django.http import Http404
-from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
 from sentry import features
 from sentry.api.bases import OrganizationPermission
+from sentry.api.exceptions import ConflictError
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.api.parsers.external_actor import (
     is_valid_provider,
@@ -73,6 +73,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     )
     integration_id = serializers.IntegerField(required=True, help_text="The Integration ID.")
     _actor_key: str
+    _include_actor_in_lookup: bool = False
 
     @property
     def organization(self) -> Organization:
@@ -104,23 +105,35 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 
     def create(self, validated_data: MutableMapping[str, Any]) -> tuple[ExternalActor, bool]:
         actor_params = self.get_actor_params(validated_data)
-        actor_params["source"] = ExternalActorSource.MANUAL.value
+        lookup_params = actor_params if self._include_actor_in_lookup else {}
+        defaults = {"source": ExternalActorSource.MANUAL.value}
+        if not self._include_actor_in_lookup:
+            defaults.update(actor_params)
 
-        if validated_data["provider"] in CASE_INSENSITIVE_PROVIDERS:
-            external_name = validated_data.pop("external_name")
+        try:
+            if validated_data["provider"] in CASE_INSENSITIVE_PROVIDERS:
+                external_name = validated_data.pop("external_name")
+
+                return ExternalActor.objects.get_or_create(
+                    external_name__iexact=external_name,
+                    **validated_data,
+                    **lookup_params,
+                    organization=self.organization,
+                    defaults={**defaults, "external_name": external_name},
+                )
 
             return ExternalActor.objects.get_or_create(
-                external_name__iexact=external_name,
                 **validated_data,
+                **lookup_params,
                 organization=self.organization,
-                defaults={**actor_params, "external_name": external_name},
+                defaults=defaults,
             )
-
-        return ExternalActor.objects.get_or_create(
-            **validated_data,
-            organization=self.organization,
-            defaults=actor_params,
-        )
+        except ExternalActor.MultipleObjectsReturned:
+            if not self._include_actor_in_lookup:
+                raise
+            raise ConflictError(
+                {"detail": "Multiple external associations match the requested actor."}
+            )
 
     def update(
         self, instance: ExternalActor, validated_data: MutableMapping[str, Any]
@@ -146,6 +159,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
 
 class ExternalUserSerializer(ExternalActorSerializerBase):
     _actor_key = "user_id"
+    _include_actor_in_lookup = True
 
     user_id = serializers.IntegerField(required=True, help_text="The user ID in Sentry.")
     id = serializers.IntegerField(
@@ -178,11 +192,13 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
         fields = ["user_id", "external_id", "external_name", "provider", "integration_id", "id"]
 
 
-@extend_schema_serializer(exclude_fields=["team_id"])
 class ExternalTeamSerializer(ExternalActorSerializerBase):
     _actor_key = "team_id"
 
-    team_id = serializers.IntegerField(required=True)
+    team_id = serializers.IntegerField(
+        required=True,
+        help_text="ID of the Sentry team to link to the external team.",
+    )
 
     def validate_team_id(self, team_id: int) -> Team:
         """Ensure that this team exists and that they belong to the organization."""

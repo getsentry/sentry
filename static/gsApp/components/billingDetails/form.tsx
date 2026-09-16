@@ -4,6 +4,7 @@ import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +12,6 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -210,7 +210,7 @@ function CustomBillingDetailsFormField({
         <Text size="sm" variant="muted">
           {label}
         </Text>
-        <QuestionTooltip title={help} size="sm" />
+        <InfoTip title={help} size="sm" />
       </Flex>
       <StyledTextField
         name={inputName}

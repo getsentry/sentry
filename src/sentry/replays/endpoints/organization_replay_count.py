@@ -14,11 +14,10 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
 from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import (
     GlobalParams,
     OrganizationParams,
-    ReplayParams,
-    VisibilityParams,
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -33,8 +32,20 @@ from sentry.snuba.dataset import Dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "data_source.discover": "Deprecated 2026-07; use events. Send data_source explicitly.",
+        "data_source.transactions": "Deprecated 2026-07; use spans. Still accepted until blocked.",
+    }
+)
 class ReplayCountQueryParamsValidator(serializers.Serializer):
-    query = serializers.CharField(required=True)
+    query = serializers.CharField(
+        required=True,
+        help_text="""Filters results by using [query syntax](/product/sentry-basics/search/).
+
+Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
+""",
+    )
     data_source = serializers.ChoiceField(
         choices=(
             Dataset.Discover.value,
@@ -44,8 +55,11 @@ class ReplayCountQueryParamsValidator(serializers.Serializer):
             SupportedTraceItemType.SPANS.value,
         ),
         default=Dataset.Discover.value,
+        help_text="The data source to query replays from.",
     )
-    returnIds = serializers.BooleanField(default=False)
+    returnIds = serializers.BooleanField(
+        default=False, help_text="If true, return issue IDs rather than counts."
+    )
 
 
 @cell_silo_endpoint
@@ -83,9 +97,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             OrganizationParams.PROJECT,
             OrganizationParams.PROJECT_ID_OR_SLUG,
-            VisibilityParams.QUERY,
-            ReplayParams.DATA_SOURCE,
-            ReplayParams.RETURN_IDS,
+            ReplayCountQueryParamsValidator,
         ],
         responses={
             200: inline_sentry_response_serializer("ReplayCounts", dict[int, int]),

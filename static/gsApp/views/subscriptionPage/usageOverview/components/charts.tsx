@@ -121,9 +121,6 @@ export function UsageCharts({
       <ProductUsageChart
         useDisplayModeTitle={false}
         usageStats={usageStats}
-        shouldDisplayBudgetStats={false}
-        reservedBudgetCategoryInfo={{}}
-        displayMode="usage"
         subscription={subscription}
         category={category}
         transform={transform}

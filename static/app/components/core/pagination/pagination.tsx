@@ -36,11 +36,9 @@ type Props = {
   pageLinks?: string | null;
   paginationAnalyticsEvent?: (direction: string) => void;
   size?: ButtonProps['size'];
-  to?: string;
 };
 
 export function Pagination({
-  to,
   className,
   onCursor,
   paginationAnalyticsEvent,
@@ -61,7 +59,7 @@ export function Pagination({
     return null;
   }
 
-  const path = to ?? location.pathname;
+  const path = location.pathname;
   const query = location.query;
   const links = parseLinkHeader(pageLinks);
   const previousDisabled = disabled || links.previous?.results === false;

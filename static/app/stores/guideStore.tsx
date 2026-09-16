@@ -194,7 +194,7 @@ const storeConfig: GuideStoreDefinition = {
       return guide;
     });
     this.state = {...this.state, guides: newGuides, forceShow: false};
-    this.updateCurrentGuide();
+    this.updateCurrentGuide(dismissed);
   },
 
   nextStep() {

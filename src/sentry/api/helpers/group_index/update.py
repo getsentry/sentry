@@ -22,7 +22,7 @@ from sentry import analytics, features, options
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.api.serializers.models.groupactionlogentry import serialize_first_seen_entry
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
@@ -32,11 +32,11 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.read_metrics import activity_read_endpoint
 from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
-from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
 from sentry.issues.update_inbox import update_inbox
@@ -783,23 +783,14 @@ def prepare_response(
         if len(group_list) == 1:
             if res_type in (GroupResolution.Type.in_next_release, GroupResolution.Type.in_release):
                 group = group_list[0]
-                if features.has(
-                    "projects:issue-action-log-activity", group.project, actor=acting_user
-                ):
-                    action_log = GroupActionLogEntry.objects.get_actions_for_group(
-                        group, ACTIVITIES_COUNT - 1
-                    )
-                    if action_log:
-                        result["activity"] = [
-                            *serialize(action_log, acting_user),
-                            serialize_first_seen_entry(group),
-                        ]
-                    else:
-                        logger.info(
-                            "group_index.groupactionlogentry.not_found",
-                            extra={"group_id": group.id},
-                        )
-
+                activity_items = get_serialized_activity_items(
+                    group,
+                    acting_user,
+                    endpoint=activity_read_endpoint(request),
+                    limit=ACTIVITIES_COUNT - 1,
+                )
+                if activity_items is not None:
+                    result["activity"] = activity_items
                 else:
                     result["activity"] = serialize(
                         Activity.objects.get_activities_for_group(

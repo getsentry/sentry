@@ -571,11 +571,20 @@ describe('BackendJsonSubmitForm', () => {
       expect(screen.getByText('Other Repo')).toBeInTheDocument();
     });
 
-    it('prefetches async select options before the field is opened', async () => {
+    it('prefetches async select options and searches when the user types', async () => {
+      MockApiClient.addMockResponse({
+        url: '/search',
+        body: [],
+      });
       const prefetchResponse = MockApiClient.addMockResponse({
         url: '/search',
         match: [MockApiClient.matchQuery({field: 'repo', query: ''})],
         body: [{value: 'my-org/prefetched-repo', label: 'prefetched-repo'}],
+      });
+      const searchResponse = MockApiClient.addMockResponse({
+        url: '/search',
+        match: [MockApiClient.matchQuery({field: 'repo', query: 'searched'})],
+        body: [{value: 'my-org/searched-repo', label: 'searched-repo'}],
       });
 
       render(
@@ -598,8 +607,14 @@ describe('BackendJsonSubmitForm', () => {
 
       await waitFor(() => expect(prefetchResponse).toHaveBeenCalled());
 
-      await userEvent.click(screen.getByRole('textbox', {name: 'Repository'}));
+      const textbox = screen.getByRole('textbox', {name: 'Repository'});
+      await userEvent.click(textbox);
       expect(await screen.findByText('prefetched-repo')).toBeInTheDocument();
+
+      await userEvent.type(textbox, 'searched');
+
+      await waitFor(() => expect(searchResponse).toHaveBeenCalled());
+      expect(await screen.findByText('searched-repo')).toBeInTheDocument();
     });
 
     it('only waits for the fields declared as prefetch dependencies', async () => {

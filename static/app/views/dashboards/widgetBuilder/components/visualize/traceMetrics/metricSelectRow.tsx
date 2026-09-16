@@ -202,6 +202,7 @@ export function MetricSelectRow({
 
   useEffect(() => {
     if (field.kind !== FieldValueKind.FIELD) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldAutoSelectFirstColumn(false);
     }
   }, [field.kind]);

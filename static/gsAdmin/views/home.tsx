@@ -6,6 +6,7 @@ import {UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -26,6 +27,11 @@ type OrganizationSearchResult = Pick<OrganizationSummary, 'id' | 'name' | 'slug'
 type ProjectSearchResult = Pick<Project, 'id' | 'slug'> & {
   organization: Pick<OrganizationSummary, 'slug'>;
 };
+
+function normalizeProjectIdQuery(query: string): string | null {
+  const match = query.match(/^(?:id:)?\s*(\d+)$/);
+  return match?.[1] ?? null;
+}
 
 function renderOrganizationResult(organization: OrganizationSearchResult) {
   return (
@@ -125,6 +131,15 @@ export function HomePage() {
   const projSelect = (project: ProjectSearchResult) => {
     navigate(`/_admin/customers/${project.organization.slug}/projects/${project.slug}/`);
   };
+  const invoiceSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const invoiceId = formData.get('invoiceId');
+
+    if (selectedCell && typeof invoiceId === 'string' && invoiceId.trim()) {
+      navigate(`/_admin/invoices/${selectedCell.name}/${invoiceId.trim()}/`);
+    }
+  };
 
   if (oldSplash) {
     return <Overview />;
@@ -221,15 +236,38 @@ export function HomePage() {
               project.organization.slug,
             ]}
             onSelectResult={projSelect}
-            queryOptions={query =>
-              apiOptions.as<ProjectSearchResult[]>()('/projects/', {
-                query: {query: `id:${query}`, per_page: 10, show: 'all'},
-                host: localityUrl,
-                staleTime: 30_000,
-              })
-            }
+            queryOptions={query => {
+              const projectId = normalizeProjectIdQuery(query);
+              return {
+                ...apiOptions.as<ProjectSearchResult[]>()('/projects/', {
+                  query: {query: `id:${projectId}`, per_page: 10, show: 'all'},
+                  host: localityUrl,
+                  staleTime: 30_000,
+                }),
+                enabled: projectId !== null,
+              };
+            }}
             renderResult={renderProjectResult}
           />
+        </Container>
+
+        <Container paddingTop="xl">
+          <form onSubmit={invoiceSubmit}>
+            <Stack gap="xs">
+              <Text as="label" bold htmlFor="invoiceId">
+                Invoices
+              </Text>
+              <Flex gap="sm">
+                <Input
+                  id="invoiceId"
+                  name="invoiceId"
+                  placeholder="Invoice GUID"
+                  required
+                />
+                <Button type="submit">Open invoice</Button>
+              </Flex>
+            </Stack>
+          </form>
         </Container>
       </Container>
 

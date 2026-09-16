@@ -16,6 +16,7 @@ import {AuthenticatorIconCarousel} from './authenticatorIconCarousel';
 
 interface WebAuthn2FAMethodProps {
   isActive: boolean;
+  isAuthenticating: boolean;
   isProcessing: boolean;
   onRetrySubmission: () => void;
   onSubmit: (response: WebAuthnResponse) => void;
@@ -26,6 +27,7 @@ type WebAuthnError = 'unsupported' | 'failed';
 
 export function WebAuthn2FAMethod({
   isActive,
+  isAuthenticating,
   isProcessing,
   onRetrySubmission,
   onSubmit,
@@ -43,6 +45,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setHasActivated(true);
     activate('u2f');
   }, [activate, hasActivated, isActive]);
@@ -63,6 +66,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setError(null);
 
     if (!window.PublicKeyCredential) {
@@ -139,7 +143,18 @@ export function WebAuthn2FAMethod({
           </Text>
         )}
         {retry && (
-          <Button disabled={isProcessing} size="xs" variant="transparent" onClick={retry}>
+          <Button
+            analyticsEventKey="auth.login.retry_clicked"
+            analyticsEventName="Auth: Login Retry Clicked"
+            analyticsParams={{
+              stage: submissionFailed ? 'mfa_verify' : 'mfa_challenge',
+              method: 'u2f',
+            }}
+            disabled={isProcessing}
+            size="xs"
+            variant="transparent"
+            onClick={retry}
+          >
             {t('Try again')}
           </Button>
         )}
@@ -151,7 +166,9 @@ export function WebAuthn2FAMethod({
     <Stack gap="lg" align="center">
       <AuthenticatorIconCarousel isActive={isActive} />
       <Text as="p" align="center">
-        {t('Waiting for passkey, biometric, or hardware key')}
+        {isAuthenticating
+          ? t('Authorizing...')
+          : t('Waiting for passkey, biometric, or hardware key')}
       </Text>
     </Stack>
   );

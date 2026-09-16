@@ -57,6 +57,7 @@ MAX_TRANSCRIPT_BYTES = 1024 * 1024
 MAX_TOOL_CONTENT_CHARS = 100_000
 MAX_QUERY_LINK_PARAM_CHARS = 2000
 IMPORT_NOT_ALLOWED_ERROR = "This import is not allowed in an investigation query."
+SEER_CATEGORY_KEY = "investigation"
 PRIVATE_TRANSCRIPT_KEYS = {
     "authorization",
     "credentials",
@@ -176,6 +177,8 @@ def start_execution_run(
     if client is None:
         client = SeerAgentClient(organization, user)
     client.on_completion_hook = InvestigationAgentCompletionHook
+    client.category_key = SEER_CATEGORY_KEY
+    client.category_value = str(execution.block.investigation_id)
     client.is_interactive = is_query
     client.enable_code_mode_tools = "only" if is_query else "off"
     client.enable_coding = False
@@ -980,6 +983,8 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     client = SeerAgentClient(
         investigation.organization,
         user,
+        category_key=SEER_CATEGORY_KEY,
+        category_value=str(investigation.id),
         on_completion_hook=InvestigationAgentCompletionHook,
         enable_code_mode_tools="only",
         enable_coding=False,

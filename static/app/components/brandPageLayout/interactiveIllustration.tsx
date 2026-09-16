@@ -1,8 +1,10 @@
 import {useEffect, useId, useRef, useState} from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion, useReducedMotion} from 'framer-motion';
 
 const OUTLINE_ANIMATION_DURATION_MS = 400;
+const OUTLINE_REVEAL_DELAY_MS = 500;
 const ARTWORK_REVEAL_DURATION_SECONDS = 1;
 const ARTWORK_REVEAL_EASING = [0.4, 0, 0.2, 1] as const;
 
@@ -14,6 +16,7 @@ interface InteractiveIllustrationProps {
 }
 
 interface TrailBubble {
+  center: Point;
   driftX: number;
   driftY: number;
   duration: number;
@@ -76,7 +79,9 @@ function InteractiveIllustrationContent({
 }: InteractiveIllustrationProps) {
   const [loadedFullArtworkSrc, setLoadedFullArtworkSrc] = useState<string>();
   const [loadedOutlineSrc, setLoadedOutlineSrc] = useState<string>();
+  const [finishedOutlineSrc, setFinishedOutlineSrc] = useState<string>();
   const [animatedOutlineSrc, setAnimatedOutlineSrc] = useState<string>();
+  const [revealedArtworkSrc, setRevealedArtworkSrc] = useState<string>();
   const [isInteractionVisible, setIsInteractionVisible] = useState(false);
   const bubblePaths = useRef<SVGGElement>(null);
   const interactionSurface = useRef<HTMLDivElement>(null);
@@ -90,25 +95,25 @@ function InteractiveIllustrationContent({
   const bubbleRevealMaskId = `${maskId}-reveal`;
   const bubbleHideMaskId = `${maskId}-hide`;
   const neopanFilterId = `${maskId}-neopan`;
-  const grainFilterId = `${maskId}-grain`;
   const isFullArtworkLoaded = loadedFullArtworkSrc === src;
   const isOutlineLoaded = loadedOutlineSrc === outlineSrc;
   const isOutlineAnimationComplete = animatedOutlineSrc === outlineSrc;
   const isArtworkReadyToReveal =
     isFullArtworkLoaded && (prefersReducedMotion || isOutlineAnimationComplete);
+  const isArtworkRevealComplete = prefersReducedMotion || revealedArtworkSrc === src;
 
   useEffect(() => {
-    if (!isOutlineLoaded || prefersReducedMotion) {
+    if (finishedOutlineSrc !== outlineSrc) {
       return;
     }
 
     const timeout = window.setTimeout(
       () => setAnimatedOutlineSrc(outlineSrc),
-      OUTLINE_ANIMATION_DURATION_MS
+      OUTLINE_REVEAL_DELAY_MS
     );
 
     return () => window.clearTimeout(timeout);
-  }, [isOutlineLoaded, outlineSrc, prefersReducedMotion]);
+  }, [finishedOutlineSrc, outlineSrc]);
 
   useEffect(() => {
     const surface = interactionSurface.current;
@@ -137,7 +142,7 @@ function InteractiveIllustrationContent({
     const paths = bubblePaths.current;
 
     if (
-      !isArtworkReadyToReveal ||
+      !isArtworkRevealComplete ||
       !isInteractionVisible ||
       prefersReducedMotion ||
       !surface ||
@@ -159,8 +164,8 @@ function InteractiveIllustrationContent({
     function appendBubble(bubble: TrailBubble, now: number) {
       const element = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       element.setAttribute('d', bubble.path);
-      element.style.opacity = '0.95';
-      element.style.transform = 'translate(0, 0) rotate(0deg) scale(0.7)';
+      element.setAttribute('opacity', '0.95');
+      element.setAttribute('transform', getBubbleTransform(bubble.center, 0, 0, 0, 0.7));
       animationPaths.appendChild(element);
       activeBubbles.push({...bubble, element, startedAt: now});
     }
@@ -220,8 +225,11 @@ function InteractiveIllustrationContent({
         const translateX = bubble.driftX * easedProgress;
         const translateY = bubble.driftY * easedProgress;
         const rotation = bubble.rotation * easedProgress;
-        bubble.element.style.opacity = String(opacity);
-        bubble.element.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${rotation}deg) scale(${scale})`;
+        bubble.element.setAttribute('opacity', String(opacity));
+        bubble.element.setAttribute(
+          'transform',
+          getBubbleTransform(bubble.center, translateX, translateY, rotation, scale)
+        );
 
         return true;
       });
@@ -288,7 +296,7 @@ function InteractiveIllustrationContent({
       pointerActive.current = false;
       activeBubbles.forEach(bubble => bubble.element.remove());
     };
-  }, [isArtworkReadyToReveal, isInteractionVisible, prefersReducedMotion]);
+  }, [isArtworkRevealComplete, isInteractionVisible, prefersReducedMotion]);
 
   return (
     <Illustration>
@@ -304,10 +312,15 @@ function InteractiveIllustrationContent({
           duration: prefersReducedMotion ? 0 : ARTWORK_REVEAL_DURATION_SECONDS,
           ease: ARTWORK_REVEAL_EASING,
         }}
+        onAnimationComplete={() => {
+          if (isArtworkReadyToReveal) {
+            setRevealedArtworkSrc(src);
+          }
+        }}
       >
         <MaskDefinitions aria-hidden="true">
           <defs>
-            <BubblePaths id={bubblePathsId} ref={bubblePaths} />
+            <g id={bubblePathsId} ref={bubblePaths} />
             <mask
               id={bubbleRevealMaskId}
               x="0"
@@ -369,22 +382,10 @@ function InteractiveIllustrationContent({
                 draggable={false}
                 $filterId={neopanFilterId}
               />
-              <NoiseTexture aria-hidden="true">
-                <filter id={grainFilterId}>
-                  <feTurbulence
-                    type="fractalNoise"
-                    baseFrequency="0.9"
-                    numOctaves="4"
-                    seed="7"
-                    stitchTiles="stitch"
-                  />
-                  <feColorMatrix type="saturate" values="0" />
-                </filter>
-                <rect width="100%" height="100%" filter={`url(#${grainFilterId})`} />
-              </NoiseTexture>
             </DistressedArtworkLayer>
             <BubbleMaskLayer $maskId={bubbleRevealMaskId}>
               <OutlineArtwork
+                key={outlineSrc}
                 src={outlineSrc}
                 alt=""
                 aria-hidden="true"
@@ -426,14 +427,19 @@ function InteractiveIllustrationContent({
           ease: ARTWORK_REVEAL_EASING,
         }}
       >
-        <OutlineArtwork
-          key={outlineSrc}
-          src={outlineSrc}
-          alt=""
-          aria-hidden="true"
-          draggable={false}
-          onLoad={() => setLoadedOutlineSrc(outlineSrc)}
-        />
+        {!prefersReducedMotion && (
+          <AnimatedOutlineArtwork
+            key={outlineSrc}
+            src={outlineSrc}
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            fetchPriority="high"
+            $isPlaying={isOutlineLoaded}
+            onLoad={() => setLoadedOutlineSrc(outlineSrc)}
+            onAnimationEnd={() => setFinishedOutlineSrc(outlineSrc)}
+          />
+        )}
       </OutlineHideMask>
     </Illustration>
   );
@@ -519,6 +525,7 @@ function createTrailBubble(
   const driftDistance = 10 + ((id * 5) % 22);
 
   return {
+    center: jitteredPoint,
     driftX: Math.cos(driftAngle) * driftDistance,
     driftY: Math.sin(driftAngle) * driftDistance,
     duration: 1.5 + ((id * 11) % 90) / 100 + speedFactor * 0.35,
@@ -526,6 +533,22 @@ function createTrailBubble(
     path: makeOrganicBubblePath(jitteredPoint, width, height, id, direction),
     rotation: ((id * 47) % 41) - 20,
   };
+}
+
+function getBubbleTransform(
+  center: Point,
+  translateX: number,
+  translateY: number,
+  rotation: number,
+  scale: number
+) {
+  const radians = (rotation * Math.PI) / 180;
+  const cosine = Math.cos(radians) * scale;
+  const sine = Math.sin(radians) * scale;
+  const offsetX = center.x + translateX - cosine * center.x + sine * center.y;
+  const offsetY = center.y + translateY - sine * center.x - cosine * center.y;
+
+  return `matrix(${cosine} ${sine} ${-sine} ${cosine} ${offsetX} ${offsetY})`;
 }
 
 function getSpeedFactor(velocity: number) {
@@ -595,6 +618,16 @@ const OutlineArtwork = styled(ArtworkImage)`
   opacity: 0.6;
 `;
 
+const outlinePlayback = keyframes`
+  from { opacity: 0.6; }
+  to { opacity: 0.6; }
+`;
+
+const AnimatedOutlineArtwork = styled(OutlineArtwork)<{$isPlaying: boolean}>`
+  animation: ${outlinePlayback} ${OUTLINE_ANIMATION_DURATION_MS}ms linear;
+  animation-play-state: ${p => (p.$isPlaying ? 'running' : 'paused')};
+`;
+
 const ArtworkRevealMask = styled(motion.div)`
   position: absolute;
   user-select: none;
@@ -630,14 +663,6 @@ const MaskDefinitions = styled('svg')`
   pointer-events: none;
 `;
 
-const BubblePaths = styled('g')`
-  path {
-    transform-box: fill-box;
-    transform-origin: center;
-    will-change: transform, opacity;
-  }
-`;
-
 const BubbleMaskLayer = styled('div')<{$maskId: string}>`
   position: absolute;
   inset: 0;
@@ -662,17 +687,6 @@ const ArtworkEffectClip = styled('div')<{$artworkSrc: string}>`
   mask-size: 100% 100%;
   mask-repeat: no-repeat;
   mask-composite: add;
-`;
-
-const NoiseTexture = styled('svg')`
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0.32;
-  mix-blend-mode: hard-light;
-  filter: contrast(240%) brightness(115%);
-  pointer-events: none;
 `;
 
 const InteractionSurface = styled('div')<{$enabled: boolean}>`

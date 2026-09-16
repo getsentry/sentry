@@ -5,6 +5,7 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 
@@ -29,6 +30,7 @@ describe('rawTrackAnalyticsEvent', () => {
   });
 
   afterEach(() => {
+    ConfigStore.set('user', user);
     jest.mocked(trackReloadEvent).mockClear();
     jest.mocked(trackAmplitudeEvent).mockClear();
     jest.mocked(trackMarketingEvent).mockClear();
@@ -279,6 +281,26 @@ describe('rawTrackAnalyticsEvent', () => {
     );
     expect(uniqueId).toHaveBeenCalledWith();
   });
+
+  it('tracks logged-out events in Amplitude but not Reload', () => {
+    ConfigStore.set('user', null as unknown as User);
+
+    rawTrackAnalyticsEvent({
+      eventKey: 'test_event',
+      eventName: 'Test Event',
+      organization: null,
+      someProp: 'value',
+    });
+
+    expect(trackReloadEvent).not.toHaveBeenCalled();
+    expect(trackAmplitudeEvent).toHaveBeenCalledWith(
+      'Test Event',
+      null,
+      expect.objectContaining({someProp: 'value', user_age: null}),
+      {time: undefined}
+    );
+  });
+
   it('accepts subscription and sets plan', () => {
     rawTrackAnalyticsEvent({
       eventKey: 'test_event',

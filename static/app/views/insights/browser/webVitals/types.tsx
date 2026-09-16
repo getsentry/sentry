@@ -53,7 +53,7 @@ type SpanSampleRow = {
   'profile.id': string;
   project: string;
   replayId: string;
-  [SpanFields.SPAN_DESCRIPTION]: string;
+  [SpanFields.NAME]: string;
   [SpanFields.SPAN_SELF_TIME]: number;
   [SpanFields.TIMESTAMP]: string;
   [SpanFields.TRACE]: string;

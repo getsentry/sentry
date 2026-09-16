@@ -12,10 +12,6 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {StyledPanel} from 'sentry/views/explore/tables/tracesTable/styles';
 
-export const TabListWrapper = styled('div')`
-  width: 100%;
-`;
-
 export const StyledTopResultsIndicator = styled(TopResultsIndicator)``;
 
 export const StyledSimpleTable = styled(SimpleTable)`

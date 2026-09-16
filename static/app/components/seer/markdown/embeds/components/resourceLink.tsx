@@ -1,5 +1,7 @@
 import type {ComponentType, ReactNode} from 'react';
+import {css} from '@emotion/react';
 
+import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import {
@@ -19,6 +21,7 @@ import {
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {isSafeHref} from 'sentry/utils/marked/marked';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 /**
  * Every data type Seer surfaces as a resource link
@@ -65,26 +68,37 @@ export function ResourceLink({
   icon: ComponentType<SVGIconProps>;
   title: string;
 }): ReactNode {
-  const icon = <Icon size="xs" style={{verticalAlign: 'middle'}} />;
+  const icon = (
+    <Flex
+      as="span"
+      align="center"
+      display="inline-flex"
+      height="1em"
+      css={css`
+        vertical-align: text-bottom;
+      `}
+    >
+      <Icon size="xs" />
+    </Flex>
+  );
 
   if (/^https?:\/\//.test(href) && isSafeHref(href)) {
-    try {
-      const parsed = new URL(href);
-      if (parsed.origin !== window.location.origin) {
-        return (
-          <ExternalLink href={href}>
-            {icon} {title}
-          </ExternalLink>
-        );
-      }
-      return (
-        <Link to={parsed.pathname + parsed.search + parsed.hash}>
-          {icon} {title}
-        </Link>
-      );
-    } catch {
+    const parsed = safeURL(href);
+    if (!parsed) {
       return null;
     }
+    if (parsed.origin !== window.location.origin) {
+      return (
+        <ExternalLink href={href}>
+          {icon} {title}
+        </ExternalLink>
+      );
+    }
+    return (
+      <Link to={parsed.pathname + parsed.search + parsed.hash}>
+        {icon} {title}
+      </Link>
+    );
   }
 
   if (/^\/[^/]/.test(href)) {

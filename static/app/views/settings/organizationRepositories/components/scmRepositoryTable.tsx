@@ -175,7 +175,7 @@ function SingleInstallTableContent({
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
-          <Flex display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
+          <Flex display={{zero: 'none', xl: 'flex'}}>
             <InstallationRepoCountTag installation={merged} />
           </Flex>
           <InstallationActions installation={merged} providerName={provider.name} />
@@ -304,7 +304,7 @@ function InstallationRow({
         <Flex align="center" gap="sm">
           <IntegrationSummary installation={merged} />
         </Flex>
-        <Flex align="center" display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
+        <Flex align="center" display={{zero: 'none', xl: 'flex'}}>
           <InstallationRepoCountTag installation={merged} />
         </Flex>
         <Flex align="center" gap="md" justifySelf="end">
@@ -335,11 +335,7 @@ function InstallationRepoCountTag({installation}: {installation: ScmInstallation
   const isLoading = reposLoading || isSyncing;
 
   return (
-    <Tooltip
-      isHoverable={!isLoading}
-      title={getRepoCountTooltip(installation, lastSync)}
-      skipWrapper
-    >
+    <Tooltip title={getRepoCountTooltip(installation, lastSync)} skipWrapper>
       <Tag
         variant="muted"
         icon={isLoading ? <StatusIndicator variant="accent" /> : <IconInfo />}
@@ -409,7 +405,7 @@ function InstallationActions({installation, providerName}: InstallationActionsPr
     onSettings,
     onUninstall,
   } = installation;
-  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, xl: true});
+  const showManageRepositoriesLabel = useResponsivePropValue({zero: false, '2xl': true});
   const manageRepositoriesLabel = t('Manage repositories');
 
   return (

@@ -1,7 +1,7 @@
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
@@ -35,8 +35,9 @@ export function RequiredOrganizationSso({
         >
           {t('Wrong organization')}
         </Button>
-        <QuestionTooltip
+        <InfoTip
           position="bottom"
+          variant="muted"
           size="xs"
           title={t(
             'This organization requires SSO authentication. You may still log in with an email and password to access other organizations and account settings.'

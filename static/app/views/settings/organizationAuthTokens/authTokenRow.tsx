@@ -82,7 +82,7 @@ export function OrganizationAuthTokensAuthTokenRow({
 }) {
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell>
+      <SimpleTable.RowCell columnKey="token">
         <Label>
           <Link to={`/settings/${organization.slug}/auth-tokens/${token.id}/`}>
             {token.name}
@@ -96,7 +96,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell gap="xs">
+      <SimpleTable.RowCell columnKey="created" gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -106,7 +106,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell gap="xs">
+      <SimpleTable.RowCell columnKey="lastAccess" gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -118,7 +118,7 @@ export function OrganizationAuthTokensAuthTokenRow({
         )}
       </SimpleTable.RowCell>
 
-      <SimpleTable.RowCell justify="end">
+      <SimpleTable.RowCell columnKey="actions" justify="end">
         <Tooltip
           title={t('You must be an organization owner or manager to revoke a token.')}
           disabled={!!revokeToken}

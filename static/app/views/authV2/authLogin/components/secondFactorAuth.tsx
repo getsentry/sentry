@@ -78,7 +78,8 @@ export function SecondFactorAuth({
     : sortedMethods[0]?.id;
   const auth = useSecondFactorAuth();
   const cancellation = useCancelSecondFactorAuth();
-  const isProcessing = auth.isPending || cancellation.isPending;
+  const isAuthenticating = auth.isPending || Boolean(auth.result);
+  const isProcessing = isAuthenticating || cancellation.isPending;
   const authenticate = (credentials: SecondFactorCredentials) => {
     cancellation.reset();
     auth.authenticate(credentials);
@@ -146,6 +147,7 @@ export function SecondFactorAuth({
                 <MethodInput
                   method={method.id}
                   isActive={isActive}
+                  isAuthenticating={isAuthenticating}
                   isProcessing={isProcessing}
                   resetKey={auth.errorMessage}
                   onAuthenticate={authenticate}
@@ -164,7 +166,7 @@ export function SecondFactorAuth({
             size="xs"
             icon={<IconArrow direction="left" />}
             busy={cancellation.isPending}
-            disabled={auth.isPending}
+            disabled={isProcessing}
             onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
           >
             {t('Back to Login')}
@@ -208,6 +210,7 @@ export function SecondFactorAuth({
 
 interface MethodInputProps {
   isActive: boolean;
+  isAuthenticating: boolean;
   isProcessing: boolean;
   method: MfaMethod['id'];
   onAuthenticate: (credentials: SecondFactorCredentials) => void;
@@ -217,6 +220,7 @@ interface MethodInputProps {
 
 function MethodInput({
   isActive,
+  isAuthenticating,
   isProcessing,
   method,
   onAuthenticate,
@@ -228,6 +232,7 @@ function MethodInput({
       return (
         <WebAuthn2FAMethod
           isActive={isActive}
+          isAuthenticating={isAuthenticating}
           isProcessing={isProcessing}
           submissionFailed={Boolean(resetKey)}
           onRetrySubmission={onResetAuthentication}

@@ -15,14 +15,13 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {getDefaultMetricYAxis, getMetricYAxis} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -940,23 +939,6 @@ function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | nu
     traceMetric.unit = rawTraceMetric.unit;
   }
   return traceMetric;
-}
-
-function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
-  const visualize = new VisualizeFunction(yAxis);
-  const aggregate = visualize.parsedFunction?.name;
-  if (!aggregate) {
-    return yAxis;
-  }
-
-  return makeMetricsAggregate({aggregate, traceMetric});
-}
-
-function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
-  return makeMetricsAggregate({
-    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
-    traceMetric,
-  });
 }
 
 function parseMetricsSort(

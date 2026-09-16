@@ -32,6 +32,7 @@ from sentry.seer.agent.client_utils import (
     AgentRunOptions,
     AgentUpdateRequest,
     SeerFeatureRunRequest,
+    SeerFeatureRunWireRequest,
     UserOrgContext,
     collect_user_org_context,
     enqueue_seer_run,
@@ -40,6 +41,7 @@ from sentry.seer.agent.client_utils import (
     make_agent_chat_request,
     make_agent_repos_request,
     make_agent_update_request,
+    make_feature_run_request,
     poll_until_done,
 )
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
@@ -348,19 +350,16 @@ class SeerAgentClient:
         self.max_iterations = max_iterations
         self.enable_embeds = enable_embeds
         self.enable_streaming = enable_streaming
+        self.enable_assisted_query_code_mode = features.has(
+            "organizations:seer-agent-enable-assisted-query-code-mode",
+            organization,
+            actor=user,
+        )
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
 
         self.enable_coding = enable_coding
-
-        # PR context tools back both the automated CI and the manual iteration flows,
-        # so either flag grants them.
-        if enable_pr_context_tools and not (
-            features.has("organizations:autofix-pr-iteration", organization, actor=user)
-            or features.has("organizations:autofix-pr-iteration-manual", organization, actor=user)
-        ):
-            raise SeerPermissionError("PR context tools are not enabled for this organization")
 
         self.enable_pr_context_tools = enable_pr_context_tools
 
@@ -434,6 +433,7 @@ class SeerAgentClient:
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
             "enable_bash_mode": self.enable_bash_tools,
+            "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -546,12 +546,13 @@ class SeerAgentClient:
         feature_id: str,
         payload: dict[str, Any],
         title: str,
+        referrer: str,
         flush: bool = True,
         extras: dict[str, Any] | None = None,
         on_run_created: Callable[[SeerRun], None] | None = None,
-        referrer: str | None = None,
         agent_run_options: AgentRunOptions | None = None,
         user_org_context: UserOrgContext | None = None,
+        proxy_headers: dict[str, str] | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -598,9 +599,12 @@ class SeerAgentClient:
             feature_id=feature_id,
             payload=payload,
             agent_run_options=resolved_agent_run_options,
+            referrer=referrer,
         )
         if user_org_context is not None:
             body["user_org_context"] = user_org_context
+        if proxy_headers is not None:
+            body["proxy_headers"] = proxy_headers
 
         return enqueue_seer_run(
             organization=self.organization,
@@ -612,6 +616,38 @@ class SeerAgentClient:
             referrer=referrer,
             flush=flush,
         )
+
+    def continue_feature_run(
+        self,
+        existing_agent_run: SeerAgentRun,
+        payload: dict[str, Any],
+        referrer: str,
+        user_org_context: UserOrgContext,
+        agent_run_options: AgentRunOptions | None = None,
+        proxy_headers: dict[str, str] | None = None,
+    ) -> SeerRun:
+        resolved_agent_run_options = self._build_agent_run_options()
+        if agent_run_options is not None:
+            resolved_agent_run_options.update(agent_run_options)
+
+        existing_run = existing_agent_run.run
+        body = SeerFeatureRunWireRequest(
+            ref=str(existing_run.uuid),
+            external_idempotency_key=str(existing_run.uuid),
+            feature_id=existing_agent_run.source,
+            payload=payload,
+            referrer=referrer,
+            agent_run_options=resolved_agent_run_options,
+            user_org_context=user_org_context,
+            proxy_headers=proxy_headers,
+        )
+
+        response = make_feature_run_request(body, viewer_context=self.viewer_context)
+        if response.status >= 400:
+            raise SeerApiError("Seer request failed", response.status)
+
+        existing_run.update(last_triggered_at=now())
+        return existing_run
 
     def _embed_widgets_enabled(self) -> bool:
         """Whether to tell the agent it may emit embed widgets.
@@ -754,6 +790,7 @@ class SeerAgentClient:
             "enable_code_mode_tools": self.enable_code_mode_tools,
             "code_review_enabled": self.code_review_enabled,
             "enable_pr_context_tools": self.enable_pr_context_tools,
+            "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(

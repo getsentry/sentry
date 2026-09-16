@@ -23,6 +23,7 @@ export function useStableMergeRef<T>(stableRef: React.Ref<T> | undefined) {
       }
 
       const mergedRef = mergeRefs(ref, stableRef);
+      // oxlint-disable-next-line react/immutability
       cache.set(ref, mergedRef);
       return mergedRef;
     };

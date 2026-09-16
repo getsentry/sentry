@@ -113,7 +113,6 @@ export function BreadcrumbsTimeline({
       <Timestamp>
         <Tooltip
           title={<BreadcrumbTimestampTooltipBody timestamp={timestamp} />}
-          isHoverable
           maxWidth={400}
         >
           {isValidDate(startTimeDate) ? (

@@ -4,6 +4,8 @@ import {useTheme} from '@emotion/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
@@ -17,7 +19,6 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -119,9 +120,7 @@ function ProjectBaseSessionsChart({
 
                           <HeaderTitleLegend>
                             {title}
-                            {help && (
-                              <QuestionTooltip size="sm" position="top" title={help} />
-                            )}
+                            {help && <InfoTip size="sm" position="top" title={help} />}
                           </HeaderTitleLegend>
 
                           <Chart

@@ -6,7 +6,7 @@ import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from cronsim import CronSim
@@ -26,7 +26,7 @@ from sentry.constants import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.utils.github_permissions import has_github_app_permissions
+from sentry.integrations.utils.github_permissions import PermissionLevel, has_github_app_permissions
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
@@ -34,7 +34,6 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
 )
-from sentry.seer.autofix.github_perms import GITHUB_PR_WRITE_PERMISSIONS
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     bulk_read_preferences_from_sentry_db,
@@ -44,15 +43,17 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.constants import SEER_GITHUB_SCM_PROVIDERS
 from sentry.seer.models import SeerPermissionError
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunErrorType,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.night_shift import SeerNightShiftRunErrorType
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import SeerRun
-from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowConfig,
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
+from sentry.seer.workflows.schemas import WorkflowRunSource
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
@@ -79,6 +80,11 @@ logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=1)
 
+GITHUB_PR_WRITE_PERMISSIONS = {
+    "contents": PermissionLevel.WRITE,
+    "pull_requests": PermissionLevel.WRITE,
+}
+
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
     "organizations:gen-ai-features",
@@ -90,14 +96,11 @@ PER_ORG_FEATURE_NAMES = [
 ]
 
 
-NightShiftRunSource = Literal["cron", "manual"]
-
-
 class SeerNightShiftRunOptions(TypedDict):
     """Fully-resolved options for a night shift run. Persisted directly onto
-    SeerNightShiftRun.extras["options"]. Construct via build_run_options."""
+    SeerWorkflowRun.extras["options"]. Construct via build_run_options."""
 
-    source: NightShiftRunSource
+    source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
     intelligence_level: IntelligenceLevel
@@ -109,7 +112,7 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     """Caller-facing options dict — every field is optional. Missing fields
     are filled in by build_run_options with shared defaults."""
 
-    source: NightShiftRunSource
+    source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
     intelligence_level: IntelligenceLevel
@@ -298,13 +301,13 @@ def run_night_shift_for_org(
         data_category=DataCategory.SEER_AUTOFIX,
     )
     if not has_seer_quota and schedule_id is not None:
-        existing_run = SeerNightShiftRun.objects.filter(
+        existing_run = SeerWorkflowRun.objects.filter(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             schedule_id=schedule_id,
         ).first()
         if existing_run is None or (
-            existing_run.date_completed is None and not existing_run.shards.exists()
+            existing_run.date_completed is None and not existing_run.executions.exists()
         ):
             logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
             return None
@@ -330,13 +333,13 @@ def run_night_shift_for_org(
 
     created = schedule_id is None
     if schedule_id is None:
-        run = SeerNightShiftRun.objects.create(
+        run = SeerWorkflowRun.objects.create(
             organization=organization,
             workflow_config=workflow_config,
             extras=extras,
         )
     else:
-        run, created = SeerNightShiftRun.objects.get_or_create(
+        run, created = SeerWorkflowRun.objects.get_or_create(
             organization=organization,
             workflow_config=workflow_config,
             schedule_id=schedule_id,
@@ -401,7 +404,7 @@ def run_night_shift_execution(
     """Heavy phase of a night shift run: eligibility, triage, and optional
     autofix dispatch. Single code path used by both sync invocation (from
     run_night_shift_for_org) and async dispatch (apply_async)."""
-    run = SeerNightShiftRun.objects.select_related("organization").filter(id=run_id).first()
+    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).first()
     if run is None:
         logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
         return None
@@ -430,7 +433,7 @@ def run_night_shift_execution(
     start_time = time.monotonic()
     logger.info("night_shift.execute.start", extra=log_extra)
 
-    if run.shards.exists():
+    if run.executions.exists():
         dispatch_status = _dispatch_pending_shards(run, organization, log_extra, start_time)
         if dispatch_status is not ShardDispatchStatus.COMPLETE:
             logger.info(
@@ -609,11 +612,11 @@ def _get_eligible_orgs_from_batch(
 
 
 def _update_run_extras(
-    run: SeerNightShiftRun, updates: Mapping[str, object]
+    run: SeerWorkflowRun, updates: Mapping[str, object]
 ) -> dict[str, object] | None:
-    using = router.db_for_write(SeerNightShiftRun)
+    using = router.db_for_write(SeerWorkflowRun)
     with transaction.atomic(using=using):
-        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
+        locked_run = SeerWorkflowRun.objects.select_for_update().get(id=run.id)
         if locked_run.date_completed is not None:
             return None
 
@@ -623,10 +626,10 @@ def _update_run_extras(
         return extras
 
 
-def _complete_run(run: SeerNightShiftRun) -> None:
-    using = router.db_for_write(SeerNightShiftRun)
+def _complete_run(run: SeerWorkflowRun) -> None:
+    using = router.db_for_write(SeerWorkflowRun)
     with transaction.atomic(using=using):
-        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
+        locked_run = SeerWorkflowRun.objects.select_for_update().get(id=run.id)
         if locked_run.date_completed is not None:
             return
 
@@ -637,13 +640,13 @@ def _complete_run(run: SeerNightShiftRun) -> None:
 
 
 def _record_run_error(
-    run: SeerNightShiftRun, error_type: SeerNightShiftRunErrorType, message: str
+    run: SeerWorkflowRun, error_type: SeerNightShiftRunErrorType, message: str
 ) -> None:
     _update_run_extras(run, {"error_type": error_type.value, "error_message": message})
 
 
 def _fail_run(
-    run: SeerNightShiftRun,
+    run: SeerWorkflowRun,
     *,
     error_type: SeerNightShiftRunErrorType,
     message: str,
@@ -667,7 +670,7 @@ class EligibleProject:
 
 def _get_eligible_projects(
     organization: Organization,
-    source: NightShiftRunSource,
+    source: WorkflowRunSource,
     project_ids: list[int] | None = None,
 ) -> list[EligibleProject]:
     """Return active projects that have automation enabled and connected repos,
@@ -690,47 +693,6 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
-    github_integration_ids_by_project: dict[int, set[int]] = {}
-    projects_with_unresolved_github_repos: set[int] = set()
-    for project_id, preference in preferences.items():
-        integration_ids: set[int] = set()
-        for repo in preference.repositories:
-            if repo.provider not in SEER_GITHUB_SCM_PROVIDERS:
-                continue
-            if repo.integration_id is None:
-                projects_with_unresolved_github_repos.add(project_id)
-                continue
-            try:
-                integration_ids.add(int(repo.integration_id))
-            except (TypeError, ValueError):
-                projects_with_unresolved_github_repos.add(project_id)
-        github_integration_ids_by_project[project_id] = integration_ids
-
-    github_integration_ids = {
-        integration_id
-        for project_integration_ids in github_integration_ids_by_project.values()
-        for integration_id in project_integration_ids
-    }
-    github_integrations = (
-        integration_service.get_integrations(
-            integration_ids=list(github_integration_ids),
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            org_integration_status=ObjectStatus.ACTIVE,
-            providers=[
-                IntegrationProviderSlug.GITHUB.value,
-                IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-            ],
-        )
-        if github_integration_ids
-        else []
-    )
-    writable_github_integration_ids = {
-        integration.id
-        for integration in github_integrations
-        if has_github_app_permissions(integration.metadata, GITHUB_PR_WRITE_PERMISSIONS)
-    }
-
     is_legacy_org = not is_seer_seat_based_tier_enabled(organization)
 
     eligible: list[EligibleProject] = []
@@ -746,12 +708,6 @@ def _get_eligible_projects(
         reasons: list[str] = []
         if not pref.repositories:
             reasons.append("no_connected_repos")
-        project_github_integration_ids = github_integration_ids_by_project.get(pid, set())
-        if (
-            pid in projects_with_unresolved_github_repos
-            or project_github_integration_ids - writable_github_integration_ids
-        ):
-            reasons.append("missing_github_write_permissions")
         if pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF:
             reasons.append("automation_tuning_off")
         if source == "cron" and not tweaks.enabled:
@@ -787,10 +743,70 @@ def _get_eligible_projects(
             )
         )
 
-    return eligible
+    # Only fetch integrations for projects that survived the local eligibility checks.
+    github_integration_ids = {
+        int(repo.integration_id)
+        for candidate in eligible
+        for repo in preferences[candidate.project.id].repositories
+        if repo.provider in SEER_GITHUB_SCM_PROVIDERS and repo.integration_id is not None
+    }
+    eligible_integration_ids = _get_eligible_github_integration_ids(
+        organization.id, github_integration_ids
+    )
+    connected_projects: list[EligibleProject] = []
+    for candidate in eligible:
+        pref = preferences[candidate.project.id]
+        if any(
+            repo.integration_id not in eligible_integration_ids
+            for repo in pref.repositories
+            if repo.provider in SEER_GITHUB_SCM_PROVIDERS
+        ):
+            logger.info(
+                "night_shift.project_filtered",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": candidate.project.id,
+                    "reasons": ["unusable_github_integration"],
+                    "automation_tuning": pref.autofix_automation_tuning.value,
+                    "tweaks_enabled": candidate.tweaks.enabled,
+                    "stopping_point": candidate.stopping_point.value,
+                },
+            )
+            continue
+        connected_projects.append(candidate)
+
+    return connected_projects
 
 
-def _should_use_per_project_quotas(source: NightShiftRunSource, organization_id: int) -> bool:
+def _get_eligible_github_integration_ids(
+    organization_id: int, integration_ids: set[int]
+) -> set[str]:
+    if not integration_ids:
+        return set()
+
+    integrations = integration_service.get_integrations(
+        integration_ids=list(integration_ids),
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        providers=[
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ],
+    )
+    # GitHub.com can write through the separate Seer app, whose permissions are
+    # not stored here. GitHub Enterprise has no Seer-app fallback.
+    return {
+        str(integration.id)
+        for integration in integrations
+        if integration.provider == IntegrationProviderSlug.GITHUB.value
+        or has_github_app_permissions(
+            integration.metadata.get("permissions") or {}, GITHUB_PR_WRITE_PERMISSIONS
+        )
+    }
+
+
+def _should_use_per_project_quotas(source: WorkflowRunSource, organization_id: int) -> bool:
     """When allowed_project_slugs (org_tweaks) is set, give each project its
     own quota. Manual runs bypass allowed_project_slugs, so never per-project."""
     if source != "cron":
@@ -856,24 +872,24 @@ def _build_shard_plans(
 
 
 def _maybe_create_shard_plan(
-    run: SeerNightShiftRun, shard_plans: Sequence[NightShiftShardPlan]
+    run: SeerWorkflowRun, shard_plans: Sequence[NightShiftShardPlan]
 ) -> None:
-    using = router.db_for_write(SeerNightShiftRunShard)
+    using = router.db_for_write(SeerWorkflowRunExecution)
     with transaction.atomic(using=using):
-        locked_run = SeerNightShiftRun.objects.select_for_update().get(id=run.id)
-        if locked_run.shards.exists():
+        locked_run = SeerWorkflowRun.objects.select_for_update().get(id=run.id)
+        if locked_run.executions.exists():
             return
 
-        SeerNightShiftRunShard.objects.bulk_create(
+        SeerWorkflowRunExecution.objects.bulk_create(
             [
-                SeerNightShiftRunShard(run=locked_run, extras=plan.to_extras())
+                SeerWorkflowRunExecution(run=locked_run, extras=plan.to_extras())
                 for plan in shard_plans
             ]
         )
 
 
 def _dispatch_pending_shards(
-    run: SeerNightShiftRun,
+    run: SeerWorkflowRun,
     organization: Organization,
     log_extra: dict[str, object],
     start_time: float,
@@ -890,12 +906,12 @@ def _dispatch_pending_shards(
         )
         return ShardDispatchStatus.NO_SEER_ACCESS
 
-    using = router.db_for_write(SeerNightShiftRunShard)
-    planned_shards = list(run.shards.order_by("id"))
+    using = router.db_for_write(SeerWorkflowRunExecution)
+    planned_shards = list(run.executions.order_by("id"))
     dispatched = 0
     for shard_index, planned_shard in enumerate(planned_shards):
         with transaction.atomic(using=using):
-            shard = SeerNightShiftRunShard.objects.select_for_update().get(id=planned_shard.id)
+            shard = SeerWorkflowRunExecution.objects.select_for_update().get(id=planned_shard.id)
             if shard.seer_run_id is not None:
                 dispatched += 1
                 continue
