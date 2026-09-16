@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.cursor_origin.client import CursorOriginApiClient
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
 from sentry.integrations.services.repository.model import RpcRepository
@@ -100,6 +101,11 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
                 return "rate_limited"
             if exc.code in (401, 403, 404):
                 return "installation_suspended"
+
+        # raise_error converts a 401 into InvalidIdentity, which the base class does not
+        # unwrap the way it unwraps IntegrationError.
+        if isinstance(exc, InvalidIdentity) and isinstance(exc.__context__, Exception):
+            return self.is_broken_integration_error(exc.__context__)
 
         return super().is_broken_integration_error(exc)
 

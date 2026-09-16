@@ -6,6 +6,7 @@ from unittest import mock
 import pytest
 
 from sentry.constants import ObjectStatus
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.cursor_origin.client import CursorOriginApiClient
 from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
 from sentry.models.repository import Repository
@@ -124,6 +125,14 @@ class CursorOriginIntegrationTest(TestCase):
             self.install.is_broken_integration_error(ApiError("slow", code=429, url=url))
             == "rate_limited"
         )
+
+    def test_a_token_401_survives_the_conversion_to_invalid_identity(self) -> None:
+        """raise_error wraps it, and the base class only unwraps IntegrationError."""
+        url = f"/app/installations/{INSTALLATION_ID}/access_tokens"
+        converted = InvalidIdentity("no")
+        converted.__context__ = ApiError("no", code=401, url=url)
+
+        assert self.install.is_broken_integration_error(converted) == "installation_suspended"
 
     def test_a_failed_resource_read_is_not_terminal(self) -> None:
         assert (
