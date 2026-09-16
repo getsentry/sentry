@@ -61,6 +61,12 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {
+  TracePinnedAttributeCell,
+  TracePinnedAttributeHeader,
+  TraceAttributeDivider,
+  usePinnedAttribute,
+} from './tracePinnedAttribute';
 import type {TraceReducerState} from './traceState';
 
 const traceIssueIconBackgroundStyles = css`
@@ -116,13 +122,6 @@ function computeNextIndexFromAction(
 function snapshotVisibleTraceItems(nodes: BaseNode[], _version: number): BaseNode[] {
   return nodes.slice();
 }
-
-import {
-  TracePinnedAttributeCell,
-  TracePinnedAttributeHeader,
-  TraceAttributeDivider,
-  usePinnedAttribute,
-} from './tracePinnedAttribute';
 
 interface TraceProps {
   forceRerender: number;

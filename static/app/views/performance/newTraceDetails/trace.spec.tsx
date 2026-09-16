@@ -1020,6 +1020,60 @@ describe('trace view', () => {
       expect(router.location.query.pinnedAttribute).toBe('custom.region');
     });
 
+    it('preserves pinned child values, selection and zoom when expanding an EAP parent', async () => {
+      const {organization, root} = setupPinnedTrace();
+      const traceRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        body: [root],
+      });
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        body: [
+          {
+            ...root,
+            additional_attributes: {'custom.region': 'root-region'},
+            children: root.children.map(child => ({
+              ...child,
+              additional_attributes: {'custom.region': 'child-region'},
+            })),
+          },
+        ],
+      });
+      const query = {pinnedAttribute: 'custom.region', fov: '100,500'};
+      mockQueryString('?pinnedAttribute=custom.region&fov=100%2C500');
+      const {router} = render(<TraceView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: '/organizations/org-slug/performance/trace/trace-id/',
+            query,
+          },
+        },
+      });
+      expect(await screen.findByText('child-region')).toBeInTheDocument();
+      const rootDescription = screen.getByText('pinnable root');
+      await userEvent.click(rootDescription);
+      await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
+      const rootRow = rootDescription.closest<HTMLElement>('.TraceRow')!;
+      const expandButton = within(rootRow).getByRole('button', {name: '1'});
+
+      await userEvent.click(expandButton);
+      expect(screen.queryByText('child-region')).not.toBeInTheDocument();
+      await userEvent.click(expandButton);
+
+      const childRow = (await screen.findByText('pinnable child')).closest<HTMLElement>(
+        '.TraceRow'
+      )!;
+      expect(within(childRow).getByText('child-region')).toBeInTheDocument();
+      expect(within(rootRow).getByText('root-region')).toBeInTheDocument();
+      expect(router.location.query.node).toBe('span-pin-root');
+      expect(router.location.query.fov).toBe('100,500');
+      expect(traceRequest).toHaveBeenCalledTimes(1);
+      expect(attributeRequest).toHaveBeenCalledTimes(1);
+    });
+
     it('pins from the drawer, resizes both edges independently, replaces the pin and unpins', async () => {
       const {organization, root} = setupPinnedTrace();
       const regionRequest = MockApiClient.addMockResponse({

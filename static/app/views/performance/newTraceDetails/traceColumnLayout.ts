@@ -12,12 +12,24 @@ export class TraceColumnLayout {
   constructor(treeRatio: number) {
     this.treeRatio = treeRatio;
     try {
-      const stored = JSON.parse(localStorageWrapper.getItem(STORAGE_KEY) ?? 'null');
-      if (Number.isFinite(stored?.attributeWidth) && stored.attributeWidth >= 100) {
+      const stored: unknown = JSON.parse(
+        localStorageWrapper.getItem(STORAGE_KEY) ?? 'null'
+      );
+      if (!stored || typeof stored !== 'object') {
+        return;
+      }
+      if (
+        'attributeWidth' in stored &&
+        typeof stored.attributeWidth === 'number' &&
+        Number.isFinite(stored.attributeWidth) &&
+        stored.attributeWidth >= 100
+      ) {
         this.attributeWidth = stored.attributeWidth;
       }
       if (
-        Number.isFinite(stored?.treeRatio) &&
+        'treeRatio' in stored &&
+        typeof stored.treeRatio === 'number' &&
+        Number.isFinite(stored.treeRatio) &&
         stored.treeRatio > 0 &&
         stored.treeRatio < 1
       ) {

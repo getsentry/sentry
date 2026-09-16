@@ -39,6 +39,23 @@ describe('pinned trace columns', () => {
     expect(restored.sizes(1000)).toEqual({list: 400, attribute: 300, span_list: 300});
   });
 
+  it.each([
+    'invalid json',
+    'null',
+    '42',
+    '"invalid preference"',
+    '[]',
+    '{"attributeWidth":"300","treeRatio":"0.6"}',
+    '{"attributeWidth":99,"treeRatio":0}',
+    '{"attributeWidth":1e999,"treeRatio":1}',
+  ])('ignores malformed or invalid stored widths: %s', stored => {
+    localStorage.setItem('trace-waterfall-attribute-column-layout', stored);
+
+    const layout = new TraceColumnLayout(0.5);
+
+    expect(layout.sizes(1000)).toEqual({list: 400, attribute: 200, span_list: 400});
+  });
+
   it('updates the timeline coordinate space and restores the two-column ratio on unpin', () => {
     const manager = new VirtualizedViewManager(
       {list: {width: 0.5}, span_list: {width: 0.5}},
