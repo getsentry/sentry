@@ -1,172 +1,100 @@
-import type {ReactNode} from 'react';
-
 import {LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {
-  SourceMapDebugResponse,
-  SourceMapDebugQueryResult,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import type {SourceMapDebugQueryResult} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-function getDiagnosisMessage(data: SourceMapDebugResponse | undefined): ReactNode | null {
-  if (!data) {
-    return (
-      <Text>{t('Unable to load source map diagnostic information for this event.')}</Text>
-    );
-  }
+import {getSourceMapDiagnosis, type SourceMapDiagnosis} from './sourceMapDiagnosis';
 
-  const release = data.release ? (
-    <InlineCode variant="neutral">{data.release}</InlineCode>
-  ) : null;
+function getDiagnosisMessage(diagnosis: SourceMapDiagnosis) {
+  const release =
+    'release' in diagnosis && diagnosis.release ? (
+      <InlineCode variant="neutral">{diagnosis.release}</InlineCode>
+    ) : null;
+  const filePath = 'path' in diagnosis ? <InlineCode>{diagnosis.path}</InlineCode> : null;
 
-  for (const exception of data.exceptions) {
-    for (const frame of exception.frames) {
-      const rel = frame.release_process;
-      const scraping = frame.scraping_process;
-
-      if (rel) {
-        const filePath = <InlineCode>{rel.abs_path}</InlineCode>;
-
-        if (rel.source_file_lookup_result === 'wrong-dist') {
-          return (
-            <Text>
-              {release
-                ? tct(
-                    'The source file [filePath] was found but the dist value does not match the uploaded artifact in release [release].',
-                    {filePath, release}
-                  )
-                : tct(
-                    'The source file [filePath] was found but the dist value does not match the uploaded artifact.',
-                    {filePath}
-                  )}
-            </Text>
-          );
-        }
-        if (rel.source_map_lookup_result === 'wrong-dist' && rel.source_map_reference) {
-          const mapRef = <InlineCode>{rel.source_map_reference}</InlineCode>;
-          return (
-            <Text>
-              {release
-                ? tct(
-                    'The source map [mapRef] was found but the dist value does not match the uploaded artifact in release [release].',
-                    {mapRef, release}
-                  )
-                : tct(
-                    'The source map [mapRef] was found but the dist value does not match the uploaded artifact.',
-                    {mapRef}
-                  )}
-            </Text>
-          );
-        }
-        if (
-          rel.source_file_lookup_result === 'unsuccessful' &&
-          rel.source_map_reference === null
-        ) {
-          return (
-            <Text>
-              {release
-                ? tct(
-                    'The source file [filePath] could not be found in any uploaded artifact bundle in release [release]. No source map reference was detected.',
-                    {filePath, release}
-                  )
-                : tct(
-                    'The source file [filePath] could not be found in any uploaded artifact bundle. No source map reference was detected.',
-                    {filePath}
-                  )}
-            </Text>
-          );
-        }
-        if (rel.source_map_lookup_result === 'unsuccessful' && rel.source_map_reference) {
-          const mapRef = <InlineCode>{rel.source_map_reference}</InlineCode>;
-          return (
-            <Text>
-              {release
-                ? tct(
-                    'The source map referenced by [filePath] points to [mapRef], but no matching artifact was found in release [release].',
-                    {filePath, mapRef, release}
-                  )
-                : tct(
-                    'The source map referenced by [filePath] points to [mapRef], but no matching artifact was found.',
-                    {filePath, mapRef}
-                  )}
-            </Text>
-          );
-        }
+  switch (diagnosis.type) {
+    case 'dist-mismatch':
+      if (diagnosis.artifact === 'source-file') {
+        return release
+          ? tct(
+              'The source file [filePath] was found but the dist value does not match the uploaded artifact in release [release].',
+              {filePath, release}
+            )
+          : tct(
+              'The source file [filePath] was found but the dist value does not match the uploaded artifact.',
+              {filePath}
+            );
       }
-
-      if (scraping) {
-        if (scraping.source_file?.status === 'failure') {
-          return (
-            <Text>
-              {tct('Sentry could not fetch the source file at [url]: [reason].', {
-                url: <InlineCode>{scraping.source_file.url}</InlineCode>,
-                reason: scraping.source_file.reason,
-              })}
-            </Text>
+      return release
+        ? tct(
+            'The source map [mapRef] was found but the dist value does not match the uploaded artifact in release [release].',
+            {mapRef: filePath, release}
+          )
+        : tct(
+            'The source map [mapRef] was found but the dist value does not match the uploaded artifact.',
+            {mapRef: filePath}
           );
-        }
-        if (scraping.source_map?.status === 'failure') {
-          return (
-            <Text>
-              {tct('Sentry could not fetch the source map at [url]: [reason].', {
-                url: <InlineCode>{scraping.source_map.url}</InlineCode>,
-                reason: scraping.source_map.reason,
-              })}
-            </Text>
+    case 'missing-source':
+      return release
+        ? tct(
+            'The source file [filePath] could not be found in any uploaded artifact bundle in release [release]. No source map reference was detected.',
+            {filePath, release}
+          )
+        : tct(
+            'The source file [filePath] could not be found in any uploaded artifact bundle. No source map reference was detected.',
+            {filePath}
           );
-        }
-      }
+    case 'missing-map': {
+      const mapRef = <InlineCode>{diagnosis.reference}</InlineCode>;
+      return release
+        ? tct(
+            'The source map referenced by [filePath] points to [mapRef], but no matching artifact was found in release [release].',
+            {filePath, mapRef, release}
+          )
+        : tct(
+            'The source map referenced by [filePath] points to [mapRef], but no matching artifact was found.',
+            {filePath, mapRef}
+          );
     }
-  }
-
-  if (!data.project_has_some_artifact_bundle && !data.release_has_some_artifact) {
-    return (
-      <Stack gap="lg">
-        <Text>
-          {release
-            ? tct(
-                'No source map artifacts have been uploaded for this project in release [release].',
-                {release}
-              )
-            : t('No source map artifacts have been uploaded for this project.')}
-        </Text>
-        <div>
-          <LinkButton
-            size="sm"
-            icon={<IconOpen />}
-            external
-            href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/"
-          >
-            {t('Upload Instructions')}
-          </LinkButton>
-        </div>
-      </Stack>
-    );
-  }
-
-  return (
-    <Text>
-      {t(
+    case 'fetch-failure': {
+      const values = {
+        url: <InlineCode>{diagnosis.url}</InlineCode>,
+        reason: diagnosis.reason,
+      };
+      return diagnosis.artifact === 'source-file'
+        ? tct('Sentry could not fetch the source file at [url]: [reason].', values)
+        : tct('Sentry could not fetch the source map at [url]: [reason].', values);
+    }
+    case 'no-artifacts':
+      return release
+        ? tct(
+            'No source map artifacts have been uploaded for this project in release [release].',
+            {release}
+          )
+        : t('No source map artifacts have been uploaded for this project.');
+    case 'unknown':
+      return t(
         'Source maps appear to be configured but Sentry could not pinpoint the exact issue.'
-      )}
-    </Text>
-  );
+      );
+    default:
+      return null;
+  }
 }
 
-interface DiagnosisSectionProps {
+export function DiagnosisSection({
+  sourceMapQuery,
+}: {
   sourceMapQuery: SourceMapDebugQueryResult;
-}
-
-export function DiagnosisSection({sourceMapQuery}: DiagnosisSectionProps) {
+}) {
   const {data, isLoading, isError} = sourceMapQuery;
 
-  function renderContent(): ReactNode {
+  function renderContent() {
     if (isLoading) {
       return <LoadingIndicator mini />;
     }
@@ -177,8 +105,32 @@ export function DiagnosisSection({sourceMapQuery}: DiagnosisSectionProps) {
         />
       );
     }
-
-    return getDiagnosisMessage(data);
+    if (!data) {
+      return (
+        <Text>
+          {t('Unable to load source map diagnostic information for this event.')}
+        </Text>
+      );
+    }
+    const diagnosis = getSourceMapDiagnosis(data);
+    return (
+      <Stack gap="lg">
+        <Text variant="muted">{t('Based on a sample event for this issue.')}</Text>
+        <Text>{getDiagnosisMessage(diagnosis)}</Text>
+        {diagnosis.type === 'no-artifacts' && (
+          <Container>
+            <LinkButton
+              size="sm"
+              icon={<IconOpen />}
+              external
+              href="https://docs.sentry.io/platforms/javascript/sourcemaps/uploading/"
+            >
+              {t('Upload Instructions')}
+            </LinkButton>
+          </Container>
+        )}
+      </Stack>
+    );
   }
 
   return (
