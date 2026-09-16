@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -373,10 +373,6 @@ function getInternalLinkActionLabel(field: string): string {
   return t('Open link');
 }
 
-/**
- * Potentially temporary as design and product need more time to determine how logs table should trigger the dropdown.
- * Currently, the agreed default for every table should be bold hover. Logs is the only table to use the ellipsis trigger.
- */
 export enum ActionTriggerType {
   ELLIPSIS = 'ellipsis',
   BOLD_HOVER = 'bold_hover',
@@ -396,9 +392,10 @@ export function CellAction({
   ...props
 }: Props) {
   const {children, column} = props;
-  // The menu is activated by clicking the value, which doesn't work if the value is rendered as a link
-  // So, `target` contains an internal link extracted from the DOM on click and that link is added dropdown menu.
+  // Extract the rendered link when opening the menu so navigation is also
+  // available as a cell action.
   const [target, setTarget] = useState<string>();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const cellActions = makeCellActions({
     ...props,
@@ -478,12 +475,15 @@ export function CellAction({
   }
 
   return (
-    <Container data-test-id={cellActions === null ? undefined : 'cell-action-container'}>
+    <Container
+      ref={containerRef}
+      data-test-id={cellActions === null ? undefined : 'cell-action-container'}
+    >
       {children}
       {cellActions?.length && (
         <DropdownMenu
           items={cellActions}
-          usePortal
+          usePortal={usePortalOnDropdown ?? true}
           disableTextSelection
           size="sm"
           offset={4}
@@ -501,6 +501,14 @@ export function CellAction({
           trigger={triggerProps => (
             <ActionMenuTrigger
               {...triggerProps}
+              onClickCapture={() => {
+                const href = containerRef.current?.getElementsByTagName('a')[0]?.href;
+                setTarget(
+                  href && (isInternalNavigationTarget(href) || isValidUrl(href))
+                    ? href
+                    : undefined
+                );
+              }}
               aria-label={t('Actions')}
               icon={<IconEllipsis size="xs" />}
               size="zero"
