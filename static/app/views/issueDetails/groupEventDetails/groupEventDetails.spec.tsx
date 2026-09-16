@@ -3,6 +3,11 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {
+  SourceMapDebugFrameFixture,
+  SourceMapDebugReleaseProcessFixture,
+  SourceMapDebugResponseFixture,
+} from 'sentry-fixture/sourceMapDebug';
 
 import {
   render,
@@ -348,6 +353,59 @@ describe('groupEventDetails', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  describe('source-map issue content', () => {
+    function setupSourceMapIssue() {
+      const props = makeDefaultMockData();
+      props.group = GroupFixture({
+        issueCategory: IssueCategory.CONFIGURATION,
+        issueType: IssueType.SOURCEMAP_CONFIGURATION,
+      });
+      props.event = EventFixture({
+        sdk: {name: 'sentry.javascript.browser', version: '10.0.0'},
+        occurrence: {
+          ...EventFixture().occurrence!,
+          evidenceData: {sampleEventId: 'sample-event'},
+        },
+      });
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      const diagnosticRequest = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/events/sample-event/source-map-debug/',
+        body: SourceMapDebugResponseFixture({
+          dist: 'web-build',
+          exceptions: [
+            {
+              frames: [
+                SourceMapDebugFrameFixture({
+                  release_process: SourceMapDebugReleaseProcessFixture({
+                    source_file_lookup_result: 'wrong-dist',
+                  }),
+                }),
+              ],
+            },
+          ],
+        }),
+      });
+      const renderPage = () =>
+        render(<GroupEventDetails />, {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        });
+      return {props, diagnosticRequest, renderPage};
+    }
+
+    it('shows troubleshooting that matches the sample diagnosis', async () => {
+      const {renderPage} = setupSourceMapIssue();
+      renderPage();
+      expect(
+        await screen.findByRole('button', {name: 'Match the Distribution Value'})
+      ).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByText('web-build')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Verify Artifacts Are Uploaded'})
+      ).toHaveAttribute('aria-expanded', 'false');
+    });
   });
 
   it('redirects on switching to an invalid environment selection for event', async () => {

@@ -10,6 +10,7 @@ import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import {DiagnosisSection} from './diagnosisSection';
 import {ImpactSection} from './impactSection';
 import {ProblemSection} from './problemSection';
+import {getSourceMapDiagnosis} from './sourceMapDiagnosis';
 import {TroubleshootingSection} from './troubleshootingSection';
 
 interface SourceMapIssueDetailsProps {
@@ -34,7 +35,15 @@ export function SourceMapIssueDetails({event, project}: SourceMapIssueDetailsPro
       <SectionDivider orientation="horizontal" />
       <DiagnosisSection sourceMapQuery={sourceMapQuery} />
       <SectionDivider orientation="horizontal" />
-      <TroubleshootingSection sourcemapsDocsUrl={docLinks.sourcemaps} project={project} />
+      <TroubleshootingSection
+        sourcemapsDocsUrl={docLinks.sourcemaps}
+        project={project}
+        diagnosis={
+          sourceMapQuery.data && !sourceMapQuery.isError
+            ? getSourceMapDiagnosis(sourceMapQuery.data)
+            : undefined
+        }
+      />
       <SectionDivider orientation="horizontal" />
       <ImpactSection project={project} />
     </div>

@@ -199,6 +199,7 @@ describe('DiagnosisSection', () => {
           {
             frames: [
               SourceMapDebugFrameFixture({
+                release_process: null,
                 scraping_process: {
                   source_file: {
                     status: 'failure',
@@ -235,6 +236,7 @@ describe('DiagnosisSection', () => {
           {
             frames: [
               SourceMapDebugFrameFixture({
+                release_process: null,
                 scraping_process: {
                   source_file: {status: 'success', url: 'https://example.com/app.js'},
                   source_map: {
@@ -277,5 +279,38 @@ describe('DiagnosisSection', () => {
         'Source maps appear to be configured but Sentry could not pinpoint the exact issue.'
       )
     ).toBeInTheDocument();
+  });
+
+  it('does not diagnose a fallback failure on a frame already resolved by debug IDs', async () => {
+    MockApiClient.addMockResponse({
+      url: apiUrl,
+      body: SourceMapDebugResponseFixture({
+        sdk_debug_id_support: 'full',
+        project_has_some_artifact_bundle: true,
+        exceptions: [
+          {
+            frames: [
+              SourceMapDebugFrameFixture({
+                debug_id_process: {
+                  debug_id: 'debug-id',
+                  uploaded_source_file_with_correct_debug_id: true,
+                  uploaded_source_map_with_correct_debug_id: true,
+                },
+                release_process: SourceMapDebugReleaseProcessFixture({
+                  source_file_lookup_result: 'wrong-dist',
+                }),
+              }),
+            ],
+          },
+        ],
+      }),
+    });
+    render(<TestWrapper />, {organization});
+    expect(
+      await screen.findByText(
+        'Source maps appear to be configured but Sentry could not pinpoint the exact issue.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/dist value does not match/)).not.toBeInTheDocument();
   });
 });
