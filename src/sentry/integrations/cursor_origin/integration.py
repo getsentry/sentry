@@ -204,6 +204,11 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
 
         return [CursorOriginInstallApiStep()]
 
+    def get_initial_data_serializer_cls(self) -> type:
+        from sentry.integrations.cursor_origin.pipeline import ExternalInstallSerializer
+
+        return ExternalInstallSerializer
+
     def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
         installation_id = state["installation_id"]
 

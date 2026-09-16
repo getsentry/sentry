@@ -10,6 +10,7 @@ from django.urls import reverse
 from rest_framework import serializers
 
 from sentry import options
+from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_CLOCK_SKEW_SECONDS,
     CURSOR_ORIGIN_ISSUER,
@@ -27,11 +28,38 @@ logger = logging.getLogger("sentry.integrations.cursor_origin")
 
 class InstallStepData(TypedDict):
     installUrl: str
+    # True when Origin already ran the install and the pipeline only has to finish.
+    originInitiated: bool
+    # Echoed back by the step that finishes such an install, which has no callback
+    # of its own to read it from.
+    state: str
 
 
 class InstallSerializer(serializers.Serializer[dict[str, Any]]):
-    installation_receipt = serializers.CharField(required=True)
+    # Absent for an install started from Origin, where the receipt was verified
+    # before the pipeline began and the installation is already bound to state.
+    installation_receipt = serializers.CharField(required=False)
     state = serializers.CharField(required=True)
+
+
+class ExternalInstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    """Initial pipeline data for an install started from Origin.
+
+    The receipt reaches us through the browser, so it is verified here and only
+    the installation it names is bound to pipeline state.
+    """
+
+    installation_receipt = serializers.CharField(required=False)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, str]:
+        receipt = attrs.get("installation_receipt")
+        if not receipt:
+            return {}
+
+        installation_id = verify_receipt(receipt, None)
+        if not installation_id:
+            raise serializers.ValidationError("Invalid installation receipt")
+        return {"installation_id": installation_id}
 
 
 def _redirect_uri() -> str:
@@ -43,7 +71,12 @@ def _redirect_uri() -> str:
     )
 
 
-def verify_receipt(receipt: str, expected_state: str) -> str | None:
+def verify_receipt(receipt: str, expected_state: str | None) -> str | None:
+    """Verify an install receipt and return the installation it names.
+
+    An expected_state of None is the Origin-initiated install, whose receipt
+    carries no state claim. A receipt only verifies against its own flow.
+    """
     try:
         header = jwt.get_unverified_header(receipt)
     except jwt.PyJWTError:
@@ -96,7 +129,9 @@ class CursorOriginInstallApiStep:
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> InstallStepData:
         return {
-            "installUrl": build_install_url(state=pipeline.signature, redirect_uri=_redirect_uri())
+            "installUrl": build_install_url(state=pipeline.signature, redirect_uri=_redirect_uri()),
+            "originInitiated": bool(pipeline.fetch_state("installation_id")),
+            "state": pipeline.signature,
         }
 
     def get_serializer_cls(self) -> type:
@@ -111,7 +146,13 @@ class CursorOriginInstallApiStep:
         if validated_data["state"] != pipeline.signature:
             return PipelineStepResult.error("Invalid state, please try the installation again.")
 
-        installation_id = verify_receipt(validated_data["installation_receipt"], pipeline.signature)
+        # An install started from Origin arrives with the installation already bound by
+        # ExternalInstallSerializer.
+        if pipeline.fetch_state("installation_id"):
+            return PipelineStepResult.advance()
+
+        receipt = validated_data.get("installation_receipt")
+        installation_id = verify_receipt(receipt, pipeline.signature) if receipt else None
         if not installation_id:
             return PipelineStepResult.error(
                 "Cursor Origin did not return a valid installation. Please try again."
