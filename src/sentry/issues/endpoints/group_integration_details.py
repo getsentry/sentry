@@ -507,7 +507,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                     duration=300,
                     name="external_issue_link",
                 ).acquire()
-            except UnableToAcquireLock:
+            except UnableToAcquireLock as exc:
+                lifecycle.record_halt(exc)
                 return Response(
                     {"detail": "This issue link is being updated. Try again."}, status=409
                 )

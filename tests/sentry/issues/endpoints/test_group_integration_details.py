@@ -563,7 +563,10 @@ class GroupIntegrationDetailsTest(APITestCase):
         )
 
     @mock.patch.object(ExampleIntegration, "after_link_issue")
-    def test_put_link_in_progress(self, mock_after_link: mock.MagicMock) -> None:
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_put_link_in_progress(
+        self, mock_record_event: mock.MagicMock, mock_after_link: mock.MagicMock
+    ) -> None:
         self.login_as(user=self.user)
         integration = self.create_integration(
             organization=self.organization, provider="example", external_id="example:1"
@@ -582,6 +585,7 @@ class GroupIntegrationDetailsTest(APITestCase):
             response = self.client.put(path, data={"externalIssue": "APP-123"})
 
         assert response.status_code == 409
+        mock_record_event.assert_called_with(EventLifecycleOutcome.HALTED, mock.ANY, False, None)
         mock_after_link.assert_not_called()
         assert not GroupLink.objects.get_group_issues(self.group).exists()
 
