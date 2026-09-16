@@ -27,7 +27,13 @@ const PREVIEW_COLUMNS: GroupListColumn[] = [
   'assignee',
 ];
 
-export default function IssuesQueryBlock({data}: {data: EmbedOutput<'issuesQuery'>}) {
+export default function IssuesQueryBlock({
+  data,
+  rowLimit = QUERY_EMBED_ROW_LIMIT,
+}: {
+  data: EmbedOutput<'issuesQuery'>;
+  rowLimit?: number;
+}) {
   const organization = useOrganization();
   const queryParams = useMemo(
     () => ({
@@ -38,9 +44,9 @@ export default function IssuesQueryBlock({data}: {data: EmbedOutput<'issuesQuery
       statsPeriod: data.statsPeriod,
       start: data.start,
       end: data.end,
-      limit: QUERY_EMBED_ROW_LIMIT,
+      limit: rowLimit,
     }),
-    [data]
+    [data, rowLimit]
   );
 
   return (

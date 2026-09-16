@@ -24,6 +24,7 @@ export const LegacyIssues = defineSeerEmbed({
       <LazyLoad
         LazyComponent={LazyIssuesQueryBlock}
         data={{query: `issue:[${ids.join(',')}]`}}
+        rowLimit={ids.length}
       />
     );
   },

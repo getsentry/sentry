@@ -40,9 +40,10 @@ describe('issues query embed', () => {
       body: [issue],
     });
 
+    const ids = Array.from({length: 6}, (_, index) => `JAVASCRIPT-${991 + index}`);
     renderEmbed({
       name: 'issues',
-      data: {ids: ['JAVASCRIPT-991', 'JAVASCRIPT-992']},
+      data: {ids},
     });
 
     expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
@@ -51,7 +52,8 @@ describe('issues query embed', () => {
         expect.anything(),
         expect.objectContaining({
           query: expect.objectContaining({
-            query: 'issue:[JAVASCRIPT-991,JAVASCRIPT-992]',
+            limit: 6,
+            query: `issue:[${ids.join(',')}]`,
           }),
         })
       )
