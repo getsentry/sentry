@@ -226,7 +226,9 @@ export function IssueSelectionProvider({
   );
   const previousVisibleGroupIdsRef = useRef(visibleGroupIds);
 
+  // oxlint-disable-next-line react/refs
   if (!isEqual(previousVisibleGroupIdsRef.current, visibleGroupIds)) {
+    // oxlint-disable-next-line react/refs
     previousVisibleGroupIdsRef.current = visibleGroupIds;
     dispatch({type: 'RECONCILE_VISIBLE_GROUP_IDS', groupIds: visibleGroupIds});
   }

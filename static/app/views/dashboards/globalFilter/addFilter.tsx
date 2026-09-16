@@ -49,12 +49,14 @@ type AddFilterProps = {
   getSearchBarData: (widgetType: WidgetType) => SearchBarData;
   globalFilters: GlobalFilter[];
   onAddFilter: (filter: GlobalFilter) => void;
+  onFilterKeySearch?: (widgetType: WidgetType, query: string) => void;
 };
 
 export function AddFilter({
   globalFilters,
   getSearchBarData,
   onAddFilter,
+  onFilterKeySearch,
 }: AddFilterProps) {
   const [selectedDataset, setSelectedDataset] = useState<WidgetType | null>(null);
   const [selectedFilterKey, setSelectedFilterKey] = useState<Tag | null>(null);
@@ -69,9 +71,10 @@ export function AddFilter({
     }));
   }, []);
 
-  const filterKeys = selectedDataset
+  const searchBarData = selectedDataset ? getSearchBarData(selectedDataset) : null;
+  const filterKeys = searchBarData
     ? Object.fromEntries(
-        Object.entries(getSearchBarData(selectedDataset).getFilterKeys()).filter(
+        Object.entries(searchBarData.getFilterKeys()).filter(
           ([key, value]) =>
             !shouldExcludeTracingKeys(key) &&
             (!value.kind || !UNSUPPORTED_FIELD_KINDS.includes(value.kind))
@@ -110,10 +113,24 @@ export function AddFilter({
   return (
     <CompactSelect
       options={isSelectingFilterKey ? filterKeyOptions : datasetOptions}
-      search={isSelectingFilterKey}
+      search={
+        isSelectingFilterKey
+          ? {
+              onChange: query => {
+                if (selectedDataset) {
+                  onFilterKeySearch?.(selectedDataset, query);
+                }
+              },
+            }
+          : false
+      }
+      loading={Boolean(isSelectingFilterKey && searchBarData?.isFetchingFilterKeys)}
       sizeLimit={50}
       closeOnSelect={false}
       onClose={() => {
+        if (selectedDataset) {
+          onFilterKeySearch?.(selectedDataset, '');
+        }
         setSelectedFilterKey(null);
         setSelectedDataset(null);
         setIsSelectingFilterKey(false);
@@ -150,6 +167,9 @@ export function AddFilter({
                     icon={<IconArrow direction="left" />}
                     onClick={() => {
                       resetSearch();
+                      if (selectedDataset) {
+                        onFilterKeySearch?.(selectedDataset, '');
+                      }
                       setIsSelectingFilterKey(false);
                     }}
                   >

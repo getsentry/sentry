@@ -501,6 +501,7 @@ export function AppSizeTreemap(props: AppSizeTreemapProps) {
     },
   ];
   if (!isFullscreen) {
+    // oxlint-disable-next-line react/refs
     treemapControlButtons.push({
       ariaLabel: t('Open Full-Screen View'),
       title: t('Fullscreen'),

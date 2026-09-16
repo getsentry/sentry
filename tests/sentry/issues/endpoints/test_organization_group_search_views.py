@@ -75,11 +75,11 @@ class GroupSearchViewAPITestCase(APITestCase):
                 view=view,
             )
         if last_visited:
-            GroupSearchViewLastVisited.objects.create_or_update(
+            GroupSearchViewLastVisited.objects.update_or_create(
                 user_id=self.user.id,
                 organization=self.organization,
                 group_search_view=view,
-                values={"last_visited": last_visited},
+                defaults={"last_visited": last_visited},
             )
         return view
 

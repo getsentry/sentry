@@ -210,9 +210,12 @@ export function BackendJsonAutoSaveForm<
             return (
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.Select
-                  value={fieldApi.value}
+                  {...(field.multiple
+                    ? {multiple: true as const, value: fieldApi.value ?? []}
+                    : {value: fieldApi.value})}
                   onChange={fieldApi.handleChange}
                   options={transformChoices(field.choices)}
+                  creatable={field.creatable}
                   disabled={getDisabledProp(field)}
                 />
               </fieldApi.Layout.Row>

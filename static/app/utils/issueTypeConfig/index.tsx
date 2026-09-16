@@ -78,7 +78,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   detector: {enabled: false},
   logLevel: {enabled: false},
   mergedIssues: {enabled: false},
-  performanceDurationRegression: {enabled: false},
   profilingDurationRegression: {enabled: false},
   regression: {enabled: false},
   showFeedbackWidget: false,

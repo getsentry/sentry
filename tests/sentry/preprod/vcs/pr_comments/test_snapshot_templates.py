@@ -203,6 +203,28 @@ class FormatSnapshotPrCommentFailedTest(SnapshotPrCommentTestBase):
         assert "Comparison failed" in result
         assert "com.example.head" in result
 
+    def test_failed_with_base_manifest_missing_shows_no_base(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics, base_metrics, state=PreprodSnapshotComparison.State.FAILED
+        )
+        comparison.error_code = PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        comparison.save(update_fields=["error_code"])
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert "❌ No base snapshot found" in result
+        assert "Comparison failed" not in result
+
 
 @cell_silo_test
 class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
@@ -599,10 +621,11 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
         assert "## Sentry Snapshot Testing" in result
         assert "2 uploaded" in result
         assert (
-            f"No base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha})"
+            f"Base commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce snapshots"
             in result
         )
-        assert "main branch" in result
+        assert "Did its snapshot job fail?" in result
+        assert "Try rebasing this branch on a commit with a successful snapshot job." in result
         assert f"/settings/projects/{self.project.slug}/snapshots/" in result
 
     def test_missing_base_empty_artifacts_raises(self) -> None:

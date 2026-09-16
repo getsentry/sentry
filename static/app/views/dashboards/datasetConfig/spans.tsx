@@ -33,6 +33,7 @@ import {
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   handleOrderByReset,
   type DatasetConfig,
@@ -152,24 +153,31 @@ const INTERNAL_ERROR_COUNT_FIELD =
   'count_if(span.status,equals,internal_error) + count_if(span.status,equals,error)';
 
 function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): SearchBarData {
-  const {pageFilters, widgetQuery} = props;
+  const {filterKeySearch, pageFilters, widgetQuery} = props;
   const organization = useOrganization();
+  const attributeOptions = {
+    enabled: organization.features.includes('visibility-explore-view'),
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'string'
-    );
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'number'
-    );
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useSpanItemAttributes(
-      {enabled: organization.features.includes('visibility-explore-view')},
-      'boolean'
-    );
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'string');
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'number');
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useSpanItemAttributes(attributeOptions, 'boolean');
+  const isFetchingFilterKeys =
+    stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -189,6 +197,7 @@ function useSpansSearchBarDataProvider(props: SearchBarDataProviderProps): Searc
     getFilterKeys: () => filterKeys,
     getFilterKeySections: () => filterKeySections,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
@@ -391,16 +400,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
 
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);

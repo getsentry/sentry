@@ -75,9 +75,7 @@ export function transformWidgetSeriesToTimeSeries(
   const yAxis =
     aggregates.find(aggregate => {
       if (widget.widgetType === WidgetType.TRACEMETRICS) {
-        return splitUnprefixedName.includes(
-          formatTraceMetricsFunction(aggregate) as string
-        );
+        return splitUnprefixedName.includes(formatTraceMetricsFunction(aggregate));
       }
       return splitUnprefixedName.includes(aggregate);
     }) ??

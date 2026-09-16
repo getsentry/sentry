@@ -9,6 +9,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {UnixTimestamp} from 'sentry/components/unixTimestamp';
 import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventData} from 'sentry/utils/discover/eventView';
@@ -269,6 +270,10 @@ function useSpanAttributeRenderers({
       return Number.isFinite(value) ? formatDollars(+value.toFixed(10)) : basicRendered;
     };
 
+    const preciseTimestampRenderer: SpanAttributeRenderer = ({item, basicRendered}) => (
+      <UnixTimestamp value={item.value} fallback={basicRendered} />
+    );
+
     return {
       [FieldKey.PROFILE_ID]: profileRenderer,
       [SpanFields.PROFILE_ID]: profileRenderer,
@@ -293,6 +298,8 @@ function useSpanAttributeRenderers({
       [SpanFields.GEN_AI_COST_INPUT_TOKENS]: costRenderer,
       [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: costRenderer,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: costRenderer,
+      [SpanFields.PRECISE_START_TS]: preciseTimestampRenderer,
+      [SpanFields.PRECISE_FINISH_TS]: preciseTimestampRenderer,
     };
   }, [dateSelection, location, organization, projectSlug, spanId, timestamp]);
 }

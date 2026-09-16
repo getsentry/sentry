@@ -133,7 +133,7 @@ export function NewProviderForm({
   });
 
   return (
-    <FormSearch route="/settings/feature-flags/change-tracking/new-provider/">
+    <FormSearch route="/settings/:orgId/feature-flags/change-tracking/new-provider/">
       <ScrapsForm form={form}>
         <form.Field name="provider">
           {field => (

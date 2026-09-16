@@ -163,6 +163,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
 
     def test_condition_artifact_excludes_raw_input_data(self) -> None:
         condition = self.create_data_condition()
+        condition.update(comparison={"value": 10, "interval": "1h"})
         evaluation = DataConditionEvaluation(
             condition=condition,
             result=True,
@@ -175,6 +176,7 @@ class TestWorkflowEvaluationArtifact(TestCase):
         assert artifact == {
             "triggered": True,
             "error": None,
+            "comparison": '{"interval":"1h","value":10}',
             "condition_id": condition.id,
             "condition_type": condition.type,
             "input_type": "dict",

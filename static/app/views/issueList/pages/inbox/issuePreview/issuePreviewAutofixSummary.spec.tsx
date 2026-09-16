@@ -198,7 +198,7 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
   });
 
-  it('renders the section with a loading indicator while it is processing', () => {
+  it('renders progress messages with a loading indicator while processing', () => {
     render(
       <IssuePreviewAutofixSummary
         autofix={ExplorerAutofixFixture({
@@ -207,8 +207,25 @@ describe('IssuePreviewAutofixSummary', () => {
               ExplorerAutofixBlockFixture({
                 artifacts: undefined,
                 message: {
-                  content: 'Thinking...',
+                  content: 'Start the root cause analysis',
                   metadata: {step: 'root_cause'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Tracing the failing request...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'thinking',
+                artifacts: undefined,
+                message: {
+                  content: 'Thinking...',
+                  thinking_content: 'Inspecting the event context...',
                   role: 'assistant',
                 },
               }),
@@ -222,11 +239,93 @@ describe('IssuePreviewAutofixSummary', () => {
 
     const rootCause = screen.getByRole('region', {name: 'Root Cause'});
     expect(within(rootCause).getByText('Generating root cause...')).toBeInTheDocument();
+    expect(within(rootCause).getByText('Inspecting the event context...')).toBeVisible();
+    expect(within(rootCause).getByText('Tracing the failing request...')).toBeVisible();
+    expect(within(rootCause).queryByText('Thinking...')).not.toBeInTheDocument();
+    expect(
+      within(rootCause).queryByText('Start the root cause analysis')
+    ).not.toBeInTheDocument();
     expect(within(rootCause).getByTestId('loading-indicator')).toBeInTheDocument();
     expect(
       screen.queryByRole('region', {name: 'Implementation Plan'})
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('region', {name: 'Code Changes'})).not.toBeInTheDocument();
+  });
+
+  it('renders progress messages only from the current PR iteration', () => {
+    render(
+      <IssuePreviewAutofixSummary
+        autofix={ExplorerAutofixFixture({
+          runState: ExplorerAutofixStateFixture({
+            blocks: [
+              ExplorerAutofixBlockFixture({
+                id: 'code-changes-start',
+                artifacts: undefined,
+                message: {
+                  content: 'Generate the initial code changes',
+                  metadata: {step: 'code_changes'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'initial-progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Editing the initial implementation...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'first-iteration-start',
+                artifacts: undefined,
+                message: {
+                  content: 'Address the first review',
+                  metadata: {step: 'pr_iteration', iteration_index: '0'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'first-iteration-progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Applying the first review...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'second-iteration-start',
+                artifacts: undefined,
+                message: {
+                  content: 'Address the second review',
+                  metadata: {step: 'pr_iteration', iteration_index: '1'},
+                  role: 'user',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'second-iteration-progress',
+                artifacts: undefined,
+                message: {
+                  content: 'Thinking...',
+                  role: 'assistant',
+                  thinking_content: 'Applying the second review...',
+                },
+              }),
+            ],
+            status: 'processing',
+          }),
+        })}
+        groupId="preview-group"
+      />
+    );
+
+    const proposal = screen.getByRole('region', {name: 'Code Changes'});
+    expect(within(proposal).getByText('Applying the second review...')).toBeVisible();
+    expect(
+      within(proposal).queryByText('Editing the initial implementation...')
+    ).not.toBeInTheDocument();
+    expect(
+      within(proposal).queryByText('Applying the first review...')
+    ).not.toBeInTheDocument();
   });
 
   it.each([

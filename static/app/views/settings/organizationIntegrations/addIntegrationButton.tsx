@@ -24,7 +24,6 @@ interface AddIntegrationButtonProps
   onAddIntegration: (data: IntegrationWithConfig) => void;
   buttonText?: string;
   installStatus?: string;
-  reinstall?: boolean;
 }
 
 export function AddIntegrationButton({
@@ -32,7 +31,6 @@ export function AddIntegrationButton({
   buttonText,
   onAddIntegration,
   organization,
-  reinstall,
   analyticsParams,
   installStatus,
   suppressSuccessMessage,
@@ -42,11 +40,7 @@ export function AddIntegrationButton({
 }: AddIntegrationButtonProps) {
   const label =
     buttonText ??
-    (reinstall
-      ? t('Enable')
-      : installStatus === 'Disabled'
-        ? t('Reinstall')
-        : t('Add %s', provider.metadata.noun));
+    (installStatus === 'Disabled' ? t('Reinstall') : t('Add %s', provider.metadata.noun));
 
   const {startFlow} = useAddIntegration();
 

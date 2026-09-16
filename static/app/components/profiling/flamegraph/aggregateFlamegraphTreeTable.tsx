@@ -2,10 +2,10 @@ import {useCallback, useEffect, useMemo, useState, type MouseEvent} from 'react'
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -422,7 +422,7 @@ export function AggregateFlamegraphTreeTable({
               <InteractionStateLayer />
               <span>
                 {t('Samples')}{' '}
-                <QuestionTooltip
+                <InfoTip
                   title={t('How often this frame appeared in stack samples.')}
                   size="sm"
                   position="top"
@@ -438,7 +438,7 @@ export function AggregateFlamegraphTreeTable({
               <InteractionStateLayer />
               <span>
                 {t('Average Duration')}{' '}
-                <QuestionTooltip
+                <InfoTip
                   title={t('Average duration of this frame across different samples.')}
                   size="sm"
                   position="top"

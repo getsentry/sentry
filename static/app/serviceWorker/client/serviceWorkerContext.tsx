@@ -96,6 +96,12 @@ function useRegisterServiceWorker() {
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
+        // InvalidStateError occurs when the document is in an invalid state
+        // during registration (e.g. the page is being unloaded or navigated
+        // away from) — unactionable.
+        if (error instanceof Error && error.name === 'InvalidStateError') {
+          return;
+        }
         log('error');
         Sentry.captureException(error);
       });

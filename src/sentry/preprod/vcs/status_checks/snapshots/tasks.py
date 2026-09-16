@@ -40,7 +40,7 @@ from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -362,7 +362,7 @@ def _compute_snapshot_status(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_status_check",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),

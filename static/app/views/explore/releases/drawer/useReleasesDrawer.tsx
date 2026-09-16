@@ -1,24 +1,18 @@
 import {useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {
-  cleanLocationQuery,
-  RELEASES_DRAWER_FIELD_MAP,
-  ReleasesDrawerFields,
-} from './utils';
+import {cleanLocationQuery, ReleasesDrawerFields} from './utils';
 
 export function useReleasesDrawer() {
-  const {rd} = useLocationQuery({
-    fields: RELEASES_DRAWER_FIELD_MAP,
-  });
+  const [rd] = useQueryState(ReleasesDrawerFields.DRAWER, parseAsString.withDefault(''));
   const navigate = useNavigate();
   const location = useLocation();
   const {openDrawer} = useDrawer();

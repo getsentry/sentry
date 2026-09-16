@@ -10,6 +10,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 
 import {FieldMeta} from './meta';
 
+/* oxlint-disable react/refs -- This component must merge the DOM ref during render. */
+
 export type BaseFieldProps<T extends HTMLElement> = {
   disabled?: boolean | string;
   error?: string;

@@ -8,12 +8,7 @@ import type {FormPanelProps} from './formPanel';
 import {FormPanel} from './formPanel';
 import type {Field, FieldObject, JsonFormObject} from './types';
 
-interface JsonFormProps extends Omit<
-  FormPanelProps,
-  'highlighted' | 'fields' | 'additionalFieldProps'
-> {
-  additionalFieldProps?: Record<string, any>;
-
+interface JsonFormProps extends Omit<FormPanelProps, 'highlighted' | 'fields'> {
   /**
    * If `forms` is not defined, `title` + `fields` must be required.
    * Allows more fine grain control of title/fields
@@ -35,7 +30,6 @@ function JsonForm({
   forms,
   disabled,
   features,
-  additionalFieldProps,
   renderFooter,
   renderHeader,
   ...otherProps
@@ -90,7 +84,6 @@ function JsonForm({
             renderFooter,
             renderHeader,
             ...otherProps,
-            ...additionalFieldProps,
           });
         }
         return !field.visible;
@@ -106,11 +99,9 @@ function JsonForm({
     fields,
     formPanelProps,
     title: formTitle,
-    initiallyCollapsed: formInitiallyCollapsed,
   }: {
     fields: FieldObject[];
     formPanelProps: ChildFormPanelProps;
-    initiallyCollapsed?: boolean;
     title?: React.ReactNode;
   }) => {
     const displayForm = shouldDisplayForm(fields);
@@ -124,7 +115,7 @@ function JsonForm({
         title={formTitle}
         fields={fields}
         {...formPanelProps}
-        initiallyCollapsed={formInitiallyCollapsed ?? formPanelProps.initiallyCollapsed}
+        initiallyCollapsed={formPanelProps.initiallyCollapsed}
       />
     );
   };
@@ -133,7 +124,6 @@ function JsonForm({
     access,
     disabled,
     features,
-    additionalFieldProps,
     renderFooter,
     renderHeader,
     highlighted: location?.hash,
@@ -158,7 +148,6 @@ interface ChildFormPanelProps extends Pick<
   | 'access'
   | 'disabled'
   | 'features'
-  | 'additionalFieldProps'
   | 'renderFooter'
   | 'renderHeader'
   | 'initiallyCollapsed'

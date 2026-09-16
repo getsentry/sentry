@@ -43,8 +43,7 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.signals import project_created
 from sentry.silo.safety import unguarded_write
-from sentry.snuba.metrics import SpanMRI
-from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase, TwoFactorAPITestCase
+from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -95,7 +94,7 @@ cells = create_test_cells("us", "de")
 
 
 @cell_silo_test(cells=cells, include_monolith_run=True)
-class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestCase):
+class OrganizationDetailsTest(OrganizationDetailsTestBase):
     @property
     def now(self):
         return datetime.now().replace(microsecond=0)
@@ -484,23 +483,41 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
         assert self.organization.get_option("sentry:target_sample_rate") == 0.5
 
     @django_db_all
-    def test_sampling_mode_org_to_project(self) -> None:
-        """
-        Test changing sampling mode from organization-level to project-level:
-        - Should preserve existing project rates
-        - Should remove org-level target sample rate
-        """
+    def test_sampling_mode_org_to_project_is_rejected(self) -> None:
         self.organization.update_option(
             "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
         )
         self.organization.update_option("sentry:target_sample_rate", 0.4)
+        project = self.create_project(organization=self.organization)
 
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
+        with self.feature("organizations:dynamic-sampling-custom"):
+            response = self.get_response(
+                self.organization.slug,
+                method="put",
+                samplingMode=DynamicSamplingMode.PROJECT.value,
+            )
 
-        # Set some existing sampling rates
-        project1.update_option("sentry:target_sample_rate", 0.3)
-        project2.update_option("sentry:target_sample_rate", 0.5)
+        assert response.status_code == 400
+        assert response.data == {
+            "samplingMode": [
+                "Manual Mode is no longer available. Sample rates are configured for the "
+                "whole organization."
+            ]
+        }
+        assert (
+            self.organization.get_option("sentry:sampling_mode")
+            == DynamicSamplingMode.ORGANIZATION.value
+        )
+        assert self.organization.get_option("sentry:target_sample_rate") == 0.4
+        assert not ProjectOption.objects.filter(
+            project_id=project.id, key="sentry:target_sample_rate"
+        ).exists()
+
+    @django_db_all
+    def test_sampling_mode_project_stays_allowed_for_project_mode_org(self) -> None:
+        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
+        project = self.create_project(organization=self.organization)
+        project.update_option("sentry:target_sample_rate", 0.3)
 
         with self.feature("organizations:dynamic-sampling-custom"):
             response = self.get_response(
@@ -510,13 +527,28 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
 
         assert response.status_code == 200
+        assert (
+            self.organization.get_option("sentry:sampling_mode")
+            == DynamicSamplingMode.PROJECT.value
+        )
+        assert project.get_option("sentry:target_sample_rate") == 0.3
 
-        # Verify project rates were preserved
-        assert project1.get_option("sentry:target_sample_rate") == 0.3
-        assert project2.get_option("sentry:target_sample_rate") == 0.5
+    @django_db_all
+    def test_change_org_target_sample_rate_schedules_per_org_calculation(self) -> None:
+        self.organization.update_option(
+            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
+        )
 
-        # Verify org target rate was removed
-        assert not self.organization.get_option("sentry:target_sample_rate")
+        with (
+            self.feature("organizations:dynamic-sampling-custom"),
+            patch(
+                "sentry.core.endpoints.organization_details.run_calculations_per_org_task_entry"
+            ) as task,
+        ):
+            response = self.get_response(self.organization.slug, method="put", targetSampleRate=0.1)
+
+        assert response.status_code == 200
+        task.delay.assert_called_once_with(self.organization.id)
 
     @django_db_all
     def test_change_just_org_target_sample_rate(self) -> None:
@@ -567,54 +599,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase, BaseMetricsLayerTestC
             )
 
         assert response.status_code == 403
-
-    @django_db_all
-    @with_feature(["organizations:dynamic-sampling", "organizations:dynamic-sampling-custom"])
-    def test_sampling_mode_change_with_deleted_projects_that_had_metrics(self) -> None:
-        project_1 = self.create_project(organization=self.organization)
-        project_2 = self.create_project(organization=self.organization)
-
-        # Create a team member for project_1 only
-        team_1 = self.create_team(organization=self.organization)
-        project_1.add_team(team_1)
-        member_user = self.create_user()
-        self.create_member(
-            user=member_user, organization=self.organization, role="owner", teams=[team_1]
-        )
-        self.login_as(user=member_user)
-
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"is_segment": "true", "decision": "keep"},
-            minutes_before_now=60 * 24 * 12,
-            value=1,
-            project_id=project_1.id,
-            org_id=self.organization.id,
-        )
-        self.store_performance_metric(
-            name=SpanMRI.COUNT_PER_ROOT_PROJECT.value,
-            tags={"is_segment": "true", "decision": "keep"},
-            minutes_before_now=60 * 24 * 12,
-            value=1,
-            project_id=project_2.id,
-            org_id=self.organization.id,
-        )
-
-        project_2.delete()
-
-        with self.feature("organizations:dynamic-sampling-custom"):
-            self.get_response(
-                self.organization.slug,
-                method="put",
-                samplingMode=DynamicSamplingMode.PROJECT.value,
-            )
-
-        assert ProjectOption.objects.filter(
-            project_id=project_1.id, key="sentry:target_sample_rate"
-        )
-        assert not ProjectOption.objects.filter(
-            project_id=project_2.id, key="sentry:target_sample_rate"
-        )
 
     def test_sensitive_fields_too_long(self) -> None:
         value = 1000 * ["0123456789"] + ["1"]
@@ -1337,22 +1321,22 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
     def test_sampling_mode_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):
-            data = {"samplingMode": "project"}
+            data = {"samplingMode": "organization"}
             self.get_success_response(self.organization.slug, **data)
 
         with self.feature({"organizations:dynamic-sampling-custom": False}):
-            data = {"samplingMode": "project"}
+            data = {"samplingMode": "organization"}
             self.get_error_response(self.organization.slug, status_code=400, **data)
 
     @with_feature("organizations:dynamic-sampling-custom")
     def test_sampling_mode_values(self) -> None:
-        # project
-        data = {"samplingMode": "project"}
-        self.get_success_response(self.organization.slug, **data)
-
         # organization
         data = {"samplingMode": "organization"}
         self.get_success_response(self.organization.slug, **data)
+
+        # project can no longer be entered
+        data = {"samplingMode": "project"}
+        self.get_error_response(self.organization.slug, status_code=400, **data)
 
         # invalid
         data = {"samplingMode": "invalid"}

@@ -54,14 +54,6 @@ def connect_workflows_to_issue_stream(
     )
 
 
-def connect_workflows_to_detector(
-    detector: Detector,
-    workflows: list[Workflow],
-) -> Sequence[DetectorWorkflow]:
-    connections = [DetectorWorkflow(workflow=workflow, detector=detector) for workflow in workflows]
-    return DetectorWorkflow.objects.bulk_create(connections, ignore_conflicts=True)
-
-
 def create_priority_workflow(org: Organization) -> Workflow:
     with transaction.atomic(router.db_for_write(Workflow)):
         when_condition_group = DataConditionGroup.objects.create(
@@ -181,12 +173,14 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
     but this will guard if that does happen in quick succession (maybe from an RPC blip somehow).
 
     Note: If the detector is not connected, a new pull request workflow will be created.
+
+    Raises on Workflow.MultipleObjectsReturned, UnableToAcquireLockApiError
     """
-    existing = Workflow.objects.filter(
+    existing = Workflow.objects.get_or_none(
         organization=organization,
         name=PULL_REQUEST_WORKFLOW_LABEL,
         detectorworkflow__detector=detector,
-    ).first()
+    )
     if existing:
         return existing
 
@@ -200,11 +194,11 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
             lock.blocking_acquire(initial_delay=0.1, timeout=3),
             transaction.atomic(router.db_for_write(Workflow)),
         ):
-            existing = Workflow.objects.filter(
+            existing = Workflow.objects.get_or_none(
                 organization=organization,
                 name=PULL_REQUEST_WORKFLOW_LABEL,
                 detectorworkflow__detector=detector,
-            ).first()
+            )
             if existing:
                 return existing
             return create_and_connect_pull_request_workflow(organization, detector)
@@ -213,6 +207,9 @@ def ensure_pull_request_workflow(organization: Organization, detector: Detector)
 
 
 def ensure_default_organization_workflows(organization: Organization) -> list[Workflow]:
+    """
+    Raises on Workflow.MultipleObjectsReturned, UnableToAcquireLockApiError
+    """
     workflows: list[Workflow] = []
     if not options.get("workflow_engine.auto_creation.pull_request_workflow"):
         return workflows

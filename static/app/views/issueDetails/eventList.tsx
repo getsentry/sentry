@@ -5,7 +5,7 @@ import {Grid} from '@sentry/scraps/layout';
 
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {IssueType, type Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -62,15 +62,15 @@ export function EventList({group}: EventListProps) {
     },
   });
 
+  // oxlint-disable-next-line react/immutability
   eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
     fields.includes(sort.field)
   );
 
   if (!eventView.sorts.length) {
+    // oxlint-disable-next-line react/immutability
     eventView.sorts = [{field: 'timestamp', kind: 'desc'}];
   }
-
-  const isRegressionIssue = group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
 
   return (
     <EventListTable pagination={{enabled: false}}>
@@ -79,7 +79,6 @@ export function EventList({group}: EventListProps) {
         eventView={eventView}
         location={location}
         issueId={group.id}
-        isRegressionIssue={isRegressionIssue}
         organization={organization}
         excludedTags={ALL_EVENTS_EXCLUDED_TAGS}
         projectSlug={group.project.slug}

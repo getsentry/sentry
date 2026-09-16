@@ -36,6 +36,14 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert len(response.data["conditions"]) == 10
         assert len(response.data["filters"]) == 10
 
+    def test_deprecated_api_disabled(self) -> None:
+        with self.feature({"organizations:legacy-alerts-api": False}):
+            response = self.get_error_response(
+                self.organization.slug, self.project.slug, status_code=410
+            )
+
+        assert response.data == {"detail": "This API no longer exists."}
+
     @property
     def rules(self):
         rules = RuleRegistry()

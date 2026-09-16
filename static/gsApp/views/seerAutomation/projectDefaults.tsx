@@ -17,6 +17,7 @@ export default function ProjectDefaultsDrawer() {
   const {openDrawer} = useDrawer();
 
   const queryRef = useRef(query);
+  // oxlint-disable-next-line react/refs
   queryRef.current = query;
 
   useEffect(() => {

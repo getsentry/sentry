@@ -76,6 +76,23 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
   });
 
+  it('links the configurations crumb to the provider configurations tab', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration);
+
+    renderConfigure();
+
+    expect(await screen.findByRole('link', {name: 'Configurations'})).toHaveAttribute(
+      'href',
+      `/settings/${org.slug}/integrations/github/?tab=configurations`
+    );
+  });
+
   it('uses a full domain URL without adding another protocol', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',
@@ -375,14 +392,22 @@ describe('ConfigureIntegration GCP re-verification', () => {
   const integrationId = '1';
   const CUSTOMER_SA = 'gcp-sentry@my-project.iam.gserviceaccount.com';
 
-  function setup({providerKey = 'gcp'}: {providerKey?: string} = {}) {
+  function setup({
+    providerKey = 'gcp',
+    connectionStatus = 'connected',
+    verifyDelay,
+  }: {
+    connectionStatus?: string;
+    providerKey?: string;
+    verifyDelay?: number | Promise<void>;
+  } = {}) {
     const organization = OrganizationFixture({
       access: ['org:integrations', 'org:write'],
     });
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
       slug: providerKey,
-      name: 'Google Cloud Platform',
+      name: 'Google Cloud Platform for Seer',
       features: [],
     });
     const integration = OrganizationIntegrationsFixture({
@@ -404,7 +429,10 @@ describe('ConfigureIntegration GCP re-verification', () => {
       ],
       configData: {
         customer_sa_email: CUSTOMER_SA,
-        projects: 'project-prod, project-staging',
+        projects: ['project-prod', 'project-staging'],
+        connection_status: connectionStatus,
+        project_statuses: [],
+        last_verified_at: '2026-08-30T00:00:00+00:00',
       },
     });
 
@@ -431,7 +459,17 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const verifyRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitoring-providers/gcp/verify-connection/`,
       method: 'POST',
-      body: {connectionStatus: 'connected', projects: []},
+      asyncDelay: verifyDelay,
+      body: () => {
+        // The endpoint records its result on the integration.
+        storedConfig = {
+          ...storedConfig,
+          connection_status: 'connected',
+          project_statuses: [],
+          last_verified_at: '2026-08-31T00:00:00+00:00',
+        };
+        return {connectionStatus: 'connected', projects: []};
+      },
     });
 
     render(<ConfigureIntegration />, {
@@ -461,6 +499,22 @@ describe('ConfigureIntegration GCP re-verification', () => {
     await userEvent.tab();
   }
 
+  it('shows the connection status for a GCP integration', async () => {
+    setup();
+
+    expect(await screen.findByText('Connection Status')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Re-test'})).toBeInTheDocument();
+  });
+
+  it('does not show the connection status for other providers', async () => {
+    setup({providerKey: 'github'});
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Customer Service Account'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Connection Status')).not.toBeInTheDocument();
+  });
+
   it('re-runs verification with the saved settings', async () => {
     const {verifyRequest} = setup();
 
@@ -483,7 +537,7 @@ describe('ConfigureIntegration GCP re-verification', () => {
     const {verifyRequest, setStoredConfig} = setup();
 
     // A sibling field was saved elsewhere, so what this render closed over is stale.
-    setStoredConfig({projects: 'project-prod, project-staging, project-new'});
+    setStoredConfig({projects: ['project-prod', 'project-staging', 'project-new']});
 
     await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
 
@@ -500,6 +554,32 @@ describe('ConfigureIntegration GCP re-verification', () => {
     );
   });
 
+  it('shows the newly recorded status after a save', async () => {
+    setup({connectionStatus: 'unverified'});
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    // The check runs after the save, so the page has to refresh again to show it.
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+  });
+
+  it('reports the check as running instead of the interim unverified status', async () => {
+    const verification = Promise.withResolvers<void>();
+    setup({connectionStatus: 'unverified', verifyDelay: verification.promise});
+
+    expect(await screen.findByText('Not verified')).toBeInTheDocument();
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(screen.queryByText('Not verified')).not.toBeInTheDocument();
+
+    verification.resolve();
+    expect(await screen.findByText('Connected')).toBeInTheDocument();
+  });
+
   it('does not re-run verification for other providers', async () => {
     const {saveRequest, verifyRequest} = setup({providerKey: 'github'});
 
@@ -507,5 +587,63 @@ describe('ConfigureIntegration GCP re-verification', () => {
 
     await waitFor(() => expect(saveRequest).toHaveBeenCalled());
     expect(verifyRequest).not.toHaveBeenCalled();
+  });
+
+  it('shows an automatic verification failure and clears it after a successful re-test', async () => {
+    const {saveRequest} = setup();
+    const url = '/organizations/org-slug/monitoring-providers/gcp/verify-connection/';
+    MockApiClient.addMockResponse({url, method: 'POST', statusCode: 502});
+
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+
+    expect(
+      await screen.findByText("The connection check couldn't be completed. Try again.")
+    ).toBeInTheDocument();
+    expect(saveRequest).toHaveBeenCalled();
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {connectionStatus: 'connected', projects: []},
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Re-test'}));
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled()
+    );
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
+  });
+
+  it('clears a failed manual check when saved settings trigger a new check', async () => {
+    const {setStoredConfig} = setup();
+    const url = '/organizations/org-slug/monitoring-providers/gcp/verify-connection/';
+    MockApiClient.addMockResponse({url, method: 'POST', statusCode: 502});
+    await userEvent.click(await screen.findByRole('button', {name: 'Re-test'}));
+    expect(await screen.findByText('Previous verification result')).toBeInTheDocument();
+
+    const verification = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      asyncDelay: verification.promise,
+      body: () => {
+        setStoredConfig({connection_status: 'connected', project_statuses: []});
+        return {connectionStatus: 'connected', projects: []};
+      },
+    });
+    await saveNewSaEmail('new-sa@my-project.iam.gserviceaccount.com');
+    expect(await screen.findByText('Checking connection...')).toBeInTheDocument();
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
+    verification.resolve();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Re-test'})).toBeEnabled()
+    );
+    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.queryByText('Previous verification result')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("The connection check couldn't be completed. Try again.")
+    ).not.toBeInTheDocument();
   });
 });

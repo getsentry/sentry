@@ -3,7 +3,6 @@ import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {TraceHeaderComponents} from './styles';
@@ -19,22 +18,16 @@ const traceViewFeedbackOptions = {
 
 export function PlaceHolder({
   organization,
-  project,
   traceSlug,
 }: {
   organization: Organization;
   traceSlug: string;
-  project?: Project;
 }) {
   return (
     <TraceHeaderComponents.HeaderLayout>
       <TraceHeaderComponents.HeaderContent>
         <Flex justify="between" align="center" gap="md">
-          <TraceBreadcrumbs
-            organization={organization}
-            traceSlug={traceSlug}
-            project={project}
-          />
+          <TraceBreadcrumbs organization={organization} traceSlug={traceSlug} />
           <Grid flow="column" align="center" gap="md">
             <TopBar.Slot name="feedback">
               <FeedbackButton

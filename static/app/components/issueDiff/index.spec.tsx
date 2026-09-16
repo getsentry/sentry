@@ -50,7 +50,6 @@ describe('IssueDiff', () => {
       <IssueDiff
         baseIssueId="base"
         targetIssueId="target"
-        shouldBeGrouped="Yes"
         hasSimilarityEmbeddingsProjectFeature
       />
     );

@@ -215,7 +215,6 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
 
 def get_login_redirect(request: HttpRequest, default: str | None = None) -> str:
     login_redirect = _get_login_redirect(request, default)
-    url_prefix = None
     if hasattr(request, "subdomain") and request.subdomain:
         url_prefix = generate_organization_url(request.subdomain)
         return absolute_uri(login_redirect, url_prefix=url_prefix)

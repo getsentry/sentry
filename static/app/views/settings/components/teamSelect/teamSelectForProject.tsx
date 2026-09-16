@@ -21,7 +21,6 @@ import type {TeamSelectProps} from './utils';
 import {DropdownAddTeam} from './utils';
 
 type Props = TeamSelectProps & {
-  canCreateTeam: boolean;
   project: Project;
   /**
    * Used when showing Teams for a Project
@@ -31,7 +30,6 @@ type Props = TeamSelectProps & {
 
 export function TeamSelect({
   disabled,
-  canCreateTeam,
   project,
   selectedTeams,
   organization,
@@ -93,7 +91,6 @@ export function TeamSelect({
         <DropdownAddTeam
           disabled={disabled}
           isLoadingTeams={isLoadingTeams}
-          canCreateTeam={canCreateTeam}
           onSearch={onSearch}
           onSelect={onAddTeam}
           onCreateTeam={onCreateTeam}
