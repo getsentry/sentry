@@ -951,7 +951,9 @@ class SingletonCategoryCoalescingTest(TestCase):
         ):
             outbox.save()
             OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
-            OrganizationMember(id=1, organization_id=1).outbox_for_update().save()
+            latest_outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
+            latest_outbox.save()
+            latest_outbox_id = latest_outbox.id
 
             with outbox.process_coalesced(is_synchronous_flush=True):
                 pass
@@ -967,7 +969,8 @@ class SingletonCategoryCoalescingTest(TestCase):
         assert extra["category_value"] == int(singleton_category)
         assert extra["shard_identifier"] == 1
         assert extra["object_identifier"] == 1
-        assert extra["coalesced_count"] == 3
+        assert extra["coalesced_count"] == 2
+        assert extra["coalesced_id"] == latest_outbox_id
         assert extra["outbox_type"] == "CellOutbox"
 
     @patch("sentry.hybridcloud.models.outbox.logger")
@@ -1014,7 +1017,7 @@ class SingletonCategoryCoalescingTest(TestCase):
     def test_unknown_category_logs_warning(self, mock_logger: Mock) -> None:
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
         outbox.category = 99999
-        outbox._maybe_log_singleton_coalescing(coalesced=outbox, coalesced_count=2)
+        outbox._maybe_log_singleton_coalescing(coalesced_id=1, coalesced_count=2)
         warn_calls = [
             c
             for c in mock_logger.warning.mock_calls

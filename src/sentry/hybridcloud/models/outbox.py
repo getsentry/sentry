@@ -297,13 +297,14 @@ class OutboxBase(Model):
             # It's not guaranteed that the ordering of the batch processing is in order,
             # meaning that failures during deletion could leave an old, staler outbox
             # alive.
+            coalesced_id = coalesced.id
             if not self.should_skip_shard():
                 deleted_count += 1
                 coalesced.delete()
 
             if coalesced_older_count > 0:
                 self._maybe_log_singleton_coalescing(
-                    coalesced=coalesced, coalesced_count=coalesced_older_count + 1
+                    coalesced_id=coalesced_id, coalesced_count=coalesced_older_count
                 )
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
@@ -320,8 +321,11 @@ class OutboxBase(Model):
                 tags=tags,
             )
 
-    def _maybe_log_singleton_coalescing(self, coalesced: OutboxBase, coalesced_count: int) -> None:
-        """Log when a singleton-registered category actually coalesced."""
+    def _maybe_log_singleton_coalescing(self, coalesced_id: int, coalesced_count: int) -> None:
+        """Log when older rows were discarded in favor of a singleton row.
+
+        ``coalesced_count`` is the number of discarded older rows.
+        """
         try:
             category = OutboxCategory(self.category)
         except ValueError:
@@ -342,7 +346,7 @@ class OutboxBase(Model):
             "shard_identifier": self.shard_identifier,
             "object_identifier": self.object_identifier,
             "coalesced_count": coalesced_count,
-            "coalesced_id": coalesced.id,
+            "coalesced_id": coalesced_id,
             "outbox_type": type(self).__name__,
         }
         cell_name = getattr(self, "cell_name", None)
