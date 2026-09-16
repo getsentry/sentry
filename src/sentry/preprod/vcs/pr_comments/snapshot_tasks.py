@@ -130,13 +130,24 @@ def create_preprod_snapshot_pr_comment_task(
         for approval in approval_qs:
             approvals_by_artifact_id[approval.preprod_artifact_id] = approval
 
-        base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
+        base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(
+            all_artifacts, require_snapshot_metrics=True
+        )
 
-        is_solo = not base_artifact_map
+        has_base_artifacts = bool(base_artifact_map)
+
+        # If the base arrives before this delayed check runs, comparison processing
+        # will update the PR comment. Avoid overwriting it from this stale timeout.
+        if is_timeout_check and has_base_artifacts:
+            logger.info(
+                "preprod.snapshot_pr_comments.create.skipped_timeout_base_resolved",
+                extra={"preprod_artifact_id": artifact.id},
+            )
+            return
 
         cc_id = cc.id
 
-        if is_solo:
+        if not has_base_artifacts:
             app_ids = {a.app_id for a in all_artifacts if a.app_id}
             has_previous_snapshots = (
                 PreprodSnapshotMetrics.objects.filter(
