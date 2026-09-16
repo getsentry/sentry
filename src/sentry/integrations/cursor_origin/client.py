@@ -4,7 +4,7 @@ import logging
 from base64 import b64decode
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from requests import PreparedRequest
 
@@ -47,6 +47,57 @@ def _parse_expires_at(value: str) -> datetime | None:
     except ValueError:
         return None
     return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+
+
+OriginFileStatus = Literal["added", "removed", "modified", "renamed", "copied"]
+OriginComparisonStatus = Literal["identical", "ahead", "behind", "diverged"]
+
+
+class OriginGitUser(TypedDict):
+    """A git identity recorded in a commit, not an Origin user."""
+
+    name: str
+    email: str
+    date: str
+
+
+class OriginCommitDetail(TypedDict):
+    author: OriginGitUser
+    committer: OriginGitUser
+    message: str
+
+
+class OriginCommit(TypedDict):
+    """A commit returned by Origin."""
+
+    sha: str
+    commit: OriginCommitDetail
+    parents: list[dict[str, str]]
+    stats: NotRequired[dict[str, int]]
+
+
+class OriginCommitFile(TypedDict):
+    """A file changed by a commit or comparison."""
+
+    filename: str
+    status: OriginFileStatus
+    additions: int
+    deletions: int
+    changes: int
+    # Empty for a binary file.
+    patch: str
+    previousFilename: NotRequired[str]
+
+
+class OriginComparison(TypedDict):
+    """A comparison returned by Origin."""
+
+    status: OriginComparisonStatus
+    aheadBy: int
+    behindBy: int
+    baseCommit: OriginCommit
+    headCommit: OriginCommit
+    mergeBaseCommit: OriginCommit
 
 
 class CursorOriginSetupApiClient(IntegrationProxyClient):
@@ -179,16 +230,18 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
                     pass
         super().track_response_data(code, error, resp, extra)
 
-    def _paginate(self, path: str, collection_key: str) -> list[dict[str, Any]]:
-        results: list[dict[str, Any]] = []
+    def _paginate[T](
+        self, path: str, collection_key: str, params: dict[str, Any] | None = None
+    ) -> list[T]:
+        results: list[T] = []
         page_token: str | None = None
 
         for _ in range(self.page_number_limit):
-            params: dict[str, Any] = {"pageSize": PAGE_SIZE}
+            request_params: dict[str, Any] = {"pageSize": PAGE_SIZE, **(params or {})}
             if page_token:
-                params["pageToken"] = page_token
+                request_params["pageToken"] = page_token
 
-            response = self.get(path, params=params)
+            response = self.get(path, params=request_params)
             results.extend(response[collection_key])
 
             # Present on every page; empty on the last one.
@@ -207,6 +260,31 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
     def get_branches(self, repo_full_name: str) -> list[dict[str, Any]]:
         return self._paginate(f"/repos/{repo_full_name}/branches", "branches")
+
+    def get_commits(self, repo_full_name: str, sha: str | None = None) -> list[OriginCommit]:
+        """Return commits from `sha`, newest first, or from the default branch."""
+        params = {"sha": sha} if sha else None
+        return self._paginate(f"/repos/{repo_full_name}/commits", "commits", params=params)
+
+    def get_commit(self, repo_full_name: str, sha: str) -> OriginCommit:
+        """Return a commit with aggregate stats."""
+        return self.get(f"/repos/{repo_full_name}/commits/{sha}")
+
+    def get_commit_files(self, repo_full_name: str, sha: str) -> list[OriginCommitFile]:
+        """Return the files changed by a commit."""
+        return self._paginate(
+            f"/repos/{repo_full_name}/commits/{sha}/files", "files", params={"sha": sha}
+        )
+
+    def compare_commits(self, repo_full_name: str, base: str, head: str) -> OriginComparison:
+        """Return how `head` relates to `base`."""
+        return self.get(f"/repos/{repo_full_name}/compare/{base}...{head}")
+
+    def get_compare_files(
+        self, repo_full_name: str, base: str, head: str
+    ) -> list[OriginCommitFile]:
+        """Return the files that differ between two revisions."""
+        return self._paginate(f"/repos/{repo_full_name}/compare/{base}...{head}/files", "files")
 
     # -- git data ---------------------------------------------------------
 

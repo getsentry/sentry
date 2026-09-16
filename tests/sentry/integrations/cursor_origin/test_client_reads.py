@@ -45,8 +45,6 @@ class CursorOriginReadsTest(TestCase):
         )
         self.origin_client = CursorOriginApiClient(integration=self.integration)
 
-    # -- repositories -----------------------------------------------------
-
     def test_get_repositories_paginates(self) -> None:
         with mock.patch.object(
             self.origin_client,
@@ -122,6 +120,87 @@ class CursorOriginReadsTest(TestCase):
 
         assert languages == {"Python": 42}
         assert mock_tree.called
+
+    @responses.activate
+    def test_get_commits_starts_from_a_ref(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits",
+            json={"commits": [{"sha": "abc"}], "nextPageToken": ""},
+        )
+
+        commits = self.origin_client.get_commits(REPO, sha="main")
+
+        assert [commit["sha"] for commit in commits] == ["abc"]
+        assert "sha=main" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_get_commits_defaults_to_the_default_branch(self) -> None:
+        """Origin reads an absent `sha` as the repository's default branch."""
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits",
+            json={"commits": [], "nextPageToken": ""},
+        )
+
+        self.origin_client.get_commits(REPO)
+
+        assert "sha=" not in responses.calls[0].request.url
+
+    @responses.activate
+    def test_paging_repeats_the_parameters_the_token_was_made_with(self) -> None:
+        """Commit files reject a token whose `sha` and `pageSize` do not match it."""
+        url = f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits/abc/files"
+        responses.add(
+            responses.GET, url, json={"files": [{"filename": "a.py"}], "nextPageToken": "page-2"}
+        )
+        responses.add(
+            responses.GET, url, json={"files": [{"filename": "b.py"}], "nextPageToken": ""}
+        )
+
+        files = self.origin_client.get_commit_files(REPO, "abc")
+
+        assert [f["filename"] for f in files] == ["a.py", "b.py"]
+        second_request = responses.calls[1].request.url
+        assert "pageToken=page-2" in second_request
+        assert "sha=abc" in second_request
+        assert "pageSize=100" in second_request
+
+    @responses.activate
+    def test_get_commit_reads_one_commit(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/commits/abc",
+            json={"sha": "abc", "stats": {"total": 2}},
+        )
+
+        assert self.origin_client.get_commit(REPO, "abc")["stats"] == {"total": 2}
+
+    @responses.activate
+    def test_compare_commits_reads_the_summary(self) -> None:
+        """Origin embeds neither the commits nor the files in a comparison."""
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/compare/abc...def",
+            json={"status": "ahead", "aheadBy": 2, "behindBy": 0},
+        )
+
+        comparison = self.origin_client.compare_commits(REPO, "abc", "def")
+
+        assert comparison["status"] == "ahead"
+        assert comparison["aheadBy"] == 2
+
+    @responses.activate
+    def test_get_compare_files_reads_what_differs(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/compare/abc...def/files",
+            json={"files": [{"filename": "a.py", "status": "modified"}], "nextPageToken": ""},
+        )
+
+        files = self.origin_client.get_compare_files(REPO, "abc", "def")
+
+        assert [(f["filename"], f["status"]) for f in files] == [("a.py", "modified")]
 
     @responses.activate
     def test_get_contents_passes_the_path_as_a_query_parameter(self) -> None:
