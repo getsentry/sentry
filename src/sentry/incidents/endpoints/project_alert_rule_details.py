@@ -16,7 +16,6 @@ from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.project import Project
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 
 @cell_silo_endpoint
@@ -28,7 +27,6 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    @track_alert_endpoint_execution("GET", "sentry-api-0-project-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -43,7 +41,6 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
         enforce_alerts_api_deprecation(project.organization)
         return fetch_alert_rule(request, project.organization, alert_rule)
 
-    @track_alert_endpoint_execution("PUT", "sentry-api-0-project-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",
@@ -58,7 +55,6 @@ class ProjectAlertRuleDetailsEndpoint(WorkflowEngineProjectAlertRuleEndpoint):
         enforce_alerts_api_deprecation(project.organization)
         return update_alert_rule(request, project.organization, alert_rule)
 
-    @track_alert_endpoint_execution("DELETE", "sentry-api-0-project-alert-rule-details")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-details",

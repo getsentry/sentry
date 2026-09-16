@@ -345,13 +345,10 @@ function fetchTrace(
     orgSlug: string;
     query: string;
     traceId: string;
-  },
-  type: 'eap' | 'non-eap'
+  }
 ): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
   return api.requestPromise(
-    type === 'eap'
-      ? `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
-      : `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+    `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
   );
 }
 
@@ -409,7 +406,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (options?.preferences?.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(root, {organization: options.organization});
+      TraceTree.AutogroupSiblingSpanNodes(root, {
+        organization: options.organization,
+      });
     }
   }
 
@@ -449,7 +448,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       const nodeId = 'event_id' in value ? value.event_id : undefined;
       if (nodeId && visitedIds.has(nodeId)) {
-        Sentry.logger.warn('Cycle detected in trace tree structure', {nodeId});
+        Sentry.logger.warn('Cycle detected in trace tree structure', {
+          nodeId,
+        });
         return;
       }
       if (nodeId) {
@@ -550,7 +551,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
         const parent = c.parent.parent;
-        TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
+        TraceTree.Swap({
+          parent: c.parent,
+          child: c,
+          reason: 'pageload server handler',
+        });
         parent!.invalidate();
         parent!.forEachChild(child => {
           child.invalidate();
@@ -1433,7 +1438,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
-    type: 'eap' | 'non-eap';
     urlParams: Location['query'];
     preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
@@ -1450,19 +1454,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(
-              api,
-              {
-                orgSlug: organization.slug,
-                query: qs.stringify(
-                  getTraceQueryParams(options.type, urlParams, filters.selection, {
-                    timestamp: batchTraceData.timestamp,
-                  })
-                ),
-                traceId: batchTraceData.traceSlug,
-              },
-              options.type
-            );
+            return fetchTrace(api, {
+              orgSlug: organization.slug,
+              query: qs.stringify(
+                getTraceQueryParams(urlParams, filters.selection, {
+                  timestamp: batchTraceData.timestamp,
+                })
+              ),
+              traceId: batchTraceData.traceSlug,
+            });
           })
         );
 

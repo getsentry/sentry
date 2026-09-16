@@ -417,7 +417,7 @@ describe('ProjectPageFilter', () => {
       },
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'No Projects'}));
 
     expect(
       screen.queryByRole('checkbox', {name: 'Select All Projects'})

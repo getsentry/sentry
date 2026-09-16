@@ -36,6 +36,7 @@ def test_dlq(consumer_def) -> None:
         "monitors-clock-tasks",
         "monitors-incident-occurrences",
         "uptime-results",
+        "metrics-last-seen-updater",
         "ingest-occurrences",
     ]
 
