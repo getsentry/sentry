@@ -129,6 +129,9 @@ function useExploreTimeseriesImpl({
       // Skip only when every series failed an `_if` filter. Invalid equations still
       // query with DEFAULT_VISUALIZATION as a fallback (prior behavior).
       enabled: enabled && !skippedForInvalidConditionalFilter,
+      // Mark buckets incomplete from the measured ingestion delay rather than a
+      // static assumption. No-op if the org doesn't have the backend flag enabled.
+      includeMeasuredIngestionDelayMetadata: true,
       ...queryExtras,
     };
   }, [
