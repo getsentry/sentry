@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.github.multi_platform_detection import PlatformDetectionClient
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiConflictError, ApiError
 from sentry.testutils.cases import APITestCase
@@ -261,6 +262,29 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         assert mock_get_client.called
         platforms = {p["platform"] for p in response.data["platforms"]}
         assert platforms == {"python-django", "python"}
+
+    @mock.patch("sentry.integrations.models.integration.Integration.get_installation")
+    def test_cursor_origin_is_supported(self, mock_get_installation: mock.MagicMock) -> None:
+        self.integration.provider = IntegrationProviderSlug.CURSOR_ORIGIN.value
+        self.integration.save(update_fields=["provider"])
+        self.repo.provider = f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}"
+        self.repo.save(update_fields=["provider"])
+        mock_get_installation.return_value = StubDetectionClient(
+            languages={"C#": 50000},
+            tree=[{"path": "src/app.cs", "type": "blob", "size": 100}],
+        )
+
+        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+
+        assert response.data["platforms"] == [
+            {
+                "platform": "dotnet",
+                "language": "C#",
+                "bytes": 50000,
+                "confidence": "medium",
+                "priority": 1,
+            }
+        ]
 
     @mock.patch(f"{ENDPOINT_MODULE}.detect_platforms_multi")
     @mock.patch("sentry.integrations.models.integration.Integration.get_installation")
