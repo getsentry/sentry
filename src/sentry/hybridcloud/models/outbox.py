@@ -341,8 +341,7 @@ class OutboxBase(Model):
         extra: dict[str, Any] = {
             "category": category.name,
             "category_value": int(category),
-            "shard_scope": OutboxScope(self.shard_scope).name,
-            "shard_scope_value": int(self.shard_scope),
+            "shard_scope": self.shard_scope,
             "shard_identifier": self.shard_identifier,
             "object_identifier": self.object_identifier,
             "coalesced_count": coalesced_count,
