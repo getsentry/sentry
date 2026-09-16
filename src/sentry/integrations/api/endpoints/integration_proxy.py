@@ -55,6 +55,9 @@ logger = logging.getLogger(__name__)
 
 METRIC_PREFIX = "hybrid_cloud.integration_proxy"
 
+UNKNOWN_PROVIDER = "unknown"
+"""Validation failed before the OrganizationIntegration row loaded, so no provider exists yet."""
+
 
 class IntegrationProxySuccessMetricType(StrEnum):
     INITIALIZE = "initialize"
@@ -100,6 +103,7 @@ class _PassthroughContentNegotiation(BaseContentNegotiation):
 class IntegrationProxyRequestValidationContext(TypedDict):
     integration_id: int | None
     organization_id: int | None
+    provider: str
 
 
 class IntegrationProxyRequestValidationException(Exception):
@@ -173,6 +177,7 @@ class IntegrationProxyRequestValidator:
                 integration_context={
                     "integration_id": None,
                     "organization_id": None,
+                    "provider": UNKNOWN_PROVIDER,
                 },
             )
 
@@ -184,6 +189,7 @@ class IntegrationProxyRequestValidator:
             "organization_id": organization_integration.organization_id
             if organization_integration
             else None,
+            "provider": integration.provider if integration else UNKNOWN_PROVIDER,
         }
 
     def _validate_sender(self):
@@ -218,6 +224,7 @@ class IntegrationProxyRequestValidator:
                 integration_context={
                     "integration_id": None,
                     "organization_id": None,
+                    "provider": UNKNOWN_PROVIDER,
                 },
             )
 
@@ -321,6 +328,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     log_extra: dict[str, Any]
+    provider: str
     enforce_rate_limit = False
     """
     This endpoint is used to proxy requests from cell silos to the third-party
@@ -330,6 +338,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     def __init__(self):
         super().__init__()
         self.log_extra = dict()
+        self.provider = UNKNOWN_PROVIDER
 
     @property
     def client(self):
@@ -364,7 +373,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self._add_metric(
             metric_name="proxy_failure",
             sample_rate=1.0,
-            tags={"failure_type": failure_type.value},
+            tags={"failure_type": failure_type.value, "provider": self.provider},
         )
 
     @trace
@@ -430,6 +439,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 lifecycle.record_failure(
                     failure_reason=e.failure_type.value, extra={**e.integration_context}
                 )
+                self.provider = e.integration_context["provider"]
                 self._add_failure_metric(
                     failure_type=e.failure_type,
                 )
@@ -437,9 +447,12 @@ class InternalIntegrationProxyEndpoint(Endpoint):
 
             self.proxy_path = validator.proxy_path
             self.client = validator.client
+            self.provider = validator.integration.provider
 
             self._add_metric(
-                metric_name=IntegrationProxySuccessMetricType.INITIALIZE, sample_rate=1.0
+                metric_name=IntegrationProxySuccessMetricType.INITIALIZE,
+                sample_rate=1.0,
+                tags={"provider": self.provider},
             )
 
             base_url = request.headers.get(PROXY_BASE_URL_HEADER)
@@ -454,6 +467,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 "host": request.headers.get("Host"),
                 "integration_id": validator.integration.id,
                 "organization_id": validator.organization_integration.organization_id,
+                "provider": self.provider,
             }
             headers = clean_outbound_headers(request.headers)
 
@@ -479,7 +493,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         self._add_metric(
             metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
             sample_rate=1.0,
-            tags={"status": response.status_code},
+            tags={"status": response.status_code, "provider": self.provider},
         )
         return response
 
