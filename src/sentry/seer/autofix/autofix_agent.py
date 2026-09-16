@@ -258,14 +258,16 @@ def _handle_step_started_events(
                 "organization_id": group.organization.id,
                 "activity_already_recorded": True,
             }
-            if step == AutofixStep.PR_ITERATION or (
-                step == AutofixStep.CODE_CHANGES and actor_user_id is not None
-            ):
+            if step == AutofixStep.PR_ITERATION:
                 activity_attribution = {"referrer": referrer}
                 if actor_user_id is not None:
                     activity_attribution["actor_user_id"] = actor_user_id
-            if step == AutofixStep.PR_ITERATION:
                 task_kwargs["activity_attribution"] = activity_attribution
+            elif step == AutofixStep.CODE_CHANGES and actor_user_id is not None:
+                activity_attribution = {
+                    "referrer": referrer,
+                    "actor_user_id": actor_user_id,
+                }
             record_seer_activity(
                 group=group,
                 event_type=sentry_app_event_type,
