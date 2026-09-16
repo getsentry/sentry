@@ -451,15 +451,15 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             stats_meta["debug_info"] = debug_info  #  type: ignore[typeddict-unknown-key]
         if include_annotations:
             try:
-                annotations, accepted_by_bucket = get_dropped_data_annotations(
+                dropped_annotations, accepted_annotations = get_dropped_data_annotations(
                     dataset, snuba_params, rollup
                 )
-                stats_meta["annotations"] = annotations
-                stats_meta["acceptedByBucket"] = accepted_by_bucket
+                stats_meta["droppedAnnotations"] = dropped_annotations
+                stats_meta["acceptedAnnotations"] = accepted_annotations
             except Exception:
                 sentry_sdk.capture_exception()
-                stats_meta["annotations"] = []
-                stats_meta["acceptedByBucket"] = []
+                stats_meta["droppedAnnotations"] = []
+                stats_meta["acceptedAnnotations"] = []
 
         # Only the EAP RPC datasets allow measured ingestion delay metadata
         if include_measured_ingestion_delay_metadata and (
