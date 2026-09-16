@@ -209,6 +209,7 @@ class EventStorage(Service):
         tenant_ids: Mapping[str, Any] | None = None,
         *,
         load_bodies: bool = True,
+        extra_columns: Sequence[str] = (),
     ) -> list[Event]:
         raise NotImplementedError
 

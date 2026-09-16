@@ -92,8 +92,9 @@ class SnubaEventStorage(EventStorage):
         tenant_ids: Mapping[str, Any] | None = None,
         *,
         load_bodies: bool = True,
+        extra_columns: Sequence[str] = (),
     ) -> list[Event]:
-        cols = [*self.__get_columns(dataset), "trace_id"]
+        cols = [*self.__get_columns(dataset), *extra_columns]
 
         resolved_order_by = []
         order_by_col_names: set[str] = set()

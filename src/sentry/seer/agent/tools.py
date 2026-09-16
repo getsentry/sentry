@@ -1266,6 +1266,7 @@ def _get_recommended_event(
                 tenant_ids={"organization_id": group.project.organization_id},
                 inner_limit=1000,
                 load_bodies=False,
+                extra_columns=["trace_id"],
             )
         except Exception:
             logger.exception(
