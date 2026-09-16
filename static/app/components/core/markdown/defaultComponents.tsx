@@ -1,5 +1,4 @@
 import {Fragment, type ReactNode} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
@@ -54,7 +53,7 @@ export function DefaultLink({
 }) {
   if (isInternalHref(href)) {
     return (
-      <Link to={href} title={title ?? undefined} css={linkStyles}>
+      <Link to={href} title={title ?? undefined}>
         {children}
       </Link>
     );
@@ -63,15 +62,11 @@ export function DefaultLink({
     return <span>{children}</span>;
   }
   return (
-    <ExternalLink href={href} title={title ?? undefined} css={linkStyles}>
+    <ExternalLink href={href} title={title ?? undefined}>
       {children}
     </ExternalLink>
   );
 }
-
-const linkStyles = css`
-  word-break: break-all;
-`;
 
 export function DefaultCodeBlock({children, lang}: {children: string; lang?: string}) {
   return <CodeBlock language={lang}>{children}</CodeBlock>;
