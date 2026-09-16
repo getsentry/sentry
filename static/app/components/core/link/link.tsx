@@ -2,11 +2,9 @@ import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonVariant} from '@sentry/scraps/button/types';
-import {Text} from '@sentry/scraps/text/text';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -105,16 +103,8 @@ const StyledLink = styled(LinkBase)`
   ${getLinkStyles}
 `;
 
-const LinkText = styled(Text)`
-  font-family: inherit;
-`;
-
 export function Link(props: LinkProps) {
-  return (
-    <LinkText variant="inherit">
-      {textProps => <StyledLink {...mergeProps(textProps, props)} />}
-    </LinkText>
-  );
+  return <StyledLink {...props} />;
 }
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
