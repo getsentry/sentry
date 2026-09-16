@@ -199,6 +199,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sentry_app_config: list[dict[str, Any]] | dict[str, Any] | None = None,
         sentry_app_id: str | None = None,
         target_type: ActionTarget | None = None,
+        notes: str | None = None,
     ):
         assert asdict(notification_context) == {
             "id": notification_context.id,
@@ -208,6 +209,7 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "sentry_app_config": sentry_app_config,
             "sentry_app_id": sentry_app_id,
             "target_type": target_type,
+            "notes": notes,
         }
 
     def assert_alert_context(
