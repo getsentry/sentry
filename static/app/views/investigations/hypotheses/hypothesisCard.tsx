@@ -26,7 +26,6 @@ type HypothesisCardProps = {
    * apply, and supplies them here. No menu renders when this is empty.
    */
   actions?: MenuItemProps[];
-  className?: string;
   /**
    * Whether this is the hypothesis the report leads with
    * (`report.primaryHypothesisId`). It lifts off the page so the conclusion is
@@ -46,7 +45,6 @@ type HypothesisCardProps = {
  */
 export function HypothesisCard({
   actions,
-  className,
   hypothesis,
   isPrimary = false,
 }: HypothesisCardProps) {
@@ -57,7 +55,6 @@ export function HypothesisCard({
   return (
     <Card
       as="li"
-      className={className}
       gap="lg"
       padding="xl"
       radius="md"
@@ -134,8 +131,8 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
   // and a chevron would promise one.
   const hasRun = Boolean(step.result) || Boolean(step.error);
   const summary = (
-    // A full flex-basis, because the chevron's button grows too — without this
-    // the two split the row and the text wraps in half the width it has.
+    // A full flex-basis so the summary takes the row's spare width rather than
+    // splitting it with the chevron and wrapping in half the space it has.
     <Stack gap="2xs" flex="1 1 100%" minWidth="0">
       <Text size="sm" wordBreak="break-word">
         {step.title}
@@ -163,25 +160,23 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
       as="li"
       border={failed ? 'danger' : 'primary'}
       radius="sm"
-      // A Disclosure brings its own row padding; doubling it pushes the text
-      // away from the edge the other rows sit against.
+      // The toggle owns the row padding for a step that can be opened, so the
+      // container only insets it far enough to keep the hover highlight off
+      // the border. A bare row has no toggle and pads itself.
       padding={hasRun ? 'xs' : 'md lg'}
       background="primary"
     >
       {hasRun ? (
         <Disclosure size="xs">
           {/*
-           * The summary goes in `leadingItems`, not as the title's children:
-           * children land inside a Button, which is one line tall and centres
-           * what it holds. From the leading slot the summary lays out normally
-           * and, taking the row's spare width, pushes the chevron to the edge.
+           * The summary is the toggle's children, not `leadingItems`: the
+           * leading slot renders outside the button, which would leave the
+           * chevron alone as the click target on a row several hundred pixels
+           * wide. As children it sits inside the full-width stretched button,
+           * so the whole row opens the step — and it names the toggle without
+           * a separate aria-label.
            */}
-          <Disclosure.Title
-            leadingItems={summary}
-            // The summary sits outside the button, so the toggle would
-            // otherwise announce as an unnamed chevron.
-            aria-label={t('Show how %s was checked', step.title)}
-          />
+          <StepDisclosureTitle>{summary}</StepDisclosureTitle>
           <Disclosure.Content>
             <Stack gap="sm">
               <Stack gap="2xs">
@@ -209,6 +204,41 @@ function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
     </Container>
   );
 }
+
+/**
+ * Lets the step's toggle hold the two-line summary that makes the whole row
+ * clickable.
+ *
+ * `Button` is sized as a single-line control — fixed height, `nowrap`, contents
+ * centred — which is right for a label and wrong for a block of title-plus-
+ * result that wraps. `&&` rather than a plain rule because these compete with
+ * the button's own class at equal specificity, and emotion's insertion order
+ * between the two is not something to rely on.
+ */
+const StepDisclosureTitle = styled(Disclosure.Title)`
+  && {
+    height: auto;
+    min-height: 0;
+    padding-block: ${p => p.theme.space.xs};
+    white-space: normal;
+    text-align: left;
+  }
+
+  /* Button wraps its contents in a span carrying the same single-line sizing. */
+  && > span {
+    width: 100%;
+    height: auto;
+    white-space: normal;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  /* The chevron belongs beside the title, not centred against a block whose
+   * height depends on how far the result wraps. */
+  && > span > :first-child {
+    margin-top: 1px;
+  }
+`;
 
 /**
  * The card border carries the verdict, which is why it is CSS rather than the

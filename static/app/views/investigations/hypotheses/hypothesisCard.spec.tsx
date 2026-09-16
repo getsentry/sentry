@@ -150,6 +150,60 @@ describe('HypothesisCard', () => {
     expect(steps[1]).toHaveTextContent('Second check');
   });
 
+  // The summary is the toggle's children rather than a label sitting beside a
+  // chevron-only button, so the whole row opens the step.
+  it('makes the whole row of a step that has run the toggle', async () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          verificationSteps: [
+            InvestigationVerificationStepFixture({
+              title: 'Compare FCP with server response time',
+              result: 'The delay begins before the document reaches the browser.',
+              objective: 'Establish where the delay starts.',
+            }),
+          ],
+        })}
+      />
+    );
+
+    const toggle = screen.getByRole('button', {
+      name: /Compare FCP with server response time/,
+    });
+    expect(toggle).toHaveTextContent(
+      'The delay begins before the document reaches the browser.'
+    );
+    expect(screen.getByText('Establish where the delay starts.')).not.toBeVisible();
+
+    // Clicking the result line — the far side of the row from the chevron —
+    // still toggles, because it is inside the button.
+    await userEvent.click(
+      screen.getByText('The delay begins before the document reaches the browser.')
+    );
+
+    expect(screen.getByText('Establish where the delay starts.')).toBeVisible();
+  });
+
+  it('leaves a step with nothing to unpack unopenable', () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          verificationSteps: [
+            InvestigationVerificationStepFixture({
+              title: 'Compare FCP with server response time',
+              status: 'running',
+              result: null,
+            }),
+          ],
+        })}
+      />
+    );
+
+    expect(
+      screen.queryByRole('button', {name: /Compare FCP with server response time/})
+    ).not.toBeInTheDocument();
+  });
+
   it('describes a step that has not produced a result yet', () => {
     render(
       <HypothesisCard
