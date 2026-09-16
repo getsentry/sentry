@@ -37,6 +37,12 @@ export interface QueryEmbedColumn<Row> {
   render: (row: Row) => ReactNode;
   /** Header text. Defaults to `key`, which is what a field-named column wants. */
   label?: ReactNode;
+  /**
+   * Grid track for the column. Defaults to an equal share of the leftover
+   * space; a column of fixed-size content — an icon, say — should ask for
+   * `max-content` instead of being stretched to match a column of text.
+   */
+  width?: string;
 }
 
 /**
@@ -87,7 +93,7 @@ export function QueryEmbedTable<Row>({
 }: QueryEmbedTableProps<Row>) {
   const columnConfig = columns.map((column, index) => ({
     key: column.key,
-    width: index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)',
+    width: column.width ?? (index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)'),
   }));
 
   return (
