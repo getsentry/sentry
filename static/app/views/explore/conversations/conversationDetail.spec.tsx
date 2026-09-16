@@ -55,7 +55,7 @@ const DEFAULT_AGGREGATES: ConversationAggregates = {
   generationDuration: 1000,
   inputTokens: 0,
   llmCalls: 2,
-  modelUsage: [],
+  usageByModel: [],
   outputTokens: 0,
   startTimestamp: 1_000_000,
   toolCalls: 0,
@@ -232,13 +232,13 @@ describe('ConversationDetailPage summary aggregates', () => {
 
   it('uses the reported total when a model breakdown is incomplete', async () => {
     mockApis(null, CONVERSATION_BODY, {
-      modelUsage: [
+      usageByModel: [
         {
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
           inputCost: 0,
           inputTokens: 100,
-          isComplete: false,
+          hasCompleteTokenData: false,
           model: null,
           outputCost: 0,
           outputTokens: 0,
@@ -260,13 +260,13 @@ describe('ConversationDetailPage summary aggregates', () => {
 
   it('uses the API token breakdown ordered by model usage', async () => {
     mockApis(null, CONVERSATION_BODY, {
-      modelUsage: [
+      usageByModel: [
         {
           cacheReadTokens: 20,
           cacheWriteTokens: 10,
           inputCost: 0.02,
           inputTokens: 200,
-          isComplete: true,
+          hasCompleteTokenData: true,
           model: 'model-beta',
           outputCost: 0.01,
           outputTokens: 100,
@@ -279,7 +279,7 @@ describe('ConversationDetailPage summary aggregates', () => {
           cacheWriteTokens: 5,
           inputCost: 0.015,
           inputTokens: 180,
-          isComplete: true,
+          hasCompleteTokenData: true,
           model: 'model-alpha',
           outputCost: 0.01,
           outputTokens: 70,
@@ -307,13 +307,13 @@ describe('ConversationDetailPage summary aggregates', () => {
 
   it('shows the API cost breakdown by model', async () => {
     mockApis(null, CONVERSATION_BODY, {
-      modelUsage: [
+      usageByModel: [
         {
           cacheReadTokens: 0,
           cacheWriteTokens: 0,
           inputCost: 0.02,
           inputTokens: 70,
-          isComplete: true,
+          hasCompleteTokenData: true,
           model: 'model-alpha',
           outputCost: 0.01,
           outputTokens: 30,

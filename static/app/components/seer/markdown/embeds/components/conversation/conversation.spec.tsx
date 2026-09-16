@@ -84,13 +84,13 @@ describe('conversation embed', () => {
         generationDuration: 500,
         inputTokens: 0,
         llmCalls: 1,
-        modelUsage: [
+        usageByModel: [
           {
             cacheReadTokens: 0,
             cacheWriteTokens: 0,
             inputCost: 0,
             inputTokens: 0,
-            isComplete: false,
+            hasCompleteTokenData: false,
             model: 'model-a',
             outputCost: 0,
             outputTokens: 0,

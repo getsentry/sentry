@@ -41,8 +41,6 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
-  CostBreakdownTooltip,
-  type CostBreakdownDetails,
   TokenBreakdownTooltip,
   type TokenBreakdownDetails,
 } from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
@@ -98,9 +96,8 @@ export function ConversationSummary({
   const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
   const aggregateValues = aggregates ?? calculatedAggregates;
   const tokenBreakdowns = aggregates
-    ? getTokenBreakdowns(aggregates.modelUsage)
+    ? getTokenBreakdowns(aggregates.usageByModel)
     : calculatedAggregates.tokenBreakdowns;
-  const costBreakdowns = aggregates ? getCostBreakdowns(aggregates.modelUsage) : [];
   const toolNames = orderToolNames(
     aggregateValues.toolNames,
     calculatedAggregates.erroredToolNames
@@ -318,7 +315,7 @@ export function ConversationSummary({
         <Stat
           label={t('Cost')}
           value={
-            <CostCount breakdowns={costBreakdowns} total={aggregateValues.totalCost} />
+            <CostCount breakdowns={tokenBreakdowns} total={aggregateValues.totalCost} />
           }
           isLoading={isLoading}
         />
@@ -430,9 +427,9 @@ function orderToolNames(
 }
 
 function getTokenBreakdowns(
-  modelUsage: ConversationModelUsage[]
+  usageByModel: ConversationModelUsage[]
 ): TokenBreakdownDetails[] {
-  return modelUsage.map(usage => {
+  return usageByModel.map(usage => {
     const breakdown = getTokenBreakdown({
       inputTokens: usage.inputTokens,
       cachedTokens: usage.cacheReadTokens,
@@ -447,22 +444,16 @@ function getTokenBreakdowns(
       cacheRead: breakdown.cached,
       cacheWrite: breakdown.cacheWrite,
       input,
-      isComplete: usage.isComplete,
-      model: usage.model ?? t('Unknown model'),
+      isComplete: usage.hasCompleteTokenData,
       output: breakdown.output,
       reasoning: usage.reasoningTokens,
-      total: usage.isComplete ? input + breakdown.output : usage.totalTokens,
+      total: usage.hasCompleteTokenData ? input + breakdown.output : usage.totalTokens,
+      inputCost: usage.inputCost,
+      model: usage.model ?? t('Unknown model'),
+      outputCost: usage.outputCost,
+      totalCost: usage.totalCost,
     };
   });
-}
-
-function getCostBreakdowns(modelUsage: ConversationModelUsage[]): CostBreakdownDetails[] {
-  return modelUsage.map(usage => ({
-    input: usage.inputCost,
-    model: usage.model ?? t('Unknown model'),
-    output: usage.outputCost,
-    total: usage.totalCost,
-  }));
 }
 
 function calculateAggregates(nodes: AITraceSpanNode[]): CalculatedConversationAggregates {
@@ -611,9 +602,8 @@ export function ConversationAggregatesBar({
   const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
   const aggregateValues = aggregates ?? calculatedAggregates;
   const tokenBreakdowns = aggregates
-    ? getTokenBreakdowns(aggregates.modelUsage)
+    ? getTokenBreakdowns(aggregates.usageByModel)
     : calculatedAggregates.tokenBreakdowns;
-  const costBreakdowns = aggregates ? getCostBreakdowns(aggregates.modelUsage) : [];
   const toolNames = orderToolNames(
     aggregateValues.toolNames,
     calculatedAggregates.erroredToolNames
@@ -652,7 +642,7 @@ export function ConversationAggregatesBar({
       <AggregateItem
         label={t('Cost')}
         value={
-          <CostCount breakdowns={costBreakdowns} total={aggregateValues.totalCost} />
+          <CostCount breakdowns={tokenBreakdowns} total={aggregateValues.totalCost} />
         }
         isLoading={isLoading}
       />
@@ -718,17 +708,17 @@ function CostCount({
   breakdowns,
   total,
 }: {
-  breakdowns: CostBreakdownDetails[];
+  breakdowns: TokenBreakdownDetails[];
   total: number;
 }) {
   const value = total < 0 ? <NegativeCostInfo cost={total} /> : <LLMCosts cost={total} />;
 
-  if (breakdowns.length === 0) {
+  if (!breakdowns.some(breakdown => breakdown.totalCost !== undefined)) {
     return value;
   }
 
   return (
-    <Tooltip title={<CostBreakdownTooltip breakdowns={breakdowns} />}>
+    <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
       <BreakdownValue>{value}</BreakdownValue>
     </Tooltip>
   );
