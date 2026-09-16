@@ -3,7 +3,6 @@ import {ThemeProvider} from '@emotion/react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {ProgressState} from 'sentry/types/group';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {formatProgressState, getProgressIcon} from './progress';
@@ -32,7 +31,7 @@ describe('ProgressState', () => {
           </div>
         </ThemeProvider>
       ),
-      state => ({theme: themeName, state: String(state)})
+      state => ({tags: {area: 'core', state: String(state)}})
     );
   });
 });

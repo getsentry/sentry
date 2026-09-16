@@ -17,7 +17,7 @@ describe('GroupStatusTag', () => {
           </div>
         </ThemeProvider>
       ),
-      fontSize => ({theme: themeName, fontSize})
+      fontSize => ({tags: {area: 'core', fontSize}})
     );
   });
 });

@@ -1,7 +1,6 @@
 import {ThemeProvider} from '@emotion/react';
 
 import {PriorityLevel} from 'sentry/types/group';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {GroupPriorityBadge} from './groupPriority';
@@ -23,19 +22,15 @@ describe('GroupPriorityBadge', () => {
           </div>
         </ThemeProvider>
       ),
-      priority => ({theme: themeName, priority: String(priority)})
+      priority => ({tags: {area: 'core', priority: String(priority)}})
     );
 
-    it.snapshot(
-      'icon-only',
-      () => (
-        <ThemeProvider theme={themes[themeName]}>
-          <div style={{padding: 8}}>
-            <GroupPriorityBadge priority={PriorityLevel.HIGH} showLabel={false} />
-          </div>
-        </ThemeProvider>
-      ),
-      {theme: themeName}
-    );
+    it.snapshot('icon-only', () => (
+      <ThemeProvider theme={themes[themeName]}>
+        <div style={{padding: 8}}>
+          <GroupPriorityBadge priority={PriorityLevel.HIGH} showLabel={false} />
+        </div>
+      </ThemeProvider>
+    ));
   });
 });
