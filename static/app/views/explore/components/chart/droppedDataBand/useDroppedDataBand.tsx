@@ -41,11 +41,6 @@ function getVisibleBuckets(annotations: Annotation[] | undefined): AnnotationBuc
     (annotations ?? []).filter(annotation => annotation.label !== CLIENT_DISCARD_LABEL)
   ).filter(bucket => bucket.severity > 0);
 }
-
-export function hasVisibleDroppedData(annotations: Annotation[] | undefined): boolean {
-  return getVisibleBuckets(annotations).length > 0;
-}
-
 const DROPPED_DATA_Y_AXIS = {
   type: 'value' as const,
   min: 0,

@@ -534,12 +534,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
-        ...(xAxisBandOffset > 0
-          ? {
-              axisLine: {onZero: false},
-              offset: xAxisBandOffset,
-            }
-          : {}),
+        axisLine: {onZero: xAxisBandOffset === 0},
+        offset: xAxisBandOffset,
       }
     : HIDDEN_AXIS;
 

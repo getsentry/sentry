@@ -5,20 +5,8 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {
   BAND_HEIGHT,
   DROPPED_DATA_SERIES_ID,
-  hasVisibleDroppedData,
   useDroppedDataBand,
 } from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
-
-describe('hasVisibleDroppedData', () => {
-  it.each([
-    ['no annotations', undefined, false],
-    ['an empty list', [], false],
-    ['only client discards', [AnnotationFixture({label: 'Client discard'})], false],
-    ['a paintable annotation', [AnnotationFixture({droppedCount: 10})], true],
-  ])('is %s -> %s', (_label, annotations, expected) => {
-    expect(hasVisibleDroppedData(annotations)).toBe(expected);
-  });
-});
 
 describe('useDroppedDataBand', () => {
   it('returns an empty band when there are no annotations', () => {
