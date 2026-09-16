@@ -10,8 +10,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
-import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
   StreamGroup,
@@ -170,26 +168,6 @@ export function GroupList({
     [navigate]
   );
 
-  const parsedQuery = useMemo(
-    () => parseSearch(String(computedQueryParams.query ?? '')),
-    [computedQueryParams.query]
-  );
-
-  // Issues API does not support AND/OR statements
-  const hasLogicBoolean = useMemo(
-    () =>
-      parsedQuery
-        ? treeResultLocator({
-            tree: parsedQuery,
-            noResultValue: false,
-            visitorTest: ({token, returnResult}) => {
-              return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
-            },
-          })
-        : false,
-    [parsedQuery]
-  );
-
   const queryClient = useQueryClient();
 
   const issuesQueryOptions =
@@ -200,10 +178,7 @@ export function GroupList({
           staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            version: endpoint.version,
-          },
+          path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
           query: computedQueryParams,
           staleTime,
         });
@@ -218,7 +193,6 @@ export function GroupList({
   } = useQuery({
     ...issuesQueryOptions,
     select: selectJsonWithHeaders,
-    enabled: !hasLogicBoolean,
   });
   const groupsData = data?.json;
 
@@ -271,8 +245,6 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
-  const hasError = hasLogicBoolean || isQueryError;
-  const loading = !hasLogicBoolean && isPending;
 
   const notifyFetchSuccess = useEffectEvent(() => {
     onFetchSuccess?.(
@@ -301,18 +273,16 @@ export function GroupList({
 
   const columns = withColumns;
 
-  if (hasError) {
+  if (isQueryError) {
     // A retry only helps a failure that could land differently next time. The
-    // query here is fixed, so a boolean one the endpoint never accepts and a
-    // client error it already rejected both fail the same way on every press.
-    return hasLogicBoolean ? (
-      <LoadingError message={t('Search queries with AND or OR are not supported.')} />
-    ) : (
+    // query is fixed, so one the endpoint already rejected fails the same way
+    // on every press.
+    return (
       <LoadingError onRetry={isRetryableRequestError(error) ? refetch : undefined} />
     );
   }
 
-  if (!loading && groups.length === 0) {
+  if (!isPending && groups.length === 0) {
     if (typeof renderEmptyMessage === 'function') {
       return renderEmptyMessage();
     }
@@ -337,7 +307,7 @@ export function GroupList({
       <PanelContainer>
         {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
-          {loading
+          {isPending
             ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />

@@ -80,34 +80,6 @@ describe('GroupList', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders error when query has boolean logic', async () => {
-    const issuesRequest = MockApiClient.addMockResponse({
-      url: issuesUrl,
-      method: 'GET',
-      body: [],
-    });
-
-    render(
-      <GroupList
-        numPlaceholderRows={1}
-        queryParams={{...defaultQueryParams, query: 'foo OR bar'}}
-      />,
-      {
-        organization,
-        initialRouterConfig: {
-          ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {...defaultQueryParams, query: 'foo OR bar'},
-          },
-        },
-      }
-    );
-
-    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
-    expect(issuesRequest).not.toHaveBeenCalled();
-  });
-
   it('offers no retry for a client error the endpoint already rejected', async () => {
     MockApiClient.addMockResponse({
       url: issuesUrl,
@@ -225,21 +197,14 @@ describe('GroupList', () => {
   });
 
   it('updates the assignee when changed', async () => {
-    const user = UserFixture({
-      id: '2',
-      name: 'Jane Doe',
-      email: 'jane@example.com',
-    });
+    const user = UserFixture({id: '2', name: 'Jane Doe', email: 'jane@example.com'});
     const team = TeamFixture({id: '1', slug: 'cool-team'});
     const project = ProjectFixture({teams: [team]});
     const groupWithProject = GroupFixture({project, assignedTo: null});
 
     TeamStore.loadInitialData([team]);
 
-    MockApiClient.addMockResponse({
-      url: membersUrl,
-      body: [MemberFixture({user})],
-    });
+    MockApiClient.addMockResponse({url: membersUrl, body: [MemberFixture({user})]});
     MockApiClient.addMockResponse({
       url: issuesUrl,
       method: 'GET',
