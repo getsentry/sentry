@@ -129,7 +129,9 @@ describe('errors query embed', () => {
 
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
-    expect(screen.getByText('Aggregate')).toBeInTheDocument();
+    // Aggregate mode carries no badge: the chart already says the rows are
+    // grouped, so a tag repeating it would only crowd the header.
+    expect(screen.queryByText('Events')).not.toBeInTheDocument();
     // Grouping fields (title, project) remain alongside the aggregate, so the
     // table is still worth rendering — now beneath the chart.
     expect(screen.getByRole('table')).toBeInTheDocument();
