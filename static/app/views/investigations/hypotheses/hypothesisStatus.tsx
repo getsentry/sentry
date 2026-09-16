@@ -219,15 +219,13 @@ export function HypothesisStatus({hypothesis}: HypothesisStatusProps) {
     // color up as `currentColor`, and there is no second copy of the table here
     // to fall out of step with the design system.
     <Text size="sm" variant={variant} bold>
-      {({className}) => (
+      {textProps => (
+        // Spread rather than picking `className` off: `Text` decides what its
+        // render function hands down, and naming one prop drops the rest.
+        //
         // "Evidence checked" is both a status and the heading over the steps,
         // so this needs to be addressable on its own.
-        <Flex
-          className={className}
-          align="center"
-          gap="xs"
-          data-test-id="hypothesis-status"
-        >
+        <Flex {...textProps} align="center" gap="xs" data-test-id="hypothesis-status">
           {inFlight ? (
             // Live work gets a ring rather than a dot: the agent is doing
             // something, not resting in a state. Every other status is a place
