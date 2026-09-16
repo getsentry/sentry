@@ -408,22 +408,20 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             data_packet_source_id=data_packet.source_id,
             conditions=triggered_conditions,
             config=self.detector.config,
-            data_sources=self._memoized_build_evidence_data_sources(
-                self.detector, data_packet.source_id
-            ),
+            data_sources=self._memoized_build_evidence_data_sources(data_packet.source_id),
         )
 
-    def _build_evidence_data_sources(
-        self, detector: Detector, source_id: str
-    ) -> list[dict[str, Any]]:
+    def _build_evidence_data_sources(self, source_id: str) -> list[dict[str, Any]]:
         try:
-            data_sources = list(DataSource.objects.filter(detectors=detector, source_id=source_id))
+            data_sources = list(
+                DataSource.objects.filter(detectors=self.detector, source_id=source_id)
+            )
 
             if not data_sources:
                 logger.warning(
                     "Matching data source not found for detector while generating occurrence evidence data",
                     extra={
-                        "detector_id": detector.id,
+                        "detector_id": self.detector.id,
                         "data_packet_source_id": source_id,
                     },
                 )
