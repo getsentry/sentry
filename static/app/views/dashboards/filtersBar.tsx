@@ -43,6 +43,9 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
+import {isNavigationTypeGlobalFilter} from 'sentry/views/insights/browser/webVitals/navigationType/settings';
+import {useNavigationTypeExperiment} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -193,6 +196,9 @@ export function FiltersBar({
 
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
+  const {isEnabled: isNavigationTypeExperimentEnabled} =
+    useNavigationTypeExperiment(prebuiltDashboardId);
+
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
   return (
     <Flex
@@ -260,38 +266,49 @@ export function FiltersBar({
           }}
           onSortChange={setReleaseSort}
         />
-        {activeGlobalFilters.map(filter => (
-          <GenericFilterSelector
-            disableRemoveFilter={
-              isPrebuiltDashboard &&
-              prebuiltDashboardFilters.some(
-                prebuiltFilter =>
-                  prebuiltFilter.tag.key === filter.tag.key &&
-                  prebuiltFilter.dataset === filter.dataset
-              )
-            }
-            key={filter.tag.key + filter.value}
-            globalFilter={filter}
-            searchBarData={getSearchBarData(filter.dataset)}
-            onUpdateFilter={updatedFilter => {
-              updateGlobalFilters(
-                activeGlobalFilters.map(f =>
-                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                )
-              );
-            }}
-            onRemoveFilter={removedFilter => {
-              updateGlobalFilters(
-                activeGlobalFilters.filter(
-                  f => !globalFilterKeysAreEqual(f, removedFilter)
-                )
-              );
-              trackAnalytics('dashboards2.global_filter.remove', {
-                organization,
-              });
-            }}
+        {isNavigationTypeExperimentEnabled && (
+          <NavigationTypeSwitcher
+            globalFilters={activeGlobalFilters}
+            onChange={updateGlobalFilters}
           />
-        ))}
+        )}
+        {activeGlobalFilters
+          .filter(
+            filter =>
+              !isNavigationTypeExperimentEnabled || !isNavigationTypeGlobalFilter(filter)
+          )
+          .map(filter => (
+            <GenericFilterSelector
+              disableRemoveFilter={
+                isPrebuiltDashboard &&
+                prebuiltDashboardFilters.some(
+                  prebuiltFilter =>
+                    prebuiltFilter.tag.key === filter.tag.key &&
+                    prebuiltFilter.dataset === filter.dataset
+                )
+              }
+              key={filter.tag.key + filter.value}
+              globalFilter={filter}
+              searchBarData={getSearchBarData(filter.dataset)}
+              onUpdateFilter={updatedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.map(f =>
+                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                  )
+                );
+              }}
+              onRemoveFilter={removedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.filter(
+                    f => !globalFilterKeysAreEqual(f, removedFilter)
+                  )
+                );
+                trackAnalytics('dashboards2.global_filter.remove', {
+                  organization,
+                });
+              }}
+            />
+          ))}
         <AddFilter
           globalFilters={activeGlobalFilters}
           getSearchBarData={getSearchBarData}
