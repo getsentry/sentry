@@ -20,6 +20,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
 import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -278,7 +279,10 @@ export function GroupList({
     // query is fixed, so one the endpoint already rejected fails the same way
     // on every press.
     return (
-      <LoadingError onRetry={isRetryableRequestError(error) ? refetch : undefined} />
+      <LoadingError
+        message={getRequestErrorUserMessage(error, t('There was an error loading data.'))}
+        onRetry={isRetryableRequestError(error) ? refetch : undefined}
+      />
     );
   }
 

@@ -94,7 +94,25 @@ describe('GroupList', () => {
     });
 
     expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.getByText('Invalid query')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  });
+
+  it('falls back to generic copy when the response carries no detail', async () => {
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.getByText('There was an error loading data.')).toBeInTheDocument();
   });
 
   it('offers a retry for a server error that could land differently', async () => {
