@@ -222,6 +222,26 @@ class ControlOutboxDrainTest(TransactionTestCase):
         mock_send.assert_called_once()
         assert not ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
+    def test_wraps_interface_error_after_retry(self) -> None:
+        retry_error = InterfaceError("connection already closed")
+        with (
+            patch.object(
+                ControlOutbox,
+                "process",
+                side_effect=[
+                    OperationalError("server closed the connection unexpectedly"),
+                    retry_error,
+                ],
+            ) as mock_process,
+            pytest.raises(OutboxDatabaseError) as exc_info,
+        ):
+            self.outbox.drain_shard()
+
+        assert exc_info.value.__cause__ is retry_error
+        assert mock_process.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+
     @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
     def test_retries_disconnection_only_once(self, mock_send: Mock) -> None:
         mock_send.side_effect = self.terminate_connection

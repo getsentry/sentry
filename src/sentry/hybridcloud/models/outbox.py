@@ -425,7 +425,7 @@ class OutboxBase(Model):
                     # so we reacquire the shard lock and read the current token state.
                     retry_on_disconnect = False
                     connection.close()
-        except DatabaseError as e:
+        except (DatabaseError, InterfaceError) as e:
             raise OutboxDatabaseError(
                 f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
             ) from e
