@@ -165,7 +165,11 @@ class ControlOutboxDrainTest(TransactionTestCase):
         terminator = self.connection.copy()
         try:
             with terminator.cursor() as cursor:
-                cursor.execute("SELECT pg_terminate_backend(%s, %s)", [backend_pid, 5000])
+                # Wait for termination to complete before the next database operation.
+                termination_timeout_ms = 5_000
+                cursor.execute(
+                    "SELECT pg_terminate_backend(%s, %s)", [backend_pid, termination_timeout_ms]
+                )
                 assert cursor.fetchone()[0]
         finally:
             terminator.close()
