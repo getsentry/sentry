@@ -134,6 +134,13 @@ class VerifyReceiptTest(TestCase):
     def test_a_mismatched_state_is_refused(self) -> None:
         assert self._verify(_receipt(self.private, state="someone-elses")) is None
 
+    def test_a_receipt_from_the_other_flow_is_refused_quietly(self) -> None:
+        """Every callback is tried as state-less first, so this is not worth warning about."""
+        with mock.patch("sentry.integrations.cursor_origin.pipeline.logger") as mock_logger:
+            assert self._verify(_receipt(self.private), state=None) is None
+
+        assert not mock_logger.warning.called
+
     def test_a_missing_state_is_refused(self) -> None:
         assert self._verify(_receipt(self.private, state=None)) is None
 
