@@ -85,9 +85,9 @@ function TaskCard({
       className={className}
     >
       {onClick && <InteractionStateLayer />}
-      <Flex justify="center" align="center" height="20px">
+      <TaskCardIcon justify="center" align="center" height="20px">
         {icon}
-      </Flex>
+      </TaskCardIcon>
       <TaskCardDescription>
         {title}
         {description && <p>{description}</p>}
@@ -273,7 +273,7 @@ function Task({task, hidePanel}: TaskProps) {
           opacity: 50%;
         `}
       >
-        <TaskCard
+        <TaskListCard
           icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
           description={task.description}
           title={<strong>{<s>{task.title}</s>}</strong>}
@@ -284,7 +284,7 @@ function Task({task, hidePanel}: TaskProps) {
 
   return (
     <TaskWrapper>
-      <TaskCard
+      <TaskListCard
         onClick={handleClick}
         icon={
           task.skippable ? (
@@ -563,9 +563,10 @@ const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
 const TaskGroupBody = styled('ul')`
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr) max-content;
+  column-gap: ${p => p.theme.space.lg};
   border-radius: ${p => p.theme.radius.md};
   list-style-type: none;
-  padding: 0 0 0 ${p => p.theme.space.lg};
+  padding: 0;
   margin: 0;
 `;
 
@@ -573,7 +574,8 @@ const TaskWrapper = styled('li')`
   display: grid;
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
-  gap: ${p => p.theme.space.md};
+  row-gap: ${p => p.theme.space.md};
+  column-gap: inherit;
 
   > * {
     grid-column: 1 / -1;
@@ -587,7 +589,7 @@ const TaskWrapper = styled('li')`
 const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: subgrid;
+  grid-template-columns: 22px minmax(0, 1fr) max-content;
   gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
@@ -603,6 +605,17 @@ const TaskCardWrapper = styled('div')`
     button {
       visibility: visible;
     }
+  }
+`;
+
+const TaskCardIcon = styled(Flex)``;
+
+const TaskListCard = styled(TaskCard)`
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+
+  ${TaskCardIcon} {
+    margin-left: ${p => p.theme.space.lg};
   }
 `;
 
