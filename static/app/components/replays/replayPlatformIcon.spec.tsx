@@ -45,6 +45,18 @@ describe('ReplayPlatformIcon', () => {
 
     expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
   });
+
+  it('renders children alongside the N/A marker too', () => {
+    // The replays table hangs its filter menu off `children`, and an unknown
+    // OS is still something to filter on, so the N/A branch has to keep it.
+    render(
+      <ReplayPlatformIcon name={null} version={null}>
+        <button>Actions</button>
+      </ReplayPlatformIcon>
+    );
+
+    expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
+  });
 });
 
 describe('ReplayPlatformIcons', () => {

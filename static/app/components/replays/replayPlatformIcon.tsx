@@ -33,6 +33,7 @@ export function ReplayPlatformIcon({children, name, version}: Props) {
         <Flex justify="center" width="20px">
           <IconNot size="xs" variant="muted" />
         </Flex>
+        {children}
       </Tooltip>
     );
   }
