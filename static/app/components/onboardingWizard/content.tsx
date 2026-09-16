@@ -85,9 +85,9 @@ function TaskCard({
       className={className}
     >
       {onClick && <InteractionStateLayer />}
-      <TaskCardIcon justify="center" align="center" height="20px">
+      <Flex justify="center" align="center" height="20px">
         {icon}
-      </TaskCardIcon>
+      </Flex>
       <TaskCardDescription>
         {title}
         {description && <p>{description}</p>}
@@ -608,13 +608,11 @@ const TaskCardWrapper = styled('div')`
   }
 `;
 
-const TaskCardIcon = styled(Flex)``;
-
 const TaskListCard = styled(TaskCard)`
   grid-column: 1 / -1;
   grid-template-columns: subgrid;
 
-  ${TaskCardIcon} {
+  > div:first-of-type {
     margin-left: ${p => p.theme.space.lg};
   }
 `;
