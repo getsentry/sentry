@@ -318,5 +318,15 @@ describe('Logs Field Renderers', () => {
       expect(screen.queryByRole('link')).not.toBeInTheDocument();
       expect(screen.getByText(spanId)).toBeInTheDocument();
     });
+
+    it('cannot open the span node without a timestamp attribute', () => {
+      render(
+        <Fragment>{renderSpanLink({[OurLogKnownFieldKey.TRACE_ID]: traceId})}</Fragment>
+      );
+
+      const href = screen.getByRole('link', {name: spanId}).getAttribute('href')!;
+
+      expect(qs.parse(href.split('?')[1]!)).not.toHaveProperty('node');
+    });
   });
 });

@@ -134,7 +134,9 @@ export function MetricDetails({
     );
   }
 
-  const attributes: Record<string, TraceItemResponseAttribute['value']> = {};
+  const attributes: Record<string, TraceItemResponseAttribute['value']> = {
+    [TraceMetricKnownFieldKey.TIMESTAMP]: dataRow[TraceMetricKnownFieldKey.TIMESTAMP],
+  };
   const attributeTypes: Record<string, TraceItemResponseAttribute['type']> = {};
   for (const attr of traceDetailsData?.attributes ?? []) {
     attributes[attr.name] = attr.value;
