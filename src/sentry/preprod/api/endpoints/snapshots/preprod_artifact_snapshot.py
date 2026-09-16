@@ -370,7 +370,11 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             try:
                 get_response = session.get(manifest_key)
                 if get_response is None:
-                    raise FileNotFoundError("Manifest does not exist in objectstore")
+                    logger.info(
+                        "preprod.snapshot.manifest_missing",
+                        extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
+                    )
+                    return Response({"detail": "Snapshot manifest not found"}, status=404)
                 with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
                     raw_manifest = get_response.payload.read()
                 with start_span(

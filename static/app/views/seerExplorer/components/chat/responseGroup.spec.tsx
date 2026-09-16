@@ -264,6 +264,23 @@ describe('ResponseGroup', () => {
     );
   });
 
+  it('stays expanded in the gap between tool calls when no block is loading', () => {
+    // CW-2044: between tool calls, the backend briefly returns all blocks with
+    // loading: false before the next tool starts. The ThinkingBlock must stay
+    // expanded as long as no final answer has settled.
+    const group = [toolUseBlock('t1'), toolUseBlock('t2')];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
   it('spins inside the box while a tool works', () => {
     const group = [toolUseBlock('t1', {loading: true})];
 

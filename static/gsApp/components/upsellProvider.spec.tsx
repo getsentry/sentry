@@ -163,6 +163,7 @@ describe('UpsellProvider', () => {
 
     await userEvent.click(screen.getByTestId('test-render'));
     expect(requestTrialMock).toHaveBeenCalled();
+    expect(await screen.findByText('Request Sent')).toBeInTheDocument();
   });
 
   it('request plan upgrade with triggerMemberRequests', async () => {
@@ -186,6 +187,7 @@ describe('UpsellProvider', () => {
     expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('test-render'));
     expect(requestTrialMock).toHaveBeenCalled();
+    expect(await screen.findByText('Request Sent')).toBeInTheDocument();
   });
 
   it('opens modal with showConfirmation', async () => {

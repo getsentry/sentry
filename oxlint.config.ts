@@ -553,6 +553,7 @@ const config = defineConfig({
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
+    '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
       {

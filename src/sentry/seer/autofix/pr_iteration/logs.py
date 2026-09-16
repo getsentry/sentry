@@ -145,6 +145,10 @@ class PrIterationLogContext:
     def identity(self) -> PrIterationIdentity:
         return self._identity.copy()
 
+    @property
+    def iteration_id(self) -> int | None:
+        return self._identity.get("iteration_id")
+
     def info(self, name: str, **fields: Any) -> None:
         """Record that we are doing, or have done, a piece of work."""
         self._logger.info(name, extra={**self._identity, **fields})

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image, PngImagePlugin
 
+from sentry.preprod.snapshots.categorize import categorize_image_diff
 from sentry.preprod.snapshots.image_diff.compare import get_comparison_size
 from sentry.preprod.snapshots.image_diff.types import DiffResult, ImageSize
 from sentry.preprod.snapshots.manifest import (
@@ -23,7 +24,6 @@ from sentry.preprod.snapshots.tasks import (
     _effective_diff_threshold,
     _plan_key,
     _process_chunk,
-    categorize_image_diff,
 )
 
 

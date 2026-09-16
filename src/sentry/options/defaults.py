@@ -1904,14 +1904,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control sampling percentage of schema validation on the generic metrics pipeline
-# based on namespace.
-register(
-    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
-    default={},  # empty dict means validate schema for all use cases
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to control sampling percentage of schema validation on the release health metrics
 # pipeline based on namespace.
 register(
@@ -1951,11 +1943,6 @@ register(
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
 register(
-    "sentry-metrics.writes-limiter.limits.performance.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.writes-limiter.limits.transactions.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1980,17 +1967,7 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-register(
-    "sentry-metrics.writes-limiter.limits.performance.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.writes-limiter.limits.transactions.global",
     default=[],
@@ -2013,11 +1990,6 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.custom.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2066,13 +2038,6 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[
         {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
     ],
@@ -4430,6 +4395,13 @@ register(
 
 register(
     "preprod.snapshots.auto-approve-sibling-diffs.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "preprod.snapshots.objectstore.snapshots-usecase.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
