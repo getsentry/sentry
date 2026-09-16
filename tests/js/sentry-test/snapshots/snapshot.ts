@@ -8,19 +8,25 @@ import {renderToString} from 'react-dom/server';
 import createCache from '@emotion/cache';
 import {CacheProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
-import {chromium, type Browser} from 'playwright';
+import {chromium, selectors, type Browser} from 'playwright';
 
 import type {
   SnapshotImageMetadata,
   SnapshotTestMetadata,
 } from 'sentry-test/snapshots/snapshot-image-metadata';
 import {SnapshotContainer} from 'sentry-test/snapshots/snapshotContainer';
+import {
+  resolveSnapshotLocator,
+  type SnapshotLocator,
+} from 'sentry-test/snapshots/snapshotLocator';
 import {getSnapshotFeaturesTag} from 'sentry-test/snapshots/snapshotScenarios';
 
 import type {Organization} from 'sentry/types/organization';
 
 const PROJECT_ROOT = path.resolve(__dirname, '../../../..');
 const FONTS_DIR = path.resolve(PROJECT_ROOT, 'static/fonts');
+
+selectors.setTestIdAttribute('data-test-id');
 
 function getFontFaceCSS(): string {
   return `
@@ -119,15 +125,9 @@ interface TakeSnapshotOptions {
   viewportLabel?: string;
 }
 
-/**
- * A pointer interaction to perform before capturing, so snapshots can cover
- * `:hover` / `:active` states. Each value is a CSS selector; the first match is
- * used. `:focus-visible` is intentionally unsupported — Chromium only applies it
- * to keyboard-driven focus, so it cannot be forced reliably from a screenshot.
- */
 export interface SnapshotInteraction {
-  active?: string;
-  hover?: string;
+  state: 'hover' | 'active';
+  target: SnapshotLocator;
 }
 
 export async function takeSnapshot({
@@ -167,21 +167,26 @@ export async function takeSnapshot({
     // Wait for fonts to load
     await page.evaluate(() => document.fonts.ready);
 
-    // Drive pointer states (:hover / :active) before capturing, if requested.
-    let releaseActive: (() => Promise<void>) | undefined;
-    if (interaction?.hover) {
-      await page.locator(interaction.hover).first().hover();
-    }
-    if (interaction?.active) {
-      await page.locator(interaction.active).first().hover();
-      await page.mouse.down();
-      releaseActive = () => page.mouse.up();
-    }
+    let activeMouseDown = false;
+    let screenshot: Uint8Array;
+    try {
+      if (interaction) {
+        const target = await resolveSnapshotLocator(page, interaction.target);
+        await target.hover();
+        if (interaction.state === 'active') {
+          await page.mouse.down();
+          activeMouseDown = true;
+        }
+      }
 
-    const rootElement = page.locator('#root');
-    const screenshot = await rootElement.screenshot({type: 'png', omitBackground: true});
-
-    await releaseActive?.();
+      screenshot = await page
+        .locator('#root')
+        .screenshot({type: 'png', omitBackground: true});
+    } finally {
+      if (activeMouseDown) {
+        await page.mouse.up();
+      }
+    }
 
     const relativePath = path.relative(PROJECT_ROOT, testFilePath);
     const dirOfTestFile = path.dirname(relativePath);
@@ -204,6 +209,9 @@ export async function takeSnapshot({
     const featuresTag = getSnapshotFeaturesTag(features);
     if (featuresTag) {
       autoTags.features = featuresTag;
+    }
+    if (interaction) {
+      autoTags.interaction = interaction.state;
     }
     const tags = {...metadata.tags, ...autoTags};
 
