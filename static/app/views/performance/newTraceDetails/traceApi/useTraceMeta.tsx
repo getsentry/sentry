@@ -37,12 +37,12 @@ type TraceMetaQueryParams =
 
 function isEmptyMeta(meta: EAPTraceMeta): boolean {
   return (
-    getTraceMetaErrorCount(meta) === 0 &&
-    getTraceMetaLogsCount(meta) === 0 &&
-    getTraceMetaMetricsCount(meta) === 0 &&
-    getTraceMetaPerformanceIssueCount(meta) === 0 &&
-    getTraceMetaSpanCount(meta) === 0 &&
-    getTraceMetaUptimeCount(meta) === 0
+    meta.errorsCount === 0 &&
+    meta.logsCount === 0 &&
+    meta.metricsCount === 0 &&
+    meta.performanceIssuesCount === 0 &&
+    meta.spansCount === 0 &&
+    meta.uptimeCount === 0
   );
 }
 
@@ -65,66 +65,6 @@ function getMetaQueryParams(
             DEFAULT_STATS_PERIOD,
         }),
   };
-}
-
-type MetaArg = EAPTraceMeta | null | undefined;
-
-export function getTraceMetaErrorCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return meta.errorsCount;
-}
-
-export function getTraceMetaPerformanceIssueCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return meta.performanceIssuesCount;
-}
-
-export function getTraceMetaSpanCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return meta.spansCount;
-}
-
-export function getTraceMetaMetricsCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return meta.metricsCount;
-}
-
-export function getTraceMetaLogsCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return meta.logsCount;
-}
-
-export function getTraceMetaUptimeCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return meta.uptimeCount;
-}
-
-export function getTraceMetaAiSpanCount(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return Object.entries(meta.spansCountMap).reduce((count, [op, opCount]) => {
-    return op.startsWith('gen_ai') ? count + opCount : count;
-  }, 0);
-}
-
-export function getTraceMetaTransactionChildCountMap(meta: MetaArg) {
-  if (!meta) {
-    return;
-  }
-  return meta.transactionChildCountMap;
 }
 
 function mergeCountMap(acc: Record<string, number>, value: Record<string, number>): void {

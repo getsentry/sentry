@@ -2,13 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  getTraceMetaErrorCount,
-  getTraceMetaMetricsCount,
-  getTraceMetaSpanCount,
-  useTraceMeta,
-  type TraceMetaTrace,
-} from './useTraceMeta';
+import {useTraceMeta, type TraceMetaTrace} from './useTraceMeta';
 
 const organization = OrganizationFixture();
 
@@ -120,7 +114,7 @@ describe('useTraceMeta', () => {
       isLoading: false,
       status: 'success',
     });
-    expect(getTraceMetaMetricsCount(result.current.data)).toBe(6);
+    expect(result.current.data?.metricsCount).toBe(6);
   });
 
   it('accepts trace meta without transactionsCount', async () => {
@@ -308,8 +302,8 @@ describe('useTraceMeta', () => {
     expect(mockSlug1_90d).toHaveBeenCalledTimes(1);
     expect(mockSlug2_90d).toHaveBeenCalledTimes(1);
 
-    expect(getTraceMetaSpanCount(result.current.data)).toBe(2);
-    expect(getTraceMetaErrorCount(result.current.data)).toBe(2);
+    expect(result.current.data?.spansCount).toBe(2);
+    expect(result.current.data?.errorsCount).toBe(2);
   });
 
   it.each([
@@ -404,7 +398,7 @@ describe('useTraceMeta', () => {
 
     expect(mockSlug1_timestamp).toHaveBeenCalledTimes(1);
     expect(mockSlug1_90d).not.toHaveBeenCalled();
-    expect(getTraceMetaSpanCount(result.current.data)).toBe(0);
+    expect(result.current.data?.spansCount).toBe(0);
   });
 
   it('Accumulates metaResults and collects errors from rejected api calls', async () => {
