@@ -5,9 +5,10 @@ export function AnnotationFixture(params: Partial<Annotation> = {}): Annotation 
     type: 'system',
     category: 'span',
     reason: 'rate_limited',
+    outcome: 'rate_limited',
     start: 0,
     end: 60_000,
-    droppedCount: 1,
+    eventCount: 1,
     label: 'Rate limited',
     ...params,
   };

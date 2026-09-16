@@ -47,7 +47,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
-   * Whether to request annotations (dropped-data outcomes) on the response's `meta.annotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
+   * Whether to request annotations (dropped-data outcomes) on the response's `meta.droppedAnnotations` and `meta.acceptedAnnotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
    */
   includeAnnotations?: boolean;
   /**
@@ -196,14 +196,24 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
+/**
+ * One time bucket's volume for a system data-fidelity annotation. Whether an
+ * entry describes dropped or accepted volume comes from which `meta` list it is
+ * in.
+ */
 export interface Annotation {
   category: string;
-  droppedCount: number;
   end: number;
+  eventCount: number;
   label: string;
+  outcome: string;
   reason: string;
   start: number;
   type: string;
+  /**
+   * Only sent for datasets with a paired byte category (logs today).
+   */
+  byteSize?: number;
 }
 
 export type EventsTimeSeriesResponse = {
@@ -212,8 +222,17 @@ export type EventsTimeSeriesResponse = {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
-    annotations?: Annotation[];
+    /**
+     * One entry per bucket with accepted volume, emitted independently of
+     * drops. These are share denominators, not drops, so they must not be
+     * concatenated with `droppedAnnotations`.
+     */
+    acceptedAnnotations?: Annotation[];
     completeThrough?: number;
+    /**
+     * One entry per `(bucket, outcome, reason)` drop.
+     */
+    droppedAnnotations?: Annotation[];
     estimatedIngestionDelaySeconds?: number;
     ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
   };

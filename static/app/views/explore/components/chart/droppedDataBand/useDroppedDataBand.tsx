@@ -18,7 +18,8 @@ import {
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
 
-// TODO: this should change to read from the outcome property when backend changes are in
+// TODO: match on `annotation.outcome` instead. Left as a label match here to
+// keep the response-shape rename free of behavior changes.
 const CLIENT_DISCARD_LABEL = 'Client discard';
 
 // Styling constants

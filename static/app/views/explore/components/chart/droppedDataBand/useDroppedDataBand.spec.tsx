@@ -19,7 +19,7 @@ describe('useDroppedDataBand', () => {
 
   it('builds a series and reserves space when annotations are present', () => {
     const {result} = renderHookWithProviders(() =>
-      useDroppedDataBand({annotations: [AnnotationFixture({droppedCount: 10})]})
+      useDroppedDataBand({annotations: [AnnotationFixture({eventCount: 10})]})
     );
 
     expect(result.current.droppedDataSeries).not.toBeNull();
@@ -31,7 +31,7 @@ describe('useDroppedDataBand', () => {
   it('collapses the band when showDroppedData is false', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
-        annotations: [AnnotationFixture({droppedCount: 10})],
+        annotations: [AnnotationFixture({eventCount: 10})],
         showDroppedData: false,
       })
     );
@@ -44,7 +44,7 @@ describe('useDroppedDataBand', () => {
   it('ignores client discard annotations', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
-        annotations: [AnnotationFixture({label: 'Client discard', droppedCount: 10})],
+        annotations: [AnnotationFixture({label: 'Client discard', eventCount: 10})],
       })
     );
 
@@ -55,9 +55,9 @@ describe('useDroppedDataBand', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         annotations: [
-          AnnotationFixture({start: 0, end: 60_000, droppedCount: 10}),
-          AnnotationFixture({start: 0, end: 60_000, droppedCount: 5, reason: 'quota'}),
-          AnnotationFixture({start: 60_000, end: 120_000, droppedCount: 20}),
+          AnnotationFixture({start: 0, end: 60_000, eventCount: 10}),
+          AnnotationFixture({start: 0, end: 60_000, eventCount: 5, reason: 'quota'}),
+          AnnotationFixture({start: 60_000, end: 120_000, eventCount: 20}),
         ],
       })
     );
