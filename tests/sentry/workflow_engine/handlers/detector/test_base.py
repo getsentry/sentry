@@ -749,11 +749,11 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert result.result == {}
         assert result.tainted is False
 
-    def test_evaluate__no_result_without_values(self) -> None:
+    def test_evaluate__empty_values_are_evaluated_as_a_single_ungrouped_value(self) -> None:
         result = self.handler.evaluate(self.packet({}))
 
         assert result.result == {}
-        assert result.tainted is False
+        assert result.tainted is True
 
     def test_evaluate__fingerprints_each_group_separately(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
