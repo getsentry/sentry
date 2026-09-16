@@ -1343,6 +1343,10 @@ urlpatterns += [
                     include("sentry.integrations.slack.staging.urls"),
                 ),
                 re_path(
+                    r"^cursor_origin/",
+                    include("sentry.integrations.cursor_origin.urls"),
+                ),
+                re_path(
                     r"^github/",
                     include("sentry.integrations.github.urls"),
                 ),
