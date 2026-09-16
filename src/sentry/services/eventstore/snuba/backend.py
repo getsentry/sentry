@@ -31,7 +31,7 @@ from sentry.models.project import Project
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
-from sentry.services.eventstore.base import EventStorage, Filter
+from sentry.services.eventstore.base import EventCandidate, EventStorage, Filter
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -91,7 +91,40 @@ class SnubaEventStorage(EventStorage):
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
-        cols = self.__get_columns(dataset)
+        candidates = self.get_event_candidates_snql(
+            organization_id=organization_id,
+            group_id=group_id,
+            start=start,
+            end=end,
+            conditions=conditions,
+            orderby=orderby,
+            limit=limit,
+            inner_limit=inner_limit,
+            offset=offset,
+            referrer=referrer,
+            dataset=dataset,
+            tenant_ids=tenant_ids,
+        )
+        events = [candidate.event for candidate in candidates]
+        self.bind_nodes(events)
+        return events
+
+    def get_event_candidates_snql(
+        self,
+        organization_id: int,
+        group_id: int,
+        start: datetime | None,
+        end: datetime | None,
+        conditions: Sequence[Condition],
+        orderby: Sequence[str],
+        limit: int = DEFAULT_LIMIT,
+        inner_limit: int | None = None,
+        offset: int = DEFAULT_OFFSET,
+        referrer: str = "eventstore.get_events_snql",
+        dataset: Dataset = Dataset.Events,
+        tenant_ids: Mapping[str, Any] | None = None,
+    ) -> list[EventCandidate]:
+        cols = [*self.__get_columns(dataset), "trace_id"]
 
         resolved_order_by = []
         order_by_col_names: set[str] = set()
@@ -221,9 +254,10 @@ class SnubaEventStorage(EventStorage):
         result = raw_snql_query(snql_request, referrer, use_cache=False)
 
         if "error" not in result:
-            events = [self.__make_event(evt) for evt in result["data"]]
-            self.bind_nodes(events)
-            return events
+            return [
+                EventCandidate(event=self.__make_event(row), trace_id=row["trace_id"])
+                for row in result["data"]
+            ]
 
         return []
 

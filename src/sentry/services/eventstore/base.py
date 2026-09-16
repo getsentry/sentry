@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal, Self, overload
 
@@ -125,6 +126,14 @@ class Filter:
         return deepcopy(self)
 
 
+@dataclass(frozen=True)
+class EventCandidate:
+    """An unfetched event and its indexed trace ID, available without loading the body."""
+
+    event: Event
+    trace_id: str | None
+
+
 class EventStorage(Service):
     __all__ = (
         "minimal_columns",
@@ -132,6 +141,7 @@ class EventStorage(Service):
         "get_event_by_id",
         "get_events",
         "get_events_snql",
+        "get_event_candidates_snql",
         "get_unfetched_events",
         "get_adjacent_event_ids",
         "get_adjacent_event_ids_snql",
@@ -208,6 +218,24 @@ class EventStorage(Service):
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
     ) -> list[Event]:
+        raise NotImplementedError
+
+    def get_event_candidates_snql(
+        self,
+        organization_id: int,
+        group_id: int,
+        start: datetime | None,
+        end: datetime | None,
+        conditions: Sequence[Condition],
+        orderby: Sequence[str],
+        limit: int = 100,
+        inner_limit: int | None = None,
+        offset: int = 0,
+        referrer: str = "eventstore.get_events_snql",
+        dataset: Dataset = Dataset.Events,
+        tenant_ids: Mapping[str, Any] | None = None,
+    ) -> list[EventCandidate]:
+        """Query ordered candidates and their trace IDs without fetching event bodies."""
         raise NotImplementedError
 
     def get_unfetched_events(
