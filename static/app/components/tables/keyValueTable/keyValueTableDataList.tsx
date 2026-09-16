@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -34,11 +33,7 @@ export function KeyValueTableDataList({
   const rows = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
-    <Table
-      margin={margin}
-      className={classNames('table key-value', className)}
-      {...props}
-    >
+    <Table margin={margin} className={className} {...props}>
       <tbody>
         {rows.map((item, index) => (
           <Row
@@ -111,10 +106,48 @@ function Row({
   );
 }
 
+// Literal px values below are carried over verbatim from the `table.table.key-value`
+// rules this component used to inherit from global LESS. They are normalized onto
+// theme tokens in a later commit; keeping them exact here is what makes this move
+// a pure relocation with no visual change.
 const Table = styled('table')<{margin: boolean}>`
-  && {
-    margin-bottom: ${p => (p.margin ? undefined : 0)};
+  width: 100%;
+  max-width: 100%;
+  border: none;
+  margin-bottom: ${p => (p.margin ? '20px' : 0)};
+
+  td {
+    padding: 0;
+    max-width: 500px;
+    border: 0;
+    vertical-align: top;
+    line-height: 1;
   }
+
+  td.key {
+    font-weight: 600;
+    font-size: 13px;
+    width: 175px;
+    max-width: 175px;
+    word-wrap: break-word;
+    padding: 10px 15px 10px 10px;
+    line-height: 1.4;
+  }
+
+  td pre {
+    box-sizing: border-box;
+    white-space: pre-wrap;
+    margin: 2px 0;
+    word-break: break-word;
+    padding: 8px 10px;
+    font-size: 12px;
+    overflow: visible;
+  }
+
+  td pre .val-string:first-child {
+    padding-left: 0;
+  }
+
   > * pre > pre {
     margin: 0 !important;
     padding: 0 !important;
