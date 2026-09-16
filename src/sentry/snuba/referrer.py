@@ -227,6 +227,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_WEB_VITAL_TRANSACTION = "api.insights.web-vitals.transaction"
     API_INSIGHTS_WEB_VITAL_TRANSACTIONS_SCORES = "api.insights.web-vitals.transactions-scores"
     API_INSIGHTS_WEB_VITAL_PROFILE_EXISTS = "api.insights.web-vitals.profile-exists"
+    API_INSIGHTS_WEB_VITAL_NAVIGATION_TYPE_COUNTS = "api.insights.web-vitals.navigation-type-counts"
 
     # Mobile vitals
     API_INSIGHTS_MOBILE_UI_SPAN_OPERATION_TABLE = "api.insights.mobile.ui.span-table"
