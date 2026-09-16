@@ -55,6 +55,7 @@ def _install_state(pipeline: IntegrationPipeline) -> str:
         pipeline.bind_state("install_state", state)
     return state
 
+
 class ExternalInstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
     """Initial pipeline data for an install started from Origin.
 
