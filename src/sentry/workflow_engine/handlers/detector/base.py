@@ -321,21 +321,27 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
         with `None` as the key, to normalize the type as `dict[DetectorGroupKey, DataPacketEvaluationType]`.
         """
         data_values = self.extract_value(data_packet)
+        group_data_values: dict[DetectorGroupKey, DataPacketEvaluationType] = {}
 
+        # Normalize the type to dict[DetectorGroupKey, DataPacketEvaluationType]
         if self._is_detector_group_value(data_values):
-            return cast(dict[DetectorGroupKey, DataPacketEvaluationType], data_values)
+            group_data_values = cast(dict[DetectorGroupKey, DataPacketEvaluationType], data_values)
+        else:
+            group_data_values = {None: cast(DataPacketEvaluationType, data_values)}
 
-        return {None: cast(DataPacketEvaluationType, data_values)}
+        return group_data_values
 
     def _is_detector_group_value(self, value: Any) -> bool:
         """
         Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
-
-        An empty dict is a grouped value with no groups to evaluate.
         """
         if not isinstance(value, dict):
             return False
 
+        if not value:  # Empty dict case
+            return False
+
+        # Check if all keys are DetectorGroupKey instances
         return all(isinstance(key, DetectorGroupKey) for key in value.keys())
 
     def _build_detector_evaluation(
