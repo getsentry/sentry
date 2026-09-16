@@ -60,10 +60,3 @@ export function getLandingDisplayFromParam(location: Location) {
   const display = LANDING_DISPLAYS.find(({field}) => field === landingField);
   return display;
 }
-
-export function checkIsReactNative(eventView: EventView) {
-  // only react native should contain the stall percentage column
-  return eventView
-    .getFields()
-    .some(field => field.includes('measurements.stall_percentage'));
-}
