@@ -21,6 +21,7 @@ from ..exceptions import (
     ApiConnectionResetError,
     ApiError,
     ApiHostError,
+    ApiRestrictedIPError,
     ApiRetryError,
     ApiTimeoutError,
 )
@@ -370,7 +371,7 @@ class BaseApiClient:
                 resp.raise_for_status()
         except RestrictedIPAddress as e:
             self.track_response_data("restricted_ip_address", e, extra=extra)
-            raise ApiHostError.from_exception(e) from e
+            raise ApiRestrictedIPError.from_exception(e) from e
         except ConnectionError as e:
             self.track_response_data("connection_error", e, extra=extra)
             raise ApiHostError.from_exception(e) from e

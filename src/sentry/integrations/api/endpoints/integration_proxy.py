@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 
 from django.conf import settings
 from django.http import HttpRequest, HttpResponseBadRequest, StreamingHttpResponse
+from django.http.response import HttpResponseBase
 from requests import Request, Response
 from requests.exceptions import RequestException
 from rest_framework.negotiation import BaseContentNegotiation
@@ -32,12 +33,14 @@ from sentry.shared_integrations.exceptions import (
     ApiForbiddenError,
     ApiHostError,
     ApiRateLimitedError,
+    ApiRestrictedIPError,
     ApiTimeoutError,
     ApiUnauthorized,
 )
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
     PROXY_BASE_URL_HEADER,
+    PROXY_INTERNAL_FAILURE_HEADER,
     PROXY_KEYID_HEADER,
     PROXY_OI_HEADER,
     PROXY_PATH,
@@ -76,10 +79,34 @@ class IntegrationProxyFailureMetricType(StrEnum):
     STREAM_INTERRUPTED = "stream_interrupted"
     HOST_UNREACHABLE_ERROR = "host_unreachable_error"
     HOST_TIMEOUT_ERROR = "host_timeout_error"
+    RESTRICTED_IP_ERROR = "restricted_ip_error"
     UNAUTHORIZED_ERROR = "unauthorized_error"
     RATE_LIMITED_ERROR = "rate_limited_error"
     FORBIDDEN_ERROR = "forbidden_error"
     UNKNOWN_ERROR = "unknown_error"
+
+
+INTERNAL_FAILURE_TYPES = [
+    # The validation failures: the request never left the Control Silo.
+    IntegrationProxyFailureMetricType.INVALID_MODE,
+    IntegrationProxyFailureMetricType.INVALID_SENDER_HEADERS,
+    IntegrationProxyFailureMetricType.INVALID_SENDER_SIGNATURE,
+    IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION_HEADERS,
+    IntegrationProxyFailureMetricType.INVALID_ORG_INTEGRATION,
+    IntegrationProxyFailureMetricType.INVALID_INTEGRATION,
+    IntegrationProxyFailureMetricType.INVALID_CLIENT,
+    IntegrationProxyFailureMetricType.INVALID_IDENTITY,
+    IntegrationProxyFailureMetricType.RESTRICTED_IP_ERROR,
+    # This is mostly a catch-all for unhandled exceptions, see the associated
+    # logs to reclassify these accordingly.
+    IntegrationProxyFailureMetricType.UNKNOWN_ERROR,
+]
+"""
+List of failure types that are considered internal proxy failures, meaning we
+likely never got a response from the upstream provider. These should mark
+validation and internal failures, and are used to set the
+PROXY_INTERNAL_FAILURE_HEADER header value on the response.
+"""
 
 
 class _PassthroughContentNegotiation(BaseContentNegotiation):
@@ -366,14 +393,46 @@ class InternalIntegrationProxyEndpoint(Endpoint):
             tags=tags,
         )
 
-    def _add_failure_metric(
+    def _record_failure(
         self,
         failure_type: IntegrationProxyFailureMetricType,
+        response: HttpResponseBase | None = None,
     ) -> None:
+        """
+        Helper method to track failure metrics, and pass through the
+        PROXY_INTERNAL_FAILURE_HEADER header on the response for clients to
+        classify failures appropriately.
+        """
+        header_value = "true" if failure_type in INTERNAL_FAILURE_TYPES else "false"
+
         self._add_metric(
             metric_name="proxy_failure",
             sample_rate=1.0,
-            tags={"failure_type": failure_type.value, "provider": self.provider},
+            tags={
+                "failure_type": failure_type.value,
+                "provider": self.provider,
+                "internal_failure": header_value,
+            },
+        )
+
+        if response is not None:
+            response[PROXY_INTERNAL_FAILURE_HEADER] = header_value
+
+    def _record_success(self, response: HttpResponseBase) -> None:
+        """
+        Counterpart to `_record_failure` for a fully proxied response. The status may still
+        be a 4xx/5xx, but it is the provider's answer rather than ours, so it is never an
+        internal failure.
+        """
+        response[PROXY_INTERNAL_FAILURE_HEADER] = "false"
+        self._add_metric(
+            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
+            sample_rate=1.0,
+            tags={
+                "status": response.status_code,
+                "provider": self.provider,
+                "internal_failure": "false",
+            },
         )
 
     @trace
@@ -415,8 +474,11 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                             "exception_class": type(e).__name__,
                         },
                     )
-                    self._add_failure_metric(IntegrationProxyFailureMetricType.STREAM_INTERRUPTED)
-                    return
+                    self._record_failure(IntegrationProxyFailureMetricType.STREAM_INTERRUPTED)
+                    # Re-raise so Django drops the connection. Swallowing it would hand the
+                    # caller a truncated body under a success status, which is
+                    # indistinguishable from a complete response.
+                    raise
 
         return StreamingHttpResponse(
             iter_response(resp),
@@ -440,10 +502,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                     failure_reason=e.failure_type.value, extra={**e.integration_context}
                 )
                 self.provider = e.integration_context["provider"]
-                self._add_failure_metric(
-                    failure_type=e.failure_type,
-                )
-                return HttpResponseBadRequest()
+                invalid_request_response = HttpResponseBadRequest()
+                self._record_failure(e.failure_type, invalid_request_response)
+                return invalid_request_response
 
             self.proxy_path = validator.proxy_path
             self.client = validator.client
@@ -490,11 +551,7 @@ class InternalIntegrationProxyEndpoint(Endpoint):
                 request=request, full_url=full_url, headers=headers
             )
 
-        self._add_metric(
-            metric_name=IntegrationProxySuccessMetricType.COMPLETE_RESPONSE_CODE,
-            sample_rate=1.0,
-            tags={"status": response.status_code, "provider": self.provider},
-        )
+        self._record_success(response)
         return response
 
     def handle_exception_with_details(
@@ -506,34 +563,49 @@ class InternalIntegrationProxyEndpoint(Endpoint):
     ) -> DRFResponse:
         if isinstance(exc, IdentityNotValid):
             logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
-            self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_IDENTITY)
-            return self.respond(status=400)
+            response = self.respond(status=400)
+            self._record_failure(IntegrationProxyFailureMetricType.INVALID_IDENTITY, response)
+            return response
+        # Checked before ApiHostError, which it subclasses and would otherwise be shadowed by.
+        elif isinstance(exc, ApiRestrictedIPError):
+            logger.warning(
+                "hybrid_cloud.integration_proxy.restricted_ip_error", extra=self.log_extra
+            )
+            response = self.respond(status=exc.code)
+            self._record_failure(IntegrationProxyFailureMetricType.RESTRICTED_IP_ERROR, response)
+            return response
         elif isinstance(exc, ApiHostError):
             logger.info(
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
             )
-            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR)
-            return self.respond(status=exc.code)
+            response = self.respond(status=exc.code)
+            self._record_failure(IntegrationProxyFailureMetricType.HOST_UNREACHABLE_ERROR, response)
+            return response
         elif isinstance(exc, ApiTimeoutError):
             logger.info("hybrid_cloud.integration_proxy.host_timeout_error", extra=self.log_extra)
-            self._add_failure_metric(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR)
-            return self.respond(status=exc.code)
+            response = self.respond(status=exc.code)
+            self._record_failure(IntegrationProxyFailureMetricType.HOST_TIMEOUT_ERROR, response)
+            return response
         elif isinstance(exc, ApiUnauthorized):
             logger.info("hybrid_cloud.integration_proxy.unauthorized_error", extra=self.log_extra)
-            self._add_failure_metric(IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR)
-            return self.respond(status=exc.code)
+            response = self.respond(status=exc.code)
+            self._record_failure(IntegrationProxyFailureMetricType.UNAUTHORIZED_ERROR, response)
+            return response
         elif isinstance(exc, ApiRateLimitedError):
             logger.info("hybrid_cloud.integration_proxy.rate_limited_error", extra=self.log_extra)
-            self._add_failure_metric(IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR)
-            return self.respond(status=exc.code)
+            response = self.respond(status=exc.code)
+            self._record_failure(IntegrationProxyFailureMetricType.RATE_LIMITED_ERROR, response)
+            return response
         elif isinstance(exc, ApiForbiddenError):
             logger.info("hybrid_cloud.integration_proxy.forbidden_error", extra=self.log_extra)
-            self._add_failure_metric(IntegrationProxyFailureMetricType.FORBIDDEN_ERROR)
-            return self.respond(status=exc.code)
+            response = self.respond(status=exc.code)
+            self._record_failure(IntegrationProxyFailureMetricType.FORBIDDEN_ERROR, response)
+            return response
 
         logger.warning(
             "hybrid_cloud.integration_proxy.unknown_error",
             extra={**self.log_extra, "exception_class": type(exc).__name__},
         )
-        self._add_failure_metric(IntegrationProxyFailureMetricType.UNKNOWN_ERROR)
-        return super().handle_exception_with_details(request, exc, handler_context, scope)
+        response = super().handle_exception_with_details(request, exc, handler_context, scope)
+        self._record_failure(IntegrationProxyFailureMetricType.UNKNOWN_ERROR, response)
+        return response

@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
 from pytest import raises
-from requests import Request
+from requests import Request, Response
+from requests.exceptions import ChunkedEncodingError
 
 from sentry.constants import ObjectStatus
 from sentry.net.http import Session
@@ -12,9 +13,16 @@ from sentry.shared_integrations.client.proxy import (
     get_control_silo_ip_address,
     infer_org_integration,
 )
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
+    ApiError,
+    ApiInvalidRequestError,
+    ApiRestrictedIPError,
+    IntegrationProxyInternalError,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
+    PROXY_INTERNAL_FAILURE_HEADER,
     PROXY_OI_HEADER,
     PROXY_PATH,
     PROXY_SIGNATURE_HEADER,
@@ -152,12 +160,119 @@ class IntegrationProxyClientTest(TestCase):
         client.set_proxy_request_options(prepared_request, timeout=60.0)
         assert PROXY_TIMEOUT_HEADER not in prepared_request.headers
 
+    @patch.object(Session, "send", side_effect=ChunkedEncodingError("Connection broken"))
+    def test_truncated_proxy_response_raises_connection_reset(
+        self, mock_session_send: MagicMock
+    ) -> None:
+        """
+        Control aborts a StreamingHttpResponse mid-body when the provider's stream breaks.
+        The caller must see a connection failure rather than a raw requests exception it
+        has no way to classify.
+        """
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        with raises(ApiConnectionResetError):
+            client.get(f"{self.base_url}/some/endpoint")
+
+    @patch.object(
+        IntegrationProxyClient,
+        "authorize_request",
+        side_effect=lambda prepared_request: prepared_request,
+    )
+    @patch.object(Session, "send", side_effect=ChunkedEncodingError("Connection broken"))
+    def test_truncated_response_propagates_unchanged_without_proxy(
+        self, mock_session_send: MagicMock, mock_authorize: MagicMock
+    ) -> None:
+        """Outside the proxy-to-control path the exception is left exactly as-is."""
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = False
+
+        with raises(ChunkedEncodingError):
+            client.get(f"{self.base_url}/some/endpoint")
+
+    @staticmethod
+    def build_proxy_response(status_code: int, internal_failure: str | None = None) -> Response:
+        """A response as the Control Silo proxy would return it."""
+        response = Response()
+        response.status_code = status_code
+        response._content = b'{"detail": "nope"}'
+        response.headers["Content-Type"] = "application/json"
+        if internal_failure is not None:
+            response.headers[PROXY_INTERNAL_FAILURE_HEADER] = internal_failure
+        return response
+
+    def test_internal_proxy_failure_is_distinguishable(self) -> None:
+        """
+        The proxy's own 400 must not reach the caller as a provider-shaped error. Without the
+        header it would be indistinguishable from the third party answering 400.
+        """
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        with patch.object(
+            Session, "send", return_value=self.build_proxy_response(400, internal_failure="true")
+        ):
+            with raises(IntegrationProxyInternalError) as exc_info:
+                client.get(f"{self.base_url}/some/endpoint")
+
+        # The status is preserved so callers reading `.code` keep working.
+        assert exc_info.value.code == 400
+
+    def test_upstream_failure_is_left_alone(self) -> None:
+        """A failure the proxy attributes to the provider keeps its usual type."""
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        with patch.object(
+            Session, "send", return_value=self.build_proxy_response(503, internal_failure="false")
+        ):
+            with raises(ApiError) as exc_info:
+                client.get(f"{self.base_url}/some/endpoint")
+
+        assert not isinstance(exc_info.value, IntegrationProxyInternalError)
+        assert exc_info.value.code == 503
+
+    def test_response_without_header_is_unchanged(self) -> None:
+        """
+        A response predating the header, or from something other than the proxy, falls through
+        to the existing status-based mapping rather than being assumed internal.
+        """
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = True
+
+        with patch.object(Session, "send", return_value=self.build_proxy_response(400)):
+            with raises(ApiInvalidRequestError):
+                client.get(f"{self.base_url}/some/endpoint")
+
+    @patch.object(
+        IntegrationProxyClient,
+        "authorize_request",
+        side_effect=lambda prepared_request: prepared_request,
+    )
+    def test_internal_failure_header_ignored_without_proxy(self, mock_authorize: MagicMock) -> None:
+        """
+        Outside the proxy-to-control path the header carries no authority — only the Control
+        Silo sets it, and it is scrubbed from third-party responses.
+        """
+        client = self.client_cls(org_integration_id=self.oi_id)
+        client._should_proxy_to_control = False
+
+        with patch.object(
+            Session, "send", return_value=self.build_proxy_response(400, internal_failure="true")
+        ):
+            with raises(ApiInvalidRequestError):
+                client.get(f"{self.base_url}/some/endpoint")
+
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
     def test_invalid_control_silo_ip_address(
         self, mock_getaddrinfo, mock_get_control_silo_ip_address
     ):
-        with patch("sentry_sdk.capture_exception") as mock_capture_exception, raises(ApiHostError):
+        with (
+            patch("sentry_sdk.capture_exception") as mock_capture_exception,
+            raises(ApiRestrictedIPError),
+        ):
             mock_get_control_silo_ip_address.return_value = ipaddress.ip_address("127.0.0.1")
             mock_getaddrinfo.return_value = [(2, 1, 6, "", ("172.31.255.255", 0))]
             client = self.client_cls(org_integration_id=self.oi_id)
