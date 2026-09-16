@@ -174,14 +174,10 @@ export function buildConversationTurns(
 ): ConversationTurn[] {
   const turns: ConversationTurn[] = [];
 
-  for (let i = 0; i < generationSpans.length; i++) {
-    const node = generationSpans[i];
-    if (!node) {
-      continue;
-    }
-
+  for (const [index, node] of generationSpans.entries()) {
     const timestamp = getNodeTimestamp(node);
-    const prevTimestamp = i > 0 ? getNodeTimestamp(generationSpans[i - 1]!) : 0;
+    const previousNode = generationSpans[index - 1];
+    const prevTimestamp = previousNode ? getNodeTimestamp(previousNode) : 0;
     const userEmail = getStringAttr(node, SpanFields.USER_EMAIL);
     const toolCallSpans = findToolSpansBetween(toolSpans, prevTimestamp, timestamp);
     const toolCalls = toolCallSpans
