@@ -10,7 +10,7 @@ interface ScmStepHeaderProps {
 
 export function ScmStepHeader({heading, subtitle}: ScmStepHeaderProps) {
   return (
-    <Stack gap="md" width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH} paddingBottom="xl">
+    <Stack gap="md" width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH} paddingBottom="2xl">
       <Heading as="h2" size="3xl" align="center">
         {heading}
       </Heading>
