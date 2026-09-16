@@ -255,7 +255,6 @@ export function Table({
     <TableContext value={contextValue}>
       <TableGrid
         {...props}
-        columnCount={resolvedColumns.length}
         hiddenColumnIndexes={resolvedColumns.flatMap((column, index) =>
           column.hidden ? [index] : []
         )}

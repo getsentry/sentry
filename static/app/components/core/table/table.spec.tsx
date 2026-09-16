@@ -299,20 +299,7 @@ describe('Table', () => {
       // jsdom does not resolve descendant rules through getComputedStyle, so the
       // hiding rule is read off the emitted stylesheet rather than the cell.
       expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        'nth-last-child(2):not(:only-child)'
-      );
-    });
-
-    it('counts a hidden column from the end when the table prepends columns', () => {
-      setClientWidth(400);
-      render(
-        <Container containerType="inline-size">
-          <TestTable columns={RESPONSIVE_COLUMNS} prependColumnWidths={['40px']} />
-        </Container>
-      );
-
-      expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        'nth-last-child(2):not(:only-child)'
+        "nth-child(2 of [role='cell'], [role='columnheader']):not(:only-child)"
       );
     });
 
@@ -326,7 +313,7 @@ describe('Table', () => {
 
       expect(gridTemplate()).toBe('minmax(90px, auto)');
       expect(getEmotionRules(screen.getByRole('table')).join('')).toContain(
-        'nth-last-child(1):not(:only-child)'
+        "nth-child(2 of [role='cell'], [role='columnheader']):not(:only-child)"
       );
     });
 

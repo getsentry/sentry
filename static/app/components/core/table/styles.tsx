@@ -9,7 +9,6 @@ const Z_INDEX_RESIZER = 1;
 const Z_INDEX_STICKY_HEAD = 2;
 
 interface TableGridProps {
-  columnCount?: number;
   hiddenColumnIndexes?: number[];
 }
 
@@ -24,7 +23,7 @@ export const TableGrid = styled('table')<TableGridProps>`
   ${p =>
     p.hiddenColumnIndexes?.map(
       index => css`
-        tr > *:nth-last-child(${(p.columnCount ?? 0) - index}):not(:only-child) {
+        tr > *:nth-child(${index + 1} of [role='cell'], [role='columnheader']):not(:only-child) {
           display: none;
         }
       `
