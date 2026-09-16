@@ -48,7 +48,10 @@ from sentry.seer.autofix.pr_iteration.emit import (
     complete_pr_iteration_details,
     outcome_for_failed_run,
 )
-from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    latest_iteration_feedback_kind,
+    parse_feedback,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -951,7 +954,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if outcome is None:
                 metrics.incr(
                     "autofix.pr_iteration.step",
-                    tags={"checkpoint": "code_change_completed", "referrer": referrer.value},
+                    tags={
+                        "checkpoint": "code_change_completed",
+                        "referrer": referrer.value,
+                        "feedback_kind": latest_iteration_feedback_kind(state),
+                    },
                     sample_rate=1.0,
                 )
                 # A push was attempted and succeeded. Not terminal yet -- we wait
@@ -967,7 +974,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if outcome == PrIterationOutcome.ALREADY_PUSHED:
                 metrics.incr(
                     "autofix.pr_iteration.step",
-                    tags={"checkpoint": "iteration_completed", "referrer": referrer.value},
+                    tags={
+                        "checkpoint": "iteration_completed",
+                        "referrer": referrer.value,
+                        "feedback_kind": latest_iteration_feedback_kind(state),
+                    },
                     sample_rate=1.0,
                 )
 
@@ -1230,7 +1241,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes")
             metrics.incr(
                 "autofix.pr_iteration.step",
-                tags={"checkpoint": "no_code_change", "referrer": referrer.value},
+                tags={
+                    "checkpoint": "no_code_change",
+                    "referrer": referrer.value,
+                    "feedback_kind": latest_iteration_feedback_kind(state),
+                },
                 sample_rate=1.0,
             )
             return PrIterationOutcome.NO_CODE_CHANGES
@@ -1263,7 +1278,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         metrics.incr(
             "autofix.pr_iteration.step",
-            tags={"checkpoint": "code_change_started", "referrer": referrer.value},
+            tags={
+                "checkpoint": "code_change_started",
+                "referrer": referrer.value,
+                "feedback_kind": latest_iteration_feedback_kind(state),
+            },
             sample_rate=1.0,
         )
 
