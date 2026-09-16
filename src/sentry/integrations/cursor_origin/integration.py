@@ -196,7 +196,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
 
 
 DESCRIPTION = """
-Connect your Cursor Origin repositories to Sentry. Origin is Cursor's git forge --
+Connect your Cursor Origin repositories to Sentry. Origin is SpaceXAI's git forge --
 linking it lets Sentry suggest the right platform when you create a project and map
 stack traces back to source.
 """

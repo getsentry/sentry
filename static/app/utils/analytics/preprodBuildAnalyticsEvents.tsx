@@ -96,6 +96,7 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.snapshots.details.approve_clicked': {
     build_id: string;
+    forced: boolean;
     organization: Organization;
   };
   'preprod.snapshots.details.diff_mode_changed': {

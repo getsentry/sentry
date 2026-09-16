@@ -1,13 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {EntryType} from 'sentry/types/event';
-import {
-  isSpanNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {isTransactionNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
+import {SpanNode} from './traceTreeNode/spanNode';
 import {IssuesTraceTree} from './issuesTraceTree';
 import {
   makeEventTransaction,
@@ -202,7 +200,7 @@ describe('IssuesTraceTree', () => {
       });
 
       const span = tree.root.findChild(
-        node => isSpanNode(node) && node.value.span_id === 'error-span-id'
+        node => node instanceof SpanNode && node.value.span_id === 'error-span-id'
       )!;
       expect(tree.build().collapseList([span], 3, 0).serialize()).toMatchSnapshot();
     });

@@ -17,6 +17,7 @@ import {
   isEquation,
   isEquationAlias,
   parseFunction,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
@@ -29,6 +30,7 @@ import {ArithmeticInput} from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 
 export const CUSTOM_EQUATION_VALUE = 'custom-equation';
 
@@ -174,14 +176,11 @@ export function SortBySelectors({
           ) : (
             <QueryField
               disabled={disableSort}
-              fieldValue={
-                // Fields in metrics widgets would parse as function in explodeField
-                widgetType === WidgetType.METRICS
-                  ? {kind: 'field', field: values.sortBy}
-                  : showCustomEquation
-                    ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                    : explodeField({field: values.sortBy})
-              }
+              fieldValue={getTimeseriesSortFieldValue(
+                values.sortBy,
+                widgetType,
+                showCustomEquation
+              )}
               fieldOptions={timeseriesSortOptions}
               filterPrimaryOptions={
                 datasetConfig.filterSeriesSortOptions
@@ -300,3 +299,24 @@ const Wrapper = styled('div')`
 const ArithmeticInputWrapper = styled('div')`
   grid-column: 1/-1;
 `;
+
+function getTimeseriesSortFieldValue(
+  sortBy: string,
+  widgetType: WidgetType,
+  showCustomEquation: boolean
+): QueryFieldValue {
+  // Fields in metrics widgets would parse as function in explodeField
+  if (widgetType === WidgetType.METRICS) {
+    return {kind: 'field', field: sortBy};
+  }
+  if (showCustomEquation) {
+    return explodeField({field: CUSTOM_EQUATION_VALUE});
+  }
+  // Keep Explore `_if` combinators as fields so QueryField can match the
+  // injected sort option. explodeField would parse them as `avg_if` / `p95_if`,
+  // which are not in the generic aggregate catalog.
+  if (hasConditionalAggregateFilter(sortBy)) {
+    return {kind: 'field', field: sortBy};
+  }
+  return explodeField({field: sortBy});
+}

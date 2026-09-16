@@ -38,6 +38,7 @@ interface Options<Fields> {
   disableAggregateExtrapolation?: string;
   enabled?: boolean;
   fields?: string[];
+  includeAnnotations?: boolean;
   includeMeasuredIngestionDelayMetadata?: boolean;
   interval?: string;
   logQuery?: string[];
@@ -72,6 +73,7 @@ export const useSortedTimeSeries = <
     logQuery,
     metricQuery,
     spanQuery,
+    includeAnnotations,
     includeMeasuredIngestionDelayMetadata,
   } = options;
 
@@ -120,6 +122,7 @@ export const useSortedTimeSeries = <
       interval,
       includeMeasuredIngestionDelayMetadata,
       sampling: samplingMode,
+      includeAnnotations,
       extrapolate: !disableAggregateExtrapolation,
       queryOptions: {
         enabled: enabled && pageFilters.isReady,
