@@ -1163,7 +1163,7 @@ describe('DetectorEdit', () => {
       );
     });
 
-    it('displays slug errors on the name field and in a toast', async () => {
+    it('displays slug errors in a toast', async () => {
       const errorMessage = 'The slug "new-test-cron-job" is already in use.';
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
@@ -1185,8 +1185,8 @@ describe('DetectorEdit', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
-      // The slug error is mapped to the name field and also shown in a toast.
-      expect(await screen.findAllByText(errorMessage)).toHaveLength(2);
+      // The slug error is mapped to the name field and surfaced in a toast.
+      await screen.findByText(errorMessage);
       expect(
         within(screen.getByRole('region', {name: /Notifications/})).getByText(
           errorMessage

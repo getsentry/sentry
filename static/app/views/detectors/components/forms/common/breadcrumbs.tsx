@@ -1,8 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useContext} from 'react';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
-import {FormField} from 'sentry/components/forms/formField';
+import {FormContext} from 'sentry/components/forms/formContext';
+import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
@@ -14,30 +15,24 @@ import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeCon
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 function EditableDetectorName() {
+  const {form} = useContext(FormContext);
+  const value = useFormField<string>('name');
   const {setHasSetDetectorName} = useDetectorFormContext();
 
   return (
-    <FormField name="name" inline={false} flexibleControlStateSize stacked>
-      {({onChange, value}) => (
-        <BreadcrumbList.Title
-          item={{
-            type: 'editable-title',
-            allowEmpty: true,
-            value: value || '',
-            onChange: newValue => {
-              onChange(newValue, {
-                target: {
-                  value: newValue,
-                },
-              });
-              setHasSetDetectorName(true);
-            },
-            placeholder: t('New Monitor'),
-            'aria-label': t('Monitor Name'),
-          }}
-        />
-      )}
-    </FormField>
+    <BreadcrumbList.Title
+      item={{
+        type: 'editable-title',
+        allowEmpty: true,
+        value: value || '',
+        onChange: newValue => {
+          setHasSetDetectorName(true);
+          form?.setValue('name', newValue);
+        },
+        placeholder: t('New Monitor'),
+        'aria-label': t('Monitor Name'),
+      }}
+    />
   );
 }
 
