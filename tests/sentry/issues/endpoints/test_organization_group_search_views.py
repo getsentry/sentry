@@ -447,6 +447,55 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "timeFilters" in response.data
 
     @with_feature({"organizations:issue-views": True})
+    def test_invalid_query_with_boolean_operator(self) -> None:
+        """Issue search has allow_boolean=False, so AND/OR must be rejected on write."""
+        data = {
+            "name": "Boolean Query View",
+            "query": "is:unresolved (issue:PROJ-AB1 OR issue:PROJ-CD2)",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_error_response(self.organization.slug, **data)
+        assert "query" in response.data
+        assert "not supported in this search" in str(response.data["query"])
+
+        assert not GroupSearchView.objects.filter(
+            organization=self.organization, name="Boolean Query View"
+        ).exists()
+
+    @with_feature({"organizations:issue-views": True})
+    def test_create_view_with_issue_list_query(self) -> None:
+        """The list form is how you match several issues; it must keep working."""
+        data = {
+            "name": "Issue List View",
+            "query": "is:unresolved issue:[PROJ-AB1, PROJ-CD2]",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+        assert response.data["query"] == "is:unresolved issue:[PROJ-AB1, PROJ-CD2]"
+
+    @with_feature({"organizations:issue-views": True})
+    def test_create_view_with_blank_query(self) -> None:
+        data = {
+            "name": "Blank Query View",
+            "query": "",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+        assert response.data["query"] == ""
+
+    @with_feature({"organizations:issue-views": True})
     def test_nonexistent_project(self) -> None:
         data = {
             "name": "Nonexistent Project View",

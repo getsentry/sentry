@@ -6,6 +6,8 @@ from rest_framework import serializers
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewTimeFilters
 from sentry.api.serializers.rest_framework import ValidationError
 from sentry.apidocs.omissions import sentry_schema_serializer
+from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
@@ -58,7 +60,13 @@ class ViewValidator(serializers.Serializer):
     id = serializers.CharField(required=False, help_text="The ID of the issue view.")
     name = serializers.CharField(required=True, help_text="The name of the issue view.")
     query = serializers.CharField(
-        required=True, allow_blank=True, help_text="The issue search query."
+        required=True,
+        allow_blank=True,
+        help_text=(
+            "The issue search query. Issue search does not support the `AND`/`OR` boolean "
+            "operators or parenthesized boolean groups. To match any of several values, use "
+            "the list form instead: `issue:[PROJ-AB1, PROJ-CD2]`, `issue.priority:[high, medium]`."
+        ),
     )
     querySort = serializers.ChoiceField(
         required=False,
@@ -86,6 +94,16 @@ class ViewValidator(serializers.Serializer):
         allow_empty=False,
         help_text="The time range for the view.",
     )
+
+    def validate_query(self, value: str) -> str:
+        # The view is stored verbatim and only parsed when someone opens it, so an
+        # unparseable query saves fine and then 400s at read time. Parse here so the
+        # write fails with the parser's own message instead.
+        try:
+            parse_search_query(value)
+        except InvalidSearchQuery as e:
+            raise ValidationError(detail=f"Invalid issue search query: {e}")
+        return value
 
     def validate_projects(self, value):
         if value != [-1]:

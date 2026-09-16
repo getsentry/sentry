@@ -585,6 +585,26 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         response = self.client.put(self.url, data=data)
         assert response.status_code == 400
 
+    @with_feature({"organizations:issue-views": True})
+    def test_put_invalid_query_with_boolean_operator(self) -> None:
+        """Issue search has allow_boolean=False, so AND/OR must be rejected on write."""
+        data = {
+            "name": "Updated View Name",
+            "query": "is:unresolved (issue:PROJ-AB1 OR issue:PROJ-CD2)",
+            "querySort": "date",
+            "projects": [self.project.id],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.client.put(self.url, data=data)
+        assert response.status_code == 400
+        assert "query" in response.data
+        assert "not supported in this search" in str(response.data["query"])
+
+        unchanged_view = GroupSearchView.objects.get(id=self.view_id)
+        assert unchanged_view.name != "Updated View Name"
+
     def test_put_without_feature_flag(self) -> None:
         data = {
             "name": "Updated View",
