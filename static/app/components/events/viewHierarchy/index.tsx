@@ -29,7 +29,7 @@ function getNodeLabel({
 }
 
 function onScrollToNode(
-  node: VirtualizedTreeRenderedRow<ViewHierarchyWindow>,
+  node: VirtualizedTreeRenderedRow<ViewHierarchyWindow> | undefined,
   scrollContainer: HTMLElement | HTMLElement[] | null,
   coordinates: {depth: number; top: number} | undefined
 ) {
