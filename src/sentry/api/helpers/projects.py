@@ -6,13 +6,14 @@ from typing import NamedTuple, TypeAlias
 from django.http.request import HttpRequest
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from sentry_sdk import traces
 
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.models.project import Project
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE, MIXED_SLUG_REGEX
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.utils.tracing import set_span_data, set_span_tag
 
 ProjectIdOrSlug: TypeAlias = int | str
 
@@ -71,7 +72,9 @@ def filter_projects_by_permissions(
     ``include_all_accessible`` grants org-wide access to members of open-membership
     organizations; otherwise access falls back to team membership.
     """
-    with start_span(op="apply_project_permissions", name="apply_project_permissions") as span:
+    with traces.start_span(
+        name="apply_project_permissions", attributes={"sentry.op": "apply_project_permissions"}
+    ) as span:
         set_span_data(span, "Project Count", len(projects))
         if force_global_perms:
             set_span_tag(span, "mode", "force_global_perms")

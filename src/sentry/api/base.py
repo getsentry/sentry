@@ -21,7 +21,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from sentry_sdk import Scope
+from sentry_sdk import Scope, traces
 
 # I don't know why, but unless we declare these loggers earlier, we run into
 # circular import errors.
@@ -441,7 +441,9 @@ class Endpoint(APIView):
         Identical to rest framework's dispatch except we add the ability
         to convert arguments (for common URL params).
         """
-        with start_span(op="base.dispatch.setup", name=type(self).__name__):
+        with traces.start_span(
+            name=type(self).__name__, attributes={"sentry.op": "base.dispatch.setup"}
+        ):
             self.args = args
             self.kwargs = kwargs
             request = self.initialize_request(request, *args, **kwargs)
@@ -467,7 +469,9 @@ class Endpoint(APIView):
             origin = None
 
         try:
-            with start_span(op="base.dispatch.request", name=type(self).__name__):
+            with traces.start_span(
+                name=type(self).__name__, attributes={"sentry.op": "base.dispatch.request"}
+            ):
                 if origin:
                     if request.auth:
                         allowed_origins = request.auth.get_allowed_origins()
@@ -531,9 +535,9 @@ class Endpoint(APIView):
             duration = time.time() - start_time
 
             if duration < (settings.SENTRY_API_RESPONSE_DELAY / 1000.0):
-                with start_span(
-                    op="base.dispatch.sleep",
+                with traces.start_span(
                     name=type(self).__name__,
+                    attributes={"sentry.op": "base.dispatch.sleep"},
                 ) as span:
                     set_span_data(
                         span, "SENTRY_API_RESPONSE_DELAY", settings.SENTRY_API_RESPONSE_DELAY
@@ -621,9 +625,9 @@ class Endpoint(APIView):
         try:
             per_page = self.get_per_page(request, default_per_page, max_per_page)
             cursor = self.get_cursor_from_request(request, cursor_cls)
-            with start_span(
-                op="base.paginate.get_result",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.get_result"},
             ) as span:
                 annotate_span_with_pagination_args(span, per_page)
                 paginator = get_paginator(paginator, paginator_cls, paginator_kwargs)
@@ -641,9 +645,9 @@ class Endpoint(APIView):
 
         # map results based on callback
         if on_results:
-            with start_span(
-                op="base.paginate.on_results",
+            with traces.start_span(
                 name=type(self).__name__,
+                attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
         else:

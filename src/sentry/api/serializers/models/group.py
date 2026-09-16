@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
+from sentry_sdk import traces
 
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
@@ -63,7 +64,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
-from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.models.groupinbox import InboxDetails
@@ -786,9 +786,9 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _get_permalink(attrs, obj: Group) -> str:
-        with start_span(
-            op="GroupSerializerBase.serialize.permalink.build",
+        with traces.start_span(
             name="GroupSerializerBase.serialize.permalink.build",
+            attributes={"sentry.op": "GroupSerializerBase.serialize.permalink.build"},
         ):
             return obj.get_absolute_url()
 
