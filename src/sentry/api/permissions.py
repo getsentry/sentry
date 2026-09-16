@@ -5,11 +5,13 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from django.conf import settings
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
 from sentry.api.exceptions import (
     INSUFFICIENT_SCOPE_ATTR,
+    InsufficientScope,
     MemberDisabledOverLimit,
     SsoRequired,
     SuperuserRequired,
@@ -21,6 +23,7 @@ from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.demo_mode.utils import get_readonly_scopes, is_demo_mode_enabled, is_demo_user
 from sentry.hybridcloud.rpc import extract_id_from
+from sentry.models.apiscopes import add_scope_hierarchy
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -46,6 +49,21 @@ def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
         if not implied.intersection(grantable_scopes - {scope}):
             return scope
     return min(grantable_scopes) if grantable_scopes else None
+
+
+def enforce_scope(request: Request, required_scope: str) -> None:
+    """Require a scope and distinguish token failures from other denials."""
+    if request.access.has_scope(required_scope):
+        return
+    if required_scope in add_scope_hierarchy(list(request.access.scopes)):
+        return
+    if (
+        agent_token.is_agent_auth(request.auth)
+        and required_scope not in settings.SENTRY_TOKEN_ONLY_SCOPES
+        and request.access.would_have_scope_with_added_auth_scope(required_scope)
+    ):
+        raise InsufficientScope([required_scope])
+    raise PermissionDenied
 
 
 class RelayPermission(BasePermission):

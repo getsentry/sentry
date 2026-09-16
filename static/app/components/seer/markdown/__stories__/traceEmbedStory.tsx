@@ -7,7 +7,15 @@ import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
 import {EmbedStory, EmbedVariant} from './embedStory';
 
-export function TraceEmbedStory() {
+/**
+ * `trace` and `traceWaterfall` take the same data and both need a real trace to
+ * demo against, so they share one story component rather than one fetch each.
+ */
+interface TraceEmbedStoryProps {
+  name?: 'trace' | 'traceWaterfall';
+}
+
+export function TraceEmbedStory({name = 'trace'}: TraceEmbedStoryProps) {
   const {data, isError, isPending} = useQuery(
     useTracesApiOptions({
       datetime: {period: '7d', start: null, end: null, utc: null},
@@ -18,15 +26,15 @@ export function TraceEmbedStory() {
   const trace = data?.data.find(candidate => candidate.numSpans > 0);
 
   return (
-    <EmbedStory name="trace">
+    <EmbedStory name={name}>
       {isPending ? (
         <LoadingIndicator />
       ) : isError ? (
         <Text variant="muted">Unable to load a trace example.</Text>
       ) : trace ? (
         <EmbedVariant
-          name="trace"
-          label="Trace"
+          name={name}
+          label={name === 'traceWaterfall' ? 'Trace waterfall' : 'Trace'}
           data={{traceId: trace.trace, timestamp: new Date(trace.end).toISOString()}}
         />
       ) : (

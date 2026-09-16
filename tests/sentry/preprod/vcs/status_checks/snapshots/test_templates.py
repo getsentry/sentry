@@ -489,6 +489,40 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "We had trouble comparing snapshots, our team is investigating."
         assert summary == ""
 
+    def test_failed_with_base_manifest_missing_reports_missing_base(self) -> None:
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            base_sha="abcdef1234567890abcdef1234567890abcdef12",
+        )
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            commit_comparison=commit_comparison
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            state=PreprodSnapshotComparison.State.FAILED,
+        )
+        comparison.error_code = PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        comparison.save(update_fields=["error_code"])
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.FAILURE,
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "No base snapshot found for abcdef1234567890abcdef1234567890abcdef12"
+        assert "No snapshots were found for base commit" in summary
+        assert "Push a new commit to the base branch" in summary
+        assert "com.example.app" in summary
+
 
 @cell_silo_test
 class SnapshotMixedStateFormattingTest(SnapshotStatusCheckTestBase):
@@ -969,9 +1003,11 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert "24" in summary
         assert "✅ Uploaded" in summary
         assert (
-            f"No base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha})"
+            f"Base commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce snapshots"
             in summary
         )
+        assert "Did its snapshot job fail?" in summary
+        assert "Try rebasing this branch on a commit with a successful snapshot job." in summary
 
     def test_missing_base_multiple_artifacts(self) -> None:
         artifacts = []
@@ -995,7 +1031,7 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == f"No base snapshot found for {base_sha}"
         for i in range(3):
             assert f"com.example.app{i}" in summary
-        assert f"No base snapshot found for `{base_sha}`" in summary
+        assert f"Base commit `{base_sha}` did not produce snapshots" in summary
 
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
@@ -1027,8 +1063,9 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Snapshots | Status |\n"
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
-            f"\n\nNo base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha}). "
-            "Make sure snapshots are uploaded from your main branch."
+            f"\n\nBase commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce "
+            "snapshots to compare against. Did its snapshot job fail? "
+            "Try rebasing this branch on a commit with a successful snapshot job."
             f"\n\n{configure_link}"
         )
         assert summary == expected

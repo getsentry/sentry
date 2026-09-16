@@ -123,19 +123,6 @@ export function getReservedBudgetCategoryFromCategories(
 }
 
 /**
- * Whether a category is part of a reserved budget.
- * This will also return true for categories that can
- * only be bought as part of a reserved budget (ie. Seer
- * categories without having bought Seer).
- */
-export function isPartOfReservedBudget(
-  category: DataCategory,
-  reservedBudgets: ReservedBudget[]
-): boolean {
-  return reservedBudgets.some(budget => budget.dataCategories.includes(category));
-}
-
-/**
  * Whether a category belongs to a reserved budget available on the plan (e.g.
  * Seer's seerAutofix/seerScanner). Such categories are configured through their
  * reserved budget rather than a per-category reserved-volume slider, so they are

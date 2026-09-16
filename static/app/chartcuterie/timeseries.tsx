@@ -1,9 +1,9 @@
 import type {Theme} from '@emotion/react';
 
-import {Grid} from 'sentry/components/charts/components/grid';
+import {createGridOptions} from 'sentry/components/charts/components/grid';
 import {legend} from 'sentry/components/charts/components/legend';
-import {XAxis} from 'sentry/components/charts/components/xAxis';
-import {YAxis} from 'sentry/components/charts/components/yAxis';
+import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
+import {createYAxisOptions} from 'sentry/components/charts/components/yAxis';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {assignPlottablesToYAxes} from 'sentry/views/dashboards/widgets/timeSeriesWidget/assignPlottablesToYAxes';
@@ -66,7 +66,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
   timeSeries: T[];
   extraPlottables?: Plottable[];
 }) {
-  const xAxis = XAxis({
+  const xAxis = createXAxisOptions({
     theme,
     splitNumber: 3,
     isGroupedByDate: true,
@@ -78,7 +78,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
     unit: string | undefined,
     position: 'left' | 'right'
   ) =>
-    YAxis({
+    createYAxisOptions({
       theme,
       splitNumber: 3,
       position,
@@ -90,7 +90,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
     });
 
   const defaults = {
-    grid: Grid({left: 10, right: 10, bottom: 10, top: GRID_TOP_OFFSET}),
+    grid: createGridOptions({left: 10, right: 10, bottom: 10, top: GRID_TOP_OFFSET}),
     backgroundColor: theme.tokens.background.primary,
     legend: legend({
       theme,

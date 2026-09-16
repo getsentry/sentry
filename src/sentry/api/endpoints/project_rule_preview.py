@@ -20,6 +20,7 @@ from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION
 from sentry.models.group import Group
 from sentry.models.groupinbox import InboxDetails, get_inbox_details
 from sentry.rules.history.preview import preview
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 @cell_silo_endpoint
@@ -48,6 +49,7 @@ class ProjectRulePreviewEndpoint(ProjectEndpoint):
             }}
 
         """
+        enforce_alerts_api_deprecation(project.organization)
         serializer = RulePreviewSerializer(
             context={"project": project, "organization": project.organization}, data=request.data
         )

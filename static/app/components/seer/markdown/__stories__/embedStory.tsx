@@ -101,7 +101,9 @@ export function EmbedStory({children, name}: EmbedStoryProps) {
     <Stack gap="md">
       <Text size="sm" variant="muted">
         Level: {schema.level.join(', ')}
-        {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
+        {'featureFlag' in schema
+          ? ` · Flag: ${[schema.featureFlag].flat().join(' or ')}`
+          : null}
       </Text>
       <Text size="sm" variant="muted">
         {schema.description}

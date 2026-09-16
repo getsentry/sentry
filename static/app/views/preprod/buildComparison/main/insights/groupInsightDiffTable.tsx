@@ -143,11 +143,13 @@ export function GroupInsightItemDiffTable({
 
   useEffect(() => {
     if (safeCurrentPage !== currentPage) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setCurrentPage(safeCurrentPage);
     }
   }, [currentPage, safeCurrentPage]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
   }, [sort.field, sort.kind, groupDiffItems.length]);
 

@@ -1,0 +1,159 @@
+---
+title: Composer
+description: A controlled, composable editor for structured inline references.
+category: forms
+source: '@sentry/scraps/composer'
+---
+
+import * as Storybook from 'sentry/stories';
+
+import {AsyncComposerDemo, ComposerDemo, RestoredComposerDemo} from './__stories__/demos';
+
+export const documentation = import('!!type-loader!@sentry/scraps/composer/composer');
+
+`<Composer>` keeps editable text and structured references in one controlled value. Behavior is attached with plugins: each plugin contributes suggestion sources that provide their own data, identity, inserted text, and suggestion presentation.
+
+## Compose with multiple sources
+
+A plugin groups related sources under a stable `id`. This example combines local member and team sources. Selected references remain editable and are emphasized while their range is valid.
+
+Suggestion objects stay within their source. The controlled value stores only stable IDs and text ranges.
+
+<Storybook.Demo overflow="visible">
+  <ComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const mentionPlugin = {
+  id: 'mentions',
+  getSources: () => [
+    {
+      id: 'members',
+      label: 'Members',
+      trigger: '@',
+      getSuggestions: query => filterPeople(query),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+    },
+    {
+      id: 'teams',
+      label: 'Teams',
+      trigger: '#',
+      getSuggestions: query => filterTeams(query),
+      getId: team => team.id,
+      getText: team => `#${team.slug}`,
+    },
+  ],
+};
+
+<Composer
+  aria-label="Comment"
+  minHeight={120}
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+## Share a trigger between sources
+
+Sources sharing a trigger character contribute suggestions to the same popup, and selecting an option resolves the source that owns it — so each source keeps its own inserted text and suggestion identity. Use this to offer several kinds of references under one affordance, such as members and teams on `@`.
+
+```jsx
+const mentionPlugin = {
+  id: 'mentions',
+  getSources: () => [
+    {
+      id: 'members',
+      label: 'Members',
+      trigger: '@',
+      queryOptions: query => searchMembersQueryOptions(query),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+    },
+    {
+      id: 'teams',
+      label: 'Teams',
+      trigger: '@',
+      getSuggestions: query => filterTeams(query),
+      getId: team => team.id,
+      getText: team => `@${team.slug}`,
+    },
+  ],
+};
+
+<Composer
+  aria-label="Comment"
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+A trigger group supports any number of local sources and at most one async source.
+
+## Restore a value
+
+Persisted text and reference ranges can be supplied together, preserving identity across sessions.
+
+<Storybook.Demo overflow="visible">
+  <RestoredComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const [value, setValue] = useState({
+  text: 'Continue with @Alice Example on the checkout regression.',
+  mentions: [
+    {
+      id: 'user:1',
+      sourceId: 'members',
+      start: 14,
+      end: 28,
+      text: '@Alice Example',
+    },
+  ],
+});
+
+<Composer
+  aria-label="Restored comment"
+  plugins={[mentionPlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```
+
+## Load queried suggestions
+
+Async sources provide TanStack Query options, sharing the application's loading, caching, cancellation, and error behavior.
+
+<Storybook.Demo overflow="visible">
+  <AsyncComposerDemo />
+</Storybook.Demo>
+
+```jsx
+const remotePlugin = {
+  id: 'remote-members',
+  getSources: () => [
+    {
+      id: 'remote-members',
+      label: 'Remote members',
+      trigger: '@',
+      queryOptions: query =>
+        queryOptions({
+          queryKey: ['members', query],
+          queryFn: () => searchMembers(query),
+          staleTime: Infinity,
+        }),
+      getId: person => person.id,
+      getText: person => `@${person.label}`,
+    },
+  ],
+};
+
+<Composer
+  aria-label="Remote member search"
+  plugins={[remotePlugin]}
+  value={value}
+  onChange={setValue}
+/>;
+```

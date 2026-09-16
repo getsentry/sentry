@@ -91,13 +91,11 @@ export function YourTeamsTable({
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Your Teams')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="role">
-            {t('Role')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="projects">
+          <SimpleTable.HeaderCell columnKey="role">{t('Role')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell columnKey="projects">
             {t('Projects')}
           </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="actions" />
+          <SimpleTable.HeaderCell columnKey="actions" />
         </SimpleTable.HeaderRow>
       }
     >
@@ -117,13 +115,13 @@ export function YourTeamsTable({
               <SimpleTable.RowCell>
                 <Placeholder height="36px" width="180px" />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="role">
+              <SimpleTable.RowCell columnKey="role">
                 <Placeholder height="20px" width="60px" />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="projects">
+              <SimpleTable.RowCell columnKey="projects">
                 <Placeholder height="20px" width="80px" />
               </SimpleTable.RowCell>
-              <SimpleTable.RowCell data-column-name="actions">
+              <SimpleTable.RowCell columnKey="actions" padding="lg xl lg 0">
                 <Placeholder height="32px" width="100px" />
               </SimpleTable.RowCell>
             </SimpleTable.Row>
@@ -182,16 +180,14 @@ function YourTeamRow({
           badge
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="role">
-        {teamRoleName ?? null}
-      </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="projects">
+      <SimpleTable.RowCell columnKey="role">{teamRoleName ?? null}</SimpleTable.RowCell>
+      <SimpleTable.RowCell columnKey="projects">
         <TeamProjectsCell
           projects={teamProjects}
           teamProjectsUrl={`/settings/${organization.slug}/teams/${team.slug}/projects/`}
         />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" data-column-name="actions">
+      <SimpleTable.RowCell justify="end" columnKey="actions" padding="lg xl lg 0">
         {isPending ? (
           <Button size={{zero: 'xs', xl: 'sm'}} disabled>
             {'\u2026'}

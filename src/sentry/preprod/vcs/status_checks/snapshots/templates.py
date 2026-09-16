@@ -54,6 +54,14 @@ def format_snapshot_status_check_messages(
             continue
 
         if comparison.state == PreprodSnapshotComparison.State.FAILED:
+            base_sha = artifact.commit_comparison.base_sha if artifact.commit_comparison else None
+            if (
+                comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+                and base_sha
+            ):
+                return format_missing_base_snapshot_status_check_messages(
+                    artifacts, snapshot_metrics_map, project, base_sha=base_sha, expired=True
+                )
             subtitle = str(_("We had trouble comparing snapshots, our team is investigating."))
             return str(title), str(subtitle), ""
 
@@ -226,6 +234,7 @@ def format_missing_base_snapshot_status_check_messages(
     *,
     base_sha: str,
     base_repo_url: str | None = None,
+    expired: bool = False,
 ) -> tuple[str, str, str]:
     if not artifacts:
         raise ValueError("Cannot format messages for empty artifact list")
@@ -236,10 +245,17 @@ def format_missing_base_snapshot_status_check_messages(
 
     base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
     summary = _format_solo_snapshot_summary(artifacts, snapshot_metrics_map)
-    summary += (
-        f"\n\nNo base snapshot found for {base_sha_markdown}. "
-        "Make sure snapshots are uploaded from your main branch."
-    )
+    if expired:
+        summary += (
+            f"\n\nNo snapshots were found for base commit {base_sha_markdown}. "
+            "Push a new commit to the base branch, then rebase this branch on it."
+        )
+    else:
+        summary += (
+            f"\n\nBase commit {base_sha_markdown} did not produce snapshots to compare against. "
+            "Did its snapshot job fail? "
+            "Try rebasing this branch on a commit with a successful snapshot job."
+        )
 
     settings_url = _get_settings_url(project)
     summary += "\n\n" + _format_configure_link(project, settings_url)

@@ -10,9 +10,13 @@ import * as Storybook from 'sentry/stories';
 
 import {BasicDemo, LinkifyDemo, StreamingEmbedExamples} from './__stories__/components';
 import {AlertEmbedStory} from './__stories__/alertEmbedStory';
+import {ConversationEmbedStory} from './__stories__/conversationEmbedStory';
 import {DashboardEmbedStory} from './__stories__/dashboardEmbedStory';
 import {EmbedStory} from './__stories__/embedStory';
+import {EventEmbedStory} from './__stories__/eventEmbedStory';
+import {LogEmbedStory} from './__stories__/logEmbedStory';
 import {MonitorEmbedStory} from './__stories__/monitorEmbedStory';
+import {ProfileEmbedStory} from './__stories__/profileEmbedStory';
 import {ReleaseEmbedStory} from './__stories__/releaseEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
 import {SavedIssueViewEmbedStory} from './__stories__/savedIssueViewEmbedStory';
@@ -73,6 +77,10 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <EmbedStory name="issues" />
 
+### event
+
+<EventEmbedStory />
+
 ### replay
 
 <ReplayEmbedStory />
@@ -109,9 +117,13 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <TraceEmbedStory />
 
+### traceWaterfall
+
+<TraceEmbedStory name="traceWaterfall" />
+
 ### profile
 
-<EmbedStory name="profile" />
+<ProfileEmbedStory />
 
 ### issuesQuery
 
@@ -129,6 +141,10 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 
 <EmbedStory name="logsQuery" />
 
+### log
+
+<LogEmbedStory />
+
 ### replaysQuery
 
 <EmbedStory name="replaysQuery" />
@@ -136,6 +152,14 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 ### metricsQuery
 
 <EmbedStory name="metricsQuery" />
+
+### conversation
+
+<ConversationEmbedStory />
+
+### conversationsQuery
+
+<EmbedStory name="conversationsQuery" />
 
 ## Embed Architecture
 
