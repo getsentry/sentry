@@ -5,10 +5,13 @@ import {
   replayOnboardingJsLoader,
 } from 'sentry/gettingStartedDocs/javascript/jsLoader';
 import {featureFlag} from 'sentry/gettingStartedDocs/node/featureFlag';
-import {getNodeLogsOnboarding} from 'sentry/gettingStartedDocs/node/utils';
 
 import {crashReport} from './crashReport';
+import {logs} from './logs';
+import {mcp} from './mcp';
+import {metrics} from './metrics';
 import {onboarding} from './onboarding';
+import {PACKAGE_NAME, sentryImport} from './utils';
 
 export const docs: Docs = {
   onboarding,
@@ -16,13 +19,13 @@ export const docs: Docs = {
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
   featureFlagOnboarding: featureFlag({
-    packageName: '@sentry/bun',
-  }),
-  logsOnboarding: getNodeLogsOnboarding({
-    docsPlatform: 'bun',
-    packageName: '@sentry/bun',
+    packageName: PACKAGE_NAME,
+    sentryImport,
   }),
   agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/bun',
+    packageName: PACKAGE_NAME,
   }),
+  logsOnboarding: logs,
+  mcpOnboarding: mcp,
+  metricsOnboarding: metrics,
 };
