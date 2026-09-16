@@ -15,8 +15,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {clearIndicators} from 'sentry/actionCreators/indicator';
 import {
   CMDKCollection,
   CommandPaletteProvider,
@@ -24,7 +24,6 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import Indicators from 'sentry/components/indicators';
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -94,7 +93,7 @@ describe('GroupActions', () => {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
   beforeEach(() => {
-    clearIndicators();
+    toast.dismiss();
     ConfigStore.init();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
@@ -306,7 +305,6 @@ describe('GroupActions', () => {
         <Fragment>
           <GlobalModal />
           <GroupActions group={group} project={project} disabled={false} event={null} />
-          <Indicators />
         </Fragment>,
         {
           organization: org,
@@ -443,7 +441,6 @@ describe('GroupActions', () => {
     render(
       <Fragment>
         <GroupActions group={group} project={project} disabled={false} event={null} />
-        <Indicators />
       </Fragment>,
       {organization}
     );
@@ -483,7 +480,6 @@ describe('GroupActions', () => {
     render(
       <Fragment>
         <GroupActionsWrapper />
-        <Indicators />
       </Fragment>,
       {organization}
     );

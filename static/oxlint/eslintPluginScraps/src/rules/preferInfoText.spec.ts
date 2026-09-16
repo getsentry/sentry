@@ -148,6 +148,40 @@ import {InfoText} from '@sentry/scraps/info';
       ],
     },
     {
+      name: 'tn() i18n call',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {tn} from 'sentry/locale';
+        const x = <Tooltip title={desc}>{tn('%s project', '%s projects', count)}</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {tn} from 'sentry/locale';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title={desc}>{tn('%s project', '%s projects', count)}</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Any locale helper call',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {td} from 'sentry/locale';
+        const x = <Tooltip title="help">{td('Some description')}</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {td} from 'sentry/locale';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="help">{td('Some description')}</InfoText>;
+      `),
+      ],
+    },
+    {
       name: 'String literal in expression container',
       code: `
         import {Tooltip} from '@sentry/scraps/tooltip';

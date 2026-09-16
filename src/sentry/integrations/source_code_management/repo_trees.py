@@ -19,6 +19,91 @@ EXCLUDED_EXTENSIONS = ["spec.jsx"]
 EXCLUDED_PATHS = ["tests/"]
 
 
+# ---------------------------------------------------------------------------
+# Noise-scoping ignore-list for recursive tree traversal
+#
+# Used by any provider that walks a repository tree.
+#
+# Based on GitHub Linguist's vendor.yml (https://github.com/github/linguist/
+# blob/master/lib/linguist/vendor.yml) — the list GitHub uses to exclude
+# third-party/generated paths from repository language statistics. Sentry has
+# no canonical equivalent; the closest is the JS stacktrace folder regex in
+# sentry/src/sentry/lang/javascript/utils.py.
+#
+# Matching is done on individual path segments (split on "/"), not substring,
+# so a file named "build.gradle" is never confused with a "build/" directory.
+#
+# Deliberately NOT ignored:
+#   packages/   — JS monorepo workspaces (the thing we want to detect)
+#   test/       — often contain real framework signals
+#   tests/      — same
+#   examples/   — borderline; revisit if Mode A shows false positives
+# ---------------------------------------------------------------------------
+
+IGNORED_TREE_SEGMENTS = frozenset(
+    {
+        # JS / front-end dependency directories
+        "node_modules",
+        "bower_components",
+        "jspm_packages",
+        "web_modules",
+        # General vendored dependencies
+        "vendor",
+        "vendors",
+        "third_party",
+        "third-party",
+        "3rdparty",
+        "extern",
+        "external",
+        # iOS / macOS dependency managers
+        "Pods",
+        "Carthage",
+        # Dart / Flutter tooling
+        ".dart_tool",
+        ".pub-cache",
+        # Python virtual environments committed to repo
+        "site-packages",
+        ".venv",
+        "venv",
+        "virtualenv",
+        # Build / compiled output
+        "dist",
+        "build",
+        "out",
+        "target",
+        "bin",
+        "obj",
+        # Framework-specific build caches
+        ".next",
+        ".nuxt",
+        ".svelte-kit",
+        ".angular",
+        ".output",
+        "__pycache__",
+        "coverage",
+        # VCS internals
+        ".git",
+        ".svn",
+        ".hg",
+        # Tooling / IDE / cache
+        ".gradle",
+        ".idea",
+        ".vscode",
+        ".cache",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        "tmp",
+        "temp",
+    }
+)
+
+
+def segments_are_ignored(segments: list[str]) -> bool:
+    """Return True if any path segment is in the ignore-list."""
+    return any(segment in IGNORED_TREE_SEGMENTS for segment in segments)
+
+
 class RepoAndBranch(NamedTuple):
     name: str
     branch: str

@@ -5,7 +5,6 @@ import threading
 import time
 from collections.abc import Callable
 from datetime import datetime
-from difflib import SequenceMatcher
 from typing import Any, Literal, NamedTuple
 
 import orjson
@@ -20,7 +19,7 @@ from taskbroker_client.retry import Retry
 from sentry import analytics, options
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
-from sentry.preprod.snapshots.categorize import categorize_image_sets
+from sentry.preprod.snapshots.categorize import categorize_image_diff
 from sentry.preprod.snapshots.constants import (
     MISSING_BASE_GRACE_PERIOD_SECONDS,
     RECONSTRUCTION_RETRY_COUNTDOWN_SECONDS,
@@ -124,9 +123,8 @@ def _get_json[T: BaseModel](session: SnapshotStorage, key: str, model_cls: type[
 
 
 def _put_json(session: SnapshotStorage, key: str, model: BaseModel) -> None:
-    _retry_objectstore(
-        lambda: session.put(orjson.dumps(model.dict()), key=key, content_type="application/json")
-    )
+    data = orjson.dumps(model.dict())
+    _retry_objectstore(lambda: session.put(data, key=key, content_type="application/json"))
 
 
 def _put_diff_mask(session: SnapshotStorage, key: str, data: bytes) -> None:
@@ -165,103 +163,6 @@ class _DiffCandidate(NamedTuple):
     base_hash: str
     pixel_count: int
     kind: Literal["base", "sibling"] = "base"
-
-
-class _ImageDiffResult(NamedTuple):
-    renamed_pairs: list[tuple[str, str]]
-    added: set[str]
-    removed: set[str]
-    matched: set[str]
-    head_by_name: dict[str, str]
-    base_by_name: dict[str, str]
-    skipped: set[str]
-
-
-# When multiple added/removed files share the same content hash (e.g. dark/light
-# theme variants), greedily pair them by filename similarity for rename detection.
-def _match_by_name_similarity(
-    added_names: list[str], removed_names: list[str]
-) -> list[tuple[str, str]]:
-    scored: list[tuple[float, int, int]] = []
-    for ai, a in enumerate(added_names):
-        for ri, r in enumerate(removed_names):
-            scored.append((SequenceMatcher(None, a, r).ratio(), ai, ri))
-
-    scored.sort(reverse=True)
-
-    pairs: list[tuple[str, str]] = []
-    used_added: set[int] = set()
-    used_removed: set[int] = set()
-
-    for _, ai, ri in scored:
-        if ai in used_added or ri in used_removed:
-            continue
-        pairs.append((added_names[ai], removed_names[ri]))
-        used_added.add(ai)
-        used_removed.add(ri)
-
-    return pairs
-
-
-def categorize_image_diff(
-    head_manifest: SnapshotManifest, base_manifest: SnapshotManifest
-) -> _ImageDiffResult:
-    head_by_name = {key: meta.content_hash for key, meta in head_manifest.images.items()}
-    base_by_name = {key: meta.content_hash for key, meta in base_manifest.images.items()}
-
-    matched, added, removed, skipped = categorize_image_sets(head_manifest, base_manifest)
-
-    added_hash_to_names: dict[str, list[str]] = {}
-    for name in added:
-        h = head_by_name[name]
-        added_hash_to_names.setdefault(h, []).append(name)
-
-    removed_hash_to_names: dict[str, list[str]] = {}
-    for name in removed:
-        h = base_by_name[name]
-        removed_hash_to_names.setdefault(h, []).append(name)
-
-    renamed_pairs: list[tuple[str, str]] = []
-    for h in added_hash_to_names.keys() & removed_hash_to_names.keys():
-        a_names = added_hash_to_names[h]
-        r_names = removed_hash_to_names[h]
-        if len(a_names) == 1 and len(r_names) == 1:
-            renamed_pairs.append((a_names[0], r_names[0]))
-        else:
-            renamed_pairs.extend(_match_by_name_similarity(a_names, r_names))
-
-    for new_name, old_name in renamed_pairs:
-        added.discard(new_name)
-        removed.discard(old_name)
-        h = head_by_name[new_name]
-        if h in added_hash_to_names:
-            names = added_hash_to_names[h]
-            if new_name in names:
-                names.remove(new_name)
-            if not names:
-                del added_hash_to_names[h]
-
-    if skipped:
-        skipped_hash_to_names: dict[str, list[str]] = {}
-        for name in skipped:
-            h = base_by_name[name]
-            skipped_hash_to_names.setdefault(h, []).append(name)
-
-        for h in added_hash_to_names.keys() & skipped_hash_to_names.keys():
-            a_names = added_hash_to_names[h]
-            s_names = skipped_hash_to_names[h]
-            if len(a_names) == 1 and len(s_names) == 1:
-                matched_pairs = [(a_names[0], s_names[0])]
-            else:
-                matched_pairs = _match_by_name_similarity(a_names, s_names)
-            for a_name, s_name in matched_pairs:
-                renamed_pairs.append((a_name, s_name))
-                added.discard(a_name)
-                skipped.discard(s_name)
-
-    return _ImageDiffResult(
-        renamed_pairs, added, removed, matched, head_by_name, base_by_name, skipped
-    )
 
 
 def _image_name_to_path_stem(name: str) -> str:
@@ -940,6 +841,14 @@ def process_snapshot_comparison_chunk(
     )
 
 
+def _base_manifest_missing_message(head_artifact: PreprodArtifact) -> str:
+    commit_comparison = head_artifact.commit_comparison
+    base_sha = (commit_comparison.base_sha or "") if commit_comparison else ""
+    if not base_sha:
+        return "Base snapshot not found."
+    return f"Base snapshot for commit {base_sha[:7]} not found."
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.compare_snapshots",
     namespace=preprod_snapshots_tasks,
@@ -1099,6 +1008,20 @@ def compare_snapshots(
                 preprod_artifact_id=head_artifact_id, caller="compare_failure"
             )
 
+    def _fail_manifest_load(which: str) -> None:
+        logger.exception(
+            "compare_snapshots: failed to load or parse %s manifest",
+            which,
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+            },
+        )
+        _fail_comparison(
+            PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+            "Failed to load or parse snapshot manifest.",
+        )
+
     try:
         session = get_snapshot_storage(project_id, org=org_id)
 
@@ -1118,27 +1041,37 @@ def compare_snapshots(
         if not head_manifest_key or not base_manifest_key:
             raise ValueError("Missing manifest key")
 
-        try:
-            head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
-            base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
-        except (
+        manifest_errors = (
             orjson.JSONDecodeError,
             FileNotFoundError,
             RequestError,
             ValidationError,
             TypeError,
-        ):
-            logger.exception(
-                "compare_snapshots: failed to load or parse manifest",
+        )
+        try:
+            head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
+        except manifest_errors:
+            _fail_manifest_load("head")
+            return
+
+        try:
+            base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
+        except FileNotFoundError:
+            logger.warning(
+                "compare_snapshots: base manifest missing",
                 extra={
                     "head_artifact_id": head_artifact_id,
                     "base_artifact_id": base_artifact_id,
+                    "base_manifest_key": base_manifest_key,
                 },
             )
             _fail_comparison(
-                PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                "Failed to load or parse snapshot manifest.",
+                PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING,
+                _base_manifest_missing_message(head_artifact),
             )
+            return
+        except manifest_errors:
+            _fail_manifest_load("base")
             return
 
         # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of

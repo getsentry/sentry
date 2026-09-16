@@ -41,6 +41,8 @@ from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
     get_autofix_agent_state,
@@ -83,6 +85,10 @@ from sentry.seer.autofix.types import (
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
+    has_project_connected_repos,
+)
+from sentry.seer.endpoints.organization_seer_onboarding_check import (
+    has_supported_scm_integration,
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
@@ -96,10 +102,25 @@ logger = logging.getLogger(__name__)
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 
+# Marks the one 409 from this endpoint that a caller can recover from on its own:
+# the run named in the body is alive, so polling it is the whole remedy.
+RUN_IN_FLIGHT_CODE = "run_in_flight"
+
 PAUSED_PR_ITERATION_DETAIL = {
     PauseReason.USER_STOP: "Iteration was stopped for this pull request",
     PauseReason.RUN_ERRORED: "Seer can no longer iterate on this pull request",
     PauseReason.PR_CLOSED: "This pull request is closed, so Seer stopped iterating on it",
+}
+
+AUTOFIX_SETUP_REQUIRED_DETAIL = {
+    "scm_integration_required": (
+        "Seer Autofix requires a supported SCM integration (GitHub or GitLab) "
+        "to be installed for your organization before a new run can be started."
+    ),
+    "repos_not_linked": (
+        "Seer Autofix requires repositories to be connected to this project "
+        "before a new run can be started."
+    ),
 }
 
 
@@ -119,6 +140,25 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+
+
+def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
+    """Return the setup code blocking a new autofix run, or None if it can start.
+
+    Mirrors the frontend gate in AutofixContent: legacy usage-based Seer plans
+    (organizations:seer-added) may run autofix without an SCM integration or
+    linked repos, so the checks are skipped for them.
+    """
+    if features.has("organizations:seer-added", organization):
+        return None
+
+    if not has_supported_scm_integration(organization):
+        return "scm_integration_required"
+
+    if not has_project_connected_repos(organization, project):
+        return "repos_not_linked"
+
+    return None
 
 
 class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
@@ -449,9 +489,22 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id
 
             case _:
-                # A truncating re-run would strand a PR/coding agent (they live
-                # outside the blocks). Refuse it, mirroring the frontend gate.
-                if data.get("insert_index") is not None and resolved_run_id is not None:
+                # New runs require Seer setup (SCM integration and linked
+                # repos), mirroring the frontend gate in AutofixContent. The
+                # handoff/open_pr/pr_iteration steps and continuations
+                # (resolved_run_id is not None) are never gated here.
+                if is_autofix_kickoff:
+                    setup_code = _check_autofix_setup(group.organization, group.project)
+                    if setup_code is not None:
+                        return Response(
+                            {
+                                "detail": AUTOFIX_SETUP_REQUIRED_DETAIL[setup_code],
+                                "code": setup_code,
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                if resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
                     except SeerPermissionError as e:
@@ -459,7 +512,30 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
 
-                    if run_state.get_created_pull_request_states() or run_state.coding_agents:
+                    # Seer accepts a step while one is still processing, and the two
+                    # workers then write to the same run state; a truncating re-run
+                    # even deletes the blocks the live worker is appending to. Refuse
+                    # the step and hand back the run in flight, so a caller that can
+                    # recover silently has the ids to poll.
+                    #
+                    # The code, not the detail text, is what callers branch on: this
+                    # 409 is recoverable, the re-run 409 below is not.
+                    if run_state.status == "processing":
+                        return Response(
+                            {
+                                "detail": "A step is already running for this autofix run",
+                                "code": RUN_IN_FLIGHT_CODE,
+                                "run_id": resolved_run_id,
+                                "sentry_run_id": resolved_sentry_run_id,
+                            },
+                            status=status.HTTP_409_CONFLICT,
+                        )
+
+                    # A truncating re-run would strand a PR/coding agent (they live
+                    # outside the blocks). Refuse it, mirroring the frontend gate.
+                    if data.get("insert_index") is not None and (
+                        run_state.get_created_pull_request_states() or run_state.coding_agents
+                    ):
                         return Response(
                             {
                                 "detail": "Cannot re-run a step after a pull request or coding agent has started"

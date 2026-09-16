@@ -75,11 +75,8 @@ export function transactionSummaryRouteWithQuery({
   transaction,
   projectID,
   query,
-  unselectedSeries = ['p100()', 'avg()'],
   display,
   trendFunction,
-  trendColumn,
-  showTransactions,
   additionalQuery,
   subPath,
   view,
@@ -90,11 +87,8 @@ export function transactionSummaryRouteWithQuery({
   additionalQuery?: Record<string, string | undefined>;
   display?: DisplayModes;
   projectID?: string | string[];
-  showTransactions?: TransactionFilterOptions;
   subPath?: string;
-  trendColumn?: string;
   trendFunction?: string;
-  unselectedSeries?: string | string[];
   view?: DomainView;
 }) {
   const pathname = generateTransactionSummaryRoute({
@@ -120,18 +114,16 @@ export function transactionSummaryRouteWithQuery({
       start: query.start,
       end: query.end,
       query: searchFilter,
-      unselectedSeries,
-      showTransactions,
+      unselectedSeries: ['p100()', 'avg()'],
       display,
       trendFunction,
-      trendColumn,
       referrer: 'performance-transaction-summary',
       ...additionalQuery,
     },
   };
 }
 
-export function generateTraceLink(dateSelection: any, view?: DomainView) {
+export function generateTraceLink(dateSelection: any) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -149,7 +141,6 @@ export function generateTraceLink(dateSelection: any, view?: DomainView) {
       timestamp: tableRow.timestamp,
       location,
       source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
-      view,
     });
   };
 }

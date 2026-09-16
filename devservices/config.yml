@@ -423,10 +423,10 @@ x-programs:
     command: sentry run consumer ingest-occurrences --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   process-spans:
     command: sentry run consumer process-spans --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
-  uptime-results:
-    command: sentry run consumer uptime-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   ingest-metrics:
     command: sentry run consumer ingest-metrics --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
+  uptime-results:
+    command: sentry run consumer uptime-results --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   post-process-forwarder-errors:
     command: sentry run consumer post-process-forwarder-errors --consumer-group=sentry-consumer --auto-offset-reset=latest --no-strict-offset-reset
   post-process-forwarder-transactions:
