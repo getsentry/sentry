@@ -4,7 +4,10 @@ from typing import NotRequired, TypedDict
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
+from sentry.api.serializers.rest_framework.groupsearchview import (
+    INVALID_QUERY_DETAIL,
+    GroupSearchViewValidatorResponse,
+)
 from sentry.models.groupsearchview import (
     DEFAULT_TIME_FILTER,
     GroupSearchView,
@@ -460,7 +463,7 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
 
         response = self.get_error_response(self.organization.slug, **data)
         assert "query" in response.data
-        assert "not supported in this search" in str(response.data["query"])
+        assert str(response.data["query"][0]) == INVALID_QUERY_DETAIL
 
         assert not GroupSearchView.objects.filter(
             organization=self.organization, name="Boolean Query View"

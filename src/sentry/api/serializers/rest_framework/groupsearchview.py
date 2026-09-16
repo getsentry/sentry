@@ -13,6 +13,16 @@ from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
 MAX_VIEWS = 50
 
+# Deliberately a static string rather than the parser's own message: routing
+# `InvalidSearchQuery` text into the response trips CodeQL's
+# `py/stack-trace-exposure`. The boolean-operator trap is by far the most common
+# way a generated query fails to parse, so name the fix here instead.
+INVALID_QUERY_DETAIL = (
+    "Invalid issue search query. Note that issue search does not support the AND/OR "
+    "boolean operators or parenthesized boolean groups; to match any of several "
+    "values, use the list form instead, e.g. issue:[PROJ-AB1, PROJ-CD2]."
+)
+
 
 class GroupSearchViewTimeFiltersSerializer(serializers.Serializer):
     start = serializers.CharField(
@@ -102,7 +112,7 @@ class ViewValidator(serializers.Serializer):
         try:
             parse_search_query(value)
         except InvalidSearchQuery:
-            raise ValidationError(detail="Invalid issue search query")
+            raise ValidationError(detail=INVALID_QUERY_DETAIL)
         return value
 
     def validate_projects(self, value):
