@@ -5,7 +5,7 @@ import re
 from collections.abc import Callable, Generator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, TypeIs, overload
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, ParamSpec, TypeIs, TypeVar, overload
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -405,6 +405,17 @@ def get_operator_value(operator: Node | list[str] | tuple[str] | str) -> str:
         return operator
 
 
+P = ParamSpec("P")
+T = TypeVar("T")
+
+
+def parse_or_raise(parse: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+    try:
+        return parse(*args, **kwargs)
+    except InvalidQuery as exc:
+        raise InvalidSearchQuery(str(exc))
+
+
 def has_wildcard_op(node: Node | Sequence[Node]) -> bool:
     if isinstance(node, Node):
         return node.text in WILDCARD_OPERATOR_MAP.values()
@@ -510,6 +521,29 @@ def gen_wildcard_value(value: str, wildcard_op: str) -> str:
         value = add_trailing_wildcard(value)
     elif wildcard_op == WILDCARD_OPERATOR_MAP["ends_with"]:
         value = add_leading_wildcard(value)
+    return value
+
+
+def apply_wildcard_op(
+    key: str, value: SearchValue, wildcard_op: Node | Sequence[Node]
+) -> SearchValue:
+    if has_regex_op(wildcard_op):
+        return as_regex_value(key, value)
+
+    if not has_wildcard_op(wildcard_op):
+        return value
+
+    found_wildcard_op = get_wildcard_op(wildcard_op)
+    if isinstance(value.raw_value, str):
+        return value._replace(raw_value=gen_wildcard_value(value.raw_value, found_wildcard_op))
+    if isinstance(value.raw_value, list):
+        return value._replace(
+            raw_value=[
+                gen_wildcard_value(item, found_wildcard_op)
+                for item in value.raw_value
+                if isinstance(item, str)
+            ]
+        )
     return value
 
 
@@ -1012,10 +1046,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     ) -> SearchFilter:
         operator = get_operator_value(operator)
 
-        try:
-            search_value_obj = SearchValue(parse_numeric_value(*search_value))
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
+        search_value_obj = SearchValue(parse_or_raise(parse_numeric_value, *search_value))
         return SearchFilter(search_key, operator, search_value_obj)
 
     def visit_date_filter(
@@ -1031,10 +1062,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         (search_key, _, operator, search_value_s) = children
 
         if self.is_date_key(search_key.name):
-            try:
-                search_value_dt = parse_datetime_string(search_value_s)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            search_value_dt = parse_or_raise(parse_datetime_string, search_value_s)
             return SearchFilter(search_key, operator, SearchValue(search_value_dt))
 
         search_value_s = operator + search_value_s if operator != "=" else search_value_s
@@ -1057,10 +1085,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         if not self.is_date_key(search_key.name):
             return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
 
-        try:
-            from_val, to_val = parse_datetime_value(date_value)
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
+        from_val, to_val = parse_or_raise(parse_datetime_value, date_value)
 
         # TODO: Handle negations here. This is tricky because these will be
         # separate filters, and to negate this range we need (< val or >= val).
@@ -1083,10 +1108,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         (search_key, _, value) = children
 
         if self.is_date_key(search_key.name):
-            try:
-                dt_range = parse_datetime_range(value.text)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            dt_range = parse_or_raise(parse_datetime_range, value.text)
 
             # TODO: Handle negations
             if dt_range[0] is not None:
@@ -1116,10 +1138,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         else:
             operator_s = get_operator_value(operator)
         if self.is_duration_key(search_key.name):
-            try:
-                search_value_f = parse_duration(*search_value)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            search_value_f = parse_or_raise(parse_duration, *search_value)
             return SearchFilter(search_key, operator_s, SearchValue(search_value_f))
 
         # Durations overlap with numeric `m` suffixes
@@ -1263,10 +1282,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         result_type = self.get_function_result_type(search_key.name)
 
         if result_type == "duration" or result_type in DURATION_UNITS:
-            try:
-                aggregate_value = parse_duration(*search_value)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            aggregate_value = parse_or_raise(parse_duration, *search_value)
         else:
             # Duration overlaps with numeric values with `m` (million vs
             # minutes). So we fall through to numeric if it's not a
@@ -1274,10 +1290,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             #
             # TODO(epurkhiser): Should we validate that the field is
             # numeric and do some other fallback if it's not?
-            try:
-                aggregate_value = parse_numeric_value(*search_value)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            aggregate_value = parse_or_raise(parse_numeric_value, *search_value)
 
         return AggregateFilter(search_key, operator_s, SearchValue(aggregate_value))
 
@@ -1353,10 +1366,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         operator_s = handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.config.date_keys)
         if is_date_aggregate:
-            try:
-                search_value_dt = parse_datetime_string(search_value)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            search_value_dt = parse_or_raise(parse_datetime_string, search_value)
             return AggregateFilter(search_key, operator_s, SearchValue(search_value_dt))
 
         # Invalid formats fall back to text match
@@ -1378,10 +1388,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         operator_s = handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.config.date_keys)
         if is_date_aggregate:
-            try:
-                dt_range = parse_datetime_range(search_value.text)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
+            dt_range = parse_or_raise(parse_datetime_range, search_value.text)
 
             if dt_range[0] is not None:
                 operator_s = ">="
@@ -1492,16 +1499,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator = handle_negation(negation, operator)
 
-        if has_regex_op(wildcard_op):
-            search_value = as_regex_value(search_key.name, search_value)
-        elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, list):
-            wildcarded_values = []
-            found_wildcard_op = get_wildcard_op(wildcard_op)
-            for value in search_value.raw_value:
-                if isinstance(value, str):
-                    wildcarded_values.append(gen_wildcard_value(value, found_wildcard_op))
-
-            search_value = search_value._replace(raw_value=wildcarded_values)
+        search_value = apply_wildcard_op(search_key.name, search_value, wildcard_op)
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
@@ -1533,13 +1531,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
 
         operator_s = handle_negation(negation, operator_s)
 
-        if has_regex_op(wildcard_op):
-            search_value = as_regex_value(search_key.name, search_value)
-        elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
-            wildcarded_value = gen_wildcard_value(
-                search_value.raw_value, get_wildcard_op(wildcard_op)
-            )
-            search_value = search_value._replace(raw_value=wildcarded_value)
+        search_value = apply_wildcard_op(search_key.name, search_value, wildcard_op)
 
         return self._handle_basic_filter(search_key, operator_s, search_value)
 
@@ -1997,13 +1989,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             raise InvalidSearchQuery("In Array Queries, only EQUAL/NOT_EQUAL operators are allowed")
         operator_s = handle_negation(negation, operator_s)
 
-        if has_regex_op(wildcard_op):
-            search_value = as_regex_value(search_key.name, search_value)
-        elif has_wildcard_op(wildcard_op) and isinstance(search_value.raw_value, str):
-            wildcard_value = gen_wildcard_value(
-                search_value.raw_value, get_wildcard_op(wildcard_op)
-            )
-            search_value = search_value._replace(raw_value=wildcard_value)
+        search_value = apply_wildcard_op(search_key.name, search_value, wildcard_op)
         return SearchFilter(search_key, operator_s, search_value)
 
     def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
