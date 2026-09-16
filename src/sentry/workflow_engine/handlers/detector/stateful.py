@@ -472,10 +472,10 @@ class StatefulDetectorHandler(
             and new_priority != DetectorPriorityLevel.OK
         )
 
-        if not is_leaving_ok_state:
-            return state_data.activation_id
+        if is_leaving_ok_state:
+            return uuid4()
 
-        return uuid4()
+        return state_data.activation_id
 
     def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
