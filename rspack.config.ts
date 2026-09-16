@@ -27,7 +27,6 @@ const {env} = process;
 // Environment configuration
 env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
-const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
 
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
@@ -644,13 +643,15 @@ const workerConfig: Configuration = {
   devtool: appConfig.devtool,
 };
 
-if (IS_TEST) {
-  (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
-    import.meta.dirname,
-    'fixtures',
-    'js-stubs'
-  );
-}
+// Stories render from the same fixture factories the tests use, so the alias
+// has to resolve in the app bundle too (tsconfig.json and jest.config.ts map it
+// the same way).
+(appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
+  import.meta.dirname,
+  'tests',
+  'js',
+  'fixtures'
+);
 
 if (IS_ACCEPTANCE_TEST) {
   appConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
