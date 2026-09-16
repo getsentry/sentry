@@ -51,6 +51,43 @@ class OptionsStoreTest(TestCase):
     def test_not_in_store(self) -> None:
         assert self.store.get_last_update_channel(self.key) is None
 
+    def test_get_many(self) -> None:
+        store = self.store
+        cached_key, local_key, missing_key = self.make_key(), self.make_key(), self.make_key()
+        store.set(cached_key, "cached", UpdateChannel.CLI)
+        store.set(local_key, "local", UpdateChannel.CLI)
+        store.flush_local_cache()
+        store.get(local_key)
+
+        with patch.object(store.cache, "get_many", wraps=store.cache.get_many) as get_many:
+            with patch.object(store.cache, "get", side_effect=RuntimeError()):
+                assert store.get_many([cached_key, local_key, missing_key]) == {
+                    cached_key.name: "cached",
+                    local_key.name: "local",
+                    missing_key.name: None,
+                }
+
+        get_many.assert_called_once_with([cached_key.cache_key, missing_key.cache_key])
+
+        # The network cache hit is now in the local cache
+        with patch.object(store.cache, "get_many", side_effect=RuntimeError()):
+            assert store.get_many([cached_key]) == {cached_key.name: "cached"}
+
+    @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
+    def test_get_many_cache_unavailable(self) -> None:
+        store, key = self.store, self.key
+        store.set(key, "bar", UpdateChannel.CLI)
+        store.flush_local_cache()
+
+        with patch.object(store.cache, "get_many", side_effect=RuntimeError()):
+            assert store.get_many([key]) == {key.name: "bar"}
+
+    def test_get_many_without_cache(self) -> None:
+        store = OptionsStore(cache=None)
+
+        with pytest.raises(AssertionError):
+            store.get_many([self.make_key(key_name="foo")])
+
     def test_simple_without_cache(self) -> None:
         store = OptionsStore(cache=None)
         key = self.make_key(key_name="foo")

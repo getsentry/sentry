@@ -333,53 +333,91 @@ class OptionsManager:
         ) as tags:
             opt = self.lookup_key(key)
 
-            if self._read_hook is not None:
-                result = self._read_hook(key, opt)
-                if result is not READ_HOOK_FALLBACK:
-                    tags["source"] = "hook"
-                    record_option(key, result)
-                    return result
+            source, result = self._get_before_store(key, opt)
 
-            # First check if the option should exist on disk, and if it actually
-            # has a value set, let's use that one instead without even attempting
-            # to fetch from network storage.
-            if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
-                try:
-                    result = settings.SENTRY_OPTIONS[key]
-                except KeyError:
-                    pass
-                else:
-                    if result is not None:
-                        tags["source"] = "disk"
-                        record_option(key, result)
-                        return result
-
-            if not (opt.flags & FLAG_NOSTORE):
+            if source is None and not (opt.flags & FLAG_NOSTORE):
                 result = self.store.get(opt, silent=silent)
                 if result is not None:
-                    tags["source"] = "store"
-                    record_option(key, result)
-                    return result
+                    source = "store"
 
-            # Some values we don't want to allow them to be configured through
-            # config files and should only exist in the datastore
-            if opt.has_any_flag({FLAG_STOREONLY}):
-                optval = opt.default()
+            if source is None:
+                source, result = "default", self._get_default(key, opt)
+
+            tags["source"] = source
+            record_option(key, result)
+            return result
+
+    def get_many(self, keys: Iterable[str], silent=False) -> dict[str, TAny]:
+        """
+        Get the values of many options with a single network cache round trip.
+
+        Maps each key to the value ``get`` would return for it.
+
+        >>> from sentry import options
+        >>> options.get_many(['option-a', 'option-b'])
+        """
+        results: dict[str, TAny] = {}
+        store_opts: list[Key] = []
+        for key in keys:
+            opt = self.lookup_key(key)
+            source, result = self._get_before_store(key, opt)
+            if source is not None:
+                results[key] = result
+            elif opt.flags & FLAG_NOSTORE:
+                results[key] = self._get_default(key, opt)
             else:
+                store_opts.append(opt)
+
+        store_results = self.store.get_many(store_opts, silent=silent)
+        for opt in store_opts:
+            result = store_results.get(opt.name)
+            if result is None:
+                result = self._get_default(opt.name, opt)
+            results[opt.name] = result
+
+        for key, result in results.items():
+            record_option(key, result)
+        return results
+
+    def _get_before_store(self, key: str, opt: Key) -> tuple[str | None, TAny]:
+        """
+        Resolves an option from the read hook or from disk, the two sources that
+        take precedence over the store. Returns the source name and the value, or
+        ``(None, None)`` when the store has to be consulted.
+        """
+        if self._read_hook is not None:
+            result = self._read_hook(key, opt)
+            if result is not READ_HOOK_FALLBACK:
+                return "hook", result
+
+        # First check if the option should exist on disk, and if it actually
+        # has a value set, let's use that one instead without even attempting
+        # to fetch from network storage.
+        if opt.has_any_flag({FLAG_PRIORITIZE_DISK}):
+            result = settings.SENTRY_OPTIONS.get(key)
+            if result is not None:
+                return "disk", result
+
+        return None, None
+
+    def _get_default(self, key: str, opt: Key) -> TAny:
+        # Some values we don't want to allow them to be configured through
+        # config files and should only exist in the datastore
+        if opt.has_any_flag({FLAG_STOREONLY}):
+            optval = opt.default()
+        else:
+            try:
+                # default to the hardcoded local configuration for this key
+                optval = settings.SENTRY_OPTIONS[key]
+            except KeyError:
                 try:
-                    # default to the hardcoded local configuration for this key
-                    optval = settings.SENTRY_OPTIONS[key]
+                    optval = settings.SENTRY_DEFAULT_OPTIONS[key]
                 except KeyError:
-                    try:
-                        optval = settings.SENTRY_DEFAULT_OPTIONS[key]
-                    except KeyError:
-                        optval = opt.default()
-            # options already present in store are cached by store
-            # caching here to avoid database queries
-            self.store.set_cache(opt, optval)
-            tags["source"] = "default"
-            record_option(key, optval)
-            return optval
+                    optval = opt.default()
+        # options already present in store are cached by store
+        # caching here to avoid database queries
+        self.store.set_cache(opt, optval)
+        return optval
 
     def delete(self, key: str):
         """

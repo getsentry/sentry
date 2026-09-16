@@ -45,6 +45,7 @@ __all__ = (
     "delete",
     "get",
     "get_last_update_channel",
+    "get_many",
     "isset",
     "lookup_key",
     "register",
@@ -61,6 +62,7 @@ default_manager = OptionsManager(store=default_store)
 
 # expose public API
 get = default_manager.get
+get_many = default_manager.get_many
 set = default_manager.set
 delete = default_manager.delete
 register = default_manager.register
