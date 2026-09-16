@@ -1,56 +1,58 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
-import type {Scope} from '@typescript-eslint/utils/ts-eslint';
+import {defineRule, type ESTree, type Variable} from '@oxlint/plugins';
 
-type FunctionNode =
-  | TSESTree.ArrowFunctionExpression
-  | TSESTree.FunctionDeclaration
-  | TSESTree.FunctionExpression;
+type FunctionNode = ESTree.ArrowFunctionExpression | ESTree.Function;
 
-function isFunctionNode(node: TSESTree.Node): node is FunctionNode {
+function isFunctionNode(node: ESTree.Node): node is FunctionNode {
   return (
-    node.type === AST_NODE_TYPES.ArrowFunctionExpression ||
-    node.type === AST_NODE_TYPES.FunctionDeclaration ||
-    node.type === AST_NODE_TYPES.FunctionExpression
+    node.type === 'ArrowFunctionExpression' ||
+    node.type === 'FunctionDeclaration' ||
+    node.type === 'FunctionExpression'
   );
 }
 
-function isJsxExpression(node: TSESTree.Node | null | undefined): boolean {
+function isJsxOrNullExpression(node: ESTree.Node | null | undefined): boolean {
   if (!node) {
     return false;
   }
 
   switch (node.type) {
-    case AST_NODE_TYPES.JSXElement:
-    case AST_NODE_TYPES.JSXFragment:
+    case 'JSXElement':
+    case 'JSXFragment':
       return true;
-    case AST_NODE_TYPES.ConditionalExpression:
-      return isJsxExpression(node.consequent) && isJsxExpression(node.alternate);
-    case AST_NODE_TYPES.TSAsExpression:
-    case AST_NODE_TYPES.TSNonNullExpression:
-    case AST_NODE_TYPES.TSSatisfiesExpression:
-    case AST_NODE_TYPES.TSTypeAssertion:
-      return isJsxExpression(node.expression);
+    case 'Literal':
+      return node.value === null;
+    case 'ConditionalExpression':
+      return (
+        isJsxOrNullExpression(node.consequent) && isJsxOrNullExpression(node.alternate)
+      );
+    case 'TSAsExpression':
+    case 'TSNonNullExpression':
+    case 'TSSatisfiesExpression':
+    case 'TSTypeAssertion':
+      return isJsxOrNullExpression(node.expression);
     default:
       return false;
   }
 }
 
-export const preferReactComponent = ESLintUtils.RuleCreator.withoutDocs({
+export const preferReactComponent = defineRule({
   meta: {
     type: 'problem',
     docs: {
       description:
-        'Disallow JSX-returning functions directly invoked inside React components. Use a component instead.',
+        'Disallow JSX- or null-returning functions directly invoked inside React components. Use a component instead.',
     },
     schema: [],
     messages: {
       useComponent:
-        'Use a component instead of "{{name}}". JSX-returning functions directly invoked inside React components should be components.',
+        'Use a component instead of "{{name}}". JSX- or null-returning functions directly invoked inside React components should be components.',
     },
   },
 
   create(context) {
-    function resolveVariable(node: TSESTree.Identifier): Scope.Variable | undefined {
+    function resolveVariable(
+      node: ESTree.IdentifierReference | ESTree.BindingIdentifier
+    ): Variable | undefined {
       let scope = context.sourceCode.getScope(node);
       while (scope) {
         const binding = scope.variables.find(variable => variable.name === node.name);
@@ -62,28 +64,29 @@ export const preferReactComponent = ESLintUtils.RuleCreator.withoutDocs({
       return undefined;
     }
 
-    function isDirectlyInvoked(binding: TSESTree.Identifier): boolean {
+    function isDirectlyInvoked(
+      binding: ESTree.IdentifierReference | ESTree.BindingIdentifier
+    ): boolean {
       const variable = resolveVariable(binding);
       return (
         variable?.references.some(reference => {
           const parent = reference.identifier.parent;
           return (
-            parent?.type === AST_NODE_TYPES.CallExpression &&
-            parent.callee === reference.identifier
+            parent?.type === 'CallExpression' && parent.callee === reference.identifier
           );
         }) ?? false
       );
     }
 
-    function getReturnStatements(node: TSESTree.Node): TSESTree.ReturnStatement[] {
-      const returnStatements: TSESTree.ReturnStatement[] = [];
+    function getReturnStatements(node: ESTree.Node): ESTree.ReturnStatement[] {
+      const returnStatements: ESTree.ReturnStatement[] = [];
 
-      function visit(current: TSESTree.Node) {
+      function visit(current: ESTree.Node) {
         if (current !== node && isFunctionNode(current)) {
           return;
         }
 
-        if (current.type === AST_NODE_TYPES.ReturnStatement) {
+        if (current.type === 'ReturnStatement') {
           returnStatements.push(current);
           return;
         }
@@ -91,8 +94,8 @@ export const preferReactComponent = ESLintUtils.RuleCreator.withoutDocs({
         const visitorKeys = context.sourceCode.visitorKeys[current.type] ?? [];
         for (const key of visitorKeys) {
           const child = current[key as keyof typeof current] as
-            | TSESTree.Node
-            | TSESTree.Node[]
+            | ESTree.Node
+            | ESTree.Node[]
             | null
             | undefined;
 
@@ -112,56 +115,54 @@ export const preferReactComponent = ESLintUtils.RuleCreator.withoutDocs({
       return returnStatements;
     }
 
-    function returnsOnlyJsx(node: FunctionNode): boolean {
-      if (node.body.type !== AST_NODE_TYPES.BlockStatement) {
-        return isJsxExpression(node.body);
+    function returnsOnlyJsxOrNull(node: FunctionNode): boolean {
+      if (!node.body) {
+        return false;
+      }
+
+      if (node.body.type !== 'BlockStatement') {
+        return isJsxOrNullExpression(node.body);
       }
 
       const returnStatements = getReturnStatements(node.body);
       return (
         returnStatements.length > 0 &&
-        returnStatements.every(statement => isJsxExpression(statement.argument))
+        returnStatements.every(statement => isJsxOrNullExpression(statement.argument))
       );
     }
 
     function getFunctionName(node: FunctionNode): string | null {
-      if ('id' in node && node.id?.type === AST_NODE_TYPES.Identifier) {
+      if ('id' in node && node.id?.type === 'Identifier') {
         return node.id.name;
       }
 
-      let parent: TSESTree.Node | undefined = node.parent;
-      while (parent?.type === AST_NODE_TYPES.CallExpression) {
+      let parent: ESTree.Node | null = node.parent;
+      while (parent?.type === 'CallExpression') {
         parent = parent.parent;
       }
 
-      if (
-        parent?.type === AST_NODE_TYPES.VariableDeclarator &&
-        parent.id.type === AST_NODE_TYPES.Identifier
-      ) {
+      if (parent?.type === 'VariableDeclarator' && parent.id.type === 'Identifier') {
         return parent.id.name;
       }
 
       return null;
     }
 
-    function containsJsx(node: TSESTree.Node): boolean {
-      function visit(current: TSESTree.Node): boolean {
+    function containsJsx(node: ESTree.Node): boolean {
+      function visit(current: ESTree.Node): boolean {
         if (current !== node && isFunctionNode(current)) {
           return false;
         }
 
-        if (
-          current.type === AST_NODE_TYPES.JSXElement ||
-          current.type === AST_NODE_TYPES.JSXFragment
-        ) {
+        if (current.type === 'JSXElement' || current.type === 'JSXFragment') {
           return true;
         }
 
         const visitorKeys = context.sourceCode.visitorKeys[current.type] ?? [];
         return visitorKeys.some(key => {
           const child = current[key as keyof typeof current] as
-            | TSESTree.Node
-            | TSESTree.Node[]
+            | ESTree.Node
+            | ESTree.Node[]
             | null
             | undefined;
 
@@ -179,12 +180,12 @@ export const preferReactComponent = ESLintUtils.RuleCreator.withoutDocs({
       const name = getFunctionName(node);
       return (
         (name !== null && (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name))) ||
-        containsJsx(node.body)
+        (node.body ? containsJsx(node.body) : false)
       );
     }
 
     function isNestedInReactScope(node: FunctionNode): boolean {
-      let parent: TSESTree.Node | undefined = node.parent;
+      let parent: ESTree.Node | null = node.parent;
       while (parent) {
         if (isFunctionNode(parent) && isReactScope(parent)) {
           return true;
@@ -196,12 +197,12 @@ export const preferReactComponent = ESLintUtils.RuleCreator.withoutDocs({
 
     function reportIfNestedJsxFunction(
       node: FunctionNode,
-      binding: TSESTree.Identifier,
+      binding: ESTree.IdentifierReference | ESTree.BindingIdentifier,
       name: string
     ) {
       if (
         !isNestedInReactScope(node) ||
-        !returnsOnlyJsx(node) ||
+        !returnsOnlyJsxOrNull(node) ||
         !isDirectlyInvoked(binding)
       ) {
         return;
@@ -222,11 +223,7 @@ export const preferReactComponent = ESLintUtils.RuleCreator.withoutDocs({
       },
 
       VariableDeclarator(node) {
-        if (
-          node.id.type !== AST_NODE_TYPES.Identifier ||
-          !node.init ||
-          !isFunctionNode(node.init)
-        ) {
+        if (node.id.type !== 'Identifier' || !node.init || !isFunctionNode(node.init)) {
           return;
         }
 

@@ -1,4 +1,4 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {preferReactComponent} from './preferReactComponent';
 
@@ -26,7 +26,7 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
     },
     {
       name: 'nested function with a non-JSX return branch',
-      code: 'function Component() { function getHeader() { if (condition) return <Heading />; return null; } return <div />; }',
+      code: 'function Component() { function getHeader() { if (condition) return <Heading />; return value; } return <div />; }',
     },
     {
       name: 'nested function in a non-React scope',
@@ -71,6 +71,11 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
     {
       name: 'all return branches return JSX',
       code: 'function Component() { function makeHeader() { if (condition) return <Heading />; return <Fallback />; } return <div>{makeHeader()}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'return branches contain JSX or null',
+      code: 'function Component() { function makeHeader() { if (condition) return <Heading />; return null; } return <div>{makeHeader()}</div>; }',
       errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
     },
     {
