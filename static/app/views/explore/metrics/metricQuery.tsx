@@ -55,6 +55,10 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
   try {
     json = JSON.parse(value);
   } catch {
+    // The value is not valid JSON — it may be a stale or malformed URL param.
+    // Log a warning so future encoding regressions are caught immediately.
+    // eslint-disable-next-line no-console
+    console.warn('[decodeMetricsQueryParams] Failed to parse metric URL param:', value);
     return null;
   }
 

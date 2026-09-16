@@ -235,7 +235,7 @@ class DataConditionHandler(Generic[T]):
 
     group: ClassVar[Group]
     subgroup: ClassVar[Subgroup]
-    comparison_json_schema: ClassVar[dict[str, Any]] = {}
+    comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
 
@@ -287,7 +287,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
 
 @dataclass(frozen=True)
 class DetectorSettings:
-    handler: type[BaseDetectorHandler[Any]] | None = None
+    handler: type[BaseDetectorHandler[Any, Any]] | None = None
     validator: type[BaseDetectorTypeValidator] | None = None
     config_schema: dict[str, Any] = field(default_factory=dict)
     filter: Q | None = None

@@ -97,8 +97,8 @@ export function EventTagsTreeRow({
 
   return (
     <RevealOnHover>
-      {({className}) => (
-        <TreeRow hasErrors={hasTagErrors} {...props} className={className}>
+      {revealOnHoverProps => (
+        <TreeRow hasErrors={hasTagErrors} {...props} {...revealOnHoverProps}>
           <TreeKeyTrunk spacerCount={spacerCount}>
             {spacerCount > 0 && (
               <Fragment>

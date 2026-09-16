@@ -1,9 +1,6 @@
-import {
-  AST_NODE_TYPES,
-  ESLintUtils,
-  type TSESLint,
-  type TSESTree,
-} from '@typescript-eslint/utils';
+import type {Fix} from '@oxlint/plugins';
+import type {Fixer} from '@oxlint/plugins';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
 
@@ -11,7 +8,6 @@ const TOOLTIP_SOURCE = '@sentry/scraps/tooltip';
 const TEXT_SOURCE = '@sentry/scraps/text';
 const INFO_SOURCE = '@sentry/scraps/info';
 const LOCALE_SOURCE = 'sentry/locale';
-const I18N_FUNCTIONS = new Set(['t', 'tct']);
 const TEXT_LIKE_INTRINSICS = new Set([
   'a',
   'abbr',
@@ -47,26 +43,18 @@ const TOOLTIP_PROPS_TO_RENAME = new Map([['showOnlyOnOverflow', 'mode="overflowO
 const TEXT_PROPS_TO_STRIP = new Set(['underline']);
 const TEXT_PROPS_TO_STRIP_IN_OVERFLOW_ONLY = new Set(['ellipsis']);
 
-function getElementName(nameNode: TSESTree.JSXTagNameExpression): string {
+function getElementName(nameNode: ESTree.JSXElementName): string {
   switch (nameNode.type) {
-    case AST_NODE_TYPES.JSXIdentifier:
+    case 'JSXIdentifier':
       return nameNode.name;
-    case AST_NODE_TYPES.JSXMemberExpression:
+    case 'JSXMemberExpression':
       return `${getElementName(nameNode.object)}.${nameNode.property.name}`;
-    case AST_NODE_TYPES.JSXNamespacedName:
+    case 'JSXNamespacedName':
       return `${nameNode.namespace.name}:${nameNode.name.name}`;
   }
 }
 
-function isI18nCall(node: TSESTree.Expression, i18nNames: string[]): boolean {
-  return (
-    node.type === AST_NODE_TYPES.CallExpression &&
-    node.callee.type === AST_NODE_TYPES.Identifier &&
-    i18nNames.includes(node.callee.name)
-  );
-}
-
-export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
+export const preferInfoText = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -86,7 +74,14 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
     let resolved = false;
     let tooltipNames: string[] = [];
     let textNames: string[] = [];
-    let i18nNames: string[] = [];
+
+    function isLocaleCall(node: ESTree.Expression): boolean {
+      return (
+        node.type === 'CallExpression' &&
+        node.callee.type === 'Identifier' &&
+        importTracker.resolve(node.callee.name)?.source === LOCALE_SOURCE
+      );
+    }
 
     function resolveNames() {
       if (resolved) {
@@ -95,24 +90,21 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
       resolved = true;
       tooltipNames = importTracker.findLocalNames(TOOLTIP_SOURCE, 'Tooltip');
       textNames = importTracker.findLocalNames(TEXT_SOURCE, 'Text');
-      i18nNames = Array.from(I18N_FUNCTIONS).flatMap(name =>
-        importTracker.findLocalNames(LOCALE_SOURCE, name)
-      );
     }
 
-    function isTextLikeExpression(expr: TSESTree.Expression): boolean {
+    function isTextLikeExpression(expr: ESTree.Expression): boolean {
       switch (expr.type) {
-        case AST_NODE_TYPES.Literal:
+        case 'Literal':
           return typeof expr.value === 'string';
-        case AST_NODE_TYPES.TemplateLiteral:
+        case 'TemplateLiteral':
           return true;
-        case AST_NODE_TYPES.CallExpression:
-          return isI18nCall(expr, i18nNames);
-        case AST_NODE_TYPES.ConditionalExpression:
+        case 'CallExpression':
+          return isLocaleCall(expr);
+        case 'ConditionalExpression':
           return (
             isTextLikeExpression(expr.consequent) && isTextLikeExpression(expr.alternate)
           );
-        case AST_NODE_TYPES.LogicalExpression:
+        case 'LogicalExpression':
           if (expr.operator === '&&') {
             return isTextLikeExpression(expr.right);
           }
@@ -122,16 +114,16 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
       }
     }
 
-    function isTextLikeChild(child: TSESTree.JSXChild): boolean {
+    function isTextLikeChild(child: ESTree.JSXChild): boolean {
       switch (child.type) {
-        case AST_NODE_TYPES.JSXText:
+        case 'JSXText':
           return child.value.trim().length > 0;
-        case AST_NODE_TYPES.JSXExpressionContainer:
-          if (child.expression.type === AST_NODE_TYPES.JSXEmptyExpression) {
+        case 'JSXExpressionContainer':
+          if (child.expression.type === 'JSXEmptyExpression') {
             return false;
           }
           return isTextLikeExpression(child.expression);
-        case AST_NODE_TYPES.JSXElement: {
+        case 'JSXElement': {
           const name = getElementName(child.openingElement.name);
           // Text is intended to render text content, so do not require the
           // expression inside it to be statically recognizable as text.
@@ -143,34 +135,34 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
           }
           return false;
         }
-        case AST_NODE_TYPES.JSXFragment:
+        case 'JSXFragment':
           return allChildrenAreTextLike(child.children);
         default:
           return false;
       }
     }
 
-    function allChildrenAreTextLike(children: TSESTree.JSXChild[]): boolean {
+    function allChildrenAreTextLike(children: ESTree.JSXChild[]): boolean {
       const meaningful = children.filter(
-        c => !(c.type === AST_NODE_TYPES.JSXText && c.value.trim() === '')
+        c => !(c.type === 'JSXText' && c.value.trim() === '')
       );
       return meaningful.length > 0 && meaningful.every(isTextLikeChild);
     }
 
-    function getMeaningfulChildren(children: TSESTree.JSXChild[]) {
+    function getMeaningfulChildren(children: ESTree.JSXChild[]) {
       return children.filter(
-        child => !(child.type === AST_NODE_TYPES.JSXText && child.value.trim() === '')
+        child => !(child.type === 'JSXText' && child.value.trim() === '')
       );
     }
 
-    function getSingleTextElementChild(node: TSESTree.JSXElement) {
+    function getSingleTextElementChild(node: ESTree.JSXElement) {
       const meaningfulChildren = getMeaningfulChildren(node.children);
       const child = meaningfulChildren[0];
       if (meaningfulChildren.length !== 1 || !child) {
         return null;
       }
 
-      if (child.type !== AST_NODE_TYPES.JSXElement || child.closingElement === null) {
+      if (child.type !== 'JSXElement' || child.closingElement === null) {
         return null;
       }
 
@@ -182,7 +174,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
       return child;
     }
 
-    function canSuggestInfoText(node: TSESTree.JSXElement): boolean {
+    function canSuggestInfoText(node: ESTree.JSXElement): boolean {
       if (node.openingElement.selfClosing || node.closingElement === null) {
         return false;
       }
@@ -192,26 +184,26 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
       }
 
       return node.openingElement.attributes.every(attr => {
-        if (attr.type !== AST_NODE_TYPES.JSXAttribute) {
+        if (attr.type !== 'JSXAttribute') {
           return false;
         }
 
         if (
-          attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
+          attr.name.type === 'JSXIdentifier' &&
           (attr.name.name === 'showOnlyOnOverflow' ||
             attr.name.name === 'isHoverable' ||
             attr.name.name === 'skipWrapper')
         ) {
           return (
             attr.value === null ||
-            (attr.value.type === AST_NODE_TYPES.JSXExpressionContainer &&
-              attr.value.expression.type === AST_NODE_TYPES.Literal &&
+            (attr.value.type === 'JSXExpressionContainer' &&
+              attr.value.expression.type === 'Literal' &&
               attr.value.expression.value === true)
           );
         }
 
         return (
-          attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
+          attr.name.type === 'JSXIdentifier' &&
           TOOLTIP_PROPS_SUPPORTED_BY_INFO_TEXT.has(attr.name.name)
         );
       });
@@ -221,13 +213,13 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
       return importTracker.findLocalNames(INFO_SOURCE, 'InfoText')[0] ?? 'InfoText';
     }
 
-    function getInfoTextImportFix(fixer: TSESLint.RuleFixer) {
+    function getInfoTextImportFix(fixer: Fixer) {
       if (importTracker.findLocalNames(INFO_SOURCE, 'InfoText').length > 0) {
         return null;
       }
 
       const imports = context.sourceCode.ast.body.filter(
-        node => node.type === AST_NODE_TYPES.ImportDeclaration
+        node => node.type === 'ImportDeclaration'
       );
       const infoImport = `import {InfoText} from '${INFO_SOURCE}';\n`;
       const lastImport = imports.at(-1);
@@ -239,7 +231,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
     }
 
     function getAttributeText(
-      attributes: TSESTree.JSXOpeningElement['attributes'],
+      attributes: ESTree.JSXOpeningElement['attributes'],
       stripNames?: Set<string>,
       renameNames?: Map<string, string>
     ) {
@@ -249,16 +241,13 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
             return true;
           }
           return !(
-            attr.type === AST_NODE_TYPES.JSXAttribute &&
-            attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
+            attr.type === 'JSXAttribute' &&
+            attr.name.type === 'JSXIdentifier' &&
             stripNames.has(attr.name.name)
           );
         })
         .map(attr => {
-          if (
-            attr.type === AST_NODE_TYPES.JSXAttribute &&
-            attr.name.type === AST_NODE_TYPES.JSXIdentifier
-          ) {
+          if (attr.type === 'JSXAttribute' && attr.name.type === 'JSXIdentifier') {
             return renameNames?.get(attr.name.name) ?? context.sourceCode.getText(attr);
           }
           return context.sourceCode.getText(attr);
@@ -297,8 +286,8 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                       if (textChild && textChild.closingElement !== null) {
                         const isOverflowOnly = node.openingElement.attributes.some(
                           attr =>
-                            attr.type === AST_NODE_TYPES.JSXAttribute &&
-                            attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
+                            attr.type === 'JSXAttribute' &&
+                            attr.name.type === 'JSXIdentifier' &&
                             attr.name.name === 'showOnlyOnOverflow'
                         );
                         const textPropsToStrip = isOverflowOnly
@@ -334,7 +323,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                         return fixes;
                       }
 
-                      const fixes: TSESLint.RuleFix[] = [
+                      const fixes: Fix[] = [
                         fixer.replaceText(node.openingElement.name, infoTextName),
                         fixer.replaceText(node.closingElement.name, infoTextName),
                         fixer.insertTextAfter(
@@ -343,11 +332,11 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                         ),
                       ];
                       for (const attr of node.openingElement.attributes) {
-                        if (attr.type !== AST_NODE_TYPES.JSXAttribute) {
+                        if (attr.type !== 'JSXAttribute') {
                           continue;
                         }
 
-                        if (attr.name.type !== AST_NODE_TYPES.JSXIdentifier) {
+                        if (attr.name.type !== 'JSXIdentifier') {
                           continue;
                         }
 

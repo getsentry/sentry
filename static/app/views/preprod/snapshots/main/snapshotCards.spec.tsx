@@ -82,6 +82,14 @@ describe('ImageCard zoom', () => {
     expect(mockZoom.resetZoom).toHaveBeenCalledTimes(1);
   });
 
+  it('hints at modifier scroll zoom on the zoom buttons', async () => {
+    renderImageCard(null);
+
+    await userEvent.hover(screen.getByRole('button', {name: 'Zoom in'}));
+
+    expect(await screen.findByText('Scroll')).toBeInTheDocument();
+  });
+
   it('does not toggle card selection when using zoom controls', async () => {
     const onSelectSnapshot = jest.fn();
     renderImageCard(null, onSelectSnapshot);

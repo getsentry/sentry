@@ -460,8 +460,7 @@ export function SpanEvidenceKeyValueList({
   const spanInfo = getSpanInfoFromTransactionEvent(event);
 
   const typeId = event.occurrence?.type;
-  const issueType =
-    event.perfProblem?.issueType ?? getIssueTypeFromOccurrenceType(typeId);
+  const issueType = getIssueTypeFromOccurrenceType(typeId);
   const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
   if (!issueType || (requiresSpanInfo && !spanInfo)) {

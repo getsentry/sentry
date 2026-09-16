@@ -25,7 +25,7 @@ import {AUTOMATION_LIST_PAGE_LIMIT} from 'sentry/views/automations/constants';
 import {useAutomationListQueryOptions} from 'sentry/views/automations/hooks/useAutomationListDetectors';
 import {
   getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
+  useCanCreateAutomation,
 } from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {makeAutomationCreatePathname} from 'sentry/views/automations/pathnames';
 
@@ -112,7 +112,7 @@ function TableHeader() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const canCreateAlert = useCanEditAutomation();
+  const canCreateAlert = useCanCreateAutomation();
   const initialQuery =
     typeof location.query.query === 'string' ? location.query.query : '';
 

@@ -16,6 +16,7 @@ from sentry.api.utils import generate_locality_url
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.objectstore.types import ObjectstoreUploadOptions
+from sentry.preprod.snapshots.storage import get_snapshot_usecase
 from sentry.utils.http import absolute_uri
 
 
@@ -28,8 +29,16 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project: Project) -> Response:
+        requested = request.GET.get("usecase")
+        if requested is None:
+            usecase = UsecaseId.PREPROD
+        elif requested == "auto":
+            usecase = get_snapshot_usecase()
+        else:
+            return Response({"detail": "Invalid usecase"}, status=400)
+
         organization = project.organization
-        session = get_session(UsecaseId.PREPROD, project)
+        session = get_session(usecase, project)
 
         path = reverse(
             "sentry-api-0-organization-objectstore",
@@ -44,6 +53,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
 
         options = ObjectstoreUploadOptions(
             url=url,
+            usecase=usecase.value,
             scopes=[
                 ("org", str(organization.id)),
                 ("project", str(project.id)),

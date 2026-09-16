@@ -83,6 +83,17 @@ describe('SeerExplorerHeader', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('hides the thinking toggle when code mode tools is enabled', async () => {
+      await renderHeader(
+        {},
+        orgWith('seer-explorer-thinking-blocks', 'seer-explorer-code-mode-tools')
+      );
+
+      // Code mode always shows thinking, so the Debug menu has nothing left to
+      // offer when only the thinking toggle would have been present.
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
+    });
+
     it('renders the force bash mode toggle behind its own flag', async () => {
       const onOverrideBashModeToggle = jest.fn();
       await renderHeader(

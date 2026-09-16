@@ -15,14 +15,14 @@ import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {IconAdd, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {getNoAlertWritePermissionTooltip} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {canCreateDetachedAutomation} from 'sentry/views/automations/utils/permissions';
 import {ConnectAutomationsDrawer} from 'sentry/views/detectors/components/connectAutomationsDrawer';
 import {ConnectedAutomationsList} from 'sentry/views/detectors/components/connectedAutomationList';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
+import {useCanEditDetectorWorkflowConnections} from 'sentry/views/detectors/utils/useCanEditDetector';
 
 /**
  * Section that lets the user connect, disconnect, and create automations
@@ -86,10 +86,20 @@ function AutomateSectionInner({
 }: AutomateSectionInnerProps) {
   const ref = useRef<HTMLButtonElement>(null);
   const {openDrawer, closeDrawer, isDrawerOpen} = useDrawer();
-  const canEditAutomation = useCanEditAutomation();
-  const permissionTooltipText = canEditAutomation
+  const organization = useOrganization();
+  // The drawer creates the alert before connecting it when the monitor is saved.
+  const canCreateAlert = canCreateDetachedAutomation(organization);
+  const canEditWorkflowConnections = useCanEditDetectorWorkflowConnections({
+    projectId: project.id,
+  });
+  const permissionTooltipText = canEditWorkflowConnections
     ? undefined
     : getNoAlertWritePermissionTooltip();
+  const createPermissionTooltipText = canCreateAlert
+    ? undefined
+    : canEditWorkflowConnections
+      ? t('Save this monitor, then create an alert from its detail page.')
+      : getNoAlertWritePermissionTooltip();
 
   const toggleDrawer = () => {
     if (isDrawerOpen) {
@@ -152,8 +162,8 @@ function AutomateSectionInner({
             size="sm"
             icon={<IconAdd />}
             onClick={openCreateDrawer}
-            disabled={!canEditAutomation}
-            tooltipProps={{title: permissionTooltipText}}
+            disabled={!canCreateAlert}
+            tooltipProps={{title: createPermissionTooltipText}}
           >
             {t('Create New Alert')}
           </Button>
@@ -161,7 +171,7 @@ function AutomateSectionInner({
             size="sm"
             icon={<IconEdit />}
             onClick={toggleDrawer}
-            disabled={!canEditAutomation}
+            disabled={!canEditWorkflowConnections}
             tooltipProps={{title: permissionTooltipText}}
           >
             {t('Edit Alerts')}
@@ -190,7 +200,7 @@ function AutomateSectionInner({
                   size="sm"
                   style={{width: 'min-content'}}
                   onClick={toggleDrawer}
-                  disabled={!canEditAutomation}
+                  disabled={!canEditWorkflowConnections}
                   tooltipProps={{title: permissionTooltipText}}
                 >
                   {t('Connect Existing Alerts')}
@@ -198,8 +208,8 @@ function AutomateSectionInner({
                 <Button
                   size="sm"
                   onClick={openCreateDrawer}
-                  disabled={!canEditAutomation}
-                  tooltipProps={{title: permissionTooltipText}}
+                  disabled={!canCreateAlert}
+                  tooltipProps={{title: createPermissionTooltipText}}
                 >
                   {t('Create New Alert')}
                 </Button>

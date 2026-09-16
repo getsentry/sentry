@@ -1,3 +1,4 @@
+import type {ESTree, Visitor} from '@oxlint/plugins';
 /**
  * @file Stateful import tracker for resolving local names to their import source.
  *
@@ -15,8 +16,6 @@
  *     },
  *   };
  */
-
-import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
 interface ImportInfo {
   /** The original exported name (e.g., 'Button' even if aliased locally). */
@@ -39,7 +38,7 @@ interface ImportTracker {
   resolve(localName: string): ImportInfo | null;
 
   /** ESLint visitors to merge into the rule's return object. */
-  visitors: TSESLint.RuleListener;
+  visitors: Visitor;
 }
 
 /**
@@ -53,7 +52,7 @@ export function createImportTracker(): ImportTracker {
 
   return {
     visitors: {
-      ImportDeclaration(node: TSESTree.ImportDeclaration) {
+      ImportDeclaration(node: ESTree.ImportDeclaration) {
         const source = node.source.value;
         if (typeof source !== 'string') {
           return;

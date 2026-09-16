@@ -543,13 +543,40 @@ export const SEER_EMBED_SCHEMAS = {
   },
   trace: {
     description:
-      'The ONLY way to reference a Sentry trace (the trace waterfall view). ' +
+      'The ONLY way to reference a Sentry trace. Renders a compact link. ' +
+      'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
+      'link opens on the right time range, and `spanId` to focus a span. ' +
+      'This never renders the waterfall itself — when the user wants to see the ' +
+      'trace, emit the separate `traceWaterfall` embed. ' +
+      'Never use a markdown link for trace references.',
+    level: ['inline'],
+    schema: z.object({
+      traceId: z.string().min(1),
+      timestamp: isoTimestampSchema.optional(),
+      spanId: z.string().min(1).optional(),
+    }),
+    examples: [
+      {
+        label: 'Trace',
+        data: {
+          traceId: 'a1b2c3d4e5f678901234567890abcdef',
+          timestamp: '2026-08-25T16:37:12Z',
+        },
+      },
+    ],
+  },
+  traceWaterfall: {
+    description:
+      'Render the live, interactive trace waterfall for one trace. ' +
+      'This is a large, data-heavy widget that loads the whole span tree, so only ' +
+      'emit it when the user actually wants to look at the trace — they asked to ' +
+      'see it, or the answer is about the shape or timing of the spans. Merely ' +
+      'citing a trace is the `trace` embed, which does NOT expand into a waterfall. ' +
       'Use the 32-character trace ID. Provide `timestamp` when known so the ' +
       'waterfall opens on the right time range, and `spanId` to focus a span. ' +
-      'Inline: renders a compact link. Block: renders the live trace waterfall. ' +
       'Do not duplicate the waterfall spans or duration details as text. ' +
-      'Never use a markdown link for trace references.',
-    level: ['inline', 'block'],
+      'Emit at most one per response.',
+    level: ['block'],
     schema: z.object({
       traceId: z.string().min(1),
       timestamp: isoTimestampSchema.optional(),
@@ -558,7 +585,6 @@ export const SEER_EMBED_SCHEMAS = {
     examples: [
       {
         label: 'Trace waterfall',
-        level: 'block',
         data: {
           traceId: 'a1b2c3d4e5f678901234567890abcdef',
           timestamp: '2026-08-25T16:37:12Z',
@@ -678,7 +704,7 @@ export const SEER_EMBED_SCHEMAS = {
       'When referencing a SET of logs defined by a search, use the `logsQuery` ' +
       'embed instead. ' +
       'Inline: renders a compact link that opens the log row in Explore. ' +
-      'Block: renders the log row with its severity, message, and timestamp — ' +
+      'Block: renders the log row with its message, severity, and timestamp — ' +
       'do NOT duplicate any of that as text. ' +
       'Set `view` to "attributes" to also render the full attribute list for the ' +
       'log, or to "attribute" together with `attribute` to break that one ' +
@@ -784,7 +810,9 @@ export const SEER_EMBED_SCHEMAS = {
       'a timeseries chart of the total across the period — the chart is never ' +
       'broken out per group. When aggregate mode names only aggregates and no ' +
       'group-by columns, the chart replaces the table. Provide `yAxes` to pick ' +
-      'which aggregate is charted; samples mode charts the event count.',
+      'which aggregate is charted; samples mode charts the event count. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -844,7 +872,9 @@ export const SEER_EMBED_SCHEMAS = {
       'other query charts a single total for the period. Provide `yAxes` to pick ' +
       'which aggregate is charted — samples mode, and any query naming none, ' +
       'charts "count(span.duration)". When aggregate mode supplies no `groupBy` ' +
-      'there is only one row to show, so the chart replaces the table.',
+      'there is only one row to show, so the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -894,7 +924,9 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline renders a link; block renders the first five matching rows ' +
       'beneath a timeseries — one series per group when grouped, log volume ' +
       'otherwise. An aggregate that groups by nothing collapses to a single ' +
-      'row, so there the chart replaces the table.',
+      'row, so there the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object(exploreQueryFields),
     examples: [
@@ -955,7 +987,8 @@ export const SEER_EMBED_SCHEMAS = {
       '"gen_ai.request.model:gpt-4o". Negation is not supported. ' +
       'Use `agents` to filter to specific agent names. ' +
       'Inline renders a link; block renders the first five matching conversations ' +
-      'with their duration, message count, errors and cost.',
+      'with their duration, message count, errors and cost — do NOT repeat ' +
+      'those rows as a markdown table or restate their values as text.',
     featureFlag: 'organizations:gen-ai-conversations',
     level: ['inline', 'block'],
     schema: z.object({
@@ -985,7 +1018,8 @@ export const SEER_EMBED_SCHEMAS = {
       'specific replay ID, use the `replay` embed instead. ' +
       '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
       'Inline renders a link; block renders the first five matching replays ' +
-      'with their duration, error count and rage clicks.',
+      'with their duration, error count and rage clicks — do NOT repeat those ' +
+      'rows as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -1011,7 +1045,9 @@ export const SEER_EMBED_SCHEMAS = {
       "metric's type. " +
       'Inline renders a link; block renders a timeseries chart with the first ' +
       'five matching rows beneath it. An aggregate that groups by nothing ' +
-      'collapses to a single row, so there the chart replaces the table.',
+      'collapses to a single row, so there the chart replaces the table. ' +
+      'The block already lists those rows and charts them, so do NOT repeat ' +
+      'them as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...exploreQueryFields,

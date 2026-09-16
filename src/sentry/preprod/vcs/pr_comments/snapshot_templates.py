@@ -92,7 +92,11 @@ def format_snapshot_pr_comment(
         ):
             table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         elif comparison.state == PreprodSnapshotComparison.State.FAILED:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | ❌ Comparison failed |")
+            if comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING:
+                failure_status = "❌ No base snapshot found"
+            else:
+                failure_status = "❌ Comparison failed"
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {failure_status} |")
         else:
             has_reportable_changes = reportable_changes_by_artifact_id.get(artifact.id, False)
             requires_approval = approval_requirements_by_artifact_id.get(artifact.id, False)

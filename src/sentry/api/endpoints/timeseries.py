@@ -23,6 +23,9 @@ class StatsMeta(TypedDict):
     start: float
     end: float
     annotations: NotRequired[list[Annotation]]
+    estimatedIngestionDelaySeconds: NotRequired[float]
+    completeThrough: NotRequired[float]
+    ingestionDelayStatus: NotRequired[str]
 
 
 class Row(TypedDict):

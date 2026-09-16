@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+import logging
+
+import sentry_sdk
+
+from sentry.ingestion_delay.activity import ITEM_TYPE_TO_CATEGORY
+from sentry.ingestion_delay.status import (
+    IngestionDelayStatus,
+)
+from sentry.ingestion_delay.status import (
+    get_ingestion_delay_status as compute_ingestion_delay_status,
+)
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.rpc_dataset_common import RPCBase
+
+logger = logging.getLogger(__name__)
+
+
+def get_ingestion_delay_status(
+    dataset: type[RPCBase], snuba_params: SnubaParams
+) -> IngestionDelayStatus | None:
+    """Ingestion status only for EAP RPC datasets."""
+    item_type = dataset.DEFINITIONS.trace_item_type
+
+    if snuba_params.organization_id is None:
+        return None
+
+    if item_type not in ITEM_TYPE_TO_CATEGORY:
+        logger.warning(
+            "ingestion_delay.unsupported_item_type",
+            extra={"organization_id": snuba_params.organization_id, "item_type": item_type},
+        )
+        return None
+
+    with sentry_sdk.start_span(op="ingestion_delay.get_ingestion_delay_status") as span:
+        span.set_data("organization_id", snuba_params.organization_id)
+        span.set_data("item_type", item_type)
+        try:
+            return compute_ingestion_delay_status(
+                organization_id=snuba_params.organization_id,
+                project_ids=snuba_params.project_ids,
+                item_type=item_type,
+            )
+        except Exception:
+            sentry_sdk.capture_exception()
+            return None

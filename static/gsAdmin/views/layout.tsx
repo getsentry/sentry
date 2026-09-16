@@ -9,7 +9,6 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
@@ -62,6 +61,7 @@ export function Layout() {
 
   // Close mobile drawer on route change.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     closeSidebar();
   }, [location.pathname]);
 
@@ -93,7 +93,6 @@ export function Layout() {
           <GlobalStyles theme={theme} />
           <GlobalModal />
           <SystemAlerts className="messages-container" />
-          <Indicators className="indicators-container" />
           <AppContainer isCollapsed={isCollapsed}>
             {/* Mobile: tap-outside backdrop for the drawer */}
             <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />

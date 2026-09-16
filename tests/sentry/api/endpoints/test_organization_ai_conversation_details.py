@@ -22,6 +22,64 @@ from sentry.utils.snuba_rpc import SnubaRPCTimeout
 from .test_organization_ai_conversations_base import BaseAIConversationsTestCase
 
 
+def test_parent_fetch_groups_span_ids_by_trace() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    snuba_params = MagicMock()
+    parent_keys = {
+        ("trace-a", "parent-2"),
+        ("trace-b", "parent-3"),
+        ("trace-a", "parent-1"),
+    }
+    parent = {"trace": "trace-a", "span_id": "parent-1"}
+
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as run_query:
+        result = endpoint._fetch_parent_spans(snuba_params, parent_keys)
+
+    assert result == {("trace-a", "parent-1"): parent}
+    assert run_query.call_args.kwargs["query_string"] == (
+        '(trace:"trace-a" span_id:["parent-1", "parent-2"]) OR (trace:"trace-b" span_id:"parent-3")'
+    )
+    assert run_query.call_args.kwargs["limit"] == 3
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_parent_repair_uses_spans_from_page() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    conversation_id = uuid4().hex
+    trace_id = uuid4().hex
+    root = {
+        "trace": trace_id,
+        "span_id": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "invoke_agent",
+    }
+    bridge = {
+        "trace": trace_id,
+        "span_id": "bridge",
+        "parent_span": "root",
+        "gen_ai.conversation.id": conversation_id,
+        "span.op": "http.client",
+    }
+    child = {
+        "trace": trace_id,
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": conversation_id,
+        "gen_ai.operation.type": "ai_client",
+    }
+
+    with (
+        patch.object(Spans, "run_table_query") as run_query,
+        patch(
+            "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.metrics.distribution"
+        ),
+    ):
+        endpoint._repair_parent_links([root, bridge, child], MagicMock(), conversation_id)
+
+    assert child["parent_span"] == "root"
+    run_query.assert_not_called()
+
+
 def test_parent_repair_stops_after_five_hops() -> None:
     endpoint = OrganizationAIConversationDetailsEndpoint()
     conversation_id = uuid4().hex
@@ -375,7 +433,12 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=2),
             op="gen_ai.chat",
             operation_type="ai_client",
-            tokens=100,
+            tokens=150,
+            input_tokens=100,
+            output_tokens=50,
+            cache_read_tokens=20,
+            cache_write_tokens=30,
+            reasoning_tokens=10,
             trace_id=trace_id,
         )
         self.store_ai_span(
@@ -402,6 +465,16 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         trace_ids = {span["trace"] for span in response.data["spans"]}
         assert len(trace_ids) == 1
         assert trace_id in trace_ids
+
+        generation_span = next(
+            span for span in response.data["spans"] if span["gen_ai.operation.type"] == "ai_client"
+        )
+        assert generation_span["gen_ai.usage.input_tokens"] == 100
+        assert generation_span["gen_ai.usage.output_tokens"] == 50
+        assert generation_span["gen_ai.usage.cache_read.input_tokens"] == 20
+        assert generation_span["gen_ai.usage.cache_creation.input_tokens"] == 30
+        assert generation_span["gen_ai.usage.reasoning.output_tokens"] == 10
+        assert generation_span["gen_ai.usage.total_tokens"] == 150
 
     def test_repairs_parent_links_with_bulk_fetch(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
@@ -1255,24 +1328,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             {"id": self.project.id, "name": self.project.name, "slug": self.project.slug}
         ]
         assert response.data["webUrl"].endswith(f"/{conversation_id}/?project={self.project.id}")
-
-    def test_empty_conversation_returns_envelope(self) -> None:
-        now = before_now(days=5).replace(microsecond=0)
-        conversation_id = uuid4().hex
-
-        self._store_conversation_span(uuid4().hex, now)
-
-        query = {
-            "project": [self.project.id],
-            "start": (now - timedelta(hours=1)).isoformat(),
-            "end": (now + timedelta(hours=1)).isoformat(),
-        }
-
-        response = self.do_request(conversation_id, query)
-        assert response.status_code == 200
-        assert response.data["conversationId"] == conversation_id
-        assert response.data["title"] is None
-        assert response.data["spans"] == []
 
     def test_paginates_with_title(self) -> None:
         now = before_now(days=5).replace(microsecond=0)

@@ -308,6 +308,31 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_span_id_query(self) -> None:
+        where, having, _ = self.resolver.resolve_query("span_id:9dd6c84c33259a6d")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.span_id", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="9dd6c84c33259a6d"),
+            )
+        )
+        assert having is None
+
+    def test_parent_span_id_query(self) -> None:
+        """Older SDKs send the emitting span as an attribute instead of the log's span_id field."""
+        where, having, _ = self.resolver.resolve_query("trace.parent_span_id:9dd6c84c33259a6d")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="sentry.trace.parent_span_id", type=AttributeKey.Type.TYPE_STRING
+                ),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="9dd6c84c33259a6d"),
+            )
+        )
+        assert having is None
+
     def test_regex_query(self) -> None:
         where, having, _ = self.resolver.resolve_query(f"message:{REGEX_OPERATOR}^ERROR")
         assert where == TraceItemFilter(

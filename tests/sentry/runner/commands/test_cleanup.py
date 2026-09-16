@@ -28,13 +28,13 @@ from sentry.runner.commands.cleanup import (
     run_bulk_query_deletes,
     task_execution,
 )
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.night_shift import SeerNightShiftRunResult
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
-from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -373,8 +373,8 @@ class SeerRunCleanupTest(TestCase):
         run = self.create_seer_run(
             organization=self.organization, last_triggered_at=before_now(days=31)
         )
-        night_shift_run = SeerNightShiftRun.objects.create(organization=self.organization)
-        shard = SeerNightShiftRunShard.objects.create(run=night_shift_run, seer_run=run)
+        night_shift_run = SeerWorkflowRun.objects.create(organization=self.organization)
+        shard = SeerWorkflowRunExecution.objects.create(run=night_shift_run, seer_run=run)
         result = SeerNightShiftRunResult.objects.create(
             run=night_shift_run,
             kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,

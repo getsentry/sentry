@@ -97,6 +97,14 @@ class DataExportDetailsTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 404
 
+    def test_non_integer_data_export_id(self) -> None:
+        response = self.get_error_response(self.organization.slug, "invalid")
+        assert response.status_code == 404
+
+    def test_out_of_range_data_export_id(self) -> None:
+        response = self.get_error_response(self.organization.slug, "999999999999999999999")
+        assert response.status_code == 404
+
     def test_cannot_access_another_members_export(self) -> None:
         # A second member of the same organization must not be able to read
         # another member's export by enumerating its id (IDOR).

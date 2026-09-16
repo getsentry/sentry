@@ -1,10 +1,11 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {fetchIssueTagApiOptions} from 'sentry/actionCreators/group';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {EmbedSection} from 'sentry/components/seer/markdown/embeds/components/embedSection';
 import {makeIssueTagDistributionPathname} from 'sentry/components/seer/markdown/embeds/components/event/eventPathnames';
 import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {IconIssues} from 'sentry/icons';
@@ -82,11 +83,9 @@ export function EventTagView({
   const singleTagKey = visibleTagKeys.length === 1 ? visibleTagKeys[0] : undefined;
 
   return (
-    <Stack gap="md">
-      <Flex align="center" gap="md" justify="between" wrap="wrap">
-        <Text bold size="xs" uppercase variant="muted">
-          {t('Tag Distribution')}
-        </Text>
+    <EmbedSection
+      title={t('Tag Distribution')}
+      action={
         <ResourceLink
           icon={IconIssues}
           href={
@@ -102,14 +101,23 @@ export function EventTagView({
             singleTagKey ? t('All %s values', singleTagKey) : t('All tags for this issue')
           }
         />
-      </Flex>
+      }
+    >
       {/*
         Bare keys are container queries, and the block sets `containerType`, so
         this pairs up on the embed's own width rather than the viewport's --
         the embed has no idea how wide the page around it is.
+
+        One key is deliberately not half of a two-column grid: the log embed
+        draws its single attribute across the full width, and a lone card that
+        stopped halfway would be the same panel at two different sizes.
       */}
       <Grid
-        columns={{zero: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))'}}
+        columns={
+          singleTagKey
+            ? 'minmax(0, 1fr)'
+            : {zero: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))'}
+        }
         gap="md"
         align="start"
       >
@@ -122,6 +130,6 @@ export function EventTagView({
           />
         ))}
       </Grid>
-    </Stack>
+    </EmbedSection>
   );
 }
