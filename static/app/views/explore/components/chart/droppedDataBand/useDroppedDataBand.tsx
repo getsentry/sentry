@@ -18,7 +18,8 @@ import {
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
 
-// TODO: this should change to read from the outcome property when backend changes are in
+// The response carries the outcome only as a display `label`, so this match is
+// the only handle we have on client discards today.
 const CLIENT_DISCARD_LABEL = 'Client discard';
 
 // Styling constants
