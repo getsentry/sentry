@@ -36,11 +36,13 @@ function renderComponent({
   eventView,
   handleCellAction = jest.fn(),
   columnIndex = 0,
+  column,
   data = defaultData,
   pin,
   triggerType,
 }: {
   eventView: EventView;
+  column?: TableColumn<string>;
   columnIndex?: number;
   data?: TableDataRow;
   handleCellAction?: (
@@ -53,7 +55,7 @@ function renderComponent({
   return render(
     <CellAction
       dataRow={data}
-      column={eventView.getColumns()[columnIndex]!}
+      column={column ?? eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
       pin={pin}
       triggerType={triggerType}
@@ -344,6 +346,72 @@ describe('Discover -> CellAction', () => {
       expect(
         screen.queryByRole('menuitemradio', {name: 'Show values less than'})
       ).not.toBeInTheDocument();
+    });
+
+    it('does not offer filter actions for array cells', async () => {
+      // Array attributes only support an `includes` filter, which the cell
+      // action can't express, so the add/exclude filter actions are hidden.
+      const arrayColumn: TableColumn<string> = {
+        key: 'tags[my.tags,array]',
+        name: 'tags[my.tags,array]',
+        type: 'array',
+        isSortable: false,
+        column: {kind: 'field', field: 'tags[my.tags,array]'},
+        width: undefined,
+      };
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        column: arrayColumn,
+        data: {
+          ...defaultData,
+          // @ts-expect-error TODO: Fix this type
+          'tags[my.tags,array]': ['foo', 'bar'],
+        },
+      });
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
+      // Non-filter actions remain available.
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Copy to clipboard'})
+      ).toBeInTheDocument();
+    });
+
+    it('offers filter actions for null array cells', async () => {
+      // A null array field still supports a `has`/`!has` existence filter, so
+      // the add/exclude filter actions remain available for null values.
+      const arrayColumn: TableColumn<string> = {
+        key: 'tags[my.tags,array]',
+        name: 'tags[my.tags,array]',
+        type: 'array',
+        isSortable: false,
+        column: {kind: 'field', field: 'tags[my.tags,array]'},
+        width: undefined,
+      };
+      renderComponent({
+        eventView: view,
+        handleCellAction,
+        column: arrayColumn,
+        data: {
+          ...defaultData,
+          // @ts-expect-error TODO: Fix this type
+          'tags[my.tags,array]': null,
+        },
+      });
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
     });
 
     it('show appropriate actions for string cells with null values', async () => {

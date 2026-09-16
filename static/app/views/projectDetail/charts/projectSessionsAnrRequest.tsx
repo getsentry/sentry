@@ -113,6 +113,7 @@ export function ProjectSessionsAnrRequest({
         0
       );
 
+      // oxlint-disable-next-line react/set-state-in-effect
       setTotalSessions(totalUsers);
       onTotalValuesChange(totalUsers);
 

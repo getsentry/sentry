@@ -27,6 +27,8 @@ import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 import {
   buildIntegrationAction,
@@ -70,6 +72,7 @@ export function ScmMessaging({
   selectedPlatform,
   selectedRepository,
 }: ScmMessagingProps) {
+  const organization = useOrganization();
   const {createOrReuseProject, isCreating, isDataPending} = useScmProjectCreation({
     createdProject,
     onCreatedProjectChange,
@@ -95,6 +98,10 @@ export function ScmMessaging({
   } = useScmMessagingProviders();
 
   const [activeRow, setActiveRow] = useState<ScmMessagingActiveRow>(null);
+
+  useEffect(() => {
+    trackAnalytics('onboarding.scm_messaging_step_viewed', {organization});
+  }, [organization]);
 
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
@@ -153,11 +160,23 @@ export function ScmMessaging({
         : {defaultRules: true},
       getIntegrationAction: includeMessagingRule ? getIntegrationAction : undefined,
       stagedSelection,
-      onSuccess: () => {
+      onSuccess: ({reused, notificationRule}) => {
         // Record the skip only on success: a failed creation keeps the staged
         // destination (and the Continue button) intact on the step.
         if (!includeMessagingRule) {
           onMessagingSetupChange({mode: 'skipped'});
+        }
+        // An unchanged Back-navigation reuse completes the step again but
+        // creates nothing, so it is not a second completion.
+        if (!reused) {
+          trackAnalytics('onboarding.scm_messaging_completed', {
+            organization,
+            // Read from the created rule, the same source
+            // scm_project_created reads, so the two events cannot disagree
+            // about one submission. `includeMessagingRule` is the intent, and
+            // an intent that builds no integration action creates no rule.
+            notification: notificationRule ? 'integration' : 'email_only',
+          });
         }
         onComplete(selectedPlatform, {
           product: selectedFeatures ?? DEFAULT_SCM_FEATURES,
@@ -199,10 +218,20 @@ export function ScmMessaging({
         isIntegrationActive(integration) &&
         isEligibleForIssueAlerts(integration)
     );
+    trackAnalytics('onboarding.scm_messaging_install_returned', {
+      organization,
+      provider: providerKey,
+      outcome: connected ? 'connected' : 'not_connected',
+    });
     // Drop exclusive if the install never surfaced a usable integration.
     if (result.isLoadingError || !connected) {
       setActiveRow(null);
     }
+  };
+
+  const handleRetryProviders = () => {
+    trackAnalytics('onboarding.scm_messaging_providers_retry_clicked', {organization});
+    retry();
   };
 
   const hasValidationAlert = !!validation.staleReason || validation.isError;
@@ -218,6 +247,7 @@ export function ScmMessaging({
       return;
     }
     if (messagingSetup.mode !== 'selected') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setContinueRequested(false);
       return;
     }
@@ -324,7 +354,9 @@ export function ScmMessaging({
                 <Alert
                   variant="warning"
                   trailingItems={
-                    <Alert.Button onClick={retry}>{t('Retry')}</Alert.Button>
+                    <Alert.Button onClick={handleRetryProviders}>
+                      {t('Retry')}
+                    </Alert.Button>
                   }
                 >
                   {t('Failed to load integrations.')}

@@ -110,7 +110,7 @@ describe('conversation embed', () => {
     // title -- which only arrives with the response -- is the loaded signal.
     // The API title also wins over whatever the model wrote into the tag.
     expect(
-      await screen.findByRole('link', {name: 'Out of memory investigation'})
+      await screen.findByRole('button', {name: 'Out of memory investigation'})
     ).toBeInTheDocument();
     expect(screen.queryByText('Stale title')).not.toBeInTheDocument();
 

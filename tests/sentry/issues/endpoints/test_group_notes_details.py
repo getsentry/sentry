@@ -19,6 +19,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
+# The default Activity fixture represents a comment created before GALE dual writes.
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

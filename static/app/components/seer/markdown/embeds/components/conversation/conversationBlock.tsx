@@ -1,11 +1,13 @@
 import {Text} from '@sentry/scraps/text';
 
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
+import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 
-import {ConversationLink, type ConversationData} from './conversationLink';
+import {getConversationHref, type ConversationData} from './conversationLink';
 
 function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
   if (!isoTimestamp) {
@@ -36,6 +38,7 @@ function toProjectIds(projects: ConversationData['projects']): number[] | undefi
  * view for anyone who wants the messages.
  */
 export default function ConversationBlock({data}: {data: ConversationData}) {
+  const organization = useOrganization();
   const {nodes, isLoading, error, title} = useConversation({
     conversationId: data.id,
     projects: toProjectIds(data.projects),
@@ -45,8 +48,12 @@ export default function ConversationBlock({data}: {data: ConversationData}) {
 
   return (
     <QueryEmbedCard
-      link={<ConversationLink data={data} title={title ?? data.title} />}
+      href={getConversationHref(data, organization.slug)}
+      icon={IconChat}
+      linkLabel={t('View Conversation')}
       testId="seer-conversation-embed"
+      // Prefer the API's title over whatever the model wrote into the tag.
+      title={title ?? data.title ?? t('Conversation %s', data.id)}
     >
       {error ? (
         <Text variant="danger">{t('Unable to load conversation.')}</Text>

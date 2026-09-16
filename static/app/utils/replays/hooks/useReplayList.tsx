@@ -79,6 +79,7 @@ export function useReplayList({
   ]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     loadReplays();
   }, [loadReplays]);
 

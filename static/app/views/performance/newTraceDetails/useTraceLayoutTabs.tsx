@@ -227,12 +227,13 @@ export function useTraceLayoutTabs({
       );
       setSelectedTab(slug);
     },
-    [navigate, queryParams, organization]
+    [navigate, queryParams, organization, setSelectedTab]
   );
 
   // Keep the stored selection in sync with URL and availability changes. The
   // render above falls back synchronously so stale content never mounts first.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSelectedTab(initialTab.slug);
   }, [initialTab.slug]);
 

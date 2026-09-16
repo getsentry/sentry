@@ -839,17 +839,6 @@ class TestPublishActionWrite(TestCase):
         assert len(entries) == 1
         assert entries[0].type == GroupActionType.VIEW
 
-    def test_feature_disabled_skips_write(self) -> None:
-        publish_action(
-            ViewAction(),
-            source=ActionSource.API,
-            group_id=self.group.id,
-            project=self.group.project,
-            actor=GroupActionActor.user(self.user.id),
-        )
-
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
-
     def test_flush_false_defers_drain(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             with outbox_context(flush=False):

@@ -11,6 +11,7 @@ function Probe({disabled}: {disabled?: boolean}) {
   useTraceQueryParamStateSync({search}, {disabled});
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSearch('db');
   }, []);
 

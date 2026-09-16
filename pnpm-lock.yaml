@@ -195,8 +195,8 @@ importers:
         specifier: 11.0.0-beta.2
         version: 11.0.0-beta.2
       '@sentry/conventions':
-        specifier: ^0.22.0
-        version: 0.22.0
+        specifier: ^0.23.0
+        version: 0.23.0
       '@sentry/core':
         specifier: 11.0.0-beta.2
         version: 11.0.0-beta.2
@@ -3204,8 +3204,8 @@ packages:
     resolution: {integrity: sha512-nAL3tL+xgom6Dbuxq0NCEZZfBNIrUspjDJRcMMRl3WLiBCSeZzNCa7an48IpnrZoVMpAi2NQ2v9rFU+EQziKuQ==}
     engines: {node: '>=14'}
 
-  '@sentry/conventions@0.22.0':
-    resolution: {integrity: sha512-5YerRXch4//zimh04JTJwk8G4754DRXk0U88h4uKGh6aNlAcltUthmlt27jNu1QgXwgtbuH/DhFiIdrgoF6ipw==}
+  '@sentry/conventions@0.23.0':
+    resolution: {integrity: sha512-+Euyo7CNVecoOusgUnq27oV97oshifgceKfnGnuKfXrPUVWA/cisvii3E1rlvy2yBrKvl9K1gCEo1Jqog5zjEQ==}
     engines: {node: '>=14'}
 
   '@sentry/core@11.0.0-beta.2':
@@ -11415,7 +11415,7 @@ snapshots:
 
   '@sentry/conventions@0.20.0': {}
 
-  '@sentry/conventions@0.22.0': {}
+  '@sentry/conventions@0.23.0': {}
 
   '@sentry/core@11.0.0-beta.2':
     dependencies:
