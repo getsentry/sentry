@@ -59,6 +59,15 @@ class ParsedPermissions(NamedTuple):
     unreadable: dict[str, str]
 
 
+def has_github_app_permissions(
+    permissions: Mapping[str, object], required_permissions: Mapping[str, PermissionLevel]
+) -> bool:
+    parsed = parse_github_app_permissions(permissions, source="installation")
+    return not parsed.unreadable and all(
+        parsed.levels.get(scope, 0) >= level for scope, level in required_permissions.items()
+    )
+
+
 def parse_github_app_permissions(
     permissions: Mapping[str, object], *, source: str
 ) -> ParsedPermissions:

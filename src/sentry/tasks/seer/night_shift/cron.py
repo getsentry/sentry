@@ -24,6 +24,9 @@ from sentry.constants import (
     DataCategory,
     ObjectStatus,
 )
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.github_permissions import PermissionLevel, has_github_app_permissions
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
@@ -38,6 +41,7 @@ from sentry.seer.autofix.utils import (
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_based_tier_enabled,
 )
+from sentry.seer.constants import SEER_GITHUB_SCM_PROVIDERS
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.night_shift import SeerNightShiftRunErrorType
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -75,6 +79,11 @@ from sentry.utils.query import RangeQuerySetWrapper
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=1)
+
+GITHUB_PR_WRITE_PERMISSIONS = {
+    "contents": PermissionLevel.WRITE,
+    "pull_requests": PermissionLevel.WRITE,
+}
 
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
@@ -734,7 +743,67 @@ def _get_eligible_projects(
             )
         )
 
-    return eligible
+    # Only fetch integrations for projects that survived the local eligibility checks.
+    github_integration_ids = {
+        int(repo.integration_id)
+        for candidate in eligible
+        for repo in preferences[candidate.project.id].repositories
+        if repo.provider in SEER_GITHUB_SCM_PROVIDERS and repo.integration_id is not None
+    }
+    eligible_integration_ids = _get_eligible_github_integration_ids(
+        organization.id, github_integration_ids
+    )
+    connected_projects: list[EligibleProject] = []
+    for candidate in eligible:
+        pref = preferences[candidate.project.id]
+        if any(
+            repo.integration_id not in eligible_integration_ids
+            for repo in pref.repositories
+            if repo.provider in SEER_GITHUB_SCM_PROVIDERS
+        ):
+            logger.info(
+                "night_shift.project_filtered",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": candidate.project.id,
+                    "reasons": ["unusable_github_integration"],
+                    "automation_tuning": pref.autofix_automation_tuning.value,
+                    "tweaks_enabled": candidate.tweaks.enabled,
+                    "stopping_point": candidate.stopping_point.value,
+                },
+            )
+            continue
+        connected_projects.append(candidate)
+
+    return connected_projects
+
+
+def _get_eligible_github_integration_ids(
+    organization_id: int, integration_ids: set[int]
+) -> set[str]:
+    if not integration_ids:
+        return set()
+
+    integrations = integration_service.get_integrations(
+        integration_ids=list(integration_ids),
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+        org_integration_status=ObjectStatus.ACTIVE,
+        providers=[
+            IntegrationProviderSlug.GITHUB.value,
+            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+        ],
+    )
+    # GitHub.com can write through the separate Seer app, whose permissions are
+    # not stored here. GitHub Enterprise has no Seer-app fallback.
+    return {
+        str(integration.id)
+        for integration in integrations
+        if integration.provider == IntegrationProviderSlug.GITHUB.value
+        or has_github_app_permissions(
+            integration.metadata.get("permissions") or {}, GITHUB_PR_WRITE_PERMISSIONS
+        )
+    }
 
 
 def _should_use_per_project_quotas(source: WorkflowRunSource, organization_id: int) -> bool:

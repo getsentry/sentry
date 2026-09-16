@@ -4,12 +4,17 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.search import group_types_from
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -21,6 +26,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
+from sentry.silo.base import SiloMode
 from sentry.tasks.seer.night_shift.cron import (
     _complete_run,
     _current_schedule_id,
@@ -47,6 +53,7 @@ from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.cursors import Cursor
 from sentry.utils.redis import redis_clusters
 
@@ -70,7 +77,13 @@ class NightShiftFixtures(Fixtures):
     project-eligibility and event-seeding logic lives in one place."""
 
     def _make_eligible(
-        self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
+        self,
+        project,
+        *,
+        stopping_point=AutofixStoppingPoint.OPEN_PR.value,
+        permissions=None,
+        provider="github",
+        **tweak_overrides,
     ):
         """Configure a project to pass every eligibility gate: automation on, a
         connected repo, a PR-producing stopping point, and tweaks enabled.
@@ -79,10 +92,36 @@ class NightShiftFixtures(Fixtures):
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.MEDIUM
         )
         project.update_option("sentry:seer_automated_run_stopping_point", stopping_point)
-        repo = self.create_repo(project=project, provider="github", name=f"owner/{project.slug}")
-        self.create_seer_project_repository(project=project, repository=repo)
+        self._connect_github_repo(
+            project,
+            name=f"owner/{project.slug}",
+            external_id=f"night-shift-{project.id}",
+            permissions=permissions,
+            provider=provider,
+        )
         project.update_option("sentry:seer_nightshift_tweaks", {"enabled": True, **tweak_overrides})
         return project
+
+    def _connect_github_repo(
+        self, project, *, name, external_id, permissions=None, provider="github"
+    ):
+        integration = self.create_integration(
+            organization=project.organization,
+            provider=provider,
+            external_id=external_id,
+            metadata={
+                "permissions": permissions
+                if permissions is not None
+                else {"contents": "write", "pull_requests": "write"}
+            },
+        )
+        repo = self.create_repo(
+            project=project,
+            provider=f"integrations:{provider}",
+            name=name,
+            integration_id=integration.id,
+        )
+        self.create_seer_project_repository(project=project, repository=repo)
 
     def _store_event_and_update_group(self, project, fingerprint, *, timestamp=None, **group_attrs):
         event = self.store_event(
@@ -395,8 +434,11 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # gates at once, so the resulting log call should list both reasons.
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
-        off_repo = self.create_repo(project=off, provider="github", name="owner/off-repo")
-        self.create_seer_project_repository(project=off, repository=off_repo)
+        self._connect_github_repo(
+            off,
+            name="owner/off-repo",
+            external_id=f"night-shift-{off.id}",
+        )
 
         # No connected repo.
         self.create_project(organization=org)
@@ -418,14 +460,155 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         org = self.create_organization()
         a = self._make_eligible(self.create_project(organization=org, slug="a"))
         b = self._make_eligible(self.create_project(organization=org, slug="b"))
-        extra = self.create_repo(project=b, provider="github", name="owner/b-extra")
-        self.create_seer_project_repository(project=b, repository=extra)
+        self._connect_github_repo(
+            b,
+            name="owner/b-extra",
+            external_id=f"night-shift-{b.id}-extra",
+        )
 
         result = _get_eligible_projects(org, "manual")
 
         repos_by_slug = {ep.project.slug: sorted(ep.connected_repos) for ep in result}
         assert repos_by_slug[a.slug] == ["owner/a"]
         assert repos_by_slug[b.slug] == ["owner/b", "owner/b-extra"]
+
+    def test_filters_github_enterprise_projects_missing_write_permissions(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(
+            self.create_project(organization=org),
+            permissions={"contents": "read", "pull_requests": "write"},
+            provider="github_enterprise",
+        )
+
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+            result = _get_eligible_projects(org, "manual")
+
+        assert result == []
+        project_extra = next(
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.kwargs["extra"]["project_id"] == project.id
+        )
+        assert project_extra["reasons"] == ["unusable_github_integration"]
+
+    def test_keeps_read_only_github_installations_for_seer_app_fallback(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(
+            self.create_project(organization=org),
+            permissions={"contents": "read", "pull_requests": "read"},
+        )
+
+        assert [candidate.project for candidate in _get_eligible_projects(org, "manual")] == [
+            project
+        ]
+
+    def test_batches_only_integrations_for_otherwise_eligible_projects(self) -> None:
+        org = self.create_organization()
+        first = self._make_eligible(self.create_project(organization=org, slug="first"))
+        second = self._make_eligible(self.create_project(organization=org, slug="second"))
+        self._make_eligible(self.create_project(organization=org, slug="disabled"), enabled=False)
+        shared_repo = Repository.objects.get(organization_id=org.id, name="owner/first")
+        Repository.objects.filter(organization_id=org.id, name="owner/second").update(
+            integration_id=shared_repo.integration_id
+        )
+
+        with patch("sentry.tasks.seer.night_shift.cron.integration_service") as service:
+            service.get_integrations.side_effect = integration_service.get_integrations
+            result = _get_eligible_projects(org, "cron")
+
+        assert {candidate.project.id for candidate in result} == {first.id, second.id}
+        service.get_integrations.assert_called_once_with(
+            integration_ids=[shared_repo.integration_id],
+            organization_id=org.id,
+            status=ObjectStatus.ACTIVE,
+            org_integration_status=ObjectStatus.ACTIVE,
+            providers=["github", "github_enterprise"],
+        )
+
+    def test_skips_integration_lookup_when_no_projects_are_eligible(self) -> None:
+        org = self.create_organization()
+        self._make_eligible(self.create_project(organization=org), enabled=False)
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.integration_service.get_integrations"
+        ) as get_integrations:
+            assert _get_eligible_projects(org, "cron") == []
+
+        get_integrations.assert_not_called()
+
+    def test_filters_project_with_one_unresolved_github_repo(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(self.create_project(organization=org))
+        repo = self.create_repo(project=project, provider="integrations:github", name="owner/extra")
+        self.create_seer_project_repository(project=project, repository=repo)
+
+        assert _get_eligible_projects(org, "manual") == []
+
+    def test_keeps_github_installations_without_permissions_for_seer_app_fallback(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(self.create_project(organization=org, slug="project"))
+        repo = Repository.objects.get(organization_id=org.id, name="owner/project")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=repo.integration_id).update(
+                metadata={"permissions": None}
+            )
+
+        assert [candidate.project for candidate in _get_eligible_projects(org, "manual")] == [
+            project
+        ]
+
+    def test_filters_github_enterprise_installations_without_recorded_permissions(self) -> None:
+        org = self.create_organization()
+        self._make_eligible(
+            self.create_project(organization=org), permissions={}, provider="github_enterprise"
+        )
+
+        assert _get_eligible_projects(org, "manual") == []
+
+    def test_filters_inactive_integrations(self) -> None:
+        org = self.create_organization()
+        self._make_eligible(self.create_project(organization=org, slug="project"))
+        repo = Repository.objects.get(organization_id=org.id, name="owner/project")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            Integration.objects.filter(id=repo.integration_id).update(status=ObjectStatus.DISABLED)
+
+        assert _get_eligible_projects(org, "manual") == []
+
+    def test_filters_inactive_organization_integrations(self) -> None:
+        org = self.create_organization()
+        self._make_eligible(self.create_project(organization=org, slug="project"))
+        repo = Repository.objects.get(organization_id=org.id, name="owner/project")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=org.id, integration_id=repo.integration_id
+            ).update(status=ObjectStatus.DISABLED)
+
+        assert _get_eligible_projects(org, "manual") == []
+
+    def test_filters_integrations_outside_the_organization(self) -> None:
+        org = self.create_organization()
+        self._make_eligible(self.create_project(organization=org, slug="project"))
+        foreign_integration = self.create_integration(
+            organization=self.create_organization(),
+            provider="github",
+            external_id="foreign-installation",
+            metadata={"permissions": {"contents": "write", "pull_requests": "write"}},
+        )
+        Repository.objects.filter(organization_id=org.id, name="owner/project").update(
+            integration_id=foreign_integration.id
+        )
+
+        assert _get_eligible_projects(org, "manual") == []
+
+    def test_accepts_writable_github_enterprise_installations(self) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(
+            self.create_project(organization=org), provider="github_enterprise"
+        )
+
+        assert [candidate.project for candidate in _get_eligible_projects(org, "manual")] == [
+            project
+        ]
 
     def test_carries_each_projects_automation_tuning(self) -> None:
         org = self.create_organization()
