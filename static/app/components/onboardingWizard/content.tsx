@@ -552,7 +552,7 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
 }
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
-  padding-left: ${p => p.theme.space.lg};
+  padding-left: ${p => p.theme.space.md};
 
   p {
     color: ${p =>
@@ -613,7 +613,7 @@ const TaskListCard = styled(TaskCard)`
   grid-template-columns: subgrid;
 
   > div:first-of-type {
-    margin-left: ${p => p.theme.space.lg};
+    margin-left: ${p => p.theme.space.md};
   }
 `;
 
