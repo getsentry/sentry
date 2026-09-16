@@ -55,6 +55,7 @@ const DEFAULT_AGGREGATES: ConversationAggregates = {
   generationDuration: 1000,
   inputTokens: 0,
   llmCalls: 2,
+  modelUsage: [],
   outputTokens: 0,
   startTimestamp: 1_000_000,
   toolCalls: 0,
@@ -230,24 +231,24 @@ describe('ConversationDetailPage summary aggregates', () => {
   });
 
   it('uses the reported total when a model breakdown is incomplete', async () => {
-    mockApis(
-      null,
-      [
-        spanFixture({
-          span_id: 'span-partial-tokens',
-          'span.name': 'partial token turn',
-          'precise.start_ts': 1000,
-          'precise.finish_ts': 1000.5,
-          'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
-          'gen_ai.response.text': 'Hi',
-          'gen_ai.response.model': '',
-          'gen_ai.request.model': '',
-          'gen_ai.usage.input_tokens': 100,
-          'gen_ai.usage.total_tokens': 150,
-        }),
+    mockApis(null, CONVERSATION_BODY, {
+      modelUsage: [
+        {
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          inputCost: 0,
+          inputTokens: 100,
+          isComplete: false,
+          model: null,
+          outputCost: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          totalCost: 0,
+          totalTokens: 150,
+        },
       ],
-      {totalTokens: 150}
-    );
+      totalTokens: 150,
+    });
     renderPage();
 
     const tokenCount = await screen.findByText('150');
@@ -257,45 +258,39 @@ describe('ConversationDetailPage summary aggregates', () => {
     expect(screen.getByText('Unknown model')).toBeInTheDocument();
   });
 
-  it('groups token usage by model and sorts highest usage first', async () => {
-    mockApis(
-      null,
-      [
-        spanFixture({
-          span_id: 'span-tokens',
-          'span.name': 'tokenized turn',
-          'precise.start_ts': 1000,
-          'precise.finish_ts': 1000.5,
-          'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
-          'gen_ai.response.text': 'Hi',
-          'gen_ai.response.model': 'model-alpha',
-          'gen_ai.usage.input_tokens': 150,
-          'gen_ai.usage.output_tokens': 50,
-          'gen_ai.usage.total_tokens': 200,
-        }),
-        spanFixture({
-          span_id: 'span-tokens-second-model',
-          'span.name': 'second model turn',
-          'precise.start_ts': 1001,
-          'precise.finish_ts': 1001.5,
-          'gen_ai.response.model': 'model-beta',
-          'gen_ai.usage.input_tokens': 200,
-          'gen_ai.usage.output_tokens': 100,
-          'gen_ai.usage.total_tokens': 300,
-        }),
-        spanFixture({
-          span_id: 'span-tokens-same-model',
-          'span.name': 'same model turn',
-          'precise.start_ts': 1002,
-          'precise.finish_ts': 1002.5,
-          'gen_ai.response.model': 'model-alpha',
-          'gen_ai.usage.input_tokens': 30,
-          'gen_ai.usage.output_tokens': 20,
-          'gen_ai.usage.total_tokens': 50,
-        }),
+  it('uses the API token breakdown ordered by model usage', async () => {
+    mockApis(null, CONVERSATION_BODY, {
+      modelUsage: [
+        {
+          cacheReadTokens: 20,
+          cacheWriteTokens: 10,
+          inputCost: 0.02,
+          inputTokens: 200,
+          isComplete: true,
+          model: 'model-beta',
+          outputCost: 0.01,
+          outputTokens: 100,
+          reasoningTokens: 30,
+          totalCost: 0.03,
+          totalTokens: 300,
+        },
+        {
+          cacheReadTokens: 10,
+          cacheWriteTokens: 5,
+          inputCost: 0.015,
+          inputTokens: 180,
+          isComplete: true,
+          model: 'model-alpha',
+          outputCost: 0.01,
+          outputTokens: 70,
+          reasoningTokens: 20,
+          totalCost: 0.025,
+          totalTokens: 250,
+        },
       ],
-      {totalTokens: 550}
-    );
+      totalCost: 0.055,
+      totalTokens: 550,
+    });
     renderPage();
 
     const tokenCount = await screen.findByText('550');
@@ -308,6 +303,35 @@ describe('ConversationDetailPage summary aggregates', () => {
     expect(modelBeta.compareDocumentPosition(modelAlpha)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
+  });
+
+  it('shows the API cost breakdown by model', async () => {
+    mockApis(null, CONVERSATION_BODY, {
+      modelUsage: [
+        {
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          inputCost: 0.02,
+          inputTokens: 70,
+          isComplete: true,
+          model: 'model-alpha',
+          outputCost: 0.01,
+          outputTokens: 30,
+          reasoningTokens: 0,
+          totalCost: 0.03,
+          totalTokens: 100,
+        },
+      ],
+      totalCost: 0.03,
+    });
+    renderPage();
+
+    const cost = await screen.findByTitle('$0.03');
+    await userEvent.hover(cost.parentElement!);
+
+    expect(await screen.findByText('Input cost')).toBeInTheDocument();
+    expect(screen.getByText('Output cost')).toBeInTheDocument();
+    expect(screen.getByText('model-alpha')).toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {

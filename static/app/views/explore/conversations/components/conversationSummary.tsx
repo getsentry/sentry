@@ -32,12 +32,17 @@ import {
 } from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationTraceLink} from 'sentry/views/explore/conversations/components/conversationTraceLink';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
-import type {ConversationAggregates as ConversationApiAggregates} from 'sentry/views/explore/conversations/hooks/useConversation';
+import type {
+  ConversationAggregates as ConversationApiAggregates,
+  ConversationModelUsage,
+} from 'sentry/views/explore/conversations/hooks/useConversation';
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
+  CostBreakdownTooltip,
+  type CostBreakdownDetails,
   TokenBreakdownTooltip,
   type TokenBreakdownDetails,
 } from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
@@ -92,7 +97,10 @@ export function ConversationSummary({
 
   const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
   const aggregateValues = aggregates ?? calculatedAggregates;
-  const tokenBreakdowns = calculatedAggregates.tokenBreakdowns;
+  const tokenBreakdowns = aggregates
+    ? getTokenBreakdowns(aggregates.modelUsage)
+    : calculatedAggregates.tokenBreakdowns;
+  const costBreakdowns = aggregates ? getCostBreakdowns(aggregates.modelUsage) : [];
   const toolNames = orderToolNames(
     aggregateValues.toolNames,
     calculatedAggregates.erroredToolNames
@@ -310,11 +318,7 @@ export function ConversationSummary({
         <Stat
           label={t('Cost')}
           value={
-            aggregateValues.totalCost < 0 ? (
-              <NegativeCostInfo cost={aggregateValues.totalCost} />
-            ) : (
-              <LLMCosts cost={aggregateValues.totalCost} />
-            )
+            <CostCount breakdowns={costBreakdowns} total={aggregateValues.totalCost} />
           }
           isLoading={isLoading}
         />
@@ -423,6 +427,42 @@ function orderToolNames(
     ...toolNames.filter(name => erroredToolNames.has(name)),
     ...toolNames.filter(name => !erroredToolNames.has(name)),
   ];
+}
+
+function getTokenBreakdowns(
+  modelUsage: ConversationModelUsage[]
+): TokenBreakdownDetails[] {
+  return modelUsage.map(usage => {
+    const breakdown = getTokenBreakdown({
+      inputTokens: usage.inputTokens,
+      cachedTokens: usage.cacheReadTokens,
+      cacheWriteTokens: usage.cacheWriteTokens,
+      outputTokens: usage.outputTokens,
+      reasoningTokens: usage.reasoningTokens,
+      totalTokens: usage.totalTokens,
+    });
+    const input = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
+
+    return {
+      cacheRead: breakdown.cached,
+      cacheWrite: breakdown.cacheWrite,
+      input,
+      isComplete: usage.isComplete,
+      model: usage.model ?? t('Unknown model'),
+      output: breakdown.output,
+      reasoning: usage.reasoningTokens,
+      total: usage.isComplete ? input + breakdown.output : usage.totalTokens,
+    };
+  });
+}
+
+function getCostBreakdowns(modelUsage: ConversationModelUsage[]): CostBreakdownDetails[] {
+  return modelUsage.map(usage => ({
+    input: usage.inputCost,
+    model: usage.model ?? t('Unknown model'),
+    output: usage.outputCost,
+    total: usage.totalCost,
+  }));
 }
 
 function calculateAggregates(nodes: AITraceSpanNode[]): CalculatedConversationAggregates {
@@ -570,7 +610,10 @@ export function ConversationAggregatesBar({
   const {selection} = usePageFilters();
   const calculatedAggregates = useMemo(() => calculateAggregates(nodes), [nodes]);
   const aggregateValues = aggregates ?? calculatedAggregates;
-  const tokenBreakdowns = calculatedAggregates.tokenBreakdowns;
+  const tokenBreakdowns = aggregates
+    ? getTokenBreakdowns(aggregates.modelUsage)
+    : calculatedAggregates.tokenBreakdowns;
+  const costBreakdowns = aggregates ? getCostBreakdowns(aggregates.modelUsage) : [];
   const toolNames = orderToolNames(
     aggregateValues.toolNames,
     calculatedAggregates.erroredToolNames
@@ -609,11 +652,7 @@ export function ConversationAggregatesBar({
       <AggregateItem
         label={t('Cost')}
         value={
-          aggregateValues.totalCost < 0 ? (
-            <NegativeCostInfo cost={aggregateValues.totalCost} />
-          ) : (
-            <LLMCosts cost={aggregateValues.totalCost} />
-          )
+          <CostCount breakdowns={costBreakdowns} total={aggregateValues.totalCost} />
         }
         isLoading={isLoading}
       />
@@ -675,6 +714,26 @@ export function ConversationAggregatesBar({
   );
 }
 
+function CostCount({
+  breakdowns,
+  total,
+}: {
+  breakdowns: CostBreakdownDetails[];
+  total: number;
+}) {
+  const value = total < 0 ? <NegativeCostInfo cost={total} /> : <LLMCosts cost={total} />;
+
+  if (breakdowns.length === 0) {
+    return value;
+  }
+
+  return (
+    <Tooltip title={<CostBreakdownTooltip breakdowns={breakdowns} />}>
+      <BreakdownValue>{value}</BreakdownValue>
+    </Tooltip>
+  );
+}
+
 function TokenCount({
   breakdowns,
   total,
@@ -684,7 +743,7 @@ function TokenCount({
 }) {
   return (
     <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
-      <TokenCountValue>{formatAbbreviatedNumber(total)}</TokenCountValue>
+      <BreakdownValue>{formatAbbreviatedNumber(total)}</BreakdownValue>
     </Tooltip>
   );
 }
@@ -730,7 +789,7 @@ function AggregateItem({
   return content;
 }
 
-const TokenCountValue = styled('span')`
+const BreakdownValue = styled('span')`
   text-decoration: underline dotted;
   text-underline-offset: ${p => p.theme.space['2xs']};
 `;

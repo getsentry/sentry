@@ -78,11 +78,26 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
+export interface ConversationModelUsage {
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  inputCost: number;
+  inputTokens: number;
+  isComplete: boolean;
+  model: string | null;
+  outputCost: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalCost: number;
+  totalTokens: number;
+}
+
 export interface ConversationAggregates {
   endTimestamp: number;
   generationDuration: number;
   inputTokens: number;
   llmCalls: number;
+  modelUsage: ConversationModelUsage[];
   outputTokens: number;
   startTimestamp: number;
   toolCalls: number;
