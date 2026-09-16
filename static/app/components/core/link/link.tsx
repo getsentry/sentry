@@ -2,9 +2,11 @@ import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonVariant} from '@sentry/scraps/button/types';
+import {Text} from '@sentry/scraps/text/text';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -45,18 +47,20 @@ const getLinkStyles = ({
   theme: Theme;
   disabled?: LinkProps['disabled'];
 }) => css`
-  /* @TODO(jonasbadalic) This was defined on theme and only used here */
-  border-radius: 2px;
-  pointer-events: ${disabled ? 'none' : undefined};
-  color: ${disabled ? theme.tokens.content.disabled : undefined};
-
-  &:hover {
+  && {
+    /* @TODO(jonasbadalic) This was defined on theme and only used here */
+    border-radius: 2px;
+    pointer-events: ${disabled ? 'none' : undefined};
     color: ${disabled ? theme.tokens.content.disabled : undefined};
-  }
 
-  &:focus-visible {
-    text-decoration: none;
-    ${theme.focusRing()}
+    &:hover {
+      color: ${disabled ? theme.tokens.content.disabled : undefined};
+    }
+
+    &:focus-visible {
+      text-decoration: none;
+      ${theme.focusRing()}
+    }
   }
 `;
 
@@ -104,7 +108,11 @@ const StyledLink = styled(LinkBase)`
 `;
 
 export function Link(props: LinkProps) {
-  return <StyledLink {...props} />;
+  return (
+    <Text variant="inherit">
+      {textProps => <StyledLink {...mergeProps(textProps, props)} />}
+    </Text>
+  );
 }
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
