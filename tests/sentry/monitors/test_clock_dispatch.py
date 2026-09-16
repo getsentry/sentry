@@ -23,6 +23,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json, redis
 
 DISABLE_HOLD_OPTION = "crons.clock_tick.disable_hold_on_missing_partitions"
+UNEXPECTED_METRIC = "monitors.task.clock_unexpected_partitions"
 
 BASE_OPTIONS = {
     "crons.system_incidents.collect_metrics": False,
@@ -487,6 +488,48 @@ def test_hold_clock_tick_option_off(dispatch_tick: mock.MagicMock) -> None:
         mock.call(now + timedelta(minutes=4)),
         mock.call(now + timedelta(minutes=5)),
     ]
+
+
+def seed_unexpected_members(now: datetime, partitions: list[int]) -> None:
+    """
+    Write members for partitions that the clock pulse does not name, as a
+    partition the topic no longer has would leave behind.
+    """
+    stale_ts = int((now - timedelta(minutes=10)).timestamp())
+    get_redis_client().zadd(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        mapping={f"part-{partition}": stale_ts for partition in partitions},
+    )
+
+
+@mock.patch("sentry.monitors.clock_dispatch.metrics")
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
+def test_unexpected_partitions_metric(
+    dispatch_tick: mock.MagicMock, metrics_mock: mock.MagicMock
+) -> None:
+    """
+    The count of members the pulse does not name is reported on every write,
+    including while the clock is held and when the count is zero.
+    """
+    seed_pulse(2)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    seed_unexpected_members(now, [8, 9])
+
+    # The write for partition 0 holds the clock, because partition 1 is not in
+    # the set yet. The count is still reported.
+    try_monitor_clock_tick(ts=now, partition=0)
+    assert dispatch_tick.mock_calls == []
+    assert gauge_values(metrics_mock, UNEXPECTED_METRIC) == [2]
+
+    try_monitor_clock_tick(ts=now, partition=1)
+    assert gauge_values(metrics_mock, UNEXPECTED_METRIC) == [2, 2]
+
+    # The members go away and the count returns to zero
+    get_redis_client().zrem(MONITOR_TASKS_PARTITION_CLOCKS, "part-8", "part-9")
+    fill_partition_set(now + timedelta(minutes=1), 2)
+    assert gauge_values(metrics_mock, UNEXPECTED_METRIC) == [2, 2, 0, 0]
 
 
 @override_settings(

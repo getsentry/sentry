@@ -75,7 +75,30 @@ def _missing_partitions(partition_clocks: list[tuple[str, float]]) -> frozenset[
     )
 
 
-def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> None:
+def _unexpected_members(partition_clocks: list[tuple[str, float]]) -> frozenset[str] | None:
+    """
+    Members of the partition clock set that the most recent clock pulse did not name.
+    """
+    expected_partitions = _partition_set_state.expected_partitions
+
+    if expected_partitions is None:
+        return None
+
+    expected_members = {f"part-{partition}" for partition in expected_partitions}
+    return frozenset(member for member, _ in partition_clocks if member not in expected_members)
+
+
+def _record_partition_set_metrics(
+    missing_partitions: frozenset[int] | None,
+    unexpected_members: frozenset[str] | None,
+) -> None:
+    if unexpected_members is not None:
+        metrics.gauge(
+            "monitors.task.clock_unexpected_partitions",
+            len(unexpected_members),
+            sample_rate=1.0,
+        )
+
     if missing_partitions is None:
         return
 
@@ -159,7 +182,8 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
     )
 
     missing_partitions = _missing_partitions(partition_clocks)
-    _record_partition_set_metrics(missing_partitions)
+    unexpected_members = _unexpected_members(partition_clocks)
+    _record_partition_set_metrics(missing_partitions, unexpected_members)
 
     if _should_hold_clock_tick(missing_partitions):
         return
