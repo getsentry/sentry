@@ -235,16 +235,29 @@ describe('MetricsTabContent', () => {
       }
     );
 
-    let toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(2);
+    expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
     await waitFor(() => {
-      expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+      expect(
+        within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+          name: 'bar',
+        })
+      ).toBeInTheDocument();
     });
 
-    await userEvent.click(within(toolbars[1]!).getByRole('button', {name: 'bar'}));
-    await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+        name: 'bar',
+      })
+    );
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('option', {
+        name: 'foo',
+      })
+    );
     expect(
-      await within(toolbars[1]!).findByRole('button', {name: 'foo'})
+      await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {
+        name: 'foo',
+      })
     ).toBeInTheDocument();
 
     const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
@@ -254,8 +267,11 @@ describe('MetricsTabContent', () => {
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(3);
     });
-    toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+    expect(
+      within(screen.getAllByTestId('metric-toolbar')[2]!).getByRole('button', {
+        name: 'foo',
+      })
+    ).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
