@@ -72,4 +72,20 @@ describe('DetectorNew', () => {
       })
     );
   });
+
+  it('disables the next step without monitor write access', () => {
+    const readOnlyOrganization = OrganizationFixture({
+      access: ['org:read', 'alerts:read'],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        organization: readOnlyOrganization,
+        access: ['project:read', 'alerts:read'],
+      }),
+    ]);
+
+    render(<DetectorNew />, {organization: readOnlyOrganization});
+
+    expect(screen.getByRole('button', {name: 'Next'})).toBeDisabled();
+  });
 });

@@ -196,6 +196,34 @@ describe('DetectorEdit', () => {
     await waitFor(() => expect(mockCreateDetector).toHaveBeenCalled());
   });
 
+  it('shows a permission error when no project is writable', () => {
+    const readOnlyOrganization = OrganizationFixture({
+      ...organization,
+      access: ['org:read', 'alerts:read'],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        organization: readOnlyOrganization,
+        access: ['project:read', 'alerts:read'],
+      }),
+    ]);
+
+    render(<DetectorNewSettings />, {
+      organization: readOnlyOrganization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {detectorType: 'metric_issue'},
+        },
+      },
+    });
+
+    expect(
+      screen.getByText(/You do not have permission to create monitors/)
+    ).toBeInTheDocument();
+  });
+
   describe('Metric Detector', () => {
     const metricRouterConfig = {
       ...initialRouterConfig,
