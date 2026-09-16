@@ -224,12 +224,16 @@ describe('AutomationNewSettings', () => {
       /tagged event/i
     );
     const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
-    await userEvent.type(tagInput, 'env{enter}');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
+    await userEvent.click(tagInput);
+    await userEvent.paste('env');
+    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Value'}));
+    await userEvent.paste('prod');
 
     // Add an action to the block (Slack), also updates the automatic naming
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     // Add an email action
     await selectEvent.select(
