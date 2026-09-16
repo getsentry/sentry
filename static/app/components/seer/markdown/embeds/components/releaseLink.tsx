@@ -1,6 +1,9 @@
 import queryString from 'query-string';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,11 +28,15 @@ export function getReleaseHref(
   );
 }
 
-export function ReleaseLink(props: EmbedOutput<'release'>) {
+export function ReleaseLink({
+  format,
+  ...props
+}: EmbedOutput<'release'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconReleases}
       href={getReleaseHref(props, organization)}
       title={t('Release: %s', formatVersion(props.version))}

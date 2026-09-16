@@ -3,6 +3,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
+import {Chart} from './chart';
+import {renderEmbedMarkdown} from './resourceEmbedTestUtils';
+
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
 }));
@@ -180,5 +183,25 @@ describe('Chart embed', () => {
     });
 
     expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
+  });
+});
+
+describe('chart embed at the markdown level', () => {
+  const series = [{label: 'Errors', data: [{x: '2026-07-30T14:00:00Z', y: 15}]}];
+
+  it('keeps the heading and drops the plot', () => {
+    expect(renderEmbedMarkdown(Chart, 'chart', {title: 'Error rate', series})).toBe(
+      'Error rate'
+    );
+  });
+
+  it('includes the subtitle when there is one', () => {
+    expect(
+      renderEmbedMarkdown(Chart, 'chart', {
+        title: 'Error rate',
+        subtitle: 'last 24 hours',
+        series,
+      })
+    ).toBe('Error rate: last 24 hours');
   });
 });
