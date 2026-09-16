@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconCopy, IconDelete, IconDownload, IconEdit} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-export const documentation = import('!!type-loader!sentry/components/dropdownMenu');
+export const documentation = import('!!type-loader!@sentry/scraps/dropdownMenu');
 
 export default Storybook.story('DropdownMenu', story => {
   story('Default', () => {

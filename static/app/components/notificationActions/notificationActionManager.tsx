@@ -1,10 +1,10 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 
+import {DropdownButton} from '@sentry/scraps/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';

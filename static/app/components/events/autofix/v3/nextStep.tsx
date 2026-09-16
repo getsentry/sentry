@@ -2,12 +2,12 @@ import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';

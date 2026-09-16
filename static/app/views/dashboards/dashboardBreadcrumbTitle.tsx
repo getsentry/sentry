@@ -3,10 +3,10 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {updateDashboardFavorite} from 'sentry/actionCreators/dashboards';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {
   IconClock,
   IconCopy,

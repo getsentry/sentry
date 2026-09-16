@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';

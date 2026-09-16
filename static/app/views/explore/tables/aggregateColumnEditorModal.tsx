@@ -8,13 +8,13 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {InvalidReason} from 'sentry/components/searchSyntax/parser';
