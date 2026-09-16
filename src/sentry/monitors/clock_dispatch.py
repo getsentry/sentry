@@ -94,11 +94,15 @@ def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> 
     metrics.gauge("monitors.task.clock_stall_gap", stall_gap, sample_rate=1.0)
 
 
+def _partition_set_hold_enabled() -> bool:
+    return not options.get("crons.clock_tick.disable_hold_on_missing_partitions")
+
+
 def _should_hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
     if not missing_partitions:
         return False
 
-    return not options.get("crons.clock_tick.disable_hold_on_missing_partitions")
+    return _partition_set_hold_enabled()
 
 
 def _drop_stale_partitions(partition_clocks: list[tuple[str, float]]) -> list[tuple[str, float]]:
@@ -111,7 +115,7 @@ def _drop_stale_partitions(partition_clocks: list[tuple[str, float]]) -> list[tu
     if expected_partitions is None:
         return partition_clocks
 
-    if options.get("crons.clock_tick.disable_hold_on_missing_partitions"):
+    if not _partition_set_hold_enabled():
         return partition_clocks
 
     expected_members = {f"part-{partition}" for partition in expected_partitions}
