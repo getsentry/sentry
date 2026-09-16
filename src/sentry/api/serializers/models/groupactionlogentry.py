@@ -47,6 +47,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+MAX_ACTIVITY_REFETCHES = 3
+
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
@@ -160,9 +162,11 @@ def get_serialized_activity_items(
         return None
 
     entries, latest_text_by_comment = _fold_comment_mutations(action_log)
-    while len(entries) < limit and len(action_log) == fetch_limit:
+    for _ in range(MAX_ACTIVITY_REFETCHES):
+        if len(entries) >= limit or len(action_log) < fetch_limit:
+            break
         # A full raw window may have displaced entries with mutations that the fold
-        # drops. Refetch a larger window until the page is full or history is exhausted.
+        # drops. Refetch a larger window within the budget above.
         # Refold the entire window rather than combining rows from separate reads.
         fetch_limit *= 2
         action_log = GroupActionLogEntry.objects.get_actions_for_group(group, fetch_limit)

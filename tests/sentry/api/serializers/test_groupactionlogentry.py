@@ -404,8 +404,10 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         newer_action = self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
         before = self._activity_items(limit=3)
 
-        for text in ["first", "second", "third", "fourth", "fifth", "edited again"]:
-            self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text=text)
+        for edit_number in range(16):
+            self._comment_mutation(
+                GroupActionType.COMMENT_EDIT, comment, text=f"edit {edit_number}"
+            )
 
         with patch.object(
             GroupActionLogEntry.objects,
@@ -414,7 +416,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         ) as fetch:
             items = self._activity_items(limit=3)
 
-        assert [call.args[1] for call in fetch.call_args_list] == [3, 6, 12]
+        assert [call.args[1] for call in fetch.call_args_list] == [3, 6, 12, 24]
 
         assert [item["id"] for item in items] == [
             str(newer_action.id),
@@ -423,7 +425,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             "0",
         ]
         assert items[:2] == before[:2]
-        assert items[2] == {**before[2], "data": {**before[2]["data"], "text": "edited again"}}
+        assert items[2] == {**before[2], "data": {**before[2]["data"], "text": "edit 15"}}
         assert items[3] == before[3]
 
     def test_initial_headroom_absorbs_boundary_edit_without_refetch(self) -> None:
@@ -449,6 +451,28 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             "0",
         ]
         assert items[3]["data"]["text"] == "edited"
+
+    def test_refetch_limit_returns_short_page(self) -> None:
+        # These actions would fill the page, but lie beyond the final fetch window.
+        self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        self.create_group_action_log_entry(type=GroupActionType.UNRESOLVE)
+        for comment_id in range(1000, 1012):
+            deleted = self._comment(comment_id, "deleted")
+            self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
+        kept = self._comment(123, "original")
+        self._comment_mutation(GroupActionType.COMMENT_EDIT, kept, text="edited")
+
+        with patch.object(
+            GroupActionLogEntry.objects,
+            "get_actions_for_group",
+            wraps=GroupActionLogEntry.objects.get_actions_for_group,
+        ) as fetch:
+            items = self._activity_items(limit=3)
+
+        assert [call.args[1] for call in fetch.call_args_list] == [3, 6, 12, 24]
+        assert [item["type"] for item in items] == ["note", "first_seen"]
+        assert items[0]["id"] == "123"
+        assert items[0]["data"]["text"] == "edited"
 
     def test_full_page_without_mutations_needs_only_one_fetch(self) -> None:
         self._comment(123, "comment")
@@ -519,8 +543,15 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         comment = self._comment(123, "original")
         self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
 
-        items = self._activity_items()
+        with patch.object(
+            GroupActionLogEntry.objects,
+            "get_actions_for_group",
+            wraps=GroupActionLogEntry.objects.get_actions_for_group,
+        ) as fetch:
+            items = self._activity_items(limit=2)
 
+        # Stop once history is exhausted, even though no entries survive the fold.
+        assert [call.args[1] for call in fetch.call_args_list] == [2, 4]
         assert [item["type"] for item in items] == ["first_seen"]
 
     def test_comment_delete_wins_over_an_earlier_edit(self) -> None:
