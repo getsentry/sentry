@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.serializers.rest_framework.groupsearchview import INVALID_QUERY_DETAIL
+from sentry.api.serializers.rest_framework.groupsearchview import LIST_FORM_HINT
 from sentry.issues.endpoints.bases.group_search_view import GroupSearchViewPermission
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
@@ -601,7 +601,9 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         response = self.client.put(self.url, data=data)
         assert response.status_code == 400
         assert "query" in response.data
-        assert str(response.data["query"][0]) == INVALID_QUERY_DETAIL
+        detail = str(response.data["query"][0])
+        assert "Boolean statements containing" in detail
+        assert detail.endswith(LIST_FORM_HINT)
 
         unchanged_view = GroupSearchView.objects.get(id=self.view_id)
         assert unchanged_view.name != "Updated View Name"

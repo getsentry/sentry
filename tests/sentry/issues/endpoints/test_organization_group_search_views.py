@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.api.serializers.rest_framework.groupsearchview import (
-    INVALID_QUERY_DETAIL,
+    LIST_FORM_HINT,
     GroupSearchViewValidatorResponse,
 )
 from sentry.models.groupsearchview import (
@@ -463,10 +463,36 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
 
         response = self.get_error_response(self.organization.slug, **data)
         assert "query" in response.data
-        assert str(response.data["query"][0]) == INVALID_QUERY_DETAIL
+        detail = str(response.data["query"][0])
+        # The parser's own reason, then the fix.
+        assert "Boolean statements containing" in detail
+        assert detail.endswith(LIST_FORM_HINT)
 
         assert not GroupSearchView.objects.filter(
             organization=self.organization, name="Boolean Query View"
+        ).exists()
+
+    @with_feature({"organizations:issue-views": True})
+    def test_invalid_query_malformed_gets_no_boolean_hint(self) -> None:
+        """A syntax error is not a boolean problem, so it must not suggest the list form."""
+        data = {
+            "name": "Malformed Query View",
+            "query": 'is:unresolved message:"unterminated',
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_error_response(self.organization.slug, **data)
+        assert "query" in response.data
+        detail = str(response.data["query"][0])
+        assert "quotes must enclose text or be escaped" in detail
+        # Not a boolean problem, so the list-form hint must not be tacked on.
+        assert LIST_FORM_HINT not in detail
+
+        assert not GroupSearchView.objects.filter(
+            organization=self.organization, name="Malformed Query View"
         ).exists()
 
     @with_feature({"organizations:issue-views": True})
