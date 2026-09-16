@@ -98,6 +98,12 @@ class SnubaRPCTooManySimultaneous(SnubaRPCError):
     pass
 
 
+class SnubaRPCInvalidRequest(SnubaRPCError):
+    """Snuba rejected the request itself, so retrying it unchanged will not help."""
+
+    pass
+
+
 class SnubaRPCRequest(Protocol):
     def SerializeToString(self, *, deterministic: bool = ...) -> bytes: ...
 
@@ -472,6 +478,8 @@ def _make_rpc_request(
                         raise SnubaRPCRateLimitExceeded(error)
                     if "Too many simultaneous queries" in error.message:
                         raise SnubaRPCTooManySimultaneous(error)
+                    if http_resp.status == 400:
+                        raise SnubaRPCInvalidRequest(error.message)
                     raise SnubaRPCError(error)
                 return http_resp
 

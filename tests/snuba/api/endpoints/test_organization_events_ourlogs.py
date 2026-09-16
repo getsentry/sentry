@@ -8,7 +8,7 @@ from django.test import override_settings
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
 from sentry.search.eap import constants
-from sentry.search.events.constants import REGEX_OPERATOR
+from sentry.search.events.constants import INVALID_RPC_REQUEST_MESSAGE, REGEX_OPERATOR
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now
@@ -284,6 +284,21 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         assert response.status_code == 400, response.content
         assert "Invalid regex" in response.data["detail"]
+
+    def test_regex_filter_rejects_a_pattern_re2_cannot_compile(self) -> None:
+        """RE2 is stricter than `re`, so Snuba is the first to reject some valid Python patterns."""
+        self.store_eap_items([self.create_ourlog({"body": "aaa"}, timestamp=self.ten_mins_ago)])
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": f'message:{REGEX_OPERATOR}"((a{{100}}){{100}}){{100}}"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == INVALID_RPC_REQUEST_MESSAGE
 
     def test_pagination(self) -> None:
         logs = [

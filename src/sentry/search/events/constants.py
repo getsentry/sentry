@@ -21,6 +21,9 @@ filter on the transaction field or tags.
 TIMEOUT_RPC_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.
 """
+INVALID_RPC_REQUEST_MESSAGE = """
+Invalid query. Please check the query syntax and try again.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"

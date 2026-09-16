@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.db import OperationalError
 from django.utils import timezone
-from rest_framework.exceptions import APIException, Throttled, ValidationError
+from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
 
@@ -21,6 +21,7 @@ from sentry.api.utils import (
 )
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
+from sentry.search.events.constants import INVALID_RPC_REQUEST_MESSAGE
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba import (
@@ -38,7 +39,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCTooManySimultaneous
+from sentry.utils.snuba_rpc import SnubaRPCInvalidRequest, SnubaRPCTooManySimultaneous
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -253,6 +254,16 @@ class HandleQueryErrorsTest(APITestCase):
                 raise SnubaRPCTooManySimultaneous(error_proto)
         except Exception as e:
             assert isinstance(e, Throttled)
+
+    def test_handle_snuba_rpc_invalid_request(self) -> None:
+        """A request Snuba rejects should return 400 without quoting ClickHouse back."""
+        clickhouse_reason = "Code: 427. DB::Exception: cannot compile re2: while executing SELECT"
+        try:
+            with handle_query_errors():
+                raise SnubaRPCInvalidRequest(clickhouse_reason)
+        except Exception as err:
+            assert isinstance(err, ParseError)
+            assert str(err.detail) == INVALID_RPC_REQUEST_MESSAGE
 
 
 class ClampDateRangeTest(unittest.TestCase):
