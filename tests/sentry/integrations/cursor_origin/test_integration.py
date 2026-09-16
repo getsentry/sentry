@@ -7,7 +7,10 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
-from sentry.integrations.cursor_origin.client import CursorOriginApiClient
+from sentry.integrations.cursor_origin.client import (
+    CursorOriginApiClient,
+    CursorOriginSetupApiClient,
+)
 from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
@@ -199,3 +202,26 @@ class CursorOriginIntegrationTest(TestCase):
     def test_a_longer_org_name_is_not_a_match(self) -> None:
         """An install on "acme" must not claim URLs owned by "acme-corp"."""
         assert self.install.source_url_matches(f"{WEB}/acme-corp/repo/blob/main/a.py") is False
+
+    def test_uninstall_removes_the_origin_installation(self) -> None:
+        with mock.patch.object(CursorOriginSetupApiClient, "delete_installation") as mock_delete:
+            self.install.uninstall()
+
+        mock_delete.assert_called_once_with(INSTALLATION_ID)
+
+    def test_uninstall_accepts_an_installation_origin_has_already_dropped(self) -> None:
+        with mock.patch.object(
+            CursorOriginSetupApiClient,
+            "delete_installation",
+            side_effect=ApiError("gone", code=404),
+        ):
+            self.install.uninstall()
+
+    def test_uninstall_is_not_blocked_by_an_origin_failure(self) -> None:
+        """Disconnecting from Sentry must not depend on Origin answering."""
+        with mock.patch.object(
+            CursorOriginSetupApiClient,
+            "delete_installation",
+            side_effect=ApiError("boom", code=500),
+        ):
+            self.install.uninstall()

@@ -157,6 +157,20 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         branch, _, filepath = path[len(prefix) :].partition("/")
         return branch, filepath
 
+    def uninstall(self) -> None:
+        """Remove the installation on Origin; a failure must not block disconnecting."""
+        installation_id = self.model.external_id
+        try:
+            CursorOriginSetupApiClient().delete_installation(installation_id)
+        except ApiError as e:
+            if e.code == 404:
+                # Already gone on Origin's side.
+                return
+            logger.warning(
+                "cursor_origin.uninstall.failed",
+                extra={"installation_id": installation_id, "status": e.code},
+            )
+
 
 DESCRIPTION = """
 Connect your Cursor Origin repositories to Sentry. Origin is Cursor's git forge --
