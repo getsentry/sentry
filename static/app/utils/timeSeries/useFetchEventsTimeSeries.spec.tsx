@@ -276,6 +276,47 @@ describe('useFetchEventsTimeSeries', () => {
       })
     );
   });
+
+  it('omits includeAnnotations by default', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(DiscoverDatasets.SPANS, {yAxis: 'epm()'}, REFERRER)
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request.mock.calls[0][1].query).not.toHaveProperty('includeAnnotations');
+  });
+
+  it('opts in to annotations when includeAnnotations is set', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useFetchEventsTimeSeries(
+        DiscoverDatasets.SPANS,
+        {yAxis: 'epm()', includeAnnotations: true},
+        REFERRER
+      )
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({includeAnnotations: 1}),
+      })
+    );
+  });
 });
 
 const REFERRER = 'test-query';

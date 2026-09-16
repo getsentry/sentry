@@ -88,7 +88,7 @@ export function SnapshotHeaderActions({
       : undefined,
   }));
 
-  const handleApprove = () => {
+  const submitApproval = (successMessage: string) => {
     trackAnalytics('preprod.snapshots.details.approve_clicked', {
       organization,
       build_id: data.head_artifact_id,
@@ -108,7 +108,7 @@ export function SnapshotHeaderActions({
         method: 'POST',
         data: {feature_type: 'snapshots'},
         success: () => {
-          addSuccessMessage(t('Snapshot approved'));
+          addSuccessMessage(successMessage);
           queryClient.invalidateQueries({queryKey: [apiUrl]});
           setIsApproving(false);
         },
@@ -123,6 +123,9 @@ export function SnapshotHeaderActions({
       }
     );
   };
+
+  const handleApprove = () => submitApproval(t('Snapshot approved'));
+  const handleReapprove = () => submitApproval(t('Approval re-sent to GitHub'));
 
   const handleRerunStatusChecks = useCallback(() => {
     clientRef.current.request(
@@ -382,6 +385,22 @@ export function SnapshotHeaderActions({
               onAction: handleRerunStatusChecks,
               textValue: t('Rerun Status Checks'),
             },
+            ...(approvalStatus === 'approved'
+              ? [
+                  {
+                    key: 'reapprove',
+                    label: (
+                      <Flex align="center" gap="sm">
+                        <IconThumb size="sm" />
+                        {t('Re-approve')}
+                      </Flex>
+                    ),
+                    onAction: handleReapprove,
+                    textValue: t('Re-approve'),
+                    disabled: isApproving,
+                  },
+                ]
+              : []),
             ...(project
               ? [
                   {
