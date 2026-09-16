@@ -75,6 +75,10 @@ class OutboxCategory(IntEnum):
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
+    def is_singleton(self) -> bool:
+        """True if this category is not expected to coalesce."""
+        return self in {OutboxCategory.GROUP_ACTION_LOG_EVENT}
+
     def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
             object_identifier: int,
