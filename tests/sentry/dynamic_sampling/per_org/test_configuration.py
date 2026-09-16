@@ -8,18 +8,18 @@ from django.core.exceptions import ObjectDoesNotExist
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import (
+    SLIDING_WINDOW_HOURS,
     AutomaticDynamicSamplingConfiguration,
     CustomDynamicSamplingOrganizationConfiguration,
     CustomDynamicSamplingProjectConfiguration,
     NoDynamicSamplingConfiguration,
     get_configuration,
 )
+from sentry.dynamic_sampling.per_org.queries import OrganizationDataVolume
 from sentry.dynamic_sampling.per_org.telemetry import (
     DynamicSamplingException,
     DynamicSamplingStatus,
 )
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
-from sentry.dynamic_sampling.tasks.helpers.sliding_window import FALLBACK_SLIDING_WINDOW_SIZE
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.testutils.cases import TestCase
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
@@ -67,13 +67,10 @@ class DynamicSamplingOrgConfigurationTest(TestCase):
         assert configuration.get_serving_sample_rate() == 0.25
         mocks[OUTCOMES_VOLUME].assert_called_once()
         assert mocks[OUTCOMES_VOLUME].call_args.kwargs["time_interval"] == timedelta(
-            hours=FALLBACK_SLIDING_WINDOW_SIZE
+            hours=SLIDING_WINDOW_HOURS
         )
         mocks[SLIDING_WINDOW_RATE].assert_called_once_with(
-            org_id=org.id,
-            project_id=None,
-            total_root_count=1000,
-            window_size=FALLBACK_SLIDING_WINDOW_SIZE,
+            org_id=org.id, total_root_count=1000, window_size=SLIDING_WINDOW_HOURS
         )
 
     def test_blended_full_sample_rate_gates_only_the_serving_rate(self) -> None:
