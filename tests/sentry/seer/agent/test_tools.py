@@ -2848,19 +2848,22 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         assert result is not None
         assert result.event_id == event.event_id
 
-    def test_falls_back_if_selected_body_load_fails(self) -> None:
+    def test_skips_event_if_body_load_fails(self) -> None:
         now = datetime.now(UTC)
-        self.store_event_helper(now - timedelta(hours=2), self.project.id, "a" * 32, "1" * 16)
         fallback = self.store_event_helper(
-            now - timedelta(hours=1), self.project.id, "b" * 32, "2" * 16
+            now - timedelta(hours=2), self.project.id, "b" * 32, "2" * 16
         )
+        self.store_event_helper(now - timedelta(hours=1), self.project.id, "a" * 32, "1" * 16)
         assert fallback.group is not None
 
         with (
             patch(
                 "sentry.seer.agent.tools.execute_table_query",
                 return_value=ExecuteQuerySuccessResponse(
-                    data=[{"trace": "a" * 32, "count(span.duration)": 1}]
+                    data=[
+                        {"trace": "a" * 32, "count(span.duration)": 1},
+                        {"trace": "b" * 32, "count(span.duration)": 1},
+                    ]
                 ),
             ),
             patch.object(

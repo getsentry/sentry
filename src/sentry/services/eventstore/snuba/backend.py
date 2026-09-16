@@ -91,7 +91,7 @@ class SnubaEventStorage(EventStorage):
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
         *,
-        load_bodies: bool = True,
+        eager_load_bodies: bool = True,
         extra_columns: Sequence[str] = (),
     ) -> list[Event]:
         cols = [*self.__get_columns(dataset), *extra_columns]
@@ -225,7 +225,7 @@ class SnubaEventStorage(EventStorage):
 
         if "error" not in result:
             events = [self.__make_event(evt) for evt in result["data"]]
-            if load_bodies:
+            if eager_load_bodies:
                 self.bind_nodes(events)
             return events
 

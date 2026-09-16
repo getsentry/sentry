@@ -1265,7 +1265,7 @@ def _get_recommended_event(
                 dataset=dataset,
                 tenant_ids={"organization_id": group.project.organization_id},
                 inner_limit=1000,
-                load_bodies=False,
+                eager_load_bodies=False,
                 extra_columns=["trace_id"],
             )
         except Exception:
@@ -1337,9 +1337,19 @@ def _get_traces_with_spans(
 
 
 def _load_first_available_event(group: Group, events: Sequence[Event]) -> GroupEvent | None:
-    # Checking data loads the body on demand.
-    event = next((candidate for candidate in events if candidate.data), None)
-    return event.for_group(group) if event is not None else None
+    for event in events:
+        try:
+            # Checking data loads the body on demand.
+            if not event.data:
+                continue
+        except Exception:
+            logger.exception(
+                "_load_first_available_event: body load failed",
+                extra={"project_id": group.project_id, "event_id": event.event_id},
+            )
+            continue
+        return event.for_group(group)
+    return None
 
 
 _SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES = [
