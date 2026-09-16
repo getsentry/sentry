@@ -9,7 +9,15 @@ from typing import Any, Self
 
 import psycopg2.errors
 from django import db
-from django.db import DatabaseError, OperationalError, connections, models, router, transaction
+from django.db import (
+    DatabaseError,
+    InterfaceError,
+    OperationalError,
+    connections,
+    models,
+    router,
+    transaction,
+)
 from django.db.models import Count, Max, Min
 from django.db.models.functions import Now
 from django.db.transaction import Atomic
@@ -27,6 +35,7 @@ from sentry.db.models import (
     control_silo_model,
     sane_repr,
 )
+from sentry.db.postgres.helpers import can_reconnect
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
@@ -386,21 +395,36 @@ class OutboxBase(Model):
                     return
 
             shard_row: OutboxBase | None
+            retry_on_disconnect = not flush_all and self.shard_scope == OutboxScope.API_TOKEN_SCOPE
             while True:
-                with self.process_shard(latest_shard_row) as shard_row:
-                    if shard_row is None:
-                        break
+                try:
+                    with self.process_shard(latest_shard_row) as shard_row:
+                        if shard_row is None:
+                            break
 
-                    if _test_processing_barrier:
-                        _test_processing_barrier.wait()
+                        if _test_processing_barrier:
+                            _test_processing_barrier.wait()
 
-                    processed = shard_row.process(is_synchronous_flush=not flush_all)
+                        processed = shard_row.process(is_synchronous_flush=not flush_all)
 
-                    if _test_processing_barrier:
-                        _test_processing_barrier.wait()
+                        if _test_processing_barrier:
+                            _test_processing_barrier.wait()
 
-                    if not processed:
-                        break
+                        if not processed:
+                            break
+                except (DatabaseError, InterfaceError) as e:
+                    if not retry_on_disconnect or not can_reconnect(e):
+                        raise
+
+                    connection = connections[router.db_for_write(type(self))]
+                    if connection.in_atomic_block:
+                        raise
+
+                    # Token issuance has already committed. If the connection dies during
+                    # replication, retry the idempotent token update once in a new transaction
+                    # so we reacquire the shard lock and read the current token state.
+                    retry_on_disconnect = False
+                    connection.close()
         except DatabaseError as e:
             raise OutboxDatabaseError(
                 f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
