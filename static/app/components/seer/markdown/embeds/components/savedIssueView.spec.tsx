@@ -8,7 +8,10 @@ import {getEmbedLinkHref, renderEmbed} from './resourceEmbedTestUtils';
 describe('saved issue view embed', () => {
   it('links a saved issue view to the view route', () => {
     expect(
-      getEmbedLinkHref('savedIssueView', 'Unresolved', {id: '77', name: 'Unresolved'})
+      getEmbedLinkHref('savedIssueView', 'Unresolved', {
+        id: '77',
+        name: 'Unresolved',
+      })
     ).toBe('/organizations/org-slug/issues/views/77/');
   });
 
@@ -65,6 +68,35 @@ describe('saved issue view embed', () => {
         })
       )
     );
+  });
+
+  it('offers no retry when the issue search is rejected', async () => {
+    const view = GroupSearchViewFixture({
+      id: '77',
+      name: 'Unresolved in checkout',
+      query: 'is:unresolved level:error',
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/group-search-views/77/',
+      body: view,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+
+    renderEmbed({name: 'savedIssueView', data: {id: view.id}});
+
+    expect(
+      await screen.findByTestId('loading-error', {}, {timeout: 10_000})
+    ).toBeInTheDocument();
+    // A retry can't fix a query the endpoint rejects, so none is offered.
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
   });
 
   it('renders the view query as formatted search tokens', async () => {

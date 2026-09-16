@@ -108,6 +108,47 @@ describe('GroupList', () => {
     expect(issuesRequest).not.toHaveBeenCalled();
   });
 
+  it('offers no retry for a client error the endpoint already rejected', async () => {
+    MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 400,
+      body: {detail: 'Invalid query'},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+  });
+
+  it('offers a retry for a server error that could land differently', async () => {
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      statusCode: 500,
+      body: {detail: 'Internal error'},
+    });
+
+    render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+
+    const retry = await screen.findByRole('button', {name: 'Retry'});
+    const callsBeforeRetry = issuesRequest.mock.calls.length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(issuesRequest.mock.calls.length).toBeGreaterThan(callsBeforeRetry)
+    );
+  });
+
   it('invokes onFetchSuccess with correct arguments', async () => {
     const onFetchSuccess = jest.fn();
     MockApiClient.addMockResponse({url: membersUrl, body: []});
@@ -184,14 +225,21 @@ describe('GroupList', () => {
   });
 
   it('updates the assignee when changed', async () => {
-    const user = UserFixture({id: '2', name: 'Jane Doe', email: 'jane@example.com'});
+    const user = UserFixture({
+      id: '2',
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+    });
     const team = TeamFixture({id: '1', slug: 'cool-team'});
     const project = ProjectFixture({teams: [team]});
     const groupWithProject = GroupFixture({project, assignedTo: null});
 
     TeamStore.loadInitialData([team]);
 
-    MockApiClient.addMockResponse({url: membersUrl, body: [MemberFixture({user})]});
+    MockApiClient.addMockResponse({
+      url: membersUrl,
+      body: [MemberFixture({user})],
+    });
     MockApiClient.addMockResponse({
       url: issuesUrl,
       method: 'GET',

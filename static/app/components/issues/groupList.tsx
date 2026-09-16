@@ -21,6 +21,7 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -199,13 +200,17 @@ export function GroupList({
           staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
-          path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
+          path: {
+            organizationIdOrSlug: organization.slug,
+            version: endpoint.version,
+          },
           query: computedQueryParams,
           staleTime,
         });
   const {
     data,
     dataUpdatedAt,
+    error,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
@@ -297,7 +302,14 @@ export function GroupList({
   const columns = withColumns;
 
   if (hasError) {
-    return <LoadingError onRetry={refetch} />;
+    // A retry only helps a failure that could land differently next time. The
+    // query here is fixed, so a boolean one the endpoint never accepts and a
+    // client error it already rejected both fail the same way on every press.
+    return hasLogicBoolean ? (
+      <LoadingError message={t('Search queries with AND or OR are not supported.')} />
+    ) : (
+      <LoadingError onRetry={isRetryableRequestError(error) ? refetch : undefined} />
+    );
   }
 
   if (!loading && groups.length === 0) {
