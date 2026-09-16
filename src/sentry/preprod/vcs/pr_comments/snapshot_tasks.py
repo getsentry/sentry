@@ -9,7 +9,6 @@ from taskbroker_client.retry import Retry
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.models.repository import Repository
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
@@ -18,6 +17,7 @@ from sentry.preprod.snapshots.utils import (
     evaluate_snapshot_changes_by_artifact_id,
 )
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
+    format_approved_without_base_snapshot_pr_comment,
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
     format_solo_snapshot_pr_comment,
@@ -28,6 +28,7 @@ from sentry.preprod.vcs.pr_comments.tasks import (
     resolve_pr_comment_context,
     save_pr_comment_result,
 )
+from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
 )
@@ -153,24 +154,25 @@ def create_preprod_snapshot_pr_comment_task(
                 comment_body = format_solo_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
+            elif all(a.id in approvals_by_artifact_id for a in all_artifacts):
+                comment_body = format_approved_without_base_snapshot_pr_comment(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
+                )
             elif not is_timeout_check:
                 comment_body = format_waiting_for_base_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
             else:
-                assert commit_comparison.base_sha is not None
-                base_repo_name = commit_comparison.base_repo_name or head_repo_name
-                base_repository = Repository.objects.filter(
-                    organization_id=organization.id,
-                    name=base_repo_name,
-                    provider=f"integrations:{provider}",
-                ).first()
                 comment_body = format_missing_base_snapshot_pr_comment(
                     all_artifacts,
                     snapshot_metrics_map,
                     project=artifact.project,
                     base_sha=commit_comparison.base_sha,
-                    base_repo_url=base_repository.url if base_repository else None,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
                 )
         else:
             reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)

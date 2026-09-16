@@ -41,7 +41,13 @@ from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
     trigger_autofix_feature,
 )
-from sentry.seer.autofix.feature.models import RCAStepArgs, RepoPin, RepoPins
+from sentry.seer.autofix.feature.models import (
+    FEATURE_ID,
+    LEGACY_FEATURE_ID,
+    RCAStepArgs,
+    RepoPin,
+    RepoPins,
+)
 from sentry.seer.autofix.pr_iteration.constants import (
     MANUAL_FLAG,
     REVIEW_REQUEST_FLAG,
@@ -473,6 +479,17 @@ def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None
     return repo_pins or None
 
 
+def _assert_existing_run_belongs_to_group(group: Group, run_id: int) -> None:
+    has_matching_run = SeerRun.objects.filter(
+        organization_id=group.organization.id,
+        seer_run_state_id=run_id,
+        agent__group_id=group.id,
+        agent__source__in=(FEATURE_ID, LEGACY_FEATURE_ID),
+    ).exists()
+    if not has_matching_run:
+        raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
+
+
 @trace
 def trigger_autofix_agent(
     group: Group,
@@ -525,10 +542,15 @@ def trigger_autofix_agent(
     use_seer_rca_feature = features.has(
         "organizations:autofix-rca-in-seer", group.organization, actor=user
     )
-    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
+    if step == AutofixStep.ROOT_CAUSE and use_seer_rca_feature:
+        if run_id is not None:
+            _assert_existing_run_belongs_to_group(group, run_id)
+
         args = AutofixFeatureArgs(
             step=step,
             referrer=referrer,
+            existing_run_id=run_id,
+            insert_index=insert_index,
             step_args=RCAStepArgs(repo_pins=_build_repo_pins(group, referrer)),
             user_context=user_context,
             stopping_point=stopping_point,

@@ -310,6 +310,9 @@ def devserver(
 
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
+            if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
+                kafka_consumers.add("ingest-metrics")
+
             if settings.SENTRY_USE_UPTIME:
                 kafka_consumers.add("uptime-results")
 

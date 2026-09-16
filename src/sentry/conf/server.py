@@ -2304,6 +2304,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
+    "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
 )
 
 
@@ -2906,7 +2907,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 0.006
+SAMPLED_DEFAULT_RATE = 0.003
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}

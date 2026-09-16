@@ -211,10 +211,10 @@ export function SplitPanel({
       minWidth="0"
       flex="1"
     >
-      {({className}) => (
+      {props => (
         <RootElement
+          {...props}
           ref={containerRef}
-          className={className}
           data-is-held={isHeld}
           // Hide until measured to avoid a fill-pane flash before the sized
           // pane gets its basis.

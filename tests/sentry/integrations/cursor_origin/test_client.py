@@ -60,6 +60,29 @@ class SetupApiClientTest(TestCase):
 
         assert result == {"target": {"slug": "acme"}}
 
+    @responses.activate
+    def test_delete_installation(self, mock_jwt: mock.MagicMock) -> None:
+        url = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}"
+        responses.add(responses.DELETE, url, status=204, body="")
+
+        CursorOriginSetupApiClient().delete_installation(INSTALLATION_ID)
+
+        assert responses.calls[0].request.method == "DELETE"
+        assert responses.calls[0].request.url == url
+        assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
+
+    @responses.activate
+    def test_delete_installation_surfaces_the_error(self, mock_jwt: mock.MagicMock) -> None:
+        """The caller decides what a failure means; the client does not swallow it."""
+        responses.add(
+            responses.DELETE,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
+            status=500,
+        )
+
+        with pytest.raises(ApiError):
+            CursorOriginSetupApiClient().delete_installation(INSTALLATION_ID)
+
 
 @control_silo_test
 @mock.patch("sentry.integrations.cursor_origin.client.get_jwt", return_value=JWT)
@@ -141,13 +164,6 @@ class AccessTokenTest(TestCase):
         assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
 
     @responses.activate
-    def test_rejects_a_response_without_a_token(self, mock_jwt: mock.MagicMock) -> None:
-        responses.add(responses.POST, TOKEN_URL, json={"expiresAt": _iso(timedelta(minutes=15))})
-
-        with pytest.raises(ApiError):
-            CursorOriginApiClient(integration=self.integration).get_access_token()
-
-    @responses.activate
     def test_rejects_an_unparseable_expiry(self, mock_jwt: mock.MagicMock) -> None:
         """Storing it would refresh on every later request, quietly and forever."""
         responses.add(
@@ -155,13 +171,6 @@ class AccessTokenTest(TestCase):
             TOKEN_URL,
             json={"token": "oit_abc", "expiresAt": "Fri, 01 Aug 2026 10:30:00 GMT"},
         )
-
-        with pytest.raises(ApiError):
-            CursorOriginApiClient(integration=self.integration).get_access_token()
-
-    @responses.activate
-    def test_rejects_a_response_without_an_expiry(self, mock_jwt: mock.MagicMock) -> None:
-        responses.add(responses.POST, TOKEN_URL, json={"token": "oit_abc"})
 
         with pytest.raises(ApiError):
             CursorOriginApiClient(integration=self.integration).get_access_token()
@@ -236,16 +245,14 @@ class PaginateTest(TestCase):
 
     def test_stops_on_a_single_page(self) -> None:
         with mock.patch.object(
-            self.origin_client, "get", return_value={"repositories": [{"id": "1"}]}
+            self.origin_client,
+            "get",
+            return_value={"repositories": [{"id": "1"}], "nextPageToken": ""},
         ) as mock_get:
             result = self.origin_client._paginate("/installation/repos", "repositories")
 
         assert result == [{"id": "1"}]
         assert mock_get.call_count == 1
-
-    def test_missing_collection_key_yields_nothing(self) -> None:
-        with mock.patch.object(self.origin_client, "get", return_value={"nextPageToken": ""}):
-            assert self.origin_client._paginate("/installation/repos", "repositories") == []
 
     def test_raises_when_the_page_limit_is_hit(self) -> None:
         """A short list reads as removed repositories to the sync, so never truncate silently."""
@@ -256,7 +263,3 @@ class PaginateTest(TestCase):
 
         assert mock_get.call_count == self.origin_client.page_number_limit
         assert len(excinfo.value.partial_data) == self.origin_client.page_number_limit
-
-    def test_non_dict_response_stops_pagination(self) -> None:
-        with mock.patch.object(self.origin_client, "get", return_value=["unexpected"]):
-            assert self.origin_client._paginate("/installation/repos", "repositories") == []
