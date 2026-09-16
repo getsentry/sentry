@@ -272,6 +272,51 @@ describe('EditConnectedMonitors', () => {
     await waitFor(() => expect(model.getValue('allProjects')).toBe(true));
   });
 
+  it.each([
+    ['fails', {detail: 'Internal Error'}, 500],
+    ['does not return the connected detector', [], 200],
+  ])(
+    'does not change monitor mode when loading connected detectors %s',
+    async (_description, body, statusCode) => {
+      const allProjectsDetector = AllProjectsDetectorFixture({id: '101'});
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        method: 'GET',
+        body,
+        statusCode,
+        match: [MockApiClient.matchQuery({id: [allProjectsDetector.id]})],
+      });
+      const model = new FormModel();
+      model.setInitialData({
+        allProjects: false,
+        projectIds: [],
+        detectorIds: [allProjectsDetector.id],
+      });
+
+      render(
+        <Form model={model}>
+          <EditConnectedMonitors
+            connectedIds={[allProjectsDetector.id]}
+            setConnectedIds={jest.fn()}
+          />
+        </Form>,
+        {
+          organization: OrganizationFixture({
+            features: ['workflow-engine-all-projects-detector'],
+          }),
+        }
+      );
+
+      expect(
+        await screen.findByText('There was an error loading data.')
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('radio', {name: 'Alert on all issues in selected projects'})
+      ).not.toBeInTheDocument();
+      expect(model.getValue('allProjects')).toBe(false);
+    }
+  );
+
   it('switches between modes correctly', async () => {
     const setConnectedIds = jest.fn();
     render(<EditConnectedMonitors connectedIds={[]} setConnectedIds={setConnectedIds} />);
