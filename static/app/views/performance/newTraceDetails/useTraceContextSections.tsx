@@ -10,7 +10,6 @@ import {
   getTraceMetaMetricsCount,
   getTraceMetaPerformanceIssueCount,
   getTraceMetaSpanCount,
-  getTraceMetaTransactionCount,
   getTraceMetaUptimeCount,
   type TraceMetaQueryResults,
 } from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
@@ -67,7 +66,6 @@ export function useTraceContextSections({
     (getTraceMetaSpanCount(meta) ?? 0) +
     (getTraceMetaErrorCount(meta) ?? 0) +
     (getTraceMetaPerformanceIssueCount(meta) ?? 0) +
-    (getTraceMetaTransactionCount(meta) ?? 0) +
     (getTraceMetaUptimeCount(meta) ?? 0);
 
   const hasTraceEvents =

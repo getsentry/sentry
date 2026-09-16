@@ -2,8 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-
 import {
   getTraceMetaErrorCount,
   getTraceMetaMetricsCount,
@@ -11,10 +9,6 @@ import {
   useTraceMeta,
   type TraceMetaTrace,
 } from './useTraceMeta';
-
-jest.mock('sentry/utils/useSyncedLocalStorageState', () => ({
-  useSyncedLocalStorageState: jest.fn(),
-}));
 
 const organization = OrganizationFixture();
 
@@ -35,102 +29,10 @@ const mockedTraces: TraceMetaTrace[] = [
 
 describe('useTraceMeta', () => {
   beforeEach(() => {
-    jest.mocked(useSyncedLocalStorageState).mockReturnValue(['non-eap', jest.fn()]);
     jest.clearAllMocks();
   });
 
-  it('Returns merged meta results', async () => {
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
-      body: {
-        errors: 1,
-        performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [{'transaction.id': '1', count: 1}],
-        span_count: 1,
-        span_count_map: {
-          op1: 1,
-        },
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug2/',
-      body: {
-        errors: 1,
-        performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [{'transaction.id': '2', count: 2}],
-        span_count: 2,
-        span_count_map: {
-          op1: 1,
-          op2: 1,
-        },
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug3/',
-      body: {
-        errors: 1,
-        performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
-        span_count: 1,
-        span_count_map: {
-          op3: 1,
-        },
-      },
-    });
-
-    const {result} = renderHookWithProviders(useTraceMeta, {
-      organization,
-      initialProps: mockedTraces,
-    });
-
-    expect(result.current).toEqual({
-      data: undefined,
-      errors: [],
-      isLoading: true,
-      status: 'pending',
-    });
-
-    await waitFor(() => expect(result.current.status === 'success').toBe(true));
-
-    expect(result.current).toEqual({
-      data: {
-        errors: 3,
-        performance_issues: 3,
-        projects: 1,
-        transactions: 3,
-        transaction_child_count_map: {
-          '1': 1,
-          '2': 2,
-        },
-        span_count: 4,
-        span_count_map: {
-          op1: 2,
-          op2: 1,
-          op3: 1,
-        },
-      },
-      errors: [],
-      isLoading: false,
-      status: 'success',
-    });
-  });
-
-  it('EAP - Returns merged meta results', async () => {
-    const org = OrganizationFixture({
-      features: ['trace-spans-format'],
-    });
-
-    jest.mocked(useSyncedLocalStorageState).mockReturnValue(['eap', jest.fn()]);
-
+  it('returns merged meta results', async () => {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace-meta/slug1/',
@@ -182,7 +84,7 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization: org,
+      organization,
       initialProps: mockedTraces,
     });
 
@@ -221,13 +123,11 @@ describe('useTraceMeta', () => {
     expect(getTraceMetaMetricsCount(result.current.data)).toBe(6);
   });
 
-  it('EAP - accepts trace meta without transactionsCount', async () => {
-    const org = OrganizationFixture({
-      features: ['trace-spans-format'],
-    });
-    const trace = {traceSlug: 'slug-without-transactions-count', timestamp: 1};
-
-    jest.mocked(useSyncedLocalStorageState).mockReturnValue(['eap', jest.fn()]);
+  it('accepts trace meta without transactionsCount', async () => {
+    const trace = {
+      traceSlug: 'slug-without-transactions-count',
+      timestamp: 1,
+    };
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -239,7 +139,10 @@ describe('useTraceMeta', () => {
         performanceIssuesCount: 0,
         spansCount: 529,
         transactionChildCountMap: [
-          {'transaction.event_id': '2b6107aa9d5f49c7a100babc02e903a0', 'count()': 62},
+          {
+            'transaction.event_id': '2b6107aa9d5f49c7a100babc02e903a0',
+            'count()': 62,
+          },
           {'transaction.event_id': null, 'count()': 1},
         ],
         spansCountMap: {
@@ -250,7 +153,7 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization: org,
+      organization,
       initialProps: [trace],
     });
 
@@ -275,17 +178,17 @@ describe('useTraceMeta', () => {
   it('Collects errors from rejected api calls', async () => {
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       statusCode: 400,
     });
     const mockRequest2 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug2/',
+      url: '/organizations/org-slug/trace-meta/slug2/',
       statusCode: 400,
     });
     const mockRequest3 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug3/',
+      url: '/organizations/org-slug/trace-meta/slug3/',
       statusCode: 400,
     });
 
@@ -315,11 +218,8 @@ describe('useTraceMeta', () => {
     expect(mockRequest3).toHaveBeenCalled();
   });
 
-  it('EAP - does not return zero-filled metadata when the request fails', async () => {
-    const org = OrganizationFixture({features: ['trace-spans-format']});
+  it('does not return zero-filled metadata when the request fails', async () => {
     const trace = {traceSlug: 'slug1', timestamp: 1};
-
-    jest.mocked(useSyncedLocalStorageState).mockReturnValue(['eap', jest.fn()]);
 
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -328,7 +228,7 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization: org,
+      organization,
       initialProps: trace,
     });
 
@@ -343,7 +243,6 @@ describe('useTraceMeta', () => {
   });
 
   it('Retries with 90d when initial 14d response has no data', async () => {
-    const org = OrganizationFixture({features: ['trace-spans-format']});
     const tracesWithoutTimestamp: TraceMetaTrace[] = [
       {traceSlug: 'slug1', timestamp: undefined},
       {traceSlug: 'slug2', timestamp: undefined},
@@ -398,7 +297,7 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization: org,
+      organization,
       initialProps: tracesWithoutTimestamp,
     });
 
@@ -414,78 +313,55 @@ describe('useTraceMeta', () => {
   });
 
   it.each([
-    {traceType: 'EAP', countField: 'errorsCount'},
-    {traceType: 'EAP', countField: 'logsCount'},
-    {traceType: 'EAP', countField: 'metricsCount'},
-    {traceType: 'EAP', countField: 'performanceIssuesCount'},
-    {traceType: 'EAP', countField: 'spansCount'},
-    {traceType: 'EAP', countField: 'uptimeCount'},
-    {traceType: 'non-EAP', countField: 'errors'},
-    {traceType: 'non-EAP', countField: 'performance_issues'},
-    {traceType: 'non-EAP', countField: 'span_count'},
-    {traceType: 'non-EAP', countField: 'transactions'},
-  ] as const)(
-    'Does not retry when initial $traceType response has only $countField',
-    async ({traceType, countField}) => {
-      const isEAP = traceType === 'EAP';
-      const org = isEAP
-        ? OrganizationFixture({features: ['trace-spans-format']})
-        : organization;
-      const endpoint = isEAP ? 'trace-meta' : 'events-trace-meta';
-      const emptyBody = isEAP
-        ? {
-            errorsCount: 0,
-            logsCount: 0,
-            metricsCount: 0,
-            performanceIssuesCount: 0,
-            spansCount: 0,
-            spansCountMap: {},
-            transactionChildCountMap: [],
-            uptimeCount: 0,
-          }
-        : {
-            errors: 0,
-            performance_issues: 0,
-            projects: 0,
-            transactions: 0,
-            transaction_child_count_map: [],
-            span_count: 0,
-            span_count_map: {},
-          };
-      const initialBody = {...emptyBody, [countField]: 1};
-      const tracesWithoutTimestamp: TraceMetaTrace[] = [
-        {traceSlug: 'slug1', timestamp: undefined},
-      ];
+    'errorsCount',
+    'logsCount',
+    'metricsCount',
+    'performanceIssuesCount',
+    'spansCount',
+    'uptimeCount',
+  ] as const)('Does not retry when initial response has only %s', async countField => {
+    const emptyBody = {
+      errorsCount: 0,
+      logsCount: 0,
+      metricsCount: 0,
+      performanceIssuesCount: 0,
+      spansCount: 0,
+      spansCountMap: {},
+      transactionChildCountMap: [],
+      uptimeCount: 0,
+    };
+    const initialBody = {...emptyBody, [countField]: 1};
+    const tracesWithoutTimestamp: TraceMetaTrace[] = [
+      {traceSlug: 'slug1', timestamp: undefined},
+    ];
 
-      const mockSlug1_14d = MockApiClient.addMockResponse({
-        method: 'GET',
-        url: `/organizations/org-slug/${endpoint}/slug1/`,
-        match: [MockApiClient.matchData({statsPeriod: '14d'})],
-        body: initialBody,
-      });
+    const mockSlug1_14d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '14d'})],
+      body: initialBody,
+    });
 
-      const mockSlug1_90d = MockApiClient.addMockResponse({
-        method: 'GET',
-        url: `/organizations/org-slug/${endpoint}/slug1/`,
-        match: [MockApiClient.matchData({statsPeriod: '90d'})],
-        body: emptyBody,
-      });
+    const mockSlug1_90d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '90d'})],
+      body: emptyBody,
+    });
 
-      const {result} = renderHookWithProviders(useTraceMeta, {
-        organization: org,
-        initialProps: tracesWithoutTimestamp,
-      });
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization,
+      initialProps: tracesWithoutTimestamp,
+    });
 
-      await waitFor(() => expect(result.current.status === 'success').toBe(true));
+    await waitFor(() => expect(result.current.status === 'success').toBe(true));
 
-      expect(mockSlug1_14d).toHaveBeenCalledTimes(1);
-      expect(mockSlug1_90d).not.toHaveBeenCalled();
-      expect(result.current.data).toEqual(expect.objectContaining({[countField]: 1}));
-    }
-  );
+    expect(mockSlug1_14d).toHaveBeenCalledTimes(1);
+    expect(mockSlug1_90d).not.toHaveBeenCalled();
+    expect(result.current.data).toEqual(expect.objectContaining({[countField]: 1}));
+  });
 
   it('Does not retry when all traces have timestamps', async () => {
-    const org = OrganizationFixture({features: ['trace-spans-format']});
     const tracesWithTimestamps: TraceMetaTrace[] = [{traceSlug: 'slug1', timestamp: 123}];
 
     const mockSlug1_timestamp = MockApiClient.addMockResponse({
@@ -520,7 +396,7 @@ describe('useTraceMeta', () => {
     });
 
     const {result} = renderHookWithProviders(useTraceMeta, {
-      organization: org,
+      organization,
       initialProps: tracesWithTimestamps,
     });
 
@@ -534,37 +410,39 @@ describe('useTraceMeta', () => {
   it('Accumulates metaResults and collects errors from rejected api calls', async () => {
     const mockRequest1 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      url: '/organizations/org-slug/trace-meta/slug1/',
       statusCode: 400,
     });
     const mockRequest2 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug2/',
+      url: '/organizations/org-slug/trace-meta/slug2/',
       body: {
-        errors: 1,
-        performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
-        span_count: 1,
-        span_count_map: {
+        errorsCount: 1,
+        logsCount: 1,
+        metricsCount: 1,
+        performanceIssuesCount: 1,
+        spansCount: 1,
+        spansCountMap: {
           op1: 1,
         },
+        transactionChildCountMap: [],
+        uptimeCount: 0,
       },
     });
     const mockRequest3 = MockApiClient.addMockResponse({
       method: 'GET',
-      url: '/organizations/org-slug/events-trace-meta/slug3/',
+      url: '/organizations/org-slug/trace-meta/slug3/',
       body: {
-        errors: 1,
-        performance_issues: 1,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
-        span_count: 1,
-        span_count_map: {
+        errorsCount: 1,
+        logsCount: 1,
+        metricsCount: 1,
+        performanceIssuesCount: 1,
+        spansCount: 1,
+        spansCountMap: {
           op2: 1,
         },
+        transactionChildCountMap: [],
+        uptimeCount: 0,
       },
     });
 
@@ -584,16 +462,17 @@ describe('useTraceMeta', () => {
 
     expect(result.current).toEqual({
       data: {
-        errors: 2,
-        performance_issues: 2,
-        projects: 1,
-        transactions: 2,
-        transaction_child_count_map: {},
-        span_count: 2,
-        span_count_map: {
+        errorsCount: 2,
+        logsCount: 2,
+        metricsCount: 2,
+        performanceIssuesCount: 2,
+        spansCount: 2,
+        spansCountMap: {
           op1: 1,
           op2: 1,
         },
+        transactionChildCountMap: {},
+        uptimeCount: 0,
       },
       errors: [expect.any(Error)],
       isLoading: false,
