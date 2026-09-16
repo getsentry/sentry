@@ -64,7 +64,6 @@ export const enum SectionKey {
   CONTEXTS = 'contexts',
   EXTRA = 'extra',
   PACKAGES = 'packages',
-  DEVICE = 'device',
   VIEW_HIERARCHY = 'view-hierarchy',
   ATTACHMENTS = 'attachments',
   SDK = 'sdk',

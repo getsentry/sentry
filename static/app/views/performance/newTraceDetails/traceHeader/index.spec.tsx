@@ -31,13 +31,14 @@ jest.mock('sentry/views/performance/newTraceDetails/traceHeader/projects');
 const baseProps: Partial<TraceMetadataHeaderProps> = {
   metaResults: {
     data: {
-      errors: 1,
-      performance_issues: 1,
-      projects: 1,
-      transactions: 1,
-      transaction_child_count_map: {span1: 1},
-      span_count: 1,
-      span_count_map: {},
+      errorsCount: 1,
+      logsCount: 0,
+      metricsCount: 0,
+      performanceIssuesCount: 1,
+      spansCount: 1,
+      spansCountMap: {},
+      transactionChildCountMap: {span1: 1},
+      uptimeCount: 0,
     },
     errors: [],
     isLoading: false,
@@ -402,6 +403,16 @@ describe('TraceMetaDataHeader', () => {
       const props = {
         ...baseProps,
         tree,
+        metaResults: {
+          ...baseProps.metaResults,
+          data: {
+            ...baseProps.metaResults?.data,
+            errorsCount: 0,
+            logsCount: 4,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+          },
+        },
         overview: {
           isProjectsLoading: false,
           isRepresentativeLoading: false,
@@ -557,7 +568,7 @@ describe('TraceMetaDataHeader', () => {
           ...baseProps.metaResults,
           data: {
             ...baseProps.metaResults?.data,
-            span_count: 20,
+            spansCount: 20,
           },
         },
       } as TraceMetadataHeaderProps;
