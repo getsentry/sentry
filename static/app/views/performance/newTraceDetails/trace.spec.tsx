@@ -1215,6 +1215,151 @@ describe('trace view', () => {
       }
     );
 
+    it.each([
+      {
+        name: 'spans 48 hours apart',
+        offset: 0.25,
+        duration: 0.5,
+        childOffset: 172800,
+        endOffset: 172801,
+      },
+      {
+        name: 'a subsecond trace',
+        offset: 0.25,
+        duration: 0.5,
+        childOffset: null,
+        endOffset: 1,
+      },
+      {
+        name: 'a zero-duration trace',
+        offset: 0,
+        duration: 0,
+        childOffset: null,
+        endOffset: 1,
+      },
+    ])(
+      'queries the complete time range for $name',
+      async ({offset, duration, childOffset, endOffset}) => {
+        const {organization, root} = setupPinnedTrace();
+        const base = Math.floor(Date.now() / 1000) - 5 * 86400;
+        const start = base + offset;
+        const trace = {
+          ...root,
+          start_timestamp: start,
+          end_timestamp: start + duration,
+          children:
+            childOffset === null
+              ? []
+              : [
+                  makeEAPSpan({
+                    event_id: 'late-child',
+                    event_type: 'span',
+                    description: 'late child',
+                    start_timestamp: start + childOffset,
+                    end_timestamp: start + childOffset + duration,
+                    additional_attributes: {'custom.region': 'late-region'},
+                  }),
+                ],
+        };
+        const traceRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace/trace-id/',
+          body: [trace],
+        });
+        const attributeRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace/trace-id/',
+          match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+          body: [{...trace, additional_attributes: {'custom.region': 'root-region'}}],
+        });
+        // The original window is centered between the spans and includes both.
+        // Reanchoring it to the first span would exclude the later one.
+        const query = {
+          pinnedAttribute: 'custom.region',
+          timestamp: String(start + (childOffset ?? 0) / 2),
+        };
+        mockQueryString(`?${new URLSearchParams(query).toString()}`);
+        render(<TraceView />, {
+          organization,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              pathname: '/organizations/org-slug/performance/trace/trace-id/',
+              query,
+            },
+          },
+        });
+        expect(await screen.findByText('root-region')).toBeInTheDocument();
+        if (childOffset !== null) {
+          expect(await screen.findByText('late-region')).toBeInTheDocument();
+        }
+        expect(attributeRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              start: new Date(base * 1000).toISOString(),
+              end: new Date((base + endOffset) * 1000).toISOString(),
+            }),
+          })
+        );
+        expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('timestamp');
+        expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty(
+          'statsPeriod'
+        );
+        expect(traceRequest).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it('loads pinned values for a trace found by the wider-range fallback', async () => {
+      const {organization, root} = setupPinnedTrace();
+      const start = Math.floor(Date.now() / 1000) - 40 * 86400;
+      const trace = {
+        ...root,
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        children: [],
+      };
+      const initialRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+        body: [],
+      });
+      const fallbackRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: [trace],
+      });
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        body: [{...trace, additional_attributes: {'custom.region': 'older-region'}}],
+      });
+      const query = {pinnedAttribute: 'custom.region', statsPeriod: '14d'};
+      mockQueryString(`?${new URLSearchParams(query).toString()}`);
+      render(<TraceView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: '/organizations/org-slug/performance/trace/trace-id/',
+            query,
+          },
+        },
+      });
+      expect(await screen.findByText('older-region')).toBeInTheDocument();
+      expect(initialRequest).toHaveBeenCalledTimes(1);
+      expect(fallbackRequest).toHaveBeenCalledTimes(1);
+      expect(attributeRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: new Date(start * 1000).toISOString(),
+            end: new Date((start + 2) * 1000).toISOString(),
+          }),
+        })
+      );
+      expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('timestamp');
+      expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
+    });
+
     it('loads a shared pin, keeps the trace usable on failure, and retries only the attribute', async () => {
       const {organization, root} = setupPinnedTrace();
       const attributeRequest = MockApiClient.addMockResponse({

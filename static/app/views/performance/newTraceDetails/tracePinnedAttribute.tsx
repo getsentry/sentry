@@ -93,8 +93,17 @@ export function useTracePinnedAttribute({
     [enabled, location, navigate]
   );
 
-  // Anchor the lookup to the loaded trace, including when the initial trace request
-  // found it by widening the date range. Attribute requests never replace the tree.
+  const queryParams = getTraceQueryParams('eap', location.query, selection, {
+    limit: 10_000,
+  });
+  // A timestamp narrows the backend query to a fixed window around that instant.
+  // Use the full loaded trace instead, including traces found by the date fallback.
+  delete queryParams.timestamp;
+  delete queryParams.statsPeriod;
+  // Snuba uses whole-second bounds with an exclusive end. Include the final
+  // second even for subsecond traces and zero-duration spans.
+  const start = Math.floor(tree.root.space[0] / 1000) * 1000;
+  const end = (Math.floor((tree.root.space[0] + tree.root.space[1]) / 1000) + 1) * 1000;
   const query = useQuery({
     ...apiOptions.as<TraceTree.EAPTrace>()(
       '/organizations/$organizationIdOrSlug/trace/$traceId/',
@@ -104,10 +113,9 @@ export function useTracePinnedAttribute({
             ? {organizationIdOrSlug: organization.slug, traceId: traceSlug}
             : skipToken,
         query: {
-          ...getTraceQueryParams('eap', location.query, selection, {
-            timestamp: tree.root.space[0] / 1000,
-            limit: 10_000,
-          }),
+          ...queryParams,
+          start: new Date(start).toISOString(),
+          end: new Date(end).toISOString(),
           project: -1,
           additional_attributes: attribute ? [attribute] : [],
           referrer: 'trace.waterfall.attribute-pinning',
