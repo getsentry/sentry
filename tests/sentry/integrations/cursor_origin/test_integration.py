@@ -209,6 +209,18 @@ class CursorOriginIntegrationTest(TestCase):
 
         mock_delete.assert_called_once_with(INSTALLATION_ID)
 
+    def test_uninstall_leaves_an_installation_another_organization_still_uses(self) -> None:
+        """One Origin installation can serve several Sentry organizations."""
+        other_org = self.create_organization()
+        self.create_organization_integration(
+            organization_id=other_org.id, integration_id=self.integration.id
+        )
+
+        with mock.patch.object(CursorOriginSetupApiClient, "delete_installation") as mock_delete:
+            self.install.uninstall()
+
+        assert not mock_delete.called
+
     def test_uninstall_accepts_an_installation_origin_has_already_dropped(self) -> None:
         with mock.patch.object(
             CursorOriginSetupApiClient,
