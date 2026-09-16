@@ -125,7 +125,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
         {...rest}
       >
         {leadingItems ? (
-          <Flex align="center" gap="xs">
+          <Flex align="center" gap="xs" minWidth={0}>
             {children}
             {chevron}
           </Flex>
@@ -153,6 +153,7 @@ const TitleRow = styled(Flex)`
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
+  min-width: 0;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
 
