@@ -784,7 +784,7 @@ class SeerPRCreatedAction(GroupAction):
 
 
 class SeerPRReadyForReviewAction(GroupAction):
-    user_visible = False
+    user_visible = True
     run_id: Optional[int] = None
     # Same PR as SeerPRCreatedAction, but will not be in draft mode
     pull_requests: Optional[list[SeerPullRequestItem]] = None

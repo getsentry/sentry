@@ -2,7 +2,12 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {getEmbedLinkHref, renderEmbed} from './resourceEmbedTestUtils';
+import {IssuesQuery, LegacyIssues} from './issuesQuery';
+import {
+  getEmbedLinkHref,
+  renderEmbed,
+  renderEmbedMarkdown,
+} from './resourceEmbedTestUtils';
 
 describe('issues query embed', () => {
   it('carries the search string and page filters into the issue stream', () => {
@@ -122,5 +127,44 @@ describe('issues query embed', () => {
     expect(
       document.getElementById(toggle.getAttribute('aria-controls')!)
     ).toHaveAttribute('aria-hidden', 'true');
+  });
+
+  it('copies the block as a link to the same search', () => {
+    expect(
+      renderEmbedMarkdown(IssuesQuery, 'issuesQuery', {
+        query: 'is:unresolved level:error',
+        statsPeriod: '7d',
+        title: 'Unresolved errors',
+      })
+    ).toBe(
+      `[Unresolved errors](${window.location.origin}/organizations/org-slug/issues/?query=is%3Aunresolved%20level%3Aerror&statsPeriod=7d)`
+    );
+  });
+
+  it('falls back to the generic label when copying an untitled search', () => {
+    expect(
+      renderEmbedMarkdown(IssuesQuery, 'issuesQuery', {query: 'is:unresolved'})
+    ).toBe(
+      `[Issue search](${window.location.origin}/organizations/org-slug/issues/?query=is%3Aunresolved)`
+    );
+  });
+});
+
+describe('legacy issues embed', () => {
+  it('serializes the table it was listing to one markdown link per issue', () => {
+    const markdown = renderEmbedMarkdown(LegacyIssues, 'issues', {
+      ids: ['JAVASCRIPT-22SP', 'PYTHON-4B'],
+    });
+
+    // One line: the lexer can hand this tag over inline, where a bulleted list
+    // would break the sentence around it.
+    expect(markdown).toBe(
+      `[JAVASCRIPT-22SP](${window.location.origin}/issues/JAVASCRIPT-22SP/), ` +
+        `[PYTHON-4B](${window.location.origin}/issues/PYTHON-4B/)`
+    );
+  });
+
+  it('renders nothing for an empty list', () => {
+    expect(renderEmbedMarkdown(LegacyIssues, 'issues', {ids: []})).toBe('');
   });
 });
