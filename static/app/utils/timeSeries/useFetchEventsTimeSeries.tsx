@@ -188,7 +188,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
-interface Annotation {
+export interface Annotation {
   category: string;
   droppedCount: number;
   end: number;
