@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
@@ -6,7 +5,6 @@ from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.testutils.cases import APITestCase
 
 
-@pytest.mark.skip(reason="API not public yet, this line will be removed in future")
 class SavedQueryStarredOrderTest(APITestCase):
     feature_flags = {
         "organizations:visibility-explore-view": True,
