@@ -23,6 +23,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json, redis
 
 DISABLE_HOLD_OPTION = "crons.clock_tick.disable_hold_on_missing_partitions"
+STALE_DROPPED_METRIC = "monitors.task.clock_stale_partitions_dropped"
 
 BASE_OPTIONS = {
     "crons.system_incidents.collect_metrics": False,
@@ -487,6 +488,78 @@ def test_hold_clock_tick_option_off(dispatch_tick: mock.MagicMock) -> None:
         mock.call(now + timedelta(minutes=4)),
         mock.call(now + timedelta(minutes=5)),
     ]
+
+
+def seed_stale_partitions(now: datetime, partitions: list[int]) -> None:
+    stale_ts = int((now - timedelta(minutes=10)).timestamp())
+    get_redis_client().zadd(
+        name=MONITOR_TASKS_PARTITION_CLOCKS,
+        mapping={f"part-{partition}": stale_ts for partition in partitions},
+    )
+
+
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
+def test_drop_stale_partitions_clock_keeps_ticking(dispatch_tick: mock.MagicMock) -> None:
+    seed_pulse(2)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    seed_stale_partitions(now, [9])
+
+    fill_partition_set(now, 2)
+    fill_partition_set(now + timedelta(minutes=1), 2)
+
+    assert dispatch_tick.mock_calls == [mock.call(now), mock.call(now + timedelta(minutes=1))]
+
+
+@mock.patch("sentry.monitors.clock_dispatch.metrics")
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
+def test_drop_stale_partitions_metric(
+    dispatch_tick: mock.MagicMock, metrics_mock: mock.MagicMock
+) -> None:
+    """
+    The count of members left out is reported every time the clock compares the
+    set, so a zero count is reported as well.
+    """
+    seed_pulse(2)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    seed_stale_partitions(now, [8, 9])
+
+    # The write for partition 0 holds the clock, because partition 1 is not in
+    # the set yet. The write for partition 1 completes the set and leaves both
+    # stale members out.
+    fill_partition_set(now, 2)
+    assert gauge_values(metrics_mock, STALE_DROPPED_METRIC) == [2]
+
+    # The stale members go away and nothing is left out
+    get_redis_client().zrem(MONITOR_TASKS_PARTITION_CLOCKS, "part-8", "part-9")
+    fill_partition_set(now + timedelta(minutes=1), 2)
+    assert gauge_values(metrics_mock, STALE_DROPPED_METRIC) == [2, 0, 0]
+
+
+@mock.patch("sentry.monitors.clock_dispatch.metrics")
+@mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
+@override_options(BASE_OPTIONS)
+def test_drop_stale_partitions_option_off(
+    dispatch_tick: mock.MagicMock, metrics_mock: mock.MagicMock
+) -> None:
+    """
+    With the option off the stale member stays the slowest partition and stops
+    the clock, which is the behavior before this change.
+    """
+    seed_pulse(2)
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    seed_stale_partitions(now, [9])
+
+    fill_partition_set(now, 2)
+    fill_partition_set(now + timedelta(minutes=1), 2)
+
+    # The clock ticks once at the stale clock value and never moves past it
+    assert dispatch_tick.mock_calls == [mock.call(now - timedelta(minutes=10))]
+    assert gauge_values(metrics_mock, STALE_DROPPED_METRIC) == []
 
 
 @override_settings(

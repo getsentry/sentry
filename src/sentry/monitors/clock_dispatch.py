@@ -101,6 +101,37 @@ def _should_hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
     return not options.get("crons.clock_tick.disable_hold_on_missing_partitions")
 
 
+def _drop_stale_partitions(partition_clocks: list[tuple[str, float]]) -> list[tuple[str, float]]:
+    """
+    Leave out the members of the partition clock set that the most recent clock
+    pulse did not list.
+    """
+    expected_partitions = _partition_set_state.expected_partitions
+
+    if expected_partitions is None:
+        return partition_clocks
+
+    if options.get("crons.clock_tick.disable_hold_on_missing_partitions"):
+        return partition_clocks
+
+    expected_members = {f"part-{partition}" for partition in expected_partitions}
+    live_clocks = [
+        partition_clock
+        for partition_clock in partition_clocks
+        if partition_clock[0] in expected_members
+    ]
+
+    # Keep every member when they all look stale - the pulse list can be behind
+    # for a few minutes after a partition change
+    if not live_clocks:
+        return partition_clocks
+
+    dropped_count = len(partition_clocks) - len(live_clocks)
+    metrics.gauge("monitors.task.clock_stale_partitions_dropped", dropped_count, sample_rate=1.0)
+
+    return live_clocks
+
+
 def _dispatch_tick(ts: datetime):
     """
     Dispatch a clock tick which will trigger monitor tasks.
@@ -163,6 +194,8 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
 
     if _should_hold_clock_tick(missing_partitions):
         return
+
+    partition_clocks = _drop_stale_partitions(partition_clocks)
 
     # the first tuple is the slowest (part-<id>, score), the score is the
     # timestamp. Use `int()` to keep the timestamp (score) as an int
