@@ -200,19 +200,24 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + min((self.last_delay() * 2), datetime.timedelta(hours=1))
 
+    def schedule_drain_on_commit(self) -> None:
+        if _outbox_context.flushing_enabled:
+            transaction.on_commit(
+                self._drain_shard_with_metrics, using=router.db_for_write(type(self))
+            )
+
+    def record_saved_metric(self, count: int = 1) -> None:
+        tags = {"category": OutboxCategory(self.category).name, **self._silo_and_type_tags()}
+        metrics.incr("outbox.saved", count, tags=tags)
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         if not OutboxScope.scope_has_category(self.shard_scope, self.category):
             raise InvalidOutboxError(
                 f"Outbox.category {self.category} ({OutboxCategory(self.category).name}) not configured for scope {self.shard_scope} ({OutboxScope(self.shard_scope).name})"
             )
 
-        if _outbox_context.flushing_enabled:
-            transaction.on_commit(
-                self._drain_shard_with_metrics, using=router.db_for_write(type(self))
-            )
-
-        tags = {"category": OutboxCategory(self.category).name, **self._silo_and_type_tags()}
-        metrics.incr("outbox.saved", 1, tags=tags)
+        self.schedule_drain_on_commit()
+        self.record_saved_metric()
         super().save(*args, **kwargs)
 
     def _drain_shard_with_metrics(self) -> None:
