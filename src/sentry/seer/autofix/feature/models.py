@@ -53,6 +53,8 @@ class AutofixFeaturePayload(BaseModel):
     on_completion_hook: OnCompletionHookDefinition
     step: AutofixStep
     step_args: RCAStepArgs
+    existing_run_id: int | None = None
+    insert_index: int | None = None
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
     stopping_point: str | None = None

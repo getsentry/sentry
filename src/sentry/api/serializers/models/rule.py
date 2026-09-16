@@ -40,7 +40,6 @@ from sentry.workflow_engine.typings.notification_action import (
     ActionTargetType,
     FallthroughChoiceType,
 )
-from sentry.workflow_engine.utils.legacy_metric_tracking import report_used_legacy_models
 
 # Check for unsupported conditions which exist in Workflows, but are unsupported in Rules
 # if we're trying to return these in legacy APIs, it's best to skip over them and warn the user
@@ -265,9 +264,6 @@ class RuleSerializer(Serializer[RuleSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> RuleSerializerResponse:
         from sentry.rules.conditions.event_frequency import EventFrequencyPercentCondition
         # imported here due to circular dependency
-
-        # Mark that we're using legacy Rule models
-        report_used_legacy_models()
 
         environment = attrs["environment"]
         all_conditions = []

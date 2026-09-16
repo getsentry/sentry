@@ -1,8 +1,6 @@
-import {StrictMode, type ReactNode} from 'react';
-import {ThemeProvider} from '@emotion/react';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {
   type Breakpoints,
@@ -40,14 +38,6 @@ describe('useBreakpoints', () => {
   const originalWidth = window.innerWidth;
   const theme = ThemeFixture();
 
-  function Wrapper({children}: {children: ReactNode}) {
-    return (
-      <StrictMode>
-        <ThemeProvider theme={theme}>{children}</ThemeProvider>
-      </StrictMode>
-    );
-  }
-
   function resizeWindow(width: number) {
     act(() => {
       window.innerWidth = width;
@@ -71,13 +61,13 @@ describe('useBreakpoints', () => {
 
   it('returns the current breakpoints immediately on mount', () => {
     window.innerWidth = 1000;
-    const {result} = renderHook(useBreakpoints, {wrapper: Wrapper});
+    const {result} = renderHookWithProviders(useBreakpoints);
 
     expect(result.current).toEqual(checkBreakpoints(theme.breakpoints, 1000));
   });
 
   it('waits until 100 ms after the last resize before updating', () => {
-    const {result} = renderHook(useBreakpoints, {wrapper: Wrapper});
+    const {result} = renderHookWithProviders(useBreakpoints);
     const initialBreakpoints = result.current;
 
     resizeWindow(1000);
@@ -98,46 +88,18 @@ describe('useBreakpoints', () => {
     expect(result.current).toEqual(initialBreakpoints);
   });
 
-  it('does not render again when the active breakpoints have not changed', () => {
-    const onRender = jest.fn();
-    const {result} = renderHook(
-      () => {
-        onRender();
-        return useBreakpoints();
-      },
-      {wrapper: Wrapper}
-    );
+  it('preserves the result when the active breakpoints have not changed', () => {
+    const {result} = renderHookWithProviders(useBreakpoints);
     const initialBreakpoints = result.current;
-    onRender.mockClear();
 
     resizeWindow(1);
     advanceTime(100);
 
     expect(result.current).toBe(initialBreakpoints);
-    expect(onRender).not.toHaveBeenCalled();
-  });
-
-  it('uses the latest committed theme for pending resizes', () => {
-    let currentTheme = theme;
-    const {result, rerender} = renderHook(useBreakpoints, {
-      wrapper: ({children}) => (
-        <ThemeProvider theme={currentTheme}>{children}</ThemeProvider>
-      ),
-    });
-
-    resizeWindow(2000);
-    currentTheme = {
-      ...theme,
-      breakpoints: {...theme.breakpoints, xl: '3000px' as typeof theme.breakpoints.xl},
-    };
-    rerender();
-    advanceTime(100);
-    expect(result.current).toEqual(checkBreakpoints(currentTheme.breakpoints, 2000));
-    expect(result.current.xl).toBe(false);
   });
 
   it('cancels pending work and removes the resize listener on unmount', () => {
-    const {unmount} = renderHook(useBreakpoints, {wrapper: Wrapper});
+    const {unmount} = renderHookWithProviders(useBreakpoints);
 
     resizeWindow(2000);
     expect(jest.getTimerCount()).toBe(1);

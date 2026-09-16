@@ -31,10 +31,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.receivers.rule_snooze import _update_workflow_engine_models
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 def can_edit_alert_rule(organization, request):
@@ -247,37 +244,27 @@ class RuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[Rule]):
     }
     rule_field = "rule"
 
-    @track_alert_endpoint_execution("POST", "sentry-api-0-rule-snooze")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def post(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
-        # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
+        enforce_alerts_api_deprecation(project.organization)
         return super().post(request, project, rule)
 
-    @track_alert_endpoint_execution("DELETE", "sentry-api-0-rule-snooze")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def delete(self, request: Request, project: Project, rule: Rule) -> Response:  # type: ignore[override]
-        # Tracking happens in fetch_rule_list and fetch_instance
+        enforce_alerts_api_deprecation(project.organization)
         return super().delete(request, project, rule)
 
     def fetch_rule_list(self, project: Project) -> BaseQuerySet[Rule]:
         queryset = Rule.objects.filter(project=project)
-        # Mark that we're using legacy Rule models
-        report_used_legacy_models()
-
         return queryset
 
     def fetch_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        # Mark that we're using legacy Rule models (before query to track failures too)
-        report_used_legacy_models()
-
         rule_snooze = RuleSnooze.objects.get(user_id=user_id, rule=rule, **kwargs)
         return rule_snooze
 
     def create_instance(self, rule: Rule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
         with transaction.atomic(router.db_for_write(RuleSnooze)):
             rule_snooze = RuleSnooze.objects.create(user_id=user_id, rule=rule, **kwargs)
-            # Mark that we're using legacy Rule models (creating foreign key relationship)
-            report_used_legacy_models()
             _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze
@@ -304,37 +291,27 @@ class MetricRuleSnoozeEndpoint(BaseRuleSnoozeEndpoint[AlertRule]):
     }
     rule_field = "alert_rule"
 
-    @track_alert_endpoint_execution("POST", "sentry-api-0-metric-rule-snooze")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def post(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
-        # Tracking happens in fetch_rule_list, fetch_instance, and create_instance
+        enforce_alerts_api_deprecation(project.organization)
         return super().post(request, project, rule)
 
-    @track_alert_endpoint_execution("DELETE", "sentry-api-0-metric-rule-snooze")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def delete(self, request: Request, project: Project, rule: AlertRule) -> Response:  # type: ignore[override]
-        # Tracking happens in fetch_rule_list and fetch_instance
+        enforce_alerts_api_deprecation(project.organization)
         return super().delete(request, project, rule)
 
     def fetch_rule_list(self, project: Project) -> BaseQuerySet[AlertRule]:
         queryset = AlertRule.objects.fetch_for_project(project=project)
-        # Mark that we're using legacy AlertRule models
-        report_used_legacy_models()
-
         return queryset
 
     def fetch_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
-        # Mark that we're using legacy AlertRule models (before query to track failures too)
-        report_used_legacy_models()
-
         rule_snooze = RuleSnooze.objects.get(user_id=user_id, alert_rule=rule, **kwargs)
         return rule_snooze
 
     def create_instance(self, rule: AlertRule, user_id: int | None, **kwargs: Any) -> RuleSnooze:
         with transaction.atomic(router.db_for_write(RuleSnooze)):
             rule_snooze = RuleSnooze.objects.create(user_id=user_id, alert_rule=rule, **kwargs)
-            # Mark that we're using legacy AlertRule models (creating foreign key relationship)
-            report_used_legacy_models()
             _update_workflow_engine_models(rule_snooze, is_enabled=False)
 
         return rule_snooze

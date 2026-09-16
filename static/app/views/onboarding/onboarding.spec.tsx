@@ -704,6 +704,34 @@ describe('Onboarding', () => {
       );
     });
 
+    it('selects agent setup snippets on click and tracks their source', async () => {
+      renderOnboarding('welcome');
+
+      const installCommand = await screen.findByText('npx @sentry/agent-plugin install');
+      await userEvent.click(installCommand);
+
+      expect(window.getSelection()?.toString()).toBe(installCommand.textContent);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agent_snippet_selected',
+        expect.objectContaining({
+          organization: scmOrganization,
+          source: 'install_command',
+        })
+      );
+
+      const prompt = screen.getByText(/Please help me get started with sentry/);
+      await userEvent.click(prompt);
+
+      expect(window.getSelection()?.toString()).toBe(prompt.textContent);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agent_snippet_selected',
+        expect.objectContaining({
+          organization: scmOrganization,
+          source: 'prompt',
+        })
+      );
+    });
+
     it('initializes the agentic run exactly once on welcome mount', async () => {
       renderOnboarding('welcome');
 
