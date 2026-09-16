@@ -1,12 +1,12 @@
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
-export const MAX_SEVERITY = 4;
+export const SEVERITY_OPACITIES = [0.3, 0.5, 0.7, 1] as const;
+export const MAX_SEVERITY = SEVERITY_OPACITIES.length;
 
 /**
  * A group of annotations that share the same time bucket
  */
 export interface AnnotationBucket {
-  annotations: Annotation[];
   droppedTotal: number;
   end: number;
   severity: number;
@@ -39,14 +39,12 @@ export function groupIntoBuckets(annotations: Annotation[]): AnnotationBucket[] 
     const existing = byBucket.get(key);
     if (existing) {
       existing.droppedTotal += annotation.droppedCount;
-      existing.annotations.push(annotation);
     } else {
       byBucket.set(key, {
         start: annotation.start,
         end: annotation.end,
         droppedTotal: annotation.droppedCount,
         severity: 0,
-        annotations: [annotation],
       });
     }
   }

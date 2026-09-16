@@ -5,8 +5,20 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {
   BAND_HEIGHT,
   DROPPED_DATA_SERIES_ID,
+  hasVisibleDroppedData,
   useDroppedDataBand,
 } from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
+
+describe('hasVisibleDroppedData', () => {
+  it.each([
+    ['no annotations', undefined, false],
+    ['an empty list', [], false],
+    ['only client discards', [AnnotationFixture({label: 'Client discard'})], false],
+    ['a paintable annotation', [AnnotationFixture({droppedCount: 10})], true],
+  ])('is %s -> %s', (_label, annotations, expected) => {
+    expect(hasVisibleDroppedData(annotations)).toBe(expected);
+  });
+});
 
 describe('useDroppedDataBand', () => {
   it('returns an empty band when there are no annotations', () => {
@@ -14,11 +26,10 @@ describe('useDroppedDataBand', () => {
 
     expect(result.current.droppedDataSeries).toBeNull();
     expect(result.current.droppedDataYAxis).toBeNull();
-    expect(result.current.droppedDataGrid).toEqual({});
-    expect(result.current.droppedDataXAxis).toEqual({});
+    expect(result.current.droppedDataBandHeight).toBe(0);
   });
 
-  it('builds a series and reserves axis/grid space when annotations are present', () => {
+  it('builds a series and reserves space when annotations are present', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({annotations: [AnnotationFixture({droppedCount: 10})]})
     );
@@ -26,10 +37,7 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).not.toBeNull();
     expect(result.current.droppedDataSeries?.id).toBe(DROPPED_DATA_SERIES_ID);
     expect(result.current.droppedDataYAxis).not.toBeNull();
-    expect(result.current.droppedDataXAxis).toEqual(
-      expect.objectContaining({offset: BAND_HEIGHT})
-    );
-    expect(result.current.droppedDataGrid).toEqual({bottom: BAND_HEIGHT + 1});
+    expect(result.current.droppedDataBandHeight).toBe(BAND_HEIGHT);
   });
 
   it('collapses the band when showDroppedData is false', () => {
@@ -42,7 +50,7 @@ describe('useDroppedDataBand', () => {
 
     expect(result.current.droppedDataSeries).toBeNull();
     expect(result.current.droppedDataYAxis).toBeNull();
-    expect(result.current.droppedDataGrid).toEqual({});
+    expect(result.current.droppedDataBandHeight).toBe(0);
   });
 
   it('ignores client discard annotations', () => {

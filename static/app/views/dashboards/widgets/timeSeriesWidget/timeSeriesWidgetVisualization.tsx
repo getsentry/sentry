@@ -57,7 +57,6 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
-import {Bars} from './plottables/bars';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -383,7 +382,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
-  const hasBars = props.plottables.some(plottable => plottable instanceof Bars);
   const bubbleReleases = useMemo(
     () =>
       hasReleaseBubbles
@@ -417,18 +415,19 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     yAxes.push(releaseBubbleYAxis);
   }
 
-  const {
-    connectDroppedDataChartRef,
-    droppedDataSeries,
-    droppedDataXAxis,
-    droppedDataGrid,
-    droppedDataYAxis,
-  } = useDroppedDataBand({
-    alignInMiddle: hasBars,
-    annotations: props.droppedData,
-    showDroppedData: props.showDroppedData,
-    yAxisIndex: yAxes.length,
-  });
+  // `useReleaseBubbles` returns an empty object when there are no bubbles to draw.
+  const releaseBandHeight =
+    'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
+  const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
+
+  const {droppedDataSeries, droppedDataBandHeight, droppedDataYAxis} = useDroppedDataBand(
+    {
+      annotations: props.droppedData,
+      bandOffset: releaseBandHeight,
+      showDroppedData: props.showDroppedData,
+      yAxisIndex: yAxes.length,
+    }
+  );
 
   if (droppedDataYAxis) {
     yAxes.push(droppedDataYAxis);
@@ -473,18 +472,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       if (hasReleaseBubblesSeries) {
         connectReleaseBubbleChartRef(e);
       }
-
-      if (droppedDataSeries) {
-        connectDroppedDataChartRef(e);
-      }
     },
-    [
-      hasReleaseBubblesSeries,
-      connectReleaseBubbleChartRef,
-      droppedDataSeries,
-      connectDroppedDataChartRef,
-      props.plottables,
-    ]
+    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, props.plottables]
   );
 
   const handleChartReady = useCallback(
@@ -514,10 +503,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const hasCustomTicks = customTicks && customTicks.length > 0;
 
-  // Release bubbles and the dropped-data band each reserve space below the plot.
-  // Stack their offsets additively so both can coexist.
-  const xAxisBandOffset = xAxisOffset(releaseBubbleXAxis) + xAxisOffset(droppedDataXAxis);
-  const gridBandBottom = gridBottom(releaseBubbleGrid) + gridBottom(droppedDataGrid);
+  // Release bubbles and the dropped-data band each reserve space below the plot,
+  // so the axis line moves down by their combined height and the grid shrinks by
+  // the same amount.
+  const xAxisBandOffset = releaseBandHeight + droppedDataBandHeight;
+  const gridBandBottom = releaseGridBottom + droppedDataBandHeight;
 
   const xAxis = showXAxis
     ? {
@@ -833,14 +823,6 @@ const HIDDEN_AXIS = {
   axisLabel: {show: false},
   axisPointer: {label: {show: false}},
 } satisfies XAXisComponentOption | YAXisComponentOption;
-
-function xAxisOffset(xAxis: {offset?: number}): number {
-  return xAxis.offset ?? 0;
-}
-
-function gridBottom(grid: {bottom?: number}): number {
-  return grid.bottom ?? 0;
-}
 
 TimeSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
 TimeSeriesWidgetVisualization.NoData = WidgetNoDataPanel;

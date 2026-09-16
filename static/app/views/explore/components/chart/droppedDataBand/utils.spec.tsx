@@ -20,7 +20,6 @@ describe('groupIntoBuckets', () => {
 
     expect(buckets).toHaveLength(1);
     expect(buckets[0]!.droppedTotal).toBe(15);
-    expect(buckets[0]!.annotations).toHaveLength(2);
     expect(buckets[0]!.start).toBe(0);
     expect(buckets[0]!.end).toBe(60_000);
   });
