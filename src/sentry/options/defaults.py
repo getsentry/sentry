@@ -3706,6 +3706,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Kill switch for the scheduled Redis/Postgres uptime config drift sweep.
+register(
+    "uptime.config-drift.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hours one full drift sweep is spread across, i.e. how stale drift may be before it is seen.
+register(
+    "uptime.config-drift.cycle-hours",
+    type=Int,
+    default=24,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether uptime monitoring automatically detects hostnames from error events.
 register(
     "uptime.automatic-hostname-detection",
