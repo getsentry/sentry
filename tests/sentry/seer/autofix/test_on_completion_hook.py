@@ -19,6 +19,9 @@ from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration
@@ -67,6 +70,7 @@ def _iteration_block(
     repos: Sequence[str] = (),
     function: str = "tool",
     commit_sha: str | None = None,
+    feedback: Sequence[Feedback] = (),
 ) -> MemoryBlock:
     """An iteration block. When `failed`, holds one errored tool call per repo in
     `repos` (each carrying that repo in its args); with no repos, a single errored
@@ -92,6 +96,7 @@ def _iteration_block(
             metadata={
                 "step": AutofixStep.PR_ITERATION.value,
                 "iteration_index": str(index),
+                "feedback": serialize_feedback(feedback),
             },
         ),
         timestamp="2023-07-18T12:00:00Z",
@@ -243,6 +248,36 @@ def _step_checkpoints(mock_metrics) -> list[str]:
     ]
 
 
+def _step_feedback_kinds(mock_metrics) -> list[str]:
+    return [
+        call.kwargs["tags"].get("feedback_kind")
+        for call in mock_metrics.incr.call_args_list
+        if call.args and call.args[0] == "autofix.pr_iteration.step"
+    ]
+
+
+def _check_suite_feedback() -> Feedback:
+    return Feedback(
+        source=CheckSuiteFeedbackSource(
+            event={
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                    "updated_at": "2024-01-01T00:00:00Z",
+                    "pull_requests": [{"id": 99}],
+                },
+                "repository": {
+                    "html_url": "https://github.com/owner/repo",
+                    "full_name": "owner/repo",
+                    "id": 123,
+                },
+            }
+        )
+    )
+
+
 def _unsynced_state(
     status: Literal["processing", "completed", "error", "awaiting_user_input"] = "completed",
 ) -> SeerRunState:
@@ -254,9 +289,9 @@ def _unsynced_state(
     return state
 
 
-def _synced_state() -> SeerRunState:
+def _synced_state(feedback: Sequence[Feedback] = ()) -> SeerRunState:
     return _state(
-        [_iteration_block(0, commit_sha="synced-sha")],
+        [_iteration_block(0, commit_sha="synced-sha", feedback=feedback)],
         repo_pr_states={"test-repo": RepoPRState(repo_name="test-repo", commit_sha="synced-sha")},
     )
 
@@ -305,6 +340,45 @@ class TestPrIterationStepMetrics(TestCase):
             self._run(_synced_state())
 
         assert _step_checkpoints(mock_metrics) == ["iteration_completed"]
+
+    def _complete_iteration(self, state: SeerRunState) -> None:
+        with (
+            patch.object(
+                AutofixOnCompletionHook,
+                "_pr_iteration_push_outcome",
+                return_value=PrIterationOutcome.ALREADY_PUSHED,
+            ),
+            patch.object(AutofixOnCompletionHook, "_consume_queued_feedback"),
+        ):
+            self._run(state)
+
+    def test_the_iteration_is_tagged_by_its_feedback_kind(
+        self, mock_metrics, _mock_complete
+    ) -> None:
+        self._complete_iteration(
+            _synced_state([Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go"))])
+        )
+
+        assert _step_feedback_kinds(mock_metrics) == ["manual"]
+
+    def test_an_iteration_of_both_kinds_is_tagged_mixed(self, mock_metrics, _mock_complete) -> None:
+        self._complete_iteration(
+            _synced_state(
+                [
+                    Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go")),
+                    _check_suite_feedback(),
+                ]
+            )
+        )
+
+        assert _step_feedback_kinds(mock_metrics) == ["mixed"]
+
+    def test_an_iteration_with_no_feedback_is_tagged_unknown(
+        self, mock_metrics, _mock_complete
+    ) -> None:
+        self._complete_iteration(_synced_state())
+
+        assert _step_feedback_kinds(mock_metrics) == ["unknown"]
 
     def test_an_errored_run_counts_nothing(self, mock_metrics, _mock_complete) -> None:
         with (
