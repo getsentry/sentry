@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {IconWithTooltip} from '@sentry/scraps/info';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -18,7 +18,6 @@ import type {
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {
@@ -354,12 +353,10 @@ export function ScmMessagingProviderRow({
                   </Text>
                   {resolvedProvider.status !== 'connected' &&
                     visualState !== 'removing' && (
-                      <IconWithTooltip
-                        icon={IconInfo}
+                      <InfoTip
                         title={
                           SCM_MESSAGING_PROVIDER_TOOLTIPS[resolvedProvider.providerKey]
                         }
-                        aria-label={t('More information')}
                         size="xs"
                         variant="muted"
                       />

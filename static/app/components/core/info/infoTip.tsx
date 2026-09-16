@@ -11,7 +11,7 @@ interface InfoTooltipProps extends SVGIconProps {
   position?: TooltipProps['position'];
 }
 
-export function IconWithTooltip({
+function IconWithTooltip({
   title,
   position,
   icon: Icon,
