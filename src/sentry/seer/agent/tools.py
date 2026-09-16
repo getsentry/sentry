@@ -1340,11 +1340,9 @@ def _get_traces_with_spans(
 
 
 def _load_first_available_event(group: Group, events: Sequence[Event]) -> GroupEvent | None:
-    for event in events:
-        # Fetch bodies only after selection; indexed events may have expired bodies.
-        if event.data:
-            return event.for_group(group)
-    return None
+    # Checking data loads the body on demand; skip missing bodies.
+    event = next((candidate for candidate in events if candidate.data), None)
+    return event.for_group(group) if event is not None else None
 
 
 _SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES = [
