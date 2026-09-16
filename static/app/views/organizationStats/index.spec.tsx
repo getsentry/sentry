@@ -219,9 +219,9 @@ describe('OrganizationStats', () => {
   });
 
   it('defaults to errors when dataCategory does not support external stats', async () => {
-    // Categories like monitorSeats have showExternalStats=false and are absent from
-    // CHART_OPTIONS_DATACATEGORY. Passing them via the URL should fall back to errors
-    // rather than crashing the chart with "Selected item is not supported".
+    // monitorSeats has showExternalStats=false, so it is absent from
+    // CHART_OPTIONS_DATACATEGORY and UsageChart throws "Selected item is not
+    // supported" if it is passed through from the URL.
     render(<OrganizationStats />, {
       organization,
       initialRouterConfig: {
@@ -232,9 +232,30 @@ describe('OrganizationStats', () => {
       },
     });
 
-    // Should render without throwing and default to the Errors category
-    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
-    expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
+    // Category selector falls back to Errors
+    expect(
+      await screen.findByRole('button', {name: 'Category Errors'})
+    ).toBeInTheDocument();
+
+    // Chart cards and project table load with data instead of the error boundary
+    await waitFor(() => expect(screen.getAllByText('67')).toHaveLength(2));
+    expect(
+      screen.queryByText('There was a problem rendering this component')
+    ).not.toBeInTheDocument();
+
+    // Requests use the fallback category, never the unsupported one
+    expect(mockRequest).toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({query: expect.objectContaining({category: ['error']})})
+    );
+    expect(mockRequest).not.toHaveBeenCalledWith(
+      endpoint,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          category: [DATA_CATEGORY_INFO.monitor_seat.name],
+        }),
+      })
+    );
   });
 
   it('does not leak query params onto next page links', async () => {
