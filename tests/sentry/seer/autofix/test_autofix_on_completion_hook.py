@@ -1400,7 +1400,8 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    def test_pr_created_activity_records_actor(self, mock_broadcast, mock_emit):
+    def test_pr_is_ready_on_open(self, mock_broadcast, mock_emit):
+        state = self._pr_created_state()
         with patch(
             "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access",
             return_value=True,
@@ -1408,27 +1409,18 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             AutofixOnCompletionHook._send_step_webhook(
                 organization=self.organization,
                 run_id=123,
-                state=self._pr_created_state(),
+                state=state,
                 group=self.group,
                 fallback_referrer=AutofixReferrer.WEB,
                 actor_user_id=self.user.id,
             )
 
-        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
-        assert activity.user_id == self.user.id
-
-    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
-    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
-    def test_pr_is_ready_on_open(self, mock_broadcast, mock_emit):
-        state = self._pr_created_state()
-        AutofixOnCompletionHook._send_step_webhook(
-            organization=self.organization, run_id=123, state=state, group=self.group
-        )
-
         mock_emit.assert_called_once()
         kwargs = mock_emit.call_args.kwargs
         assert kwargs["group"] == self.group
         assert kwargs["state"] is state
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
+        assert activity.user_id == self.user.id
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
