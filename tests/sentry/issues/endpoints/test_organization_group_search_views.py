@@ -4,10 +4,7 @@ from typing import NotRequired, TypedDict
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.api.serializers.rest_framework.groupsearchview import (
-    LIST_FORM_HINT,
-    GroupSearchViewValidatorResponse,
-)
+from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidatorResponse
 from sentry.models.groupsearchview import (
     DEFAULT_TIME_FILTER,
     GroupSearchView,
@@ -463,18 +460,18 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
 
         response = self.get_error_response(self.organization.slug, **data)
         assert "query" in response.data
-        detail = str(response.data["query"][0])
-        # The parser's own reason, then the fix.
-        assert "Boolean statements containing" in detail
-        assert detail.endswith(LIST_FORM_HINT)
+        assert str(response.data["query"][0]) == (
+            "Invalid issue search query: Boolean statements containing "
+            '"OR" or "AND" are not supported in this search'
+        )
 
         assert not GroupSearchView.objects.filter(
             organization=self.organization, name="Boolean Query View"
         ).exists()
 
     @with_feature({"organizations:issue-views": True})
-    def test_invalid_query_malformed_gets_no_boolean_hint(self) -> None:
-        """A syntax error is not a boolean problem, so it must not suggest the list form."""
+    def test_invalid_query_reports_the_parser_reason(self) -> None:
+        """A non-boolean failure gets the parser's own reason, not a generic message."""
         data = {
             "name": "Malformed Query View",
             "query": 'is:unresolved message:"unterminated',
@@ -486,10 +483,10 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
 
         response = self.get_error_response(self.organization.slug, **data)
         assert "query" in response.data
-        detail = str(response.data["query"][0])
-        assert "quotes must enclose text or be escaped" in detail
-        # Not a boolean problem, so the list-form hint must not be tacked on.
-        assert LIST_FORM_HINT not in detail
+        assert str(response.data["query"][0]) == (
+            "Invalid issue search query: Invalid quote at '\"unterminated': "
+            "quotes must enclose text or be escaped."
+        )
 
         assert not GroupSearchView.objects.filter(
             organization=self.organization, name="Malformed Query View"

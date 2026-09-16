@@ -3,41 +3,15 @@ from typing import NotRequired, TypedDict
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.api.event_search import SearchConfig
-from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewTimeFilters
 from sentry.api.serializers.rest_framework import ValidationError
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.issue_search import issue_search_config, parse_search_query
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
 MAX_VIEWS = 50
-
-# `InvalidSearchQuery` carries authored, user-facing copy built from the query itself
-# ("Parse error at '...' (column 12).", "Empty string after 'assigned:'"), never a
-# traceback or an internal path -- so echoing it is safe and is what the issues
-# endpoint already does in `api/helpers/group_index/index.py`. CodeQL's
-# `py/stack-trace-exposure` alert on this is a false positive.
-LIST_FORM_HINT = (
-    "To match any of several values, use the list form instead, e.g. issue:[PROJ-AB1, PROJ-CD2]."
-)
-
-# Identical to the issue search config except that boolean operators parse instead of
-# raising, so a successful parse here isolates the boolean restriction as the cause.
-_boolean_permissive_config = SearchConfig.create_from(issue_search_config, allow_boolean=True)
-
-
-def _invalid_query_detail(value: str, exc: InvalidSearchQuery) -> str:
-    """Lead with the parser's own reason, and name the fix when AND/OR is the problem."""
-    detail = f"Invalid issue search query: {exc}"
-    try:
-        base_parse_search_query(value, config=_boolean_permissive_config)
-    except InvalidSearchQuery:
-        # Fails with booleans allowed too, so the boolean restriction is not the cause.
-        return detail
-    return f"{detail} {LIST_FORM_HINT}"
 
 
 class GroupSearchViewTimeFiltersSerializer(serializers.Serializer):
@@ -128,7 +102,10 @@ class ViewValidator(serializers.Serializer):
         try:
             parse_search_query(value)
         except InvalidSearchQuery as e:
-            raise ValidationError(detail=_invalid_query_detail(value, e))
+            # `InvalidSearchQuery` carries authored, user-facing copy built from the
+            # query itself, never a traceback, so it is safe to return -- same as
+            # `api/helpers/group_index/index.py` does on the issues endpoint.
+            raise ValidationError(detail=f"Invalid issue search query: {e}")
         return value
 
     def validate_projects(self, value):
