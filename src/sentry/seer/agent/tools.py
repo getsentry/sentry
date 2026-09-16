@@ -1349,15 +1349,15 @@ def _load_first_available_event(group: Group, events: Sequence[Event]) -> GroupE
     for event in events:
         try:
             # Checking data loads the body on demand.
-            if not event.data:
-                continue
+            has_data = bool(event.data)
         except Exception:
             logger.exception(
                 "_load_first_available_event: body load failed",
                 extra={"project_id": group.project_id, "event_id": event.event_id},
             )
             continue
-        return event.for_group(group)
+        if has_data:
+            return event.for_group(group)
     return None
 
 
