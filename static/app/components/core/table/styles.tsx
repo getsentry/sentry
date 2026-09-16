@@ -9,8 +9,8 @@ const Z_INDEX_RESIZER = 1;
 const Z_INDEX_STICKY_HEAD = 2;
 
 interface TableGridProps {
+  columnCount?: number;
   hiddenColumnIndexes?: number[];
-  prependedColumnCount?: number;
 }
 
 export const TableGrid = styled('table')<TableGridProps>`
@@ -24,7 +24,7 @@ export const TableGrid = styled('table')<TableGridProps>`
   ${p =>
     p.hiddenColumnIndexes?.map(
       index => css`
-        tr > *:nth-child(${(p.prependedColumnCount ?? 0) + index + 1} of [role='cell'], [role='columnheader'], th):not(${TableStatusCell}) {
+        tr > *:nth-last-child(${(p.columnCount ?? 0) - index}):not(:only-child) {
           display: none;
         }
       `

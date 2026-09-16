@@ -255,10 +255,10 @@ export function Table({
     <TableContext value={contextValue}>
       <TableGrid
         {...props}
+        columnCount={resolvedColumns.length}
         hiddenColumnIndexes={resolvedColumns.flatMap((column, index) =>
           column.hidden ? [index] : []
         )}
-        prependedColumnCount={prependColumnWidths?.length ?? 0}
         ref={gridRef}
         role="table"
         style={template ? {...props.style, gridTemplateColumns: template} : props.style}
