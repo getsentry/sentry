@@ -18,7 +18,6 @@ import {mergeGlobalFilters} from 'sentry/views/dashboards/globalFilter/utils';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 import {
   buildNavigationTypeGlobalFilter,
-  DEFAULT_NAVIGATION_TYPE_BUCKETS,
   getBucketsFromGlobalFilters,
   isAllBucketsSelected,
   isNavigationTypeGlobalFilter,
@@ -58,8 +57,9 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
 
   const {counts, untaggedCount, isPending} = useNavigationTypeCounts({additionalQuery});
 
-  // Write the default out on first render so the widgets and the threshold
-  // check read the same explicit selection as this control.
+  // With no filter yet, `buckets` is the default selection. Write it out on
+  // first render so the widgets and the threshold check read the same explicit
+  // selection as this control.
   const hasWrittenDefault = useRef(false);
   const hasFilter = globalFilters.some(isNavigationTypeGlobalFilter);
   useEffect(() => {
@@ -68,11 +68,9 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
     }
     hasWrittenDefault.current = true;
     onChange(
-      mergeGlobalFilters(globalFilters, [
-        buildNavigationTypeGlobalFilter(DEFAULT_NAVIGATION_TYPE_BUCKETS),
-      ])
+      mergeGlobalFilters(globalFilters, [buildNavigationTypeGlobalFilter(buckets)])
     );
-  }, [hasFilter, globalFilters, onChange]);
+  }, [hasFilter, globalFilters, buckets, onChange]);
 
   const options: Array<SelectOption<NavigationTypeBucket>> =
     NAVIGATION_TYPE_BUCKET_ORDER.map(candidate => {

@@ -48,7 +48,7 @@ export const NAVIGATION_TYPE_BUCKET_ORDER: NavigationTypeBucket[] = [
  * Everything selected, which filters nothing and so matches what the dashboard
  * queried before this control existed.
  */
-export const DEFAULT_NAVIGATION_TYPE_BUCKETS = NAVIGATION_TYPE_BUCKET_ORDER;
+const DEFAULT_NAVIGATION_TYPE_BUCKETS = NAVIGATION_TYPE_BUCKET_ORDER;
 
 /**
  * "All" applies no filter at all, the same way the other global filter chips
@@ -57,7 +57,7 @@ export const DEFAULT_NAVIGATION_TYPE_BUCKETS = NAVIGATION_TYPE_BUCKET_ORDER;
  */
 const ALL_NAVIGATION_TYPES_VALUE = '';
 
-export const NAVIGATION_TYPE_TAG: Tag = {
+const NAVIGATION_TYPE_TAG: Tag = {
   key: SpanFields.BROWSER_NAVIGATION_TYPE,
   name: SpanFields.BROWSER_NAVIGATION_TYPE,
   kind: FieldKind.TAG,
@@ -146,7 +146,7 @@ export function bucketsSupportThresholds(buckets: NavigationTypeBucket[]): boole
  * string means "everything", which is what the dashboard queried before this
  * control existed.
  */
-export function navigationTypeQuery(buckets: NavigationTypeBucket[]): string {
+function navigationTypeQuery(buckets: NavigationTypeBucket[]): string {
   const selected = normalizeBuckets(buckets);
 
   // Deselecting everything reads as "All", matching the other filter chips.
