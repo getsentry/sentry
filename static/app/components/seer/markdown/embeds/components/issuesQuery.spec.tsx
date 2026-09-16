@@ -2,7 +2,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {IssuesQuery, LegacyIssues} from './issuesQuery';
+import {IssuesQuery} from './issuesQuery';
 import {
   getEmbedLinkHref,
   renderEmbed,
@@ -32,41 +32,6 @@ describe('issues query embed', () => {
       level: 'inline',
     });
     expect(screen.getByRole('link', {name: 'Issue search'})).toBeInTheDocument();
-  });
-
-  it('keeps rendering stored legacy issues embeds', async () => {
-    const issue = GroupFixture({shortId: 'JAVASCRIPT-991'});
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
-    const issuesRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [issue],
-    });
-
-    const ids = Array.from({length: 6}, (_, index) => `JAVASCRIPT-${991 + index}`);
-    renderEmbed({
-      name: 'issues',
-      data: {ids},
-    });
-
-    // The row only appears once the lazily imported GroupList chunk resolves,
-    // which outruns the default timeout when the whole directory runs at once.
-    expect(
-      await screen.findByText(issue.shortId, undefined, {timeout: 10_000})
-    ).toBeInTheDocument();
-    await waitFor(() =>
-      expect(issuesRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            limit: 6,
-            query: `issue:[${ids.join(',')}]`,
-          }),
-        })
-      )
-    );
   });
 
   it('renders matching issues in a collapsible block', async () => {
@@ -153,24 +118,5 @@ describe('issues query embed', () => {
     ).toBe(
       `[Issue search](${window.location.origin}/organizations/org-slug/issues/?query=is%3Aunresolved)`
     );
-  });
-});
-
-describe('legacy issues embed', () => {
-  it('serializes the table it was listing to one markdown link per issue', () => {
-    const markdown = renderEmbedMarkdown(LegacyIssues, 'issues', {
-      ids: ['JAVASCRIPT-22SP', 'PYTHON-4B'],
-    });
-
-    // One line: the lexer can hand this tag over inline, where a bulleted list
-    // would break the sentence around it.
-    expect(markdown).toBe(
-      `[JAVASCRIPT-22SP](${window.location.origin}/issues/JAVASCRIPT-22SP/), ` +
-        `[PYTHON-4B](${window.location.origin}/issues/PYTHON-4B/)`
-    );
-  });
-
-  it('renders nothing for an empty list', () => {
-    expect(renderEmbedMarkdown(LegacyIssues, 'issues', {ids: []})).toBe('');
   });
 });
