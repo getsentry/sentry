@@ -1,4 +1,5 @@
 import {type Ref, type ReactNode, useCallback, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -34,7 +35,13 @@ export function ResizableWindow({children, className, ref}: ResizableWindowProps
       <Handle data-edge="bottom" onPointerDown={e => handlePointerDown(e, 'bottom')} />
       <Handle data-edge="corner" onPointerDown={e => handlePointerDown(e, 'corner')} />
       {/* -2 offsets the parent's top border so children align flush */}
-      <Container height="inherit" flex="1" overflow="hidden" style={{marginTop: -2}}>
+      <Container
+        css={allowOpenOverlayOverflowCss}
+        height="inherit"
+        flex="1"
+        overflow="hidden"
+        style={{marginTop: -2}}
+      >
         {children}
       </Container>
     </WindowRoot>
@@ -96,6 +103,12 @@ const WindowRoot = styled(Container)`
     user-select: none;
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     border-color: ${p => p.theme.tokens.graphics.neutral.moderate};
+  }
+`;
+
+export const allowOpenOverlayOverflowCss = css`
+  &:has([aria-haspopup][aria-expanded='true']) {
+    overflow: visible;
   }
 `;
 

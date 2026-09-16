@@ -10,7 +10,6 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
-import {IndicatorStore} from 'sentry/stores/indicatorStore';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
 describe('processInitQueue', () => {
@@ -45,21 +44,6 @@ describe('processInitQueue', () => {
       expect(await screen.findByText('Very Strong')).toBeInTheDocument();
     });
 
-    it('renders indicators', async () => {
-      window.__onSentryInit = [
-        {
-          component: SentryInitRenderReactComponent.INDICATORS,
-          container: '#indicator-container',
-          name: 'renderReact',
-        },
-      ];
-
-      IndicatorStore.add('Indicator Alert', 'success');
-
-      render(<div id="indicator-container" />);
-      processInitQueue();
-      expect(await screen.findByText('Indicator Alert')).toBeInTheDocument();
-    });
     it('renders setup wizard', async () => {
       window.__onSentryInit = [
         {

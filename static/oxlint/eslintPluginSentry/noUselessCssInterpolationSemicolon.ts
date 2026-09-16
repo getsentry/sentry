@@ -1,28 +1,28 @@
-import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {isCssTaggedTemplate, isStyledOrCssTemplate} from './utils/styled.ts';
 
-function isCssInterpolationExpression(node: TSESTree.Node): boolean {
+function isCssInterpolationExpression(node: ESTree.Node): boolean {
   if (isCssTaggedTemplate(node)) {
     return true;
   }
 
   switch (node.type) {
-    case AST_NODE_TYPES.ArrowFunctionExpression:
+    case 'ArrowFunctionExpression':
       return isCssInterpolationExpression(node.body);
-    case AST_NODE_TYPES.ConditionalExpression:
+    case 'ConditionalExpression':
       return (
         isCssInterpolationExpression(node.consequent) &&
         isCssInterpolationExpression(node.alternate)
       );
-    case AST_NODE_TYPES.LogicalExpression:
+    case 'LogicalExpression':
       return node.operator === '&&' && isCssInterpolationExpression(node.right);
     default:
       return false;
   }
 }
 
-export const noUselessCssInterpolationSemicolon = ESLintUtils.RuleCreator.withoutDocs({
+export const noUselessCssInterpolationSemicolon = defineRule({
   meta: {
     type: 'suggestion',
     docs: {

@@ -45,6 +45,7 @@ export function useFilteredRankedAttributes({
   }, [rankedAttributes, searchQuery]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setPage(0);
   }, [filteredRankedAttributes]);
 

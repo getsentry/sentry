@@ -1,12 +1,11 @@
 import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -22,12 +21,8 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
   const navigate = useNavigate();
   const organization = useOrganization();
 
-  const {referrer, groupId} = useLocationQuery({
-    fields: {
-      referrer: decodeScalar,
-      groupId: decodeScalar,
-    },
-  });
+  const [referrer] = useQueryState('referrer', parseAsString.withDefault(''));
+  const [groupId] = useQueryState('groupId', parseAsString.withDefault(''));
 
   const issueReferrer = Boolean(referrer?.includes('issues') && groupId);
 

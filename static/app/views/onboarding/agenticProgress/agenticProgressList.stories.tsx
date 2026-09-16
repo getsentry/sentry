@@ -131,6 +131,7 @@ function AgentConnectionStory() {
             onboardingCode="Lg1iSt2qeQ"
             onCopyCommand={() => {}}
             onRetry={() => setIsAgentConnected(false)}
+            onSelectSnippet={() => {}}
             onSetupInBrowser={() => {}}
             run={makeAgenticProgressRun({
               sequence: 3,

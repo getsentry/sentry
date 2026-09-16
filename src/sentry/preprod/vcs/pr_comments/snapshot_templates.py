@@ -92,7 +92,11 @@ def format_snapshot_pr_comment(
         ):
             table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {PROCESSING_STATUS} |")
         elif comparison.state == PreprodSnapshotComparison.State.FAILED:
-            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | ❌ Comparison failed |")
+            if comparison.error_code == PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING:
+                failure_status = "❌ No base snapshot found"
+            else:
+                failure_status = "❌ Comparison failed"
+            table_rows.append(f"| {name_cell} | - | - | - | - | - | - | {failure_status} |")
         else:
             has_reportable_changes = reportable_changes_by_artifact_id.get(artifact.id, False)
             requires_approval = approval_requirements_by_artifact_id.get(artifact.id, False)
@@ -248,7 +252,8 @@ def format_missing_base_snapshot_pr_comment(
 ) -> str:
     base_sha_markdown = format_commit_sha_markdown(base_sha, repo_url=base_repo_url)
     message = (
-        f"No base snapshot found for {base_sha_markdown}. "
-        "Make sure snapshots are uploaded from your main branch."
+        f"Base commit {base_sha_markdown} did not produce snapshots to compare against. "
+        "Did its snapshot job fail? "
+        "Try rebasing this branch on a commit with a successful snapshot job."
     )
     return _format_solo_comment(artifacts, snapshot_metrics_map, message, project=project)

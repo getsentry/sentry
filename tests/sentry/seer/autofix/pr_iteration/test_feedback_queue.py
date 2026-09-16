@@ -9,7 +9,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
+from sentry.seer.autofix.pr_iteration.logs import (
+    LogCtxIteration,
+    PrIterationLogContext,
+)
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.seer.autofix.pr_iteration.pause import is_pr_iteration_paused
 from sentry.seer.autofix.pr_iteration.queue import (
@@ -99,6 +102,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         return try_enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
                 self.log,
+                iteration=LogCtxIteration.TRIGGERED,
                 run_state=state,
                 organization_id=self.organization.id,
                 group_id=1,
@@ -119,6 +123,34 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         queued = peek_queued_autofix_feedback(4242)
         assert len(queued) == 1
         assert queued[0].feedback.text == "fix it"
+
+    def test_counts_one_enqueued_step_per_item(self) -> None:
+        with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
+            for _ in range(3):
+                self._enqueue(
+                    run_id=4747,
+                    feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="go")),
+                )
+
+        step_calls = [
+            call
+            for call in mock_metrics.incr.call_args_list
+            if call.args[0] == "autofix.pr_iteration.step"
+        ]
+        assert len(step_calls) == 3
+        assert step_calls[0].kwargs["tags"] == {
+            "checkpoint": "enqueued",
+            "referrer": AutofixReferrer.GITHUB_PR_COMMENT.value,
+        }
+
+    def test_a_refused_enqueue_counts_nothing(self) -> None:
+        with patch(f"{QUEUE_PATH}.metrics") as mock_metrics:
+            assert (
+                self._enqueue(run_id=4848, feedback=Feedback(source=_resolved_check_suite_source()))
+                is False
+            )
+
+        mock_metrics.incr.assert_not_called()
 
     def test_skips_stale_feedback(self) -> None:
         feedback = Feedback(source=_resolved_check_suite_source())

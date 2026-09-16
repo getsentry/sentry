@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import {AnimatePresence, LayoutGroup, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -7,22 +7,37 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ScmMessagingProviderKey} from 'sentry/components/onboarding/scm/messagingProviders';
 import {ScmMessagingProviderRow} from 'sentry/components/onboarding/scm/scmMessagingProviderRow';
 import type {
+  CreatedProject,
   ScmMessagingActiveRow,
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import {DEFAULT_SCM_FEATURES} from 'sentry/components/onboarding/scm/scmPlatformHelpers';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {
   isEligibleForIssueAlerts,
   isIntegrationActive,
   useScmMessagingSetupValidation,
 } from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
+import {useScmProjectCreation} from 'sentry/components/onboarding/scm/useScmProjectCreation';
 import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
+import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
+import {
+  buildIntegrationAction,
+  providerDetails,
+} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {
+  getRequestDataFragment,
+  type RequestDataFragment,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import type {StepProps} from './types';
 
@@ -35,20 +50,39 @@ export const SCM_MESSAGING_TITLE = t('Get alerts where your team works');
 type MessagingProviderList = ReturnType<typeof useScmMessagingProviders>['providers'];
 
 interface ScmMessagingProps {
+  createdProject: CreatedProject | undefined;
   messagingSetup: ScmMessagingSetup;
   onComplete: StepProps['onComplete'];
+  onCreatedProjectChange: (createdProject: CreatedProject) => void;
   onMessagingSetupChange: (messagingSetup: ScmMessagingSetup) => void;
+  selectedFeatures: ProductSolution[] | undefined;
   selectedPlatform: OnboardingSelectedSDK;
+  selectedRepository: Repository | undefined;
   genBackButton?: StepProps['genBackButton'];
 }
 
 export function ScmMessaging({
+  createdProject,
   genBackButton,
   messagingSetup,
+  onCreatedProjectChange,
   onMessagingSetupChange,
   onComplete,
+  selectedFeatures,
   selectedPlatform,
+  selectedRepository,
 }: ScmMessagingProps) {
+  const organization = useOrganization();
+  const {createOrReuseProject, isCreating, isDataPending} = useScmProjectCreation({
+    createdProject,
+    onCreatedProjectChange,
+    selectedRepository,
+  });
+  const [submissionMode, setSubmissionMode] = useState<'continue' | 'setup-later'>();
+  // Confirm and continue in the picker saves the destination and asks to
+  // continue in the same tick, before this render has the new setup or its
+  // revalidation. The request waits until Continue itself would be enabled.
+  const [continueRequested, setContinueRequested] = useState(false);
   const validation = useScmMessagingSetupValidation({
     messagingSetup,
     onMessagingSetupChange,
@@ -65,20 +99,113 @@ export function ScmMessaging({
 
   const [activeRow, setActiveRow] = useState<ScmMessagingActiveRow>(null);
 
+  useEffect(() => {
+    trackAnalytics('onboarding.scm_messaging_step_viewed', {organization});
+  }, [organization]);
+
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
+  // The destination as the creation snapshot records it, so the reuse check
+  // can compare it against what the project was created with.
+  const selection = useMemo(
+    () =>
+      messagingSetup.mode === 'selected'
+        ? {
+            provider: messagingSetup.providerKey,
+            integrationId: messagingSetup.integrationId,
+            channel:
+              messagingSetup[
+                providerDetails[messagingSetup.providerKey].channelTargetedBy
+              ],
+          }
+        : undefined,
+    [messagingSetup]
+  );
+  const getIntegrationAction = useCallback(
+    ({shouldCreateRule}: Partial<RequestDataFragment>) => {
+      if (!shouldCreateRule) {
+        return;
+      }
+      return buildIntegrationAction(selection ?? {});
+    },
+    [selection]
+  );
 
-  // Continue creates the project and alert rules. It renders as soon as a
-  // destination is selected so Set up later does not shift, but stays disabled
-  // until the destination is conclusively revalidated.
-  const canContinue = validation.isValid;
+  const isSubmitting = isCreating || submissionMode !== undefined;
+  // The picker stays open through revalidation and create, so it must spin
+  // from the click — not only after submissionMode is set.
+  const isContinuing = continueRequested || submissionMode === 'continue';
+
+  // Continue creates the project and alert rules, so it must wait for a
+  // conclusively revalidated destination — not merely the absence of a
+  // problem, which is briefly true before the stale-check effect runs.
+  const canContinue = validation.isValid && !isDataPending && !isSubmitting;
   const showContinue = messagingSetup.mode === 'selected';
 
-  const handleContinue = () => onComplete();
+  const submitProject = async ({
+    includeMessagingRule,
+  }: {
+    includeMessagingRule: boolean;
+  }) => {
+    // Gated on the submission intent, not on the selection alone: Set up
+    // later can submit with a staged destination still in the closure, which
+    // must read as undefined — the same subtlety the includeMessagingRule
+    // split guards.
+    const stagedSelection = includeMessagingRule ? selection : undefined;
 
-  const handleSetupLater = () => {
-    onMessagingSetupChange({mode: 'skipped'});
-    onComplete();
+    await createOrReuseProject({
+      platform: selectedPlatform,
+      alertRuleConfig: includeMessagingRule
+        ? getRequestDataFragment()
+        : {defaultRules: true},
+      getIntegrationAction: includeMessagingRule ? getIntegrationAction : undefined,
+      stagedSelection,
+      onSuccess: ({reused, notificationRule}) => {
+        // Record the skip only on success: a failed creation keeps the staged
+        // destination (and the Continue button) intact on the step.
+        if (!includeMessagingRule) {
+          onMessagingSetupChange({mode: 'skipped'});
+        }
+        // An unchanged Back-navigation reuse completes the step again but
+        // creates nothing, so it is not a second completion.
+        if (!reused) {
+          trackAnalytics('onboarding.scm_messaging_completed', {
+            organization,
+            // Read from the created rule, the same source
+            // scm_project_created reads, so the two events cannot disagree
+            // about one submission. `includeMessagingRule` is the intent, and
+            // an intent that builds no integration action creates no rule.
+            notification: notificationRule ? 'integration' : 'email_only',
+          });
+        }
+        onComplete(selectedPlatform, {
+          product: selectedFeatures ?? DEFAULT_SCM_FEATURES,
+        });
+      },
+    });
+  };
+
+  const handleContinue = async () => {
+    if (messagingSetup.mode !== 'selected' || !canContinue) {
+      return;
+    }
+
+    setSubmissionMode('continue');
+    try {
+      await submitProject({includeMessagingRule: true});
+    } finally {
+      setSubmissionMode(undefined);
+    }
+  };
+
+  const handleSetupLater = async () => {
+    setContinueRequested(false);
+    setSubmissionMode('setup-later');
+    try {
+      await submitProject({includeMessagingRule: false});
+    } finally {
+      setSubmissionMode(undefined);
+    }
   };
 
   const handleInstallComplete = async (providerKey: ScmMessagingProviderKey) => {
@@ -91,13 +218,55 @@ export function ScmMessaging({
         isIntegrationActive(integration) &&
         isEligibleForIssueAlerts(integration)
     );
+    trackAnalytics('onboarding.scm_messaging_install_returned', {
+      organization,
+      provider: providerKey,
+      outcome: connected ? 'connected' : 'not_connected',
+    });
     // Drop exclusive if the install never surfaced a usable integration.
     if (result.isLoadingError || !connected) {
       setActiveRow(null);
     }
   };
 
+  const handleRetryProviders = () => {
+    trackAnalytics('onboarding.scm_messaging_providers_retry_clicked', {organization});
+    retry();
+  };
+
   const hasValidationAlert = !!validation.staleReason || validation.isError;
+
+  const requestContinue = useCallback(() => setContinueRequested(true), []);
+  const continueWhenReady = useEffectEvent(() => {
+    setContinueRequested(false);
+    handleContinue();
+  });
+
+  useEffect(() => {
+    if (!continueRequested) {
+      return;
+    }
+    if (messagingSetup.mode !== 'selected') {
+      // oxlint-disable-next-line react/set-state-in-effect
+      setContinueRequested(false);
+      return;
+    }
+    if (canContinue) {
+      continueWhenReady();
+      return;
+    }
+    // Revalidation rejected the destination: keep the warning and the footer
+    // rather than continuing later with whatever is chosen next.
+    if (!validation.isPending && hasValidationAlert) {
+      setContinueRequested(false);
+    }
+  }, [
+    canContinue,
+    continueRequested,
+    hasValidationAlert,
+    messagingSetup.mode,
+    validation.isPending,
+  ]);
 
   return (
     // The onboarding flow has no page-level query container (project creation
@@ -185,7 +354,9 @@ export function ScmMessaging({
                 <Alert
                   variant="warning"
                   trailingItems={
-                    <Alert.Button onClick={retry}>{t('Retry')}</Alert.Button>
+                    <Alert.Button onClick={handleRetryProviders}>
+                      {t('Retry')}
+                    </Alert.Button>
                   }
                 >
                   {t('Failed to load integrations.')}
@@ -211,7 +382,8 @@ export function ScmMessaging({
                     activeRow={validatedActiveRow}
                     onActiveRowChange={setActiveRow}
                     isRefetchingIntegrations={isRefetchingIntegrations}
-                    onContinue={handleContinue}
+                    isContinuing={isContinuing}
+                    onContinue={requestContinue}
                   />
                 ))}
               </MotionStack>
@@ -233,6 +405,8 @@ export function ScmMessaging({
                   variant="secondary"
                   analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
                   analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
+                  busy={submissionMode === 'setup-later'}
+                  disabled={isDataPending || isSubmitting}
                   onClick={handleSetupLater}
                 >
                   {t('Set up later')}
@@ -241,9 +415,10 @@ export function ScmMessaging({
                   <Button
                     size="sm"
                     variant="primary"
-                    disabled={!canContinue}
                     analyticsEventKey="onboarding.scm_messaging_continue_clicked"
                     analyticsEventName="Onboarding: SCM Messaging Continue Clicked"
+                    busy={submissionMode === 'continue'}
+                    disabled={!canContinue}
                     onClick={handleContinue}
                   >
                     {t('Continue')}

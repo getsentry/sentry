@@ -152,6 +152,12 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
 
         assert response.data == [build_action_response(self.email)]
 
+    def test_deprecated_api_disabled(self) -> None:
+        with self.feature({"organizations:legacy-alerts-api": False}):
+            response = self.get_error_response(self.organization.slug, status_code=410)
+
+        assert response.data == {"detail": "This API no longer exists."}
+
     def test_simple(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_provider_integration(external_id="1", provider="slack")

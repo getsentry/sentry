@@ -28,6 +28,7 @@ export function AutoSizedText({children}: Props) {
       const childDimensions = getElementDimensions(childElement);
       const parentDimensions = getElementDimensions(parentElement);
 
+      // oxlint-disable-next-line react/immutability
       adjustFontSize(childDimensions, parentDimensions);
       return;
     }

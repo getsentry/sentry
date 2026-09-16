@@ -42,12 +42,10 @@ export function isUptimeCheck(
 
 export function isEAPError(value: TraceTree.NodeValue): value is TraceTree.EAPError {
   return !!(
-    (
-      value &&
-      'event_type' in value &&
-      value.event_type === 'error' &&
-      'description' in value
-    ) // a bit gross, but we won't need this soon as we remove the legacy error type
+    value &&
+    'event_type' in value &&
+    value.event_type === 'error' &&
+    'description' in value // a bit gross, but we won't need this soon as we remove the legacy error type
   );
 }
 

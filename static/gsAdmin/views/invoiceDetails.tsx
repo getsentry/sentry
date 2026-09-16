@@ -11,6 +11,7 @@ import {ResultTable} from 'sentry/components/resultTable';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCells} from 'sentry/utils/cells';
+import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
@@ -80,6 +81,16 @@ export function InvoiceDetails() {
     } catch {
       addErrorMessage(ERR_MESSAGE);
     }
+  };
+
+  const handleDownloadPdf = () => {
+    // The receipt renders on the cell that owns the invoice, and the response
+    // carries its own Content-Disposition filename, so the name passed here only
+    // applies to a same-origin (dev) download.
+    downloadFromHref(
+      `sentry-invoice-${invoiceId}.pdf`,
+      `${cellInfo ? cellInfo.locality_url : ''}/api/0/_admin/cells/${region}/payments/${invoiceId}/pdf/`
+    );
   };
 
   const handleRetry = async () => {
@@ -270,6 +281,16 @@ export function InvoiceDetails() {
               ? 'Invoice is paid'
               : 'Requires billing admin permission',
           onAction: handleRetry,
+        },
+
+        {
+          key: 'downloadPdf',
+          name: 'Download PDF',
+          help: 'Download the invoice receipt as a PDF.',
+          // Deliberately available for deleted organizations: the receipt is
+          // rendered from billing records, which outlive the organization.
+          skipConfirmModal: true,
+          onAction: handleDownloadPdf,
         },
       ]}
       sections={[

@@ -662,7 +662,12 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 "seer_explorer_autofix_last_triggered", SEER_LAST_RUN_RECENCY_WINDOW
             ),
             "issue.id": QCallbackCondition(
-                lambda ids: Q(id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids])])
+                # The search parser encodes `has:issue.id` as `issue.id != ''` and
+                # `!has:issue.id` as `issue.id = ''`. Filter out empty strings before
+                # casting to int so those queries don't raise a ValueError.
+                lambda ids: Q(
+                    id__in=[int(v) for v in (ids if isinstance(ids, list) else [ids]) if v != ""]
+                )
             ),
         }
 

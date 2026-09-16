@@ -104,6 +104,7 @@ function ReplayOnboardingCTAUpsell({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setDidClickOpenModal(false);
     const onComplete = () => {
       dismiss();

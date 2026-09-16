@@ -14,16 +14,19 @@ import {
   QueryEmbedTable,
 } from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedTable';
 import {toPageFilters} from 'sentry/components/seer/markdown/embeds/components/queryEmbedParams';
+import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {LogsQueryLink} from './logsQueryLink';
+import {getLogsQueryTitle} from './logsQueryLink';
 import {
   buildLogsEventView,
   getLogsGroupBy,
   getLogsQueryFields,
+  getLogsQueryHref,
   hasNoGroupBy,
   resolveLogsYAxes,
   type LogsQueryData,
@@ -74,6 +77,7 @@ function LogsQueryChart({
 }
 
 export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
+  const organization = useOrganization();
   const eventView = buildLogsEventView(data);
   const isChartOnly = hasNoGroupBy(data);
 
@@ -90,9 +94,12 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
           {data.mode === 'aggregate' ? t('Aggregate') : t('Logs')}
         </Tag>
       }
-      link={<LogsQueryLink data={data} />}
+      href={getLogsQueryHref(data, organization)}
+      icon={IconList}
+      linkLabel={t('View Logs')}
       query={data.query}
       testId={`seer-logs-query-${data.mode}-embed`}
+      title={getLogsQueryTitle(data)}
     >
       <LogsQueryChart data={data} hasTable={!isChartOnly} sort={eventView.sorts[0]} />
       {isChartOnly ? null : (
