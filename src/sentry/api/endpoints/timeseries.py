@@ -7,7 +7,7 @@ INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 class Annotation(TypedDict):
     """A system annotation explaining that data over a time range was affected by
-    an external factor."""
+    an external factor. One annotation per (bucket, outcome, reason) drop."""
 
     type: Literal["system"]
     category: str
@@ -16,8 +16,20 @@ class Annotation(TypedDict):
     end: float
     droppedCount: float
     label: str
-    acceptedCount: NotRequired[float]
+    # Only present for datasets with a paired byte category (logs today).
     droppedBytes: NotRequired[float]
+
+
+class BucketAccepted(TypedDict):
+    """Accepted volume for a single time bucket. Accepted is a property of the
+    bucket (baseline traffic), not of any one drop, so it lives here rather than
+    being repeated on every annotation. A consumer computes a drop's share as
+    droppedCount / (acceptedCount + total dropped) by joining on ``start``."""
+
+    start: float
+    end: float
+    acceptedCount: float
+    # Only present for datasets with a paired byte category (logs today).
     acceptedBytes: NotRequired[float]
 
 
@@ -26,6 +38,8 @@ class StatsMeta(TypedDict):
     start: float
     end: float
     annotations: NotRequired[list[Annotation]]
+    # Per-bucket accepted volume, aligned to ``annotations`` by ``start``.
+    acceptedByBucket: NotRequired[list[BucketAccepted]]
     estimatedIngestionDelaySeconds: NotRequired[float]
 
 

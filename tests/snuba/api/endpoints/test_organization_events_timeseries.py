@@ -605,6 +605,7 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         )
         assert response.status_code == 200, response.content
         assert response.data["meta"]["annotations"] == []
+        assert response.data["meta"]["acceptedByBucket"] == []
 
     def _store_outcome(
         self,
@@ -626,8 +627,7 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
             }
         )
 
-    def test_annotations_enriched_shape_for_tooltip(self) -> None:
-        """Target response shape for the dropped-data tooltip"""
+    def test_annotations_include_dropped_bytes_and_accepted_by_bucket(self) -> None:
         # One hourly bucket: 1000 accepted logs, 400 dropped to a per-key rate
         # limit and 100 to org quota. Bytes tracked on the paired byte category.
         self._store_outcome(Outcome.ACCEPTED, DataCategory.LOG_ITEM, 1000)
@@ -668,16 +668,21 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         assert key_limit["type"] == "system"
         assert key_limit["category"] == DataCategory.LOG_ITEM.api_name()
         assert key_limit["droppedCount"] == 400
-        # New: bytes dropped, sourced from the paired LOG_BYTE category.
+        # Bytes dropped, sourced from the paired LOG_BYTE category.
         assert key_limit["droppedBytes"] == 200_000
+        # Accepted is not repeated on each annotation.
+        assert "acceptedCount" not in key_limit
 
         org_quota = by_reason["over_quota"]
         assert org_quota["droppedCount"] == 100
         assert org_quota["droppedBytes"] == 50_000
-        assert key_limit["acceptedCount"] == 1000
-        assert key_limit["acceptedBytes"] == 500_000
-        assert org_quota["acceptedCount"] == 1000
-        assert org_quota["acceptedBytes"] == 500_000
+
+        # Accepted volume is a single per-bucket sidecar entry, joined by start.
+        accepted = response.data["meta"]["acceptedByBucket"]
+        assert len(accepted) == 1
+        assert accepted[0]["start"] == key_limit["start"]
+        assert accepted[0]["acceptedCount"] == 1000
+        assert accepted[0]["acceptedBytes"] == 500_000
 
 
 class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):

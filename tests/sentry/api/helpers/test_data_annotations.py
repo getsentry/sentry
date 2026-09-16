@@ -59,7 +59,7 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
             Outcome.RATE_LIMITED, DataCategory.SPAN, drop_at, reason="over_quota", quantity=2000
         )
 
-        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        annotations, _ = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
         assert len(annotations) == 1
         annotation = annotations[0]
@@ -75,27 +75,32 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
         when = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, when, reason="none", quantity=5000)
 
-        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        annotations, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
+        # Accepted-only bucket: nothing dropped, so no annotations and no
+        # accepted sidecar (baseline traffic is only sent for buckets with drops).
         assert annotations == []
+        assert accepted == []
 
     def test_threshold_filters_small_drops(self) -> None:
         when = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.INVALID, DataCategory.SPAN, when, quantity=3)
 
-        annotations = get_dropped_data_annotations(
+        annotations, accepted = get_dropped_data_annotations(
             Spans, self._snuba_params(), ONE_HOUR, threshold=100
         )
 
+        # Below-threshold drop: no annotation, and no accepted entry for that bucket.
         assert annotations == []
+        assert accepted == []
 
     def test_category_scoped_to_dataset(self) -> None:
         # A dropped log should not surface on a spans chart.
         when = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.RATE_LIMITED, DataCategory.LOG_ITEM, when, quantity=500)
 
-        span_annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
-        log_annotations = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
+        span_annotations, _ = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        log_annotations, _ = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
 
         assert span_annotations == []
         assert len(log_annotations) == 1
@@ -105,7 +110,7 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
         when = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.INVALID, DataCategory.TRACE_METRIC, when, quantity=750)
 
-        annotations = get_dropped_data_annotations(TraceMetrics, self._snuba_params(), ONE_HOUR)
+        annotations, _ = get_dropped_data_annotations(TraceMetrics, self._snuba_params(), ONE_HOUR)
 
         assert len(annotations) == 1
         assert annotations[0]["category"] == DataCategory.TRACE_METRIC.api_name()
@@ -117,23 +122,29 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
 
         # An object with no category mapping yields no annotations rather than
         # raising. v0 is EAP-only, so non-EAP datasets (e.g. errors) map to nothing.
-        assert get_dropped_data_annotations(object(), self._snuba_params(), ONE_HOUR) == []
-        assert get_dropped_data_annotations(errors, self._snuba_params(), ONE_HOUR) == []
+        assert get_dropped_data_annotations(object(), self._snuba_params(), ONE_HOUR) == ([], [])
+        assert get_dropped_data_annotations(errors, self._snuba_params(), ONE_HOUR) == ([], [])
 
-    def test_accepted_count_is_bucket_total(self) -> None:
-        # Accepted is the share denominator: dropped / (accepted + dropped).
+    def test_accepted_returned_once_per_bucket(self) -> None:
+        # Accepted is the share denominator, returned per bucket (not per
+        # annotation): dropped / (accepted + dropped).
         drop_at = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, drop_at, quantity=8000)
         self._store_drop(Outcome.RATE_LIMITED, DataCategory.SPAN, drop_at, quantity=2000)
 
-        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        annotations, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
         assert len(annotations) == 1
         assert annotations[0]["droppedCount"] == 2000
-        assert annotations[0]["acceptedCount"] == 8000
+        # Accepted lives on the sidecar, keyed to the bucket by start.
+        assert len(accepted) == 1
+        assert accepted[0]["start"] == annotations[0]["start"]
+        assert accepted[0]["end"] == annotations[0]["end"]
+        assert accepted[0]["acceptedCount"] == 8000
 
-    def test_accepted_repeated_across_drops_in_bucket(self) -> None:
-        # Two drop reasons in one bucket both carry that bucket's accepted total.
+    def test_accepted_not_duplicated_across_drops_in_bucket(self) -> None:
+        # Two drop reasons in one bucket produce two annotations but a single
+        # accepted entry for that bucket (no redundant repetition).
         drop_at = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, drop_at, quantity=5000)
         self._store_drop(
@@ -143,12 +154,43 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
             Outcome.INVALID, DataCategory.SPAN, drop_at, reason="invalid_data", quantity=100
         )
 
-        annotations = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+        annotations, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
 
-        by_reason = {a["reason"]: a for a in annotations}
-        assert set(by_reason) == {"key_quota", "invalid_data"}
-        assert by_reason["key_quota"]["acceptedCount"] == 5000
-        assert by_reason["invalid_data"]["acceptedCount"] == 5000
+        by_reason = {a["reason"] for a in annotations}
+        assert by_reason == {"key_quota", "invalid_data"}
+        # One accepted entry despite two drops, and no acceptedCount on annotations.
+        assert len(accepted) == 1
+        assert accepted[0]["acceptedCount"] == 5000
+        assert all("acceptedCount" not in a for a in annotations)
+
+    def test_accepted_per_bucket_across_multiple_buckets(self) -> None:
+        # Each bucket gets its own accepted entry, aligned by start.
+        self._store_drop(
+            Outcome.ACCEPTED, DataCategory.SPAN, self.start + timedelta(minutes=30), quantity=1000
+        )
+        self._store_drop(
+            Outcome.RATE_LIMITED,
+            DataCategory.SPAN,
+            self.start + timedelta(minutes=30),
+            quantity=200,
+        )
+        self._store_drop(
+            Outcome.ACCEPTED, DataCategory.SPAN, self.start + timedelta(minutes=90), quantity=4000
+        )
+        self._store_drop(
+            Outcome.INVALID, DataCategory.SPAN, self.start + timedelta(minutes=90), quantity=300
+        )
+
+        annotations, accepted = get_dropped_data_annotations(Spans, self._snuba_params(), ONE_HOUR)
+
+        assert len(annotations) == 2
+        assert len(accepted) == 2
+        accepted_by_start = {a["start"]: a["acceptedCount"] for a in accepted}
+        # Two distinct buckets, one interval apart, each with its own accepted total.
+        starts = sorted(accepted_by_start)
+        assert starts[1] - starts[0] == ONE_HOUR * 1000
+        assert accepted_by_start[starts[0]] == 1000
+        assert accepted_by_start[starts[1]] == 4000
 
     def test_log_bytes_populated(self) -> None:
         # Logs are the only v0 dataset with a paired byte category. Relay emits a
@@ -167,12 +209,16 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
             quantity=200_000,
         )
 
-        annotations = get_dropped_data_annotations(OurLogs, self._snuba_params(), ONE_HOUR)
+        annotations, accepted = get_dropped_data_annotations(
+            OurLogs, self._snuba_params(), ONE_HOUR
+        )
 
         assert len(annotations) == 1
         annotation = annotations[0]
         assert annotation["category"] == DataCategory.LOG_ITEM.api_name()
         assert annotation["droppedCount"] == 400
         assert annotation["droppedBytes"] == 200_000
-        assert annotation["acceptedCount"] == 1000
-        assert annotation["acceptedBytes"] == 500_000
+        # Byte + count accepted totals live on the sidecar.
+        assert len(accepted) == 1
+        assert accepted[0]["acceptedCount"] == 1000
+        assert accepted[0]["acceptedBytes"] == 500_000

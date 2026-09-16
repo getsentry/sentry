@@ -5,7 +5,7 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry.api.endpoints.timeseries import Annotation
+from sentry.api.endpoints.timeseries import Annotation, BucketAccepted
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -133,13 +133,21 @@ def get_dropped_data_annotations(
     rollup: int,
     *,
     threshold: int = DEFAULT_DROP_THRESHOLD,
-) -> list[Annotation]:
-    """Build dropped-data annotations for a timeseries query.
+) -> tuple[list[Annotation], list[BucketAccepted]]:
+    """Build dropped-data annotations and per-bucket accepted volume.
 
-    Each annotation is one (bucket, outcome, reason) drop. It carries the item
-    count dropped, the bucket's accepted total, and,
-    for datasets with a paired byte category
-    (logs only today): the byte figures.
+    Returns ``(annotations, accepted_by_bucket)``:
+    - ``annotations``: one per (bucket, outcome, reason) drop, carrying the item
+      count dropped and — for datasets with a paired byte category (logs only
+      today) — the bytes dropped.
+    - ``accepted_by_bucket``: accepted volume per bucket. Accepted is a property
+      of the bucket (baseline traffic), not of an individual drop, so it is
+      returned once per bucket rather than repeated on every annotation. A
+      consumer joins the two on ``start`` to compute a drop's share.
+
+    Only buckets that carry at least one over-threshold drop get an accepted
+    entry — there is no point sending baseline traffic for buckets with nothing
+    dropped.
 
     Buckets align to the chart because ``rollup`` is the interval the endpoint
     already resolved for the series.
@@ -147,10 +155,10 @@ def get_dropped_data_annotations(
     # Unsupported dataset is the normal v0 (EAP-only) path; a missing org is not.
     category = DATASET_TO_CATEGORY.get(dataset)
     if category is None:
-        return []
+        return [], []
     if snuba_params.organization_id is None:
         logger.warning("data_annotations.missing_organization", extra={"dataset": str(dataset)})
-        return []
+        return [], []
     organization_id = snuba_params.organization_id
 
     with sentry_sdk.start_span(op="data_annotations.get_dropped_data") as span:
@@ -171,6 +179,7 @@ def get_dropped_data_annotations(
             dropped_bytes_by_key = _dropped_by_bucket_reason(byte_rows)
 
         annotations: list[Annotation] = []
+        buckets_with_drops: set[float] = set()
         for (bucket_start_ms, outcome, reason_key), dropped in dropped_by_key.items():
             if dropped < threshold:
                 continue
@@ -182,14 +191,24 @@ def get_dropped_data_annotations(
                 end=bucket_start_ms + rollup * 1000,
                 droppedCount=dropped,
                 label=_label_for(outcome, reason_key),
-                acceptedCount=accepted_by_bucket.get(bucket_start_ms, 0),
             )
             if byte_category is not None:
                 annotation["droppedBytes"] = dropped_bytes_by_key.get(
                     (bucket_start_ms, outcome, reason_key), 0
                 )
-                annotation["acceptedBytes"] = accepted_bytes_by_bucket.get(bucket_start_ms, 0)
             annotations.append(annotation)
+            buckets_with_drops.add(bucket_start_ms)
+
+        accepted: list[BucketAccepted] = []
+        for bucket_start_ms in sorted(buckets_with_drops):
+            entry = BucketAccepted(
+                start=bucket_start_ms,
+                end=bucket_start_ms + rollup * 1000,
+                acceptedCount=accepted_by_bucket.get(bucket_start_ms, 0),
+            )
+            if byte_category is not None:
+                entry["acceptedBytes"] = accepted_bytes_by_bucket.get(bucket_start_ms, 0)
+            accepted.append(entry)
 
         span.set_data("annotation_count", len(annotations))
-        return annotations
+        return annotations, accepted
