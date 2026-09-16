@@ -11,13 +11,27 @@ import {FallbackDetectorDetails} from 'sentry/views/detectors/components/details
 import {MetricDetectorDetails} from 'sentry/views/detectors/components/details/metric';
 import {MobileBuildDetectorDetails} from 'sentry/views/detectors/components/details/mobileBuild';
 import {UptimeDetectorDetails} from 'sentry/views/detectors/components/details/uptime';
+import {detectorToLLMContext} from 'sentry/views/detectors/utils/detectorLLMContext';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type DetectorDetailsContentProps = {
   detector: Detector;
   project: Project;
 };
 
-export function DetectorDetailsContent({detector, project}: DetectorDetailsContentProps) {
+function DetectorDetailsContentInner({detector, project}: DetectorDetailsContentProps) {
+  useLLMContext({
+    contextHint:
+      'Sentry monitor detail page. A monitor watches one signal — a metric query, a cron ' +
+      "check-in, an uptime check, a project's errors, or a mobile build size — and opens issues " +
+      'when it fires. config holds the detection settings for this monitor type only, so its ' +
+      'shape differs per type. connectedAlertIds are the alerts this monitor notifies through; ' +
+      'they are `workflows` in the API. Use search_events or issue search scoped to this project ' +
+      'to see what the monitor has actually been firing on.',
+    ...detectorToLLMContext(detector, project.slug),
+  });
+
   const detectorType = detector.type;
   switch (detectorType) {
     case 'metric_issue':
@@ -64,3 +78,8 @@ export function DetectorDetailsContent({detector, project}: DetectorDetailsConte
       );
   }
 }
+
+export const DetectorDetailsContent = registerLLMContext(
+  'monitor-detail',
+  DetectorDetailsContentInner
+);

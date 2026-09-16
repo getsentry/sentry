@@ -28,6 +28,7 @@ import {
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture();
@@ -142,6 +143,46 @@ describe('DetectorDetails', () => {
         url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
         body: [GroupFixture()],
       });
+    });
+
+    it('publishes a monitor-detail node for Seer', async () => {
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <DetectorDetails />;
+      }
+
+      render(<Component />, {organization, initialRouterConfig});
+      await screen.findByRole('heading', {name: /detector1/});
+
+      const readNode = () =>
+        getLLMContext!().nodes.find(node => node.nodeType === 'monitor-detail')?.data as
+          | Record<string, unknown>
+          | undefined;
+
+      await waitFor(() => {
+        expect(readNode()).toBeDefined();
+      });
+
+      const data = readNode()!;
+      expect(data).toEqual(
+        expect.objectContaining({
+          id: '1',
+          name: 'detector1',
+          type: 'metric_issue',
+          project: project.slug,
+          owner: `team:${ownerTeam.slug}`,
+          connectedAlertIds: ['1', '2'],
+        })
+      );
+      expect(data.config).toEqual(
+        expect.objectContaining({
+          query: 'test',
+          environment: 'test-environment',
+          detectionType: 'static',
+        })
+      );
     });
 
     it('renders the detector details and snuba query', async () => {
