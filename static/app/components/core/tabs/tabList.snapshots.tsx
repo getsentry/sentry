@@ -17,11 +17,7 @@ describe('TabList', () => {
     return (
       // TabList renders tab links and calls useNavigate(), which needs a
       // router in context even under SSR.
-      <MemoryRouter>
-        {/* Padding so selection indicators / focus rings aren't clipped by
-          rootElement.screenshot()'s border-box crop. */}
-        <div style={{padding: 8}}>{children}</div>
-      </MemoryRouter>
+      <MemoryRouter>{children}</MemoryRouter>
     );
   }
 

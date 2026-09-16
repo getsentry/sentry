@@ -89,7 +89,7 @@ describe('BillingDetailsPanel', () => {
       } as unknown as ReturnType<typeof useBillingDetails>);
 
       return (
-        <div style={{padding: 8, width: 400}}>
+        <div style={{width: 400}}>
           <BillingDetailsPanel
             organization={organization}
             subscription={scenario.subscription}
