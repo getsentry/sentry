@@ -115,6 +115,7 @@ def verify_receipt(receipt: str, expected_state: str | None) -> str | None:
                 audience=app_id,
                 issuer=CURSOR_ORIGIN_ISSUER,
                 leeway=CURSOR_ORIGIN_CLOCK_SKEW_SECONDS,
+                options={"require": ["exp", "iss", "aud", "sub"]},
             )
         except (jwt.PyJWTError, ValueError):
             continue

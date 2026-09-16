@@ -54,7 +54,7 @@ def _receipt(
     audience: str = APP_ID,
     subject: str | None = INSTALLATION_ID,
     state: str | None = STATE,
-    expires_in: int = 300,
+    expires_in: int | None = 300,
     issued_in: int = 0,
 ) -> str:
     now = int(time.time()) + issued_in
@@ -62,9 +62,10 @@ def _receipt(
         "iss": issuer,
         "aud": audience,
         "iat": now,
-        "exp": now + expires_in,
         "jti": "receipt-uuid",
     }
+    if expires_in is not None:
+        claims["exp"] = now + expires_in
     if subject is not None:
         claims["sub"] = subject
     if state is not None:
@@ -122,6 +123,10 @@ class VerifyReceiptTest(TestCase):
 
     def test_a_receipt_issued_slightly_ahead_still_verifies(self) -> None:
         assert self._verify(_receipt(self.private, issued_in=20)) == INSTALLATION_ID
+
+    def test_a_receipt_with_no_expiry_is_refused(self) -> None:
+        """PyJWT only checks `exp` when it is there, so it has to be required."""
+        assert self._verify(_receipt(self.private, expires_in=None)) is None
 
     def test_an_expired_receipt_is_refused(self) -> None:
         assert self._verify(_receipt(self.private, expires_in=-60)) is None
@@ -307,6 +312,17 @@ class PipelineAdvancerTest(IntegrationTestCase):
 
     def test_an_origin_initiated_install_lands_on_the_org_picker(self) -> None:
         """The receipt travels on, so the pipeline verifies it rather than trusting an id."""
+        receipt = _receipt(self.private, state=None)
+
+        resp = self._setup(installation_receipt=receipt)
+
+        assert resp.status_code == 302
+        assert resp["Location"] == self._org_picker(receipt)
+
+    def test_a_marketplace_install_survives_a_pipeline_left_in_the_session(self) -> None:
+        """An install of anything else leaves one behind, and it is not ours to advance."""
+        self.pipeline.initialize()
+        self.save_session()
         receipt = _receipt(self.private, state=None)
 
         resp = self._setup(installation_receipt=receipt)
