@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.discover.models import (
@@ -20,7 +19,6 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
-@pytest.mark.skip(reason="API not public yet, this line will be removed in future")
 class SavedQueriesTest(APITestCase):
     features = {
         "organizations:visibility-explore-view": True,
@@ -81,7 +79,7 @@ class SavedQueriesTest(APITestCase):
             is_homepage=True,
         )
 
-        self.url = reverse("sentry-api-0-saved-queries", args=[self.org.slug])
+        self.url = reverse("sentry-api-0-explore-all-queries", args=[self.org.slug])
 
     def test_get(self) -> None:
         with self.feature(self.features):
