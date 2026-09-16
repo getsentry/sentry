@@ -207,8 +207,10 @@ describe('MetricsTabContent', () => {
 
     await userEvent.click(addButton);
 
-    toolbars = await screen.findAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(2);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
+    });
+    toolbars = screen.getAllByTestId('metric-toolbar');
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
   });
@@ -249,8 +251,10 @@ describe('MetricsTabContent', () => {
     expect(addButton).toBeEnabled();
     await userEvent.click(addButton);
 
-    toolbars = await screen.findAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(3);
+    await waitFor(() => {
+      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(3);
+    });
+    toolbars = screen.getAllByTestId('metric-toolbar');
     expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
