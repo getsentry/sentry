@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 from pydantic import BaseModel
 
@@ -18,11 +19,10 @@ class OnCompletionHookDefinition(BaseModel):
 class AgentOnCompletionHook(ABC):
     """Base class for the agent on-completion hooks.
 
-    Hooks are called when an agent run finishes successfully. Pass
-    ``call_on_failure=True`` to :func:`extract_hook_definition` to also be
-    called when a run errors or times out; such a hook must read the run status
-    itself and handle a failed run, since ``execute`` is not told which outcome
-    it was called for.
+    Hooks are called when an agent run finishes successfully. Set
+    ``call_on_failure = True`` on a subclass to also call it when a run errors
+    or times out. Such a hook must read the run status itself, because
+    ``execute`` is not told which outcome it was called for.
 
     Example:
         class MyCompletionHook(AgentOnCompletionHook):
@@ -38,6 +38,8 @@ class AgentOnCompletionHook(ABC):
             on_completion_hook=MyCompletionHook
         )
     """
+
+    call_on_failure: ClassVar[bool] = False
 
     @classmethod
     @abstractmethod

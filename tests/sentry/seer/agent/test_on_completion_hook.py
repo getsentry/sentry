@@ -1,5 +1,7 @@
 import pytest
 
+from sentry.dashboards.on_completion_hook import DashboardOnCompletionHook
+from sentry.investigations.agent import InvestigationAgentCompletionHook
 from sentry.models.organization import Organization
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
@@ -7,6 +9,8 @@ from sentry.seer.agent.on_completion_hook import (
     call_on_completion_hook,
     extract_hook_definition,
 )
+from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
+from sentry.seer.entrypoints.operator import SeerOperatorCompletionHook
 from sentry.testutils.cases import TestCase
 
 
@@ -49,6 +53,30 @@ class OnCompletionHookTest(TestCase):
             "module_path": FailureAwareCompletionHook.get_module_path(),
             "call_on_failure": True,
         }
+
+    def test_call_on_failure_defaults_to_false(self) -> None:
+        """A hook opts in by overriding the class attribute."""
+        assert AgentOnCompletionHook.call_on_failure is False
+        assert SampleCompletionHook.call_on_failure is False
+
+    def test_only_autofix_opts_into_failure_callbacks(self) -> None:
+        """Only autofix handles a failed run. The other hooks act on a completed run.
+
+        A failure callback to the investigation hook cancels executions. A
+        failure callback to the operator hook posts into a Slack thread.
+        """
+        assert AutofixOnCompletionHook.call_on_failure is True
+
+        for hook in (
+            DashboardOnCompletionHook,
+            InvestigationAgentCompletionHook,
+            SeerOperatorCompletionHook,
+        ):
+            assert hook.call_on_failure is False
+            assert extract_hook_definition(hook, call_on_failure=hook.call_on_failure).dict() == {
+                "module_path": hook.get_module_path(),
+                "call_on_failure": False,
+            }
 
     def test_extract_hook_definition_nested_class_raises(self) -> None:
         """Test that nested classes are rejected."""

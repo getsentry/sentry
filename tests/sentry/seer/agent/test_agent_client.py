@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.organization import Organization
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.seer.agent.client import (
     SeerAgentClient,
@@ -21,6 +22,7 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.agent.client_utils import AgentRunOptions, UserOrgContext
+from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -29,6 +31,20 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
 from sentry.utils.prompts import seer_monitoring_provider_dont_ask_feature
+
+
+class SuccessOnlyHook(AgentOnCompletionHook):
+    @classmethod
+    def execute(cls, organization: Organization, run_id: int) -> None:
+        pass
+
+
+class FailureAwareHook(AgentOnCompletionHook):
+    call_on_failure = True
+
+    @classmethod
+    def execute(cls, organization: Organization, run_id: int) -> None:
+        pass
 
 
 class TestSeerAgentClient(TestCase):
@@ -103,6 +119,38 @@ class TestSeerAgentClient(TestCase):
         agent_run = SeerAgentRun.objects.get(run=run)
         assert agent_run.project_id == project.id
         assert agent_run.group_id == group.id
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_carries_the_hook_opt_in_to_seer(self, mock_post, mock_access):
+        """Seer only sends a failure callback for a run created with this flag."""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, on_completion_hook=FailureAwareHook)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["on_completion_hook"] == {
+            "module_path": FailureAwareHook.get_module_path(),
+            "call_on_failure": True,
+        }
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_keeps_a_hook_that_does_not_opt_in_success_only(self, mock_post, mock_access):
+        """A hook that cannot handle a failed run must not receive one."""
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, on_completion_hook=SuccessOnlyHook)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["on_completion_hook"] == {
+            "module_path": SuccessOnlyHook.get_module_path(),
+            "call_on_failure": False,
+        }
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")

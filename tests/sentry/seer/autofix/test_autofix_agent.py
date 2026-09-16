@@ -31,6 +31,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
@@ -854,6 +855,33 @@ class TestTriggerAutofixAgent(TestCase):
                 )
 
         mock_feature.assert_not_called()
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.quotas.backend.record_seer_run")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+    def test_trigger_autofix_agent_asks_seer_to_call_on_failure(
+        self, mock_broadcast, mock_check_quota, mock_record_run, mock_post, mock_access
+    ):
+        """A run that Seer creates without this flag never reports its own timeout."""
+        response = MagicMock()
+        response.json.return_value = {"run_id": 4242}
+        response.status = 200
+        mock_post.return_value = response
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.SOLUTION,
+            referrer=AutofixReferrer.UNKNOWN,
+            run_id=None,
+        )
+
+        body = mock_post.call_args[0][0]
+        assert body["on_completion_hook"] == {
+            "module_path": AutofixOnCompletionHook.get_module_path(),
+            "call_on_failure": True,
+        }
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)

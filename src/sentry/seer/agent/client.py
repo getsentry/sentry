@@ -478,7 +478,8 @@ class SeerAgentClient:
         # Add on-completion hook if provided
         if self.on_completion_hook:
             chat_body["on_completion_hook"] = extract_hook_definition(
-                self.on_completion_hook
+                self.on_completion_hook,
+                call_on_failure=self.on_completion_hook.call_on_failure,
             ).dict()
 
         if self.category_key and self.category_value:

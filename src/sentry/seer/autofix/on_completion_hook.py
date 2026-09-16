@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid4
 
 import sentry_sdk
@@ -184,6 +184,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
       invoke this hook with ``call_on_failure=True`` without advancing the pipeline
     - Recording and pausing a PR iteration that a failed run stopped
     """
+
+    call_on_failure: ClassVar[bool] = True
 
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
