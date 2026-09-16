@@ -41,6 +41,11 @@ class CustomInboundFilter(DefaultFieldsModel):
         null=True,
     )
     conditions = models.JSONField(default=list)
+    # Set on a row that stands in for a legacy newline-list filter: which legacy
+    # filter the row comes from, and the line it stands for, or null for the row
+    # that holds a whole list. A filter created in the new UI leaves both null.
+    legacy_source = models.CharField(max_length=32, null=True)
+    legacy_line = models.TextField(null=True)
 
     class Meta:
         app_label = "sentry"
