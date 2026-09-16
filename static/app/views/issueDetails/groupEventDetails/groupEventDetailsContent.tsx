@@ -66,7 +66,6 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {LowValueSpanProblemSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanProblemSection';
 import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/configurationIssues/lowValueSpanIssues/lowValueSpanTroubleshootingSection';
-import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -128,10 +127,6 @@ export function EventDetailsContent({
   useCopyIssueDetails(group, event);
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-
-  if (group.issueType === IssueType.SOURCEMAP_CONFIGURATION) {
-    return <SourceMapIssueDetails event={event} project={project} />;
-  }
 
   return (
     <DebugMetaSearchProvider key={event.id}>
