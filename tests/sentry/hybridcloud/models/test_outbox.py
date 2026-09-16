@@ -933,20 +933,24 @@ class OutboxAggregationTest(TestCase):
         assert total_calls[0].kwargs["value"] == 7 + 4 + 1
 
 
-class SingletonCategoryCoalescingTest(TestCase):
-    """Singleton OutboxCategory coalescing error log."""
+class NonCoalescingCategoryTest(TestCase):
+    """Non-coalescing OutboxCategory error log."""
 
-    def test_group_action_log_event_is_singleton(self) -> None:
-        assert OutboxCategory.GROUP_ACTION_LOG_EVENT.is_singleton()
-        assert not OutboxCategory.ORGANIZATION_MEMBER_UPDATE.is_singleton()
-        assert not OutboxCategory.ORGANIZATION_UPDATE.is_singleton()
+    def test_group_action_log_event_is_non_coalescing(self) -> None:
+        assert OutboxCategory.GROUP_ACTION_LOG_EVENT.is_non_coalescing()
+        assert not OutboxCategory.ORGANIZATION_MEMBER_UPDATE.is_non_coalescing()
+        assert not OutboxCategory.ORGANIZATION_UPDATE.is_non_coalescing()
 
     @patch("sentry.hybridcloud.models.outbox.logger")
-    def test_singleton_category_logs_error_on_coalescing(self, mock_logger: Mock) -> None:
-        singleton_category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
+    def test_non_coalescing_category_logs_error_when_coalesced(self, mock_logger: Mock) -> None:
+        non_coalescing_category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
         with (
-            patch.object(OutboxCategory, "is_singleton", lambda self: self is singleton_category),
+            patch.object(
+                OutboxCategory,
+                "is_non_coalescing",
+                lambda self: self is non_coalescing_category,
+            ),
             outbox_context(flush=False),
         ):
             outbox.save()
@@ -961,12 +965,12 @@ class SingletonCategoryCoalescingTest(TestCase):
         error_calls = [
             c
             for c in mock_logger.error.mock_calls
-            if c.args and c.args[0] == "outbox.singleton_category_coalesced"
+            if c.args and c.args[0] == "outbox.unexpected_coalescing"
         ]
         assert len(error_calls) == 1
         extra = error_calls[0].kwargs["extra"]
-        assert extra["category"] == singleton_category.name
-        assert extra["category_value"] == int(singleton_category)
+        assert extra["category"] == non_coalescing_category.name
+        assert extra["category_value"] == int(non_coalescing_category)
         assert extra["shard_identifier"] == 1
         assert extra["object_identifier"] == 1
         assert extra["coalesced_count"] == 2
@@ -974,11 +978,15 @@ class SingletonCategoryCoalescingTest(TestCase):
         assert extra["outbox_type"] == "CellOutbox"
 
     @patch("sentry.hybridcloud.models.outbox.logger")
-    def test_singleton_category_no_log_when_not_coalesced(self, mock_logger: Mock) -> None:
-        singleton_category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
+    def test_non_coalescing_category_no_log_when_not_coalesced(self, mock_logger: Mock) -> None:
+        non_coalescing_category = OutboxCategory.ORGANIZATION_MEMBER_UPDATE
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
         with (
-            patch.object(OutboxCategory, "is_singleton", lambda self: self is singleton_category),
+            patch.object(
+                OutboxCategory,
+                "is_non_coalescing",
+                lambda self: self is non_coalescing_category,
+            ),
             outbox_context(flush=False),
         ):
             outbox.save()
@@ -989,15 +997,15 @@ class SingletonCategoryCoalescingTest(TestCase):
         error_calls = [
             c
             for c in mock_logger.error.mock_calls
-            if c.args and c.args[0] == "outbox.singleton_category_coalesced"
+            if c.args and c.args[0] == "outbox.unexpected_coalescing"
         ]
         assert error_calls == []
 
     @patch("sentry.hybridcloud.models.outbox.logger")
-    def test_non_singleton_category_does_not_log_on_coalescing(self, mock_logger: Mock) -> None:
+    def test_coalescing_category_does_not_log_when_coalesced(self, mock_logger: Mock) -> None:
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
         with (
-            patch.object(OutboxCategory, "is_singleton", lambda self: False),
+            patch.object(OutboxCategory, "is_non_coalescing", lambda self: False),
             outbox_context(flush=False),
         ):
             outbox.save()
@@ -1009,7 +1017,7 @@ class SingletonCategoryCoalescingTest(TestCase):
         error_calls = [
             c
             for c in mock_logger.error.mock_calls
-            if c.args and c.args[0] == "outbox.singleton_category_coalesced"
+            if c.args and c.args[0] == "outbox.unexpected_coalescing"
         ]
         assert error_calls == []
 
@@ -1017,7 +1025,7 @@ class SingletonCategoryCoalescingTest(TestCase):
     def test_unknown_category_logs_warning(self, mock_logger: Mock) -> None:
         outbox = OrganizationMember(id=1, organization_id=1).outbox_for_update()
         outbox.category = 99999
-        outbox._maybe_log_singleton_coalescing(coalesced_id=1, coalesced_count=2)
+        outbox._maybe_log_unexpected_coalescing(coalesced_id=1, coalesced_count=2)
         warn_calls = [
             c
             for c in mock_logger.warning.mock_calls

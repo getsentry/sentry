@@ -303,7 +303,7 @@ class OutboxBase(Model):
                 coalesced.delete()
 
             if coalesced_older_count > 0:
-                self._maybe_log_singleton_coalescing(
+                self._maybe_log_unexpected_coalescing(
                     coalesced_id=coalesced_id, coalesced_count=coalesced_older_count
                 )
 
@@ -321,8 +321,8 @@ class OutboxBase(Model):
                 tags=tags,
             )
 
-    def _maybe_log_singleton_coalescing(self, coalesced_id: int, coalesced_count: int) -> None:
-        """Log when older rows were discarded in favor of a singleton row.
+    def _maybe_log_unexpected_coalescing(self, coalesced_id: int, coalesced_count: int) -> None:
+        """Log when older rows from a non-coalescing category were discarded.
 
         ``coalesced_count`` is the number of discarded older rows.
         """
@@ -335,7 +335,7 @@ class OutboxBase(Model):
             )
             return
 
-        if not category.is_singleton():
+        if not category.is_non_coalescing():
             return
 
         extra: dict[str, Any] = {
@@ -352,7 +352,7 @@ class OutboxBase(Model):
         if cell_name is not None:
             extra["cell_name"] = cell_name
 
-        logger.error("outbox.singleton_category_coalesced", extra=extra)
+        logger.error("outbox.unexpected_coalescing", extra=extra)
 
     def _set_span_data_for_coalesced_message(
         self, span: Span | StreamedSpan, message: OutboxBase
