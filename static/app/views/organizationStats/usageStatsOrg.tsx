@@ -18,7 +18,7 @@ import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {NotAvailable} from 'sentry/components/notAvailable';
 import {ScoreCard} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import {IconSettings} from 'sentry/icons';
+import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {
   DataCategory,
@@ -76,6 +76,7 @@ type ChartData = {
   chartStats: ChartStats;
   chartSubLabels: TooltipSubLabel[];
   chartTransform: ChartDataTransform;
+  chartTruncated: boolean;
   dataError?: Error;
 };
 
@@ -116,7 +117,9 @@ export function getEndpointQuery({
 
   return {
     ...queryDatetime,
-    interval: getSeriesApiInterval(dataDatetime),
+    interval: organization.features.includes('stats-auto-interval')
+      ? 'auto'
+      : getSeriesApiInterval(dataDatetime),
     groupBy,
     project: projectIds,
     field: ['sum(quantity)'],
@@ -212,6 +215,14 @@ export function getChartProps({
               )}
             </span>
           </FooterDate>
+          {chartData.chartTruncated && (
+            <TruncationNotice>
+              <IconWarning size="xs" />
+              {t(
+                'Some data was left out because this range has too many series. Choose a shorter range.'
+              )}
+            </TruncationNotice>
+          )}
         </InlineContainer>
         <InlineContainer>
           {(chartData.chartStats.clientDiscard ?? []).length > 0 && (
@@ -411,7 +422,9 @@ export function UsageStatsOrganization({
   }, [chartTransform]);
 
   const chartDateRange = useMemo(() => {
-    const interval = getSeriesApiInterval(dataDatetime);
+    // The server may pick a coarser interval than the one requested.
+    const interval =
+      orgStatsReponse.data?.meta?.interval ?? getSeriesApiInterval(dataDatetime);
 
     // Use fillers as loading/error states will not display datetime at all
     if (!orgStatsReponse.data?.intervals) {
@@ -435,7 +448,7 @@ export function UsageStatsOrganization({
       intervals.length < 2
         ? moment(startTime) // when statsPeriod and interval is the same value
         : moment(intervals[intervals.length - 1]).utc();
-    const useUtc = isDisplayUtc(dataDatetime);
+    const useUtc = isDisplayUtc(dataDatetime, interval);
 
     // If interval is a day or more, use UTC to format date. Otherwise, the date
     // may shift ahead/behind when converting to the user's local time.
@@ -484,6 +497,7 @@ export function UsageStatsOrganization({
       }),
       ...chartDateRange,
       ...chartDataTransform,
+      chartTruncated: orgStatsReponse.data?.meta?.isTruncated ?? false,
     };
   }, [
     orgStatsReponse.data,
@@ -669,6 +683,15 @@ const FooterDate = styled('div')`
     font-weight: ${p => p.theme.font.weight.sans.regular};
     font-size: ${p => p.theme.font.size.md};
   }
+`;
+
+const TruncationNotice = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  margin-left: ${p => p.theme.space.lg};
+  color: ${p => p.theme.tokens.content.warning};
+  font-size: ${p => p.theme.font.size.md};
 `;
 
 type SpansStoredProps = {

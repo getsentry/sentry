@@ -1,6 +1,6 @@
 import type {Location} from 'history';
 
-import type {PageFilters} from 'sentry/types/core';
+import type {IntervalPeriod, PageFilters} from 'sentry/types/core';
 import type {Organization, SeriesApi} from 'sentry/types/organization';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
@@ -19,6 +19,15 @@ export interface UsageSeries extends SeriesApi {
   // data to sentry as part of the event context.
   end: string;
   start: string;
+  /**
+   * Present when the response carries a time series. `interval` is the
+   * resolution the server used, which differs from the request for
+   * `interval=auto`.
+   */
+  meta?: {
+    interval: IntervalPeriod;
+    isTruncated: boolean;
+  };
 }
 
 export type UsageStat = {

@@ -1,6 +1,7 @@
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
+import type {IntervalPeriod} from 'sentry/types/core';
 import {DataCategory} from 'sentry/types/core';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
@@ -117,12 +118,14 @@ function abbreviateUsageNumber(n: number) {
  * shift forward/backward depending on the user's timezone, or it might be
  * displayed as a day earlier/later
  */
-export function isDisplayUtc(datetime: DateTimeObject): boolean {
+export function isDisplayUtc(
+  datetime: DateTimeObject,
+  interval: IntervalPeriod = getSeriesApiInterval(datetime)
+): boolean {
   if (datetime.utc) {
     return true;
   }
 
-  const interval = getSeriesApiInterval(datetime);
   const hours = parsePeriodToHours(interval);
   return hours >= 24;
 }
