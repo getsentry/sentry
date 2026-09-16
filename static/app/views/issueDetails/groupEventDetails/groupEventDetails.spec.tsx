@@ -1,3 +1,4 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -9,6 +10,7 @@ import {
   SourceMapDebugResponseFixture,
 } from 'sentry-fixture/sourceMapDebug';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
   render,
@@ -458,6 +460,47 @@ describe('groupEventDetails', () => {
         expect(
           screen.queryByText(/couldn't track down an event/)
         ).not.toBeInTheDocument();
+      }
+    );
+
+    it.each<[string, number]>([
+      ['/organizations/org-slug/issues/1/events/recommended/', 404],
+      ['/organizations/org-slug/issues/1/events/recommended/', 500],
+      ['/projects/org-slug/project-slug/events/sample-event/source-map-debug/', 404],
+      ['/projects/org-slug/project-slug/events/sample-event/source-map-debug/', 500],
+    ])(
+      'keeps the cached diagnosis when %s refresh fails with %s',
+      async (url, statusCode) => {
+        const {props} = setupSourceMapIssue();
+        const queryClient = makeTestQueryClient();
+        render(<GroupEventDetails />, {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+          additionalWrapper: ({children}) => (
+            <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+          ),
+        });
+        const diagnosis = await screen.findByText(
+          textWithMarkupMatcher(
+            'The source file ~/static/app.min.js was found but the dist value does not match the uploaded artifact.'
+          )
+        );
+        const failedRefresh = MockApiClient.addMockResponse({url, statusCode});
+
+        jest.useFakeTimers();
+        try {
+          await act(async () => {
+            await queryClient.refetchQueries();
+            await jest.advanceTimersByTimeAsync(1);
+          });
+
+          expect(failedRefresh).toHaveBeenCalledTimes(1);
+          expect(diagnosis).toBeInTheDocument();
+          expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+          expect(screen.queryByText(/available for diagnosis/)).not.toBeInTheDocument();
+        } finally {
+          jest.useRealTimers();
+        }
       }
     );
 
