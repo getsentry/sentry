@@ -4,6 +4,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from functools import lru_cache
 from typing import Any, Generic, TypeVar, cast
 from uuid import uuid4
 
@@ -177,6 +178,12 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
                 self.condition_group = None
         else:
             self.condition_group = None
+
+        # Memoize _build_evidence_data_sources to avoid re-fetching data sources for every group in a packet
+        # This must be done in-line to ensure the cache is not shared between handler instances
+        self._memoized_build_evidence_data_sources = lru_cache(maxsize=1)(
+            self._build_evidence_data_sources
+        )
 
     def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -395,24 +402,26 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             data_packet_source_id=data_packet.source_id,
             conditions=triggered_conditions,
             config=self.detector.config,
-            data_sources=self._build_evidence_data_sources(data_packet),
+            data_sources=self._memoized_build_evidence_data_sources(
+                self.detector, data_packet.source_id
+            ),
         )
 
     def _build_evidence_data_sources(
-        self, data_packet: DataPacket[DataPacketType]
+        self, detector: Detector, source_id: str
     ) -> list[dict[str, Any]]:
         try:
-            data_sources = list(
-                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
-            )
+            data_sources = list(DataSource.objects.filter(detectors=detector, source_id=source_id))
+
             if not data_sources:
                 logger.warning(
                     "Matching data source not found for detector while generating occurrence evidence data",
                     extra={
-                        "detector_id": self.detector.id,
-                        "data_packet_source_id": data_packet.source_id,
+                        "detector_id": detector.id,
+                        "data_packet_source_id": source_id,
                     },
                 )
+
                 return []
 
             # Serializers return camelcased keys, but evidence data should use snakecase
