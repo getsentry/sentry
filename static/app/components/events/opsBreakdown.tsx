@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import type {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
@@ -209,16 +207,6 @@ export function generateStats(
 
   return breakdown;
 }
-
-export const OpsDot = styled('div')`
-  content: '';
-  display: block;
-  width: 8px;
-  min-width: 8px;
-  height: 8px;
-  margin-right: ${p => p.theme.space.md};
-  border-radius: 100%;
-`;
 
 function mergeInterval(intervals: TimeWindowSpan[]): TimeWindowSpan[] {
   // sort intervals by start timestamps

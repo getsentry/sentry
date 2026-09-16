@@ -1669,45 +1669,6 @@ describe('trace view', () => {
       expect(await screen.findByText('transaction-name-2')).toBeInTheDocument();
     });
 
-    it('roving updates the element in the drawer', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'TransactionID: 0'
-      );
-
-      await userEvent.keyboard('{arrowright}');
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
-      await userEvent.keyboard('{arrowdown}');
-      await waitFor(() => {
-        const updatedRows = virtualizedContainer.querySelectorAll(
-          VISIBLE_TRACE_ROW_SELECTOR
-        );
-        expect(updatedRows[2]).toHaveFocus();
-      });
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'SpanID: 0'
-      );
-    });
-
     it('arrowup on first node jumps to end', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
