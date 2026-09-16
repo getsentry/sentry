@@ -263,18 +263,32 @@ class OrganizationRepositoryPlatformsGetTest(APITestCase):
         platforms = {p["platform"] for p in response.data["platforms"]}
         assert platforms == {"python-django", "python"}
 
-    @mock.patch("sentry.integrations.models.integration.Integration.get_installation")
-    def test_cursor_origin_is_supported(self, mock_get_installation: mock.MagicMock) -> None:
-        self.integration.provider = IntegrationProviderSlug.CURSOR_ORIGIN.value
-        self.integration.save(update_fields=["provider"])
-        self.repo.provider = f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}"
-        self.repo.save(update_fields=["provider"])
-        mock_get_installation.return_value = StubDetectionClient(
+    @mock.patch("sentry.integrations.cursor_origin.integration.CursorOriginIntegration.get_client")
+    def test_cursor_origin_is_supported(self, mock_get_client: mock.MagicMock) -> None:
+        # Its own integration and repository: Integration is a control silo model, so
+        # this test cannot reprovision the one setUp made.
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+            name="acme",
+            external_id="i_01example",
+        )
+        repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="acme/rocket",
+            url="https://cursor.com/codebase/acme/rocket",
+            provider=f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN.value}",
+            external_id="r_01example",
+            integration_id=integration.id,
+        )
+        mock_get_client.return_value = StubDetectionClient(
             languages={"C#": 50000},
             tree=[{"path": "src/app.cs", "type": "blob", "size": 100}],
+            # Origin has no languages endpoint, so detection reads the tree it holds.
+            has_languages_endpoint=False,
         )
 
-        response = self.get_success_response(self.organization.slug, self.repo.id, status_code=200)
+        response = self.get_success_response(self.organization.slug, repo.id, status_code=200)
 
         assert response.data["platforms"] == [
             {
