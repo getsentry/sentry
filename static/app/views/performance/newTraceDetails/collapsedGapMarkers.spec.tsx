@@ -9,7 +9,7 @@ import {TraceView} from './traceRenderers/traceView';
 import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {CollapsedGapMarkers} from './collapsedGapMarkers';
 
-function setup() {
+function setup(spanStarts = [0, 0.3, 0.9]) {
   const scheduler = new TraceScheduler();
   const manager = new VirtualizedViewManager(
     {list: {width: 0.5}, span_list: {width: 0.5}},
@@ -23,7 +23,7 @@ function setup() {
     enabled: true,
     traceSpace: [0, 1000] satisfies [number, number],
     indicators: [],
-    nodes: [0, 0.3, 0.9].map(
+    nodes: spanStarts.map(
       start =>
         new SpanNode(
           null,
@@ -118,6 +118,70 @@ describe('CollapsedGapMarkers', () => {
     await user.pointer({target: divider, keys: '[/MouseLeft]', coords: {x: 1000, y: 0}});
     expect(manager.dividerStartVec).toBeNull();
   });
+
+  it.each([
+    {
+      name: 'creates a gap at the minimum timeline width',
+      spanStarts: [0, 0.7, 0.9],
+      releaseX: 1850,
+      finalWidth: 200,
+      draggingLabels: [],
+      finalLabels: ['120.00ms'],
+    },
+    {
+      name: 'removes a gap at the maximum timeline width',
+      spanStarts: [0, 0.203, 0.9],
+      releaseX: 150,
+      finalWidth: 1800,
+      draggingLabels: ['51.11ms', '545.11ms'],
+      finalLabels: ['543.67ms'],
+    },
+  ])(
+    '$name on release',
+    async ({spanStarts, releaseX, finalWidth, draggingLabels, finalLabels}) => {
+      const user = userEvent.setup();
+      const {manager} = setup(spanStarts);
+      const divider = screen.getByTestId('divider');
+      await user.pointer({
+        target: divider,
+        keys: '[MouseLeft>]',
+        coords: {x: 1000, y: 0},
+      });
+      await user.pointer({target: divider, coords: {x: releaseX, y: 0}});
+      expect(
+        screen.queryAllByText(/^\d+\.\d{2}ms$/).map(label => label.textContent)
+      ).toEqual(draggingLabels);
+      await user.pointer({
+        target: divider,
+        keys: '[/MouseLeft]',
+        coords: {x: releaseX, y: 0},
+      });
+      expect(manager.view.trace_physical_space.width).toBeCloseTo(finalWidth);
+      expect(
+        screen.getAllByText(/^\d+\.\d{2}ms$/).map(label => label.textContent)
+      ).toEqual(finalLabels);
+      expect(manager.collapsed_gap_markers.filter(Boolean)).toHaveLength(1);
+      const marker = manager.collapsed_gap_markers[0]!;
+      const markerLeft = Number.parseFloat(
+        marker.ref.style.transform.replace('translateX(', '')
+      );
+      expect(markerLeft + 20).toBeCloseTo(
+        (manager.transformXFromTimestamp(marker.gap.start) +
+          manager.transformXFromTimestamp(marker.gap.end)) /
+          2
+      );
+      expect(manager.spanTextOverlapsCollapsedGap(markerLeft, 20)).toBe(true);
+      if (draggingLabels.length > finalLabels.length) {
+        expect(
+          manager.spanTextOverlapsCollapsedGap(manager.transformXFromTimestamp(150), 20)
+        ).toBe(false);
+      }
+      await user.hover(screen.getByText(finalLabels[0]!));
+      expect(
+        await screen.findByText(`Skipped ${finalLabels[0]} inactive period`)
+      ).toBeInTheDocument();
+    }
+  );
 
   it('clears markers and overlap when compression is disabled and recreates them when enabled', () => {
     const {manager, options, unmount} = setup();

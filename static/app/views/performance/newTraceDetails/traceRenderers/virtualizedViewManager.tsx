@@ -289,6 +289,11 @@ export class VirtualizedViewManager {
     document.removeEventListener('mouseup', this.onDividerMouseUp);
     document.removeEventListener('mousemove', this.onDividerMouseMove);
 
+    this.view.trace_physical_space.width =
+      span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
+    this.recomputeTimeCompression();
+    this.draw();
+
     this.scheduler.dispatch('divider resize end', this.columns.list.width);
   }
 
