@@ -404,7 +404,7 @@ describe('groupEventDetails', () => {
       expect(screen.getByText('web-build')).toBeInTheDocument();
       expect(
         screen.getByRole('button', {name: 'Verify Artifacts Are Uploaded'})
-      ).toBeInTheDocument();
+      ).toHaveAttribute('aria-expanded', 'false');
     });
   });
 

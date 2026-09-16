@@ -7,7 +7,11 @@ import {t, tct} from 'sentry/locale';
 
 import type {SourceMapDiagnosis} from './sourceMapDiagnosis';
 
-function getRecommendedStep(diagnosis: SourceMapDiagnosis): OnboardingStep | undefined {
+type TroubleshootingStep = OnboardingStep & {title: string};
+
+function getRecommendedStep(
+  diagnosis: SourceMapDiagnosis
+): TroubleshootingStep | undefined {
   switch (diagnosis.type) {
     case 'dist-mismatch':
       return {
@@ -77,8 +81,8 @@ function getRecommendedStep(diagnosis: SourceMapDiagnosis): OnboardingStep | und
 export function getTroubleshootingSteps(
   settingsUrl: string,
   diagnosis?: SourceMapDiagnosis
-): OnboardingStep[] {
-  const steps: OnboardingStep[] = [
+): TroubleshootingStep[] {
+  const steps: TroubleshootingStep[] = [
     {
       title: t('Verify Artifacts Are Uploaded'),
       content: [

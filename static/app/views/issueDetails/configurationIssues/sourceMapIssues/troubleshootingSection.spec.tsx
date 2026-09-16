@@ -81,6 +81,61 @@ describe('TroubleshootingSection', () => {
     }
   );
 
+  it('expands only the recommendation when the diagnosis arrives later', async () => {
+    const {rerender} = render(
+      <TroubleshootingSection project={project} sourcemapsDocsUrl={sourcemapsDocsUrl} />,
+      {organization}
+    );
+    expect(screen.getByRole('button', {expanded: true})).toHaveTextContent(
+      'Verify Artifacts Are Uploaded'
+    );
+
+    rerender(
+      <TroubleshootingSection
+        project={project}
+        sourcemapsDocsUrl={sourcemapsDocsUrl}
+        diagnosis={{type: 'missing-source', path: 'app.js', release: null}}
+      />
+    );
+
+    expect(screen.getByRole('button', {expanded: true})).toHaveTextContent(
+      'Upload the Missing Source File'
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Upload the Missing Source File'})
+    );
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Verify Artifacts Are Uploaded'})
+    );
+    expect(screen.getByRole('button', {expanded: true})).toHaveTextContent(
+      'Verify Artifacts Are Uploaded'
+    );
+  });
+
+  it('preserves a step the user opened while waiting for the diagnosis', async () => {
+    const {rerender} = render(
+      <TroubleshootingSection project={project} sourcemapsDocsUrl={sourcemapsDocsUrl} />,
+      {organization}
+    );
+    const productionBuild = screen.getByRole('button', {
+      name: "Verify That You're Running a Production Build",
+    });
+    await userEvent.click(productionBuild);
+
+    rerender(
+      <TroubleshootingSection
+        project={project}
+        sourcemapsDocsUrl={sourcemapsDocsUrl}
+        diagnosis={{type: 'missing-source', path: 'app.js', release: null}}
+      />
+    );
+
+    expect(productionBuild).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      screen.getByRole('button', {name: 'Verify Artifacts Are Uploaded'})
+    ).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('copies all selected instructions even when their disclosures are collapsed', async () => {
     render(
       <TroubleshootingSection project={project} sourcemapsDocsUrl={sourcemapsDocsUrl} />,

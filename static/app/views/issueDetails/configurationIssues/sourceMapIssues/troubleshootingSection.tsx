@@ -1,3 +1,5 @@
+import {useState} from 'react';
+
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -28,6 +30,7 @@ export function TroubleshootingSection({
   const organization = useOrganization();
   const settingsUrl = `/settings/${organization.slug}/projects/${project.slug}/source-maps/`;
   const steps = getTroubleshootingSteps(settingsUrl, diagnosis);
+  const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({});
   const troubleShootingDocUrl =
     project.platform === 'react-native'
       ? `${sourcemapsDocsUrl}troubleshooting/`
@@ -53,7 +56,14 @@ export function TroubleshootingSection({
       )}
       <Stack gap="sm">
         {steps.map((step, index) => (
-          <Disclosure key={step.title} size="md" defaultExpanded={index === 0}>
+          <Disclosure
+            key={step.title}
+            size="md"
+            expanded={expandedSteps[step.title] ?? index === 0}
+            onExpandedChange={expanded =>
+              setExpandedSteps(previous => ({...previous, [step.title]: expanded}))
+            }
+          >
             <Disclosure.Title>{step.title}</Disclosure.Title>
             <Disclosure.Content>
               <ContentBlocksRenderer contentBlocks={step.content} />
