@@ -74,6 +74,23 @@ describe('Cursor Origin InstallStep', () => {
     expect(advance).not.toHaveBeenCalled();
   });
 
+  it('finishes an install Origin already ran without asking again', () => {
+    const advance = jest.fn();
+    render(
+      <CursorOriginInstallStep
+        {...makeStepProps({
+          stepData: {installUrl, originInitiated: true, state: 'signature'},
+          advance,
+        })}
+      />
+    );
+
+    expect(advance).toHaveBeenCalledWith({state: 'signature'});
+    expect(
+      screen.queryByRole('button', {name: 'Install on Origin'})
+    ).not.toBeInTheDocument();
+  });
+
   it('disables the button until the install url arrives', () => {
     render(<CursorOriginInstallStep {...makeStepProps({stepData: {}})} />);
 

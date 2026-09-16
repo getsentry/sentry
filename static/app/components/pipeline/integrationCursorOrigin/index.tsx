@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -15,11 +15,13 @@ import type {IntegrationWithConfig} from 'sentry/types/integrations';
 
 interface InstallStepData {
   installUrl?: string;
+  originInitiated?: boolean;
+  state?: string;
 }
 
 interface InstallAdvanceData {
-  installationReceipt: string;
   state: string;
+  installationReceipt?: string;
 }
 
 function CursorOriginInstallStep({
@@ -40,6 +42,23 @@ function CursorOriginInstallStep({
     redirectUrl: stepData?.installUrl,
     onCallback: handleCallback,
   });
+
+  // An install started from Origin's marketplace is already done by the time the
+  // modal opens: the backend verified the receipt and bound the installation, so
+  // there is nothing to ask the user for. The ref guards against React strict
+  // mode double-firing the effect.
+  const hasAutoAdvanced = useRef(false);
+  useEffect(() => {
+    if (!stepData?.originInitiated || !stepData.state || hasAutoAdvanced.current) {
+      return;
+    }
+    hasAutoAdvanced.current = true;
+    advance({state: stepData.state});
+  }, [stepData, advance]);
+
+  if (stepData?.originInitiated) {
+    return <Text>{t('Finishing up your Cursor Origin installation...')}</Text>;
+  }
 
   return (
     <Stack gap="lg" align="start">
