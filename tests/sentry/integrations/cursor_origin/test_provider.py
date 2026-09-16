@@ -18,7 +18,11 @@ from sentry.integrations.cursor_origin.integration import (
     build_install_url,
 )
 from sentry.integrations.manager import default_manager
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -26,6 +30,7 @@ from sentry.testutils.silo import control_silo_test
 INSTALLATION_ID = "i_01example"
 APP_ID = "app_01example"
 CLIENT = "sentry.integrations.cursor_origin.integration.CursorOriginSetupApiClient"
+SYNC_TASK = "sentry.integrations.cursor_origin.integration.sync_repos_for_org"
 
 
 @control_silo_test
@@ -108,3 +113,45 @@ class BuildInstallUrlTest(TestCase):
 
     def test_metadata_read_is_not_requested(self) -> None:
         assert "repository:metadata:read" not in CURSOR_ORIGIN_SCOPES
+
+
+def _rpc_org(organization: Organization) -> RpcOrganization:
+    return serialize_rpc_organization(organization, include_projects=False, include_teams=False)
+
+
+@control_silo_test
+class PostInstallTest(TestCase):
+    def test_syncs_repositories(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+            external_id="i_01example",
+        )
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        assert org_integration is not None
+
+        with mock.patch(f"{SYNC_TASK}.apply_async") as mock_sync:
+            CursorOriginIntegrationProvider().post_install(
+                integration, _rpc_org(self.organization), extra={}
+            )
+
+        assert mock_sync.call_args.kwargs["kwargs"] == {
+            "organization_integration_id": org_integration.id
+        }
+
+    def test_an_organization_without_the_integration_is_skipped(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+            external_id="i_01example",
+        )
+        other_org = self.create_organization(owner=self.user)
+
+        with mock.patch(f"{SYNC_TASK}.apply_async") as mock_sync:
+            CursorOriginIntegrationProvider().post_install(
+                integration, _rpc_org(other_org), extra={}
+            )
+
+        assert mock_sync.call_count == 0

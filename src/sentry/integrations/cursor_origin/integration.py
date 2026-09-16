@@ -26,7 +26,9 @@ from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_SCOPES,
     CURSOR_ORIGIN_WEB_BASE_URL,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
@@ -34,8 +36,10 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -273,6 +277,26 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
                 "domain_name": f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}",
             },
         }
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        """Link repositories now; the sweep that would otherwise do it runs daily."""
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id, organization_id=organization.id
+        )
+        if org_integration is None:
+            logger.warning(
+                "cursor_origin.post_install.no_org_integration",
+                extra={"integration_id": integration.id, "organization_id": organization.id},
+            )
+            return
+
+        sync_repos_for_org.apply_async(kwargs={"organization_integration_id": org_integration.id})
 
     def setup(self) -> None:
         from sentry.plugins.base import bindings
