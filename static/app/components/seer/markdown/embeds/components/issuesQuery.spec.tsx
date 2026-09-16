@@ -47,18 +47,18 @@ describe('issues query embed', () => {
     renderEmbed({
       name: 'issuesQuery',
       data: {
-        query: 'is:unresolved level:error',
+        query: 'issue:[JAVASCRIPT-991,JAVASCRIPT-992]',
         sort: 'date',
         statsPeriod: '7d',
         projects: ['1', '2'],
         environments: ['production'],
-        title: 'Unresolved errors',
+        title: 'Related issues',
       },
     });
 
     const toggle = await screen.findByRole(
       'button',
-      {name: 'Unresolved errors'},
+      {name: 'Related issues'},
       {timeout: 10_000}
     );
     expect(screen.getByRole('link', {name: 'View Issues'})).toHaveAttribute(
@@ -66,8 +66,9 @@ describe('issues query embed', () => {
       expect.stringContaining('/organizations/org-slug/issues/')
     );
     expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
-    expect(screen.getByLabelText('is:unresolved')).toBeInTheDocument();
-    expect(screen.getByLabelText('level:error')).toBeInTheDocument();
+    expect(
+      screen.getAllByLabelText('issue:[JAVASCRIPT-991,JAVASCRIPT-992]').length
+    ).toBeGreaterThan(0);
 
     await waitFor(() =>
       expect(issuesRequest).toHaveBeenCalledWith(
@@ -77,7 +78,7 @@ describe('issues query embed', () => {
             environment: ['production'],
             limit: 5,
             project: ['1', '2'],
-            query: 'is:unresolved level:error',
+            query: 'issue:[JAVASCRIPT-991,JAVASCRIPT-992]',
             sort: 'date',
             statsPeriod: '7d',
           }),
@@ -87,6 +88,9 @@ describe('issues query embed', () => {
 
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.queryByText(issue.shortId)).not.toBeVisible();
+    expect(document.getElementById(toggle.getAttribute('aria-controls')!)).toHaveAttribute(
+      'aria-hidden',
+      'true'
+    );
   });
 });
