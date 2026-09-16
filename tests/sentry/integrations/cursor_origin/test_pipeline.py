@@ -136,7 +136,9 @@ class InstallStepTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.private, self.public = _signing_key()
-        self.pipeline = mock.Mock(signature=STATE)
+        self.pipeline = mock.Mock(signature="pipeline-shape-hash")
+        # The per-install value the step generated when it built the install URL.
+        self.pipeline.fetch_state.return_value = STATE
 
     def _post(self, **data: str) -> PipelineStepResult:
         with (
@@ -157,6 +159,35 @@ class InstallStepTest(TestCase):
         result = CursorOriginInstallApiStep().handle_post(
             {"state": "someone-elses", "installation_receipt": "x"}, self.pipeline, mock.Mock()
         )
+        assert result.action == PipelineStepAction.ERROR
+        assert not self.pipeline.bind_state.called
+
+    def test_the_install_url_carries_a_value_of_its_own(self) -> None:
+        """Not `pipeline.signature`, which is one constant for every user."""
+        pipeline = mock.Mock(signature="pipeline-shape-hash")
+        pipeline.fetch_state.return_value = None
+
+        with self.options({"cursor-origin-app.id": APP_ID}):
+            step_data = CursorOriginInstallApiStep().get_step_data(pipeline, mock.Mock())
+
+        key, value = pipeline.bind_state.call_args.args
+        assert key == "install_state"
+        assert value != pipeline.signature
+        assert f"state={value}" in step_data["installUrl"]
+
+    def test_the_install_url_keeps_the_value_across_a_reload(self) -> None:
+        """The user already opened a URL carrying it, so it cannot be regenerated."""
+        with self.options({"cursor-origin-app.id": APP_ID}):
+            first = CursorOriginInstallApiStep().get_step_data(self.pipeline, mock.Mock())
+            second = CursorOriginInstallApiStep().get_step_data(self.pipeline, mock.Mock())
+
+        assert first["installUrl"] == second["installUrl"]
+        assert not self.pipeline.bind_state.called
+
+    def test_a_receipt_from_another_install_is_refused(self) -> None:
+        """The receipt echoes the value of the install it belongs to."""
+        result = self._post(installation_receipt=_receipt(self.private, state="another-install"))
+
         assert result.action == PipelineStepAction.ERROR
         assert not self.pipeline.bind_state.called
 

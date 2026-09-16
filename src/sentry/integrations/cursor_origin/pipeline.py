@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 from typing import Any, TypedDict
 
 import jwt
@@ -32,6 +33,19 @@ class InstallStepData(TypedDict):
 class InstallSerializer(serializers.Serializer[dict[str, Any]]):
     installation_receipt = serializers.CharField(required=True)
     state = serializers.CharField(required=True)
+
+
+def _install_state(pipeline: IntegrationPipeline) -> str:
+    """The anti-forgery value for this install, generated once per pipeline.
+
+    `pipeline.signature` hashes the pipeline's shape, so it is the same value for
+    every user and cannot tie a receipt to the session that asked for it.
+    """
+    state = pipeline.fetch_state("install_state")
+    if not state:
+        state = secrets.token_urlsafe(32)
+        pipeline.bind_state("install_state", state)
+    return state
 
 
 def _redirect_uri() -> str:
@@ -95,9 +109,8 @@ class CursorOriginInstallApiStep:
     step_name = "install"
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> InstallStepData:
-        return {
-            "installUrl": build_install_url(state=pipeline.signature, redirect_uri=_redirect_uri())
-        }
+        install_state = _install_state(pipeline)
+        return {"installUrl": build_install_url(state=install_state, redirect_uri=_redirect_uri())}
 
     def get_serializer_cls(self) -> type:
         return InstallSerializer
@@ -108,10 +121,11 @@ class CursorOriginInstallApiStep:
         pipeline: IntegrationPipeline,
         request: HttpRequest,
     ) -> PipelineStepResult:
-        if validated_data["state"] != pipeline.signature:
+        install_state = pipeline.fetch_state("install_state")
+        if not install_state or validated_data["state"] != install_state:
             return PipelineStepResult.error("Invalid state, please try the installation again.")
 
-        installation_id = verify_receipt(validated_data["installation_receipt"], pipeline.signature)
+        installation_id = verify_receipt(validated_data["installation_receipt"], install_state)
         if not installation_id:
             return PipelineStepResult.error(
                 "Cursor Origin did not return a valid installation. Please try again."
