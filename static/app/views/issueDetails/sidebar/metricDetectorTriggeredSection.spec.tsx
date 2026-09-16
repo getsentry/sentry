@@ -307,6 +307,59 @@ describe('MetricDetectorTriggeredSection', () => {
     expect(router.location.pathname).toBe('/explore/investigations/4567/');
   });
 
+  it('explains why launching is unavailable', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'unavailable'}]},
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+
+    const button = await screen.findByRole('button', {name: 'Launch Investigation'});
+    expect(button).toBeDisabled();
+    await userEvent.hover(button);
+    // Deliberately vague: naming the cause would reveal whether an issue the
+    // viewer cannot access exists.
+    expect(
+      await screen.findByText(
+        'Seer cannot investigate this issue. It may not be linked to an active monitor, or you may not have access.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('explains that an issue with no open period cannot be investigated', async () => {
+    const organization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['investigations'],
+    });
+    const candidatesMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/candidates/',
+      method: 'POST',
+      body: {items: [{status: 'investigate'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [],
+    });
+
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+
+    const button = await screen.findByRole('button', {name: 'Launch Investigation'});
+    expect(button).toBeDisabled();
+    // Open periods are already on the page, so naming this one gives nothing away.
+    await userEvent.hover(button);
+    expect(
+      await screen.findByText('This issue has no open period to investigate.')
+    ).toBeInTheDocument();
+    // Without a source there is nothing to ask about.
+    expect(candidatesMock).not.toHaveBeenCalled();
+  });
+
   it('uses the latest open period when the displayed event is not linked to one', async () => {
     const organization = OrganizationFixture({
       slug: 'org-slug',
