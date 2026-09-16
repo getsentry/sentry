@@ -26,7 +26,10 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
-from sentry.investigations.services.executions import mark_block_execution_dispatched
+from sentry.investigations.services.executions import (
+    freeze_query_links,
+    mark_block_execution_dispatched,
+)
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
     investigation_source,
@@ -123,6 +126,17 @@ dataset, and analysis-window facts; do not report them missing merely because pa
 When notebookContext contains an item with currentBlock=true, it is the last successful result for
 the block being refined. Reuse its table and chart data for presentation-only requests such as
 changing line, area, or bar visualization; do not claim the data is unavailable or query it again.
+Keep the same measurements, filters, and time window when changing presentation. For a query
+change such as a different grouping, use the absolute start/end in that result's queryLinks.
+The current block's queryContext preserves its original source, filters, and parameters when
+query links are unavailable; its source may contain timeRange or an analysisWindow, either
+directly or inside snapshot. These saved settings take precedence over current page filters.
+Include the exact start/end timestamps in every new telemetry question. Change the time window
+only when the user's new request explicitly asks for a different period. Never reinterpret an
+old "last 6 days" label relative to today or infer a query window from the first/last chart point.
+If the original window is unavailable, reuse the saved data for presentation changes and ask
+for the window before querying again. Preserve the current result if a requested transformation
+cannot be performed from its saved data.
 The first character must be { and the last character must be }.
 Do not wrap the object in a Markdown code fence or include prose before or after it. Do not call any function to
 write or save the result. tableMarkdown must be a complete Markdown table (or an empty table). When
@@ -876,7 +890,20 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 links, projects = _successful_links_and_projects(
                     state, execution.block.investigation.organization
                 )
-                result["queryLinks"] = links
+                if links:
+                    result["queryLinks"] = freeze_query_links(
+                        links, reference_time=execution.started_at or execution.date_added
+                    )
+                else:
+                    previous_result: dict[str, Any] = next(
+                        (
+                            item["result"]
+                            for item in execution.input_snapshot.get("context", [])
+                            if item.get("currentBlock") is True
+                        ),
+                        {},
+                    )
+                    result["queryLinks"] = previous_result.get("queryLinks", [])
                 result = validate_query_result(result)
                 allowed_project_ids = set(execution.input_snapshot.get("projectIds", []))
                 queried_project_ids = {project.id for project in projects}

@@ -189,6 +189,105 @@ class InvestigationExecutionServiceTest(TestCase):
         with pytest.raises(InvestigationValidationError):
             self.run_block(block)
 
+    def test_refinement_keeps_the_original_window_after_ten_days(self) -> None:
+        original_end = timezone.now() - timedelta(days=10)
+        original_start = original_end - timedelta(days=6)
+        self.investigation.update(filters={"statsPeriod": "6d"})
+        block = self.create_block(prompt="Show a bar chart instead")
+        previous = self.create_execution(
+            block,
+            started_at=original_end,
+            input_snapshot={"filters": {"statsPeriod": "6d", "environment": ["production"]}},
+        )
+        original_link = {
+            "kind": "telemetry",
+            "params": {"dataset": "errors", "query": "", "stats_period": "6d"},
+        }
+        previous.update(result={**previous.result, "queryLinks": [original_link]})
+        previous.data_projects.add(self.project)
+        block.update(result_execution=previous)
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        current = snapshot["context"][0]
+        assert current["result"]["queryLinks"] == [
+            {
+                "kind": "telemetry",
+                "params": {
+                    "dataset": "errors",
+                    "query": "",
+                    "start": original_start.isoformat(),
+                    "end": original_end.isoformat(),
+                },
+            }
+        ]
+        assert snapshot["queryContext"]["filters"] == {
+            "environment": ["production"],
+            "start": original_start.isoformat(),
+            "end": original_end.isoformat(),
+        }
+        previous.refresh_from_db()
+        assert previous.result["queryLinks"] == [original_link]
+
+        refined = self.create_execution(
+            block,
+            started_at=timezone.now(),
+            input_snapshot=snapshot,
+            result=current["result"],
+        )
+        refined.data_projects.add(self.project)
+        block.update(result_execution=refined)
+        self.investigation.update(filters={"statsPeriod": "24h"})
+
+        next_snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert (
+            next_snapshot["context"][0]["result"]["queryLinks"] == current["result"]["queryLinks"]
+        )
+        assert next_snapshot["queryContext"] == snapshot["queryContext"]
+
+    def test_refinement_keeps_explicit_query_bounds_and_original_source(self) -> None:
+        time_range = {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"}
+        source = {"type": "manual", "timeRange": time_range}
+        block = self.create_block()
+        previous = self.create_execution(block, input_snapshot={"source": source})
+        link = {"kind": "telemetry", "params": {"dataset": "errors", **time_range}}
+        previous.update(result={**previous.result, "queryLinks": [link]})
+        previous.data_projects.add(self.project)
+        block.update(result_execution=previous)
+        self.investigation.update(source={"type": "manual", "prompt": "Changed source"})
+
+        snapshot, _ = build_block_execution_snapshot(
+            block=block, projects=[self.project], accessible_project_ids={self.project.id}
+        )
+
+        assert snapshot["context"][0]["queryContext"]["source"] == source
+        assert snapshot["context"][0]["result"]["queryLinks"] == [link]
+
+    def test_relative_filters_keep_the_same_request_fingerprint(self) -> None:
+        self.investigation.update(filters={"statsPeriod": "6d"})
+        block = self.create_block()
+        started_at = timezone.now()
+        with mock.patch(
+            "sentry.investigations.services.executions.timezone.now", return_value=started_at
+        ):
+            _, first = build_block_execution_snapshot(
+                block=block, projects=[self.project], accessible_project_ids={self.project.id}
+            )
+        with mock.patch(
+            "sentry.investigations.services.executions.timezone.now",
+            return_value=started_at + timedelta(minutes=1),
+        ):
+            _, retry = build_block_execution_snapshot(
+                block=block, projects=[self.project], accessible_project_ids={self.project.id}
+            )
+
+        assert first == retry
+
     def test_rejects_duplicate_project_scope(self) -> None:
         block = self.create_block()
         with pytest.raises(InvestigationValidationError):

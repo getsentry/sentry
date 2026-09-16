@@ -157,7 +157,7 @@ class InvestigationAgentTest(TestCase):
                             content=(
                                 '<UNTRUSTED_DATA source="sentry_api" trust="UNTRUSTED">\n'
                                 "{'result': '12 errors', 'link_params': "
-                                "{'dataset': 'errors', 'query': 'is:unresolved', "
+                                "{'dataset': 'errors', 'query': 'is:unresolved', 'stats_period': '6d', "
                                 f"'project_slugs': ['{self.project.slug}']}}}}\n"
                                 "</UNTRUSTED_DATA>"
                             ),
@@ -186,6 +186,10 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
         assert self.execution.result["queryLinks"][0]["kind"] == "telemetry"
+        params = self.execution.result["queryLinks"][0]["params"]
+        assert params["start"] == (self.execution.date_added - timedelta(days=6)).isoformat()
+        assert params["end"] == self.execution.date_added.isoformat()
+        assert "stats_period" not in params
         assert list(self.execution.data_projects.all()) == [self.project]
         assert self.block.result_execution == self.execution
 
@@ -214,8 +218,22 @@ class InvestigationAgentTest(TestCase):
         assert list(self.execution.data_projects.all()) == [self.project]
 
     def test_completed_query_keeps_reused_result_projects(self) -> None:
+        original_links = [
+            {
+                "kind": "telemetry",
+                "params": {
+                    "dataset": "errors",
+                    "query": "",
+                    "start": "2025-08-01T00:00:00Z",
+                    "end": "2025-08-07T00:00:00Z",
+                },
+            }
+        ]
         self.execution.input_snapshot["projectIds"] = []
         self.execution.input_snapshot["contextDataProjectIds"] = [self.project.id]
+        self.execution.input_snapshot["context"] = [
+            {"currentBlock": True, "result": {"queryLinks": original_links}}
+        ]
         self.execution.save(update_fields=["input_snapshot"])
         run_state = state(
             blocks=[
@@ -239,6 +257,7 @@ class InvestigationAgentTest(TestCase):
         self.execution.refresh_from_db()
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
+        assert self.execution.result["queryLinks"] == original_links
 
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
         client = MagicMock()

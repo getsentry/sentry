@@ -36,6 +36,7 @@ from sentry.investigations.services.parameters import (
 from sentry.investigations.telemetry import record_execution_cancelled
 from sentry.models.project import Project
 from sentry.utils import json
+from sentry.utils.dates import parse_stats_period
 
 MAX_CONTEXT_BLOCKS = 20
 MAX_CONTEXT_TEXT_CHARS = 50_000
@@ -46,6 +47,35 @@ DISPATCH_CLAIM_TIMEOUT = timedelta(minutes=5)
 def _fingerprint(snapshot: dict[str, Any]) -> str:
     serialized = json.dumps(snapshot, sort_keys=True)
     return hashlib.sha256(serialized.encode()).hexdigest()
+
+
+def freeze_query_time_range(params: dict[str, Any], *, reference_time: datetime) -> dict[str, Any]:
+    """Anchor relative windows to the execution that produced the saved data."""
+    frozen = dict(params)
+    if not (frozen.get("start") and frozen.get("end")):
+        period = frozen.get("stats_period") or frozen.get("statsPeriod")
+        if not isinstance(period, str) or frozen.get("start") or frozen.get("end"):
+            return frozen
+        duration = parse_stats_period(period)
+        if duration is None or duration <= timedelta():
+            return frozen
+        try:
+            start = reference_time - duration
+        except OverflowError:
+            return frozen
+        frozen.update(start=start.isoformat(), end=reference_time.isoformat())
+    frozen.pop("stats_period", None)
+    frozen.pop("statsPeriod", None)
+    return frozen
+
+
+def freeze_query_links(
+    links: list[dict[str, Any]], *, reference_time: datetime
+) -> list[dict[str, Any]]:
+    return [
+        {**link, "params": freeze_query_time_range(link["params"], reference_time=reference_time)}
+        for link in links
+    ]
 
 
 def _compact_query_context(
@@ -272,6 +302,8 @@ def build_block_execution_snapshot(
             raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
 
     prompt = (block.prompt or block.content).strip()
+    source = investigation_source(block.investigation)
+    filters = investigation_filters(block.investigation)
     parameters: dict[str, Any] = {}
     for link in block.parameter_links.select_related("parameter").order_by("parameter__key"):
         parameter = link.parameter
@@ -290,6 +322,7 @@ def build_block_execution_snapshot(
             except ParameterValidationError as error:
                 raise InvestigationValidationError({"parameters": {parameter.key: str(error)}})
         parameters[parameter.key] = value
+    query_context = {"source": source, "filters": filters, "parameters": parameters}
     if block.kind == InvestigationBlockKind.TEXT:
         dependencies, context, context_project_ids = _materialize_notebook_context(
             block, accessible_project_ids=accessible_project_ids
@@ -310,6 +343,23 @@ def build_block_execution_snapshot(
                 raise InvestigationValidationError(
                     {"context": "The previous query result uses inaccessible project data."}
                 )
+            reference_time = previous_execution.started_at or previous_execution.date_added
+            previous_input = previous_execution.input_snapshot
+            query_context = previous_input.get("queryContext") or {
+                "source": previous_input.get("source", source),
+                "filters": previous_input.get("filters", filters),
+                "parameters": previous_input.get("parameters", parameters),
+            }
+            query_context = {
+                **query_context,
+                "filters": freeze_query_time_range(
+                    query_context.get("filters", {}), reference_time=reference_time
+                ),
+            }
+            previous_result = _compact_query_context(previous_execution.result)
+            previous_result["queryLinks"] = freeze_query_links(
+                previous_result["queryLinks"], reference_time=reference_time
+            )
             context.insert(
                 0,
                 {
@@ -318,7 +368,8 @@ def build_block_execution_snapshot(
                     "title": block.title,
                     "currentBlock": True,
                     "visibleExecutionId": str(previous_execution.id),
-                    "result": _compact_query_context(previous_execution.result),
+                    "result": previous_result,
+                    "queryContext": query_context,
                 },
             )
             context_project_ids = sorted(set(context_project_ids).union(previous_project_ids))
@@ -329,8 +380,8 @@ def build_block_execution_snapshot(
     snapshot: dict[str, Any] = {
         "prompt": prompt,
         "organizationSlug": block.investigation.organization.slug,
-        "source": investigation_source(block.investigation),
-        "filters": investigation_filters(block.investigation),
+        "source": source,
+        "filters": filters,
         "parameters": parameters,
         "dependencies": dependencies,
         "context": context,
@@ -342,6 +393,8 @@ def build_block_execution_snapshot(
     }
     if dataset_hint is not None:
         snapshot["datasetHint"] = dataset_hint
+    if block.kind == InvestigationBlockKind.QUERY:
+        snapshot["queryContext"] = query_context
     return snapshot, _fingerprint(snapshot)
 
 
