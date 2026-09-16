@@ -139,7 +139,10 @@ export function SnapshotHeaderActions({
   const handleApprove = () =>
     submitApproval({forced: false, successMessage: t('Snapshot approved')});
   const handleReapprove = () =>
-    submitApproval({forced: false, successMessage: t('Approval re-sent to GitHub')});
+    submitApproval({
+      forced: isForceApprovableSnapshotState(comparisonState),
+      successMessage: t('Approval re-sent to GitHub'),
+    });
 
   const handleForceApprove = () => {
     openConfirmModal({
