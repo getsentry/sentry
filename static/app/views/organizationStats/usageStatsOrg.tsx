@@ -148,6 +148,7 @@ export function getChartProps({
     | 'chartDateStartDisplay'
     | 'chartDateTimezoneDisplay'
     | 'chartDateEndDisplay'
+    | 'chartTruncated'
     | 'cardStats'
   >;
   dataCategory: DataCategory;
