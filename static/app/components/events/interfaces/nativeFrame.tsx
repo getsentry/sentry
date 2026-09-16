@@ -17,7 +17,6 @@ import {
   hasAssembly,
   hasContextRegisters,
   hasContextSource,
-  hasContextVars,
   isExpandable,
   trimPackage,
 } from 'sentry/components/events/interfaces/frame/utils';
@@ -448,15 +447,12 @@ export function NativeFrame({
           registers={registers}
           components={components}
           hasContextSource={hasContextSource(frame)}
-          hasContextVars={hasContextVars(frame)}
           hasContextRegisters={hasContextRegisters(registers)}
           emptySourceNotation={emptySourceNotation}
           hasAssembly={hasAssembly(frame, platform)}
           hasScmSourceContext={hasScmSourceContext}
           isExpanded={expanded}
           registersMeta={registersMeta}
-          frameMeta={frameMeta}
-          platform={platform}
         />
       )}
     </StackTraceFrame>
