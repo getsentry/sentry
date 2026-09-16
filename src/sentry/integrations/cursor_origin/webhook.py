@@ -19,12 +19,16 @@ from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_WEBHOOK_DEDUPE_SECONDS,
     CURSOR_ORIGIN_WEBHOOK_SIGNATURE_PREFIX,
     CURSOR_ORIGIN_WEBHOOK_TOLERANCE_SECONDS,
 )
+from sentry.integrations.cursor_origin.handlers import HANDLERS
 from sentry.integrations.cursor_origin.keys import signing_keys_for
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.cursor_origin")
@@ -54,6 +58,11 @@ def has_already_processed(delivery_id: str) -> bool:
     return not cache.add(
         f"cursor_origin:webhook:{delivery_id}", 1, CURSOR_ORIGIN_WEBHOOK_DEDUPE_SECONDS
     )
+
+
+def _release_delivery(delivery_id: str) -> None:
+    """Let Origin's next retry through, after this attempt failed to process it."""
+    cache.delete(f"cursor_origin:webhook:{delivery_id}")
 
 
 def _timestamp_is_fresh(timestamp: str) -> bool:
@@ -166,12 +175,30 @@ class CursorOriginWebhookEndpoint(Endpoint):
             metrics.incr("cursor_origin.webhook.duplicate", sample_rate=1.0)
             return HttpResponse(status=204)
 
+        event = envelope.get("event") or {}
+        event_type = event.get("type")
         logger.info(
             "cursor_origin.webhook.received",
             extra={
-                "delivery_id": envelope.get("deliveryId"),
-                "event_type": envelope.get("event", {}).get("type"),
+                "delivery_id": delivery_id,
+                "event_type": event_type,
                 "installation_id": envelope.get("installationId"),
             },
         )
+
+        handler_cls = HANDLERS.get(event_type) if event_type else None
+        if handler_cls is None:
+            return HttpResponse(status=204)
+
+        try:
+            with IntegrationWebhookEvent(
+                interaction_type=handler_cls.EVENT_TYPE,
+                domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
+                provider_key=IntegrationProviderSlug.CURSOR_ORIGIN.value,
+            ).capture():
+                handler_cls()(event.get("payload") or {}, delivery_id)
+        except Exception:
+            _release_delivery(delivery_id)
+            raise
+
         return HttpResponse(status=204)

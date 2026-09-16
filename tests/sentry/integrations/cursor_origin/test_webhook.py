@@ -9,7 +9,10 @@ import orjson
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.cursor_origin.keys import OriginSigningKey
+from sentry.integrations.cursor_origin.webhook import has_already_processed
+from sentry.integrations.models.integration import Integration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -28,7 +31,7 @@ def _envelope(app_id: str = APP_ID, event_type: str = "installation.deleted") ->
                 "id": "evt_01example",
                 "type": event_type,
                 "eventTime": "2026-09-16T10:03:00Z",
-                "payload": {},
+                "payload": {"installation": {"id": "i_01example"}},
             },
         }
     )
@@ -85,6 +88,27 @@ class CursorOriginWebhookTest(APITestCase):
                 },
             )
         return response.status_code
+
+    def test_an_uninstall_disables_the_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id="i_01example",
+        )
+
+        assert self._post(body=_envelope(event_type="installation.deleted")) == 204
+
+        assert Integration.objects.get(id=integration.id).status == ObjectStatus.DISABLED
+
+    def test_a_failed_handler_leaves_the_delivery_for_the_retry(self) -> None:
+        with mock.patch(
+            "sentry.integrations.cursor_origin.handlers.integration_service.organization_contexts",
+            side_effect=ValueError("boom"),
+        ):
+            assert self._post(body=_envelope(event_type="installation.deleted")) == 500
+
+        assert not has_already_processed(DELIVERY_ID)
 
     def test_get_is_not_allowed(self) -> None:
         assert self.client.get(self.url).status_code == 405
