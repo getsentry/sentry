@@ -907,11 +907,328 @@ describe('trace view', () => {
     globalThis.ResizeObserver = undefined;
   });
 
+  describe('attribute pinning', () => {
+    function setupPinnedTrace(
+      features = ['trace-spans-format', 'trace-waterfall-attribute-pinning']
+    ) {
+      jest
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockReturnValue(new DOMRect(0, 0, 1000, 500));
+      const start = Date.now() / 1000;
+      const root = makeEAPSpan({
+        event_id: 'pin-root',
+        event_type: 'span',
+        description: 'pinnable root',
+        is_transaction: true,
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        children: [
+          makeEAPSpan({
+            event_id: 'pin-child',
+            event_type: 'span',
+            description: 'pinnable child',
+            start_timestamp: start,
+            end_timestamp: start + 0.5,
+          }),
+        ],
+      });
+      const organization = OrganizationFixture({features});
+      mockPerformanceSubscriptionDetailsResponse();
+      mockProjectDetailsResponse();
+      mockTraceRootFacets();
+      mockEventsResponse();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        body: [root],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-meta/trace-id/',
+        body: {
+          errorsCount: 0,
+          logsCount: 0,
+          metricsCount: 0,
+          performanceIssuesCount: 0,
+          spansCount: 2,
+          spansCountMap: {},
+          transactionChildCountMap: [],
+        },
+      });
+      for (const itemId of ['pin-root', 'pin-child']) {
+        MockApiClient.addMockResponse({
+          url: `/projects/org-slug/project_slug/trace-items/${itemId}/`,
+          body: {
+            itemId,
+            links: null,
+            meta: {},
+            timestamp: new Date(start * 1000).toISOString(),
+            attributes: [
+              {name: 'custom.region', type: 'str', value: 'drawer-region'},
+              {name: 'custom.size', type: 'integer', value: 0},
+            ],
+          },
+        });
+      }
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/logs/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+      return {organization, root};
+    }
+
+    it('waits for the trace to load before showing a shared pin', async () => {
+      const {organization, root} = setupPinnedTrace();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        asyncDelay: 500,
+        body: [root],
+      });
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        body: [{...root, additional_attributes: {'custom.region': 'waterfall-region'}}],
+      });
+      mockQueryString('?pinnedAttribute=custom.region');
+      const {router} = render(<TraceView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: '/organizations/org-slug/performance/trace/trace-id/',
+            query: {pinnedAttribute: 'custom.region'},
+          },
+        },
+      });
+
+      expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Unpin attribute'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('separator', {name: 'Resize tree and attribute columns'})
+      ).not.toBeInTheDocument();
+      expect(attributeRequest).not.toHaveBeenCalled();
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
+
+      expect(await screen.findByText('waterfall-region')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Unpin attribute'})).toBeInTheDocument();
+      expect(attributeRequest).toHaveBeenCalledTimes(1);
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
+    });
+
+    it('pins from the drawer, resizes both edges independently, replaces the pin and unpins', async () => {
+      const {organization, root} = setupPinnedTrace();
+      const regionRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        body: [{...root, additional_attributes: {'custom.region': 'waterfall-region'}}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.size']})],
+        body: [{...root, additional_attributes: {'custom.size': 0}}],
+      });
+      const {router} = render(<TraceView />, {initialRouterConfig, organization});
+      await userEvent.click(await screen.findByText('pinnable root'));
+      await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
+      const nodeBeforePin = router.location.query.node;
+      await userEvent.click(
+        within(
+          (await screen.findByTestId('tree-key-custom.region')).closest<HTMLElement>(
+            '[data-test-id="attribute-tree-row"]'
+          )!
+        ).getByRole('button', {name: 'Attribute Actions Menu'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Pin to waterfall'})
+      );
+      const value = await screen.findByText('waterfall-region');
+      expect(regionRequest).toHaveBeenCalledTimes(1);
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
+      expect(
+        within(screen.getByTestId('tree-key-custom.region')).getByRole('img', {
+          name: 'Pinned attribute',
+        })
+      ).toBeInTheDocument();
+      expect(router.location.query.node).toEqual(nodeBeforePin);
+      await userEvent.click(
+        within(
+          (await screen.findByTestId('tree-key-custom.region')).closest<HTMLElement>(
+            '[data-test-id="attribute-tree-row"]'
+          )!
+        ).getByRole('button', {name: 'Attribute Actions Menu'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {name: 'Unpin from waterfall'})
+      ).toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+      const waterfall = value.closest<HTMLElement>('.WithPinnedAttribute')!;
+      const originalTimelineWidth = Number(
+        waterfall.style.getPropertyValue('--span-column-width')
+      );
+      const left = screen.getByRole('separator', {
+        name: 'Resize tree and attribute columns',
+      });
+      left.focus();
+      await userEvent.keyboard('{ArrowRight}');
+      expect(Number(waterfall.style.getPropertyValue('--span-column-width'))).toBe(
+        originalTimelineWidth
+      );
+      const originalTreeWidth = waterfall.style.getPropertyValue('--pinned-list-width');
+      screen
+        .getByRole('separator', {name: 'Resize attribute and timeline columns'})
+        .focus();
+      await userEvent.keyboard('{ArrowRight}');
+      expect(
+        parseFloat(waterfall.style.getPropertyValue('--pinned-list-width'))
+      ).toBeCloseTo(parseFloat(originalTreeWidth));
+      expect(
+        Number(waterfall.style.getPropertyValue('--span-column-width'))
+      ).toBeLessThan(originalTimelineWidth);
+      await userEvent.click(
+        within(
+          (await screen.findByTestId('tree-key-custom.size')).closest<HTMLElement>(
+            '[data-test-id="attribute-tree-row"]'
+          )!
+        ).getByRole('button', {name: 'Attribute Actions Menu'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Pin to waterfall'})
+      );
+      await waitFor(() =>
+        expect(router.location.query.pinnedAttribute).toBe('custom.size')
+      );
+      expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('tree-key-custom.region')).queryByRole('img', {
+          name: 'Pinned attribute',
+        })
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('tree-key-custom.size')).getByRole('img', {
+          name: 'Pinned attribute',
+        })
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Copy attribute value'})
+      ).toBeInTheDocument();
+      await userEvent.click(
+        within(
+          (await screen.findByTestId('tree-key-custom.size')).closest<HTMLElement>(
+            '[data-test-id="attribute-tree-row"]'
+          )!
+        ).getByRole('button', {name: 'Attribute Actions Menu'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Unpin from waterfall'})
+      );
+      expect(router.location.query.pinnedAttribute).toBeUndefined();
+      expect(
+        screen.queryByRole('img', {name: 'Pinned attribute'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('separator', {name: 'Resize tree and attribute columns'})
+      ).not.toBeInTheDocument();
+      expect(router.location.query.node).toEqual(nodeBeforePin);
+      router.navigate(-1);
+      await waitFor(() => expect(router.location.query.pinnedAttribute).toBeUndefined());
+    });
+
+    it('loads a shared pin, keeps the trace usable on failure, and retries only the attribute', async () => {
+      const {organization, root} = setupPinnedTrace();
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        statusCode: 500,
+      });
+      mockQueryString('?pinnedAttribute=custom.region');
+      const routerConfig = {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          pathname: '/organizations/org-slug/performance/trace/trace-id/',
+          query: {pinnedAttribute: 'custom.region'},
+        },
+      };
+      const {router} = render(<TraceView />, {
+        initialRouterConfig: routerConfig,
+        organization,
+      });
+      expect(await screen.findByText('Could not load attribute')).toBeInTheDocument();
+      expect(screen.getByText('pinnable root')).toBeInTheDocument();
+      expect(attributeRequest).toHaveBeenCalledTimes(1);
+      await userEvent.click(screen.getByText('pinnable root'));
+      await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
+      const selectedNode = router.location.query.node;
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        body: [{...root, additional_attributes: {'custom.region': 'recovered-region'}}],
+      });
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Retry loading attribute'})
+      );
+      expect(await screen.findByText('recovered-region')).toBeInTheDocument();
+      expect(router.location.query.node).toEqual(selectedNode);
+      expect(screen.queryByText('Could not load attribute')).not.toBeInTheDocument();
+    });
+
+    it('ignores URL pins and hides controls when the flag is absent', async () => {
+      const {organization} = setupPinnedTrace(['trace-spans-format']);
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        body: [],
+      });
+      mockQueryString('?pinnedAttribute=custom.region');
+      const routerConfig = {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          pathname: '/organizations/org-slug/performance/trace/trace-id/',
+          query: {pinnedAttribute: 'custom.region'},
+        },
+      };
+      render(<TraceView />, {initialRouterConfig: routerConfig, organization});
+      await userEvent.click(await screen.findByText('pinnable root'));
+      expect(await screen.findByText('drawer-region')).toBeInTheDocument();
+      await userEvent.click(
+        within(
+          (await screen.findByTestId('tree-key-custom.region')).closest<HTMLElement>(
+            '[data-test-id="attribute-tree-row"]'
+          )!
+        ).getByRole('button', {name: 'Attribute Actions Menu'})
+      );
+      expect(
+        await screen.findByRole('menuitemradio', {
+          name: 'Copy attribute value to clipboard',
+        })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Pin to waterfall'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Unpin from waterfall'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Unpin attribute'})
+      ).not.toBeInTheDocument();
+      expect(attributeRequest).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Escape}');
+    });
+  });
+
   it('renders loading state', async () => {
     mockPerformanceSubscriptionDetailsResponse();
     mockProjectDetailsResponse();
 
-    mockTraceResponse();
+    mockTraceResponse({
+      asyncDelay: 1000,
+      body: {transactions: [], orphan_errors: []},
+    });
     mockTraceMetaResponse();
     mockTraceTagsResponse();
     mockEventsResponse();
