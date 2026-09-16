@@ -526,6 +526,25 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         assert handler.evaluate(self.packet(10)).result == {}
 
+    def test_evaluate__no_result_when_the_triggered_priority_is_ok(self) -> None:
+        detector = self.create_detector_with_condition(
+            comparison=5,
+            condition_result=DetectorPriorityLevel.OK,
+        )
+
+        handler = MockDefaultDetectorHandler(detector)
+
+        trigger_evaluation, priority = handler.evaluate_conditions(10)
+
+        assert trigger_evaluation is not None
+        assert trigger_evaluation.triggered is True
+        assert priority == DetectorPriorityLevel.OK
+
+        result = handler.evaluate(self.packet(10))
+
+        assert result.result == {}
+        assert result.tainted is False
+
     def test_evaluate__group_key_is_none(self) -> None:
         assert self.evaluate_triggered().data["group_key"] is None
 
