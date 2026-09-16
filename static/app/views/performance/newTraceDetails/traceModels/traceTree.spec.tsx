@@ -7,11 +7,11 @@ import {
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
-  isSpanNode,
   isTransactionNode,
 } from './../traceGuards';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
+import {SpanNode} from './traceTreeNode/spanNode';
 import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
@@ -1625,7 +1625,7 @@ describe('TraceTree', () => {
         api: new MockApiClient(),
       });
 
-      const spans = tree.root.findAllChildren(n => isSpanNode(n));
+      const spans = tree.root.findAllChildren(n => n instanceof SpanNode);
       expect(spans).toHaveLength(1);
       expect(tree.serialize()).toMatchSnapshot();
     });
@@ -1792,7 +1792,7 @@ describe('TraceTree', () => {
           });
 
           const span = tree.root.findChild(
-            node => isSpanNode(node) && node.value.span_id === '0000'
+            node => node instanceof SpanNode && node.value.span_id === '0000'
           )!;
 
           span.expand(expanded, tree);
@@ -1994,7 +1994,7 @@ describe('TraceTree', () => {
           });
 
           const span = tree.root.findChild(
-            node => isSpanNode(node) && node.value.span_id === '0000'
+            node => node instanceof SpanNode && node.value.span_id === '0000'
           )!;
 
           span.expand(expanded, tree);
@@ -2284,7 +2284,7 @@ describe('TraceTree', () => {
         organization,
       });
 
-      const span = tree.root.findChild(node => isSpanNode(node))!;
+      const span = tree.root.findChild(node => node instanceof SpanNode)!;
       const path = span.pathToNode();
       expect(path).toEqual(['span-span-id', 'txn-child-event-id']);
     });
@@ -2345,7 +2345,7 @@ describe('TraceTree', () => {
         ]);
 
         const requestSpan = tree.root.findChild(
-          node => isSpanNode(node) && node.value.description === 'request'
+          node => node instanceof SpanNode && node.value.description === 'request'
         )!;
         expect(requestSpan.pathToNode()).toEqual([
           'span-child-span-id',
