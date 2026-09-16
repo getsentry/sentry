@@ -552,6 +552,8 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
 }
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
+  padding-left: ${p => p.theme.space.lg};
+
   p {
     color: ${p =>
       p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
@@ -559,14 +561,24 @@ const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
 `;
 
 const TaskGroupBody = styled('ul')`
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
   border-radius: ${p => p.theme.radius.md};
   list-style-type: none;
-  padding: 0;
+  padding: 0 0 0 ${p => p.theme.space.lg};
   margin: 0;
 `;
 
 const TaskWrapper = styled('li')`
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   gap: ${p => p.theme.space.md};
+
+  > * {
+    grid-column: 1 / -1;
+  }
+
   p {
     color: ${p => p.theme.tokens.content.secondary};
   }
@@ -575,7 +587,7 @@ const TaskWrapper = styled('li')`
 const TaskCardWrapper = styled('div')`
   position: relative;
   display: grid;
-  grid-template-columns: 22px 1fr max-content;
+  grid-template-columns: subgrid;
   gap: ${p => p.theme.space.lg};
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
   border-radius: ${p => p.theme.radius.md};
