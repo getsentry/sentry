@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs
+    step_args: RCAStepArgs | None = None
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
@@ -74,6 +74,9 @@ def trigger_autofix_feature(
                 },
             )
             raise NoSeerQuotaException()
+
+    if args.step == AutofixStep.ROOT_CAUSE and args.step_args is None:
+        raise ValueError("step_args is required for root cause step")
 
     payload = AutofixFeaturePayload(
         group_id=group.id,
@@ -160,6 +163,7 @@ def trigger_autofix_feature(
     logger.info(
         "autofix_feature.dispatch.started",
         extra={
+            "step": args.step.value,
             "group_id": group.id,
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
