@@ -217,13 +217,23 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
+        group_id, run_referrer = cls._resolve_group_id(organization, run_id, state)
+
+        # this must run before we null check group id else we won't get the analytics required for pr iteration
         if state.status == "error":
             current_step, _ = cls._get_current_step(state)
             if current_step == AutofixStep.PR_ITERATION:
-                cls._fail_pr_iteration(organization, run_id, state)
+                cls._fail_pr_iteration(organization, run_id, state, group_id)
                 return
 
-        group, run_referrer = cls._resolve_group(organization, run_id, state)
+        if group_id is None:
+            logger.warning(
+                "autofix.on_completion_hook.missing_group_id",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+
+        group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
             return
 
@@ -252,12 +262,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             ).update(last_triggered_at=now)
 
         current_step, _ = cls._get_current_step(state)
-        log_ctx = cls._iteration_log_context(organization, group, state)
-        set_pr_iteration_attributes(
-            group_id=group.id,
-            iteration_id=log_ctx.iteration_id,
-        )
         if current_step == AutofixStep.PR_ITERATION:
+            log_ctx = cls._iteration_log_context(organization, group, state)
+            set_pr_iteration_attributes(
+                group_id=group.id,
+                iteration_id=log_ctx.iteration_id,
+            )
             has_changes, is_synced = state.has_code_changes()
             log_ctx.info(
                 "autofix.pr_iteration.completion_hook.received",
@@ -292,22 +302,20 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
-    def _resolve_group(
+    def _resolve_group_id(
         cls, organization: Organization, run_id: int, state: SeerRunState
-    ) -> tuple[Group, AutofixReferrer | None] | tuple[None, None]:
-        """The run's group, from the run state or the Sentry-side run mirror."""
+    ) -> tuple[int | None, AutofixReferrer | None]:
+        """The run's group id, from the run state or the Sentry-side run mirror."""
         metadata = state.metadata or {}
         group_id = metadata.get("group_id")
         mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
         if group_id is None:
             group_id = mirror_group_id
-        if group_id is None:
-            logger.warning(
-                "autofix.on_completion_hook.missing_group_id",
-                extra={"run_id": run_id, "organization_id": organization.id},
-            )
-            return None, None
+        return group_id, run_referrer
 
+    @classmethod
+    def _fetch_group(cls, organization: Organization, run_id: int, group_id: int) -> Group | None:
+        """The run's group, scoped to the organization."""
         group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
         if group is None:
             logger.warning(
@@ -318,9 +326,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "group_id": group_id,
                 },
             )
-            return None, None
-
-        return group, run_referrer
+        return group
 
     @classmethod
     def _iteration_log_context(
@@ -340,13 +346,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
+        group_id: int | None,
     ) -> None:
-        """Pause the failed run. Then record the batch that the run stopped.
-
-        The group is not known here. As a result, the identity comes from the
-        run metadata.
-        """
-        group_id = (state.metadata or {}).get("group_id")
+        """Pause the failed run. Then record the batch that the run stopped."""
         log_ctx = PrIterationLogContext.for_run(
             logger, state, organization.id, group_id, iteration=LogCtxIteration.TRIGGERED
         )
