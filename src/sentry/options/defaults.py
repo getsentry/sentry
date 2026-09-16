@@ -1405,7 +1405,7 @@ register(
 register(
     "issues.action_log.dedicated_outbox_rollout_rate",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
