@@ -1,11 +1,18 @@
 import {TransactionEventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import {
+  useCopyIssueDetails,
+  useIssueDetailsMarkdown,
+} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 
 import {slowDBQuerySpanFromTraceItem} from './slowDBQuerySpan';
 import {SpanEvidenceKeyValueList} from './spanEvidenceKeyValueList';
@@ -95,6 +102,30 @@ function renderEvidence(event = occurrenceEvent(), features = organization.featu
       },
     },
   });
+}
+
+const group = GroupFixture({
+  project,
+  issueCategory: IssueCategory.PERFORMANCE,
+  issueType: IssueType.PERFORMANCE_SLOW_DB_QUERY,
+});
+
+function EvidenceWithCopy({event}: {event: EventTransaction}) {
+  const {text, isPending} = useIssueDetailsMarkdown(group, event);
+  useCopyIssueDetails(group, event);
+  return (
+    <div>
+      <CopyAsDropdown
+        isDisabled={isPending}
+        items={CopyAsDropdown.makeDefaultCopyAsOptions({
+          text: undefined,
+          json: undefined,
+          markdown: () => text,
+        })}
+      />
+      <SpanEvidenceKeyValueList event={event} projectSlug={project.slug} />
+    </div>
+  );
 }
 
 describe('Slow-query evidence from the spans dataset', () => {
@@ -389,5 +420,161 @@ describe('Slow-query evidence from the spans dataset', () => {
     expect(
       screen.getByTestId('span-evidence-key-value-list.slow-db-query')
     ).not.toHaveTextContent('SELECT id FROM books');
+  });
+
+  describe('copying the displayed evidence', () => {
+    beforeEach(() => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {writeText: jest.fn().mockResolvedValue(undefined)},
+      });
+    });
+    function renderWithCopy(event = occurrenceEvent(), features = organization.features) {
+      return render(<EvidenceWithCopy event={event} />, {
+        organization: OrganizationFixture({features}),
+      });
+    }
+
+    async function copyFromMenu() {
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Markdown'}));
+    }
+
+    it.each([false, true])(
+      'copies dataset evidence with recorded spans=%s',
+      async hasSnapshot => {
+        const request = MockApiClient.addMockResponse({
+          url: detailsUrl,
+          body: spanResponse(),
+        });
+        renderWithCopy(
+          occurrenceEvent({
+            entries: hasSnapshot ? recordedSpanEntries() : [],
+            formatted: {
+              format: 'markdown',
+              content: 'SELECT id FROM server_recorded_books',
+            },
+          })
+        );
+        const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+
+        await screen.findByText(/\/app\/books.py/);
+        await copyFromMenu();
+        expect(writeText).toHaveBeenLastCalledWith(
+          expect.stringMatching(/SELECT id\s+FROM books/)
+        );
+        const markdown = writeText.mock.calls.at(-1)![0];
+        expect(markdown).toContain('25% of txn');
+        expect(markdown).toContain('/app/books.py:42 getBooks');
+        expect(markdown).not.toContain('recorded_books');
+
+        await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
+        expect(writeText).toHaveBeenLastCalledWith(markdown);
+        expect(request).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it.each([404, 500])(
+      'copies the same recorded fallback after a %s',
+      async statusCode => {
+        const request = MockApiClient.addMockResponse({
+          url: detailsUrl,
+          statusCode,
+          body: {detail: 'Span unavailable'},
+        });
+        renderWithCopy(occurrenceEvent({entries: recordedSpanEntries()}));
+        const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+
+        await screen.findByText(/50%/);
+        await copyFromMenu();
+        expect(writeText).toHaveBeenLastCalledWith(
+          expect.stringContaining('recorded_books')
+        );
+        expect(writeText.mock.calls.at(-1)![0]).toContain('50% of txn');
+        expect(request).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it('copies an unavailable state when neither source has evidence', async () => {
+      MockApiClient.addMockResponse({
+        url: detailsUrl,
+        statusCode: 404,
+        body: {detail: 'Not found'},
+      });
+      renderWithCopy();
+      const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+
+      await screen.findByText('Span evidence is unavailable.');
+      await copyFromMenu();
+      expect(writeText).toHaveBeenLastCalledWith(
+        expect.stringContaining('Span evidence is unavailable.')
+      );
+      expect(writeText.mock.calls.at(-1)![0]).not.toContain('**Duration:**');
+    });
+
+    it('keeps flag-off copying on the recorded evidence without fetching', async () => {
+      const request = MockApiClient.addMockResponse({
+        url: detailsUrl,
+        body: spanResponse(),
+      });
+      renderWithCopy(occurrenceEvent({entries: recordedSpanEntries()}), []);
+      const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+
+      await copyFromMenu();
+      expect(writeText).toHaveBeenLastCalledWith(
+        expect.stringContaining('recorded_books')
+      );
+      expect(request).not.toHaveBeenCalled();
+    });
+
+    it('omits duration from both the pane and copy when it is missing', async () => {
+      const response = spanResponse();
+      response.attributes = response.attributes.filter(
+        attribute => attribute.name !== 'span.duration'
+      );
+      MockApiClient.addMockResponse({url: detailsUrl, body: response});
+      renderWithCopy(occurrenceEvent({entries: recordedSpanEntries()}));
+      const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+
+      await screen.findByText(/\/app\/books.py/);
+      expect(
+        screen.queryByRole('cell', {name: 'Duration Impact'})
+      ).not.toBeInTheDocument();
+      await copyFromMenu();
+      expect(writeText.mock.calls.at(-1)![0]).not.toContain('**Duration:**');
+      expect(writeText.mock.calls.at(-1)![0]).not.toContain('50%');
+    });
+
+    it('prevents copying a previous occurrence while the selected span is loading', async () => {
+      MockApiClient.addMockResponse({url: detailsUrl, body: spanResponse()});
+      const {rerender} = renderWithCopy();
+      const writeText = jest.spyOn(navigator.clipboard, 'writeText');
+      await screen.findByText(/\/app\/books.py/);
+
+      const nextSpanId = 'fedcba0987654321';
+      const nextEvent = occurrenceEvent({entries: recordedSpanEntries()});
+      nextEvent.occurrence!.evidenceData.offenderSpanIds = [nextSpanId];
+      const nextResponse = spanResponse();
+      nextResponse.attributes[0]!.value = 'SELECT id FROM authors';
+      const {promise, resolve} = Promise.withResolvers<void>();
+      MockApiClient.addMockResponse({
+        url: detailsUrl.replace(spanId, nextSpanId),
+        body: nextResponse,
+        asyncDelay: promise,
+      });
+      rerender(<EvidenceWithCopy event={nextEvent} />);
+
+      expect(screen.getByRole('button', {name: 'Copy as'})).toBeDisabled();
+      await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
+      expect(writeText).not.toHaveBeenCalled();
+
+      await act(async () => resolve());
+      await screen.findByText(/SELECT id FROM authors/);
+      await copyFromMenu();
+      expect(writeText).toHaveBeenLastCalledWith(
+        expect.stringMatching(/SELECT id\s+FROM authors/)
+      );
+      expect(writeText.mock.calls.at(-1)![0]).not.toMatch(/SELECT id\s+FROM books/);
+    });
   });
 });

@@ -1,7 +1,9 @@
 import {useCallback, useMemo, useSyncExternalStore} from 'react';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {toast} from '@sentry/scraps/toast';
 
 import {
   type ExplorerAutofixState,
@@ -12,6 +14,12 @@ import {
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {
+  resolveSlowDBQueryEvidence,
+  slowDBQueryEvidenceOptions,
+  usesSlowDBQuerySpanData,
+} from 'sentry/components/events/interfaces/performance/slowDBQueryEvidence';
+import type {SlowDBQuerySpan} from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
 import {NODE_ENV} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
@@ -260,6 +268,7 @@ interface IssueAndEventToMarkdownOptions {
   autofixData?: ExplorerAutofixState | null;
   autofixFormatted?: string | null;
   event?: Event | null;
+  slowDBQuerySpan?: SlowDBQuerySpan | null;
 }
 
 export const issueAndEventToMarkdown = ({
@@ -268,9 +277,12 @@ export const issueAndEventToMarkdown = ({
   autofixData,
   activeThreadId,
   autofixFormatted,
+  slowDBQuerySpan,
 }: IssueAndEventToMarkdownOptions): string => {
   const formatted = event?.formatted?.content;
-  if (formatted) {
+  // Server-rendered Markdown includes the recorded span snapshot. Use the
+  // client formatter when the pane resolves its evidence from the spans dataset.
+  if (formatted && slowDBQuerySpan === undefined) {
     let llmMarkdown = `**Issue ID:** ${group.id}\n`;
     if (group.project?.slug) {
       llmMarkdown += `**Project:** ${group.project.slug}\n`;
@@ -346,22 +358,32 @@ export const issueAndEventToMarkdown = ({
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event, group);
+    markdownText += formatSpanEvidenceToMarkdown(event, group, slowDBQuerySpan);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
   return markdownText;
 };
 
-export const useCopyIssueDetails = (group: Group, event?: Event) => {
+export const useIssueDetailsMarkdown = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
   const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
     enabled: false,
   });
   const activeThreadId = useActiveThreadId();
+  const options = slowDBQueryEvidenceOptions({
+    organization,
+    event,
+    projectSlug: group.project.slug,
+  });
+  const spanQuery = useQuery(options);
+  const isPending = options.enabled && spanQuery.isPending;
 
   const text = useMemo(() => {
+    if (isPending) {
+      return '';
+    }
     return issueAndEventToMarkdown({
       group,
       event,
@@ -369,21 +391,44 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       activeThreadId,
       organization,
       autofixFormatted,
+      slowDBQuerySpan: usesSlowDBQuerySpanData(organization, event)
+        ? resolveSlowDBQueryEvidence(event, spanQuery.data)
+        : undefined,
     });
-  }, [group, event, autofixData, activeThreadId, organization, autofixFormatted]);
+  }, [
+    group,
+    event,
+    autofixData,
+    activeThreadId,
+    organization,
+    autofixFormatted,
+    spanQuery.data,
+    isPending,
+  ]);
+
+  return {text, isPending, hasAutofix: Boolean(autofixData)};
+};
+
+export const useCopyIssueDetails = (group: Group, event?: Event) => {
+  const organization = useOrganization();
+  const {text, isPending, hasAutofix} = useIssueDetailsMarkdown(group, event);
 
   const {copy} = useCopyToClipboard();
 
   const handleCopyIssueDetailsAsMarkdown = useCallback(() => {
+    if (isPending) {
+      toast.message(t('Span evidence is loading. Try copying again in a moment.'));
+      return;
+    }
     copy(text, {successMessage: t('Copied issue to clipboard as Markdown')}).then(() => {
       trackAnalytics('issue_details.copy_issue_details_as_markdown', {
         organization,
         groupId: group.id,
         eventId: event?.id,
-        hasAutofix: Boolean(autofixData),
+        hasAutofix,
       });
     });
-  }, [copy, text, organization, group.id, event?.id, autofixData]);
+  }, [copy, text, organization, group.id, event?.id, hasAutofix, isPending]);
 
   useHotkeys([
     {
