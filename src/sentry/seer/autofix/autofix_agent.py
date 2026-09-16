@@ -47,6 +47,7 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     RepoPin,
     RepoPins,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.pr_iteration.constants import (
     MANUAL_FLAG,
@@ -550,12 +551,12 @@ def trigger_autofix_agent(
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
-        step_args = None
         if step == AutofixStep.ROOT_CAUSE:
             step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
-
-        if step == AutofixStep.SOLUTION and run_id is None:
-            raise ValueError("solution step requires a run id")
+        elif step == AutofixStep.SOLUTION:
+            step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_tools)
+        else:
+            raise ValueError(f"invalid step: {step}")
 
         args = AutofixFeatureArgs(
             step=step,
