@@ -63,9 +63,8 @@ def run_project_balancing(
         if project_volume.project_id in project_ids and project_volume.total > 0:
             counts_by_project[project_volume.project_id] = project_volume.total
 
-    # Mirror the legacy serving path (get_guarded_project_sample_rate): a 100% org sample
-    # rate means every project is sampled at 100% and the balanced ("boost low volume
-    # projects") rate is never applied. Reproduced intentionally to match the legacy pipeline.
+    # A 100% org sample rate means every project is sampled at 100%, so the balanced rate
+    # is never applied. Serving applies the same gate in get_guarded_project_sample_rate.
     if sample_rate == 1.0:
         return [
             RebalancedItem(
@@ -77,13 +76,13 @@ def run_project_balancing(
         ]
 
     # When no project has any volume there is nothing to rebalance, and the model would
-    # divide by zero on all-zero counts. Matches the legacy pipeline, which returns early.
+    # divide by zero on all-zero counts.
     if not counts_by_project:
         return []
 
     # Include every project, defaulting those without volume to a count of 0. The model
-    # assigns zero-count projects a 100% sample rate, and their presence keeps the
-    # per-project ideal budget identical to the legacy calculation.
+    # assigns zero-count projects a 100% sample rate, and they still count toward the
+    # per-project ideal budget.
     return ProjectsRebalancingModel().run(
         ProjectsRebalancingInput(
             classes=[

@@ -940,6 +940,14 @@ def process_snapshot_comparison_chunk(
     )
 
 
+def _base_manifest_missing_message(head_artifact: PreprodArtifact) -> str:
+    commit_comparison = head_artifact.commit_comparison
+    base_sha = (commit_comparison.base_sha or "") if commit_comparison else ""
+    if not base_sha:
+        return "Base snapshot not found."
+    return f"Base snapshot for commit {base_sha[:7]} not found."
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.compare_snapshots",
     namespace=preprod_snapshots_tasks,
@@ -1099,6 +1107,20 @@ def compare_snapshots(
                 preprod_artifact_id=head_artifact_id, caller="compare_failure"
             )
 
+    def _fail_manifest_load(which: str) -> None:
+        logger.exception(
+            "compare_snapshots: failed to load or parse %s manifest",
+            which,
+            extra={
+                "head_artifact_id": head_artifact_id,
+                "base_artifact_id": base_artifact_id,
+            },
+        )
+        _fail_comparison(
+            PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
+            "Failed to load or parse snapshot manifest.",
+        )
+
     try:
         session = get_snapshot_storage(project_id, org=org_id)
 
@@ -1118,27 +1140,37 @@ def compare_snapshots(
         if not head_manifest_key or not base_manifest_key:
             raise ValueError("Missing manifest key")
 
-        try:
-            head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
-            base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
-        except (
+        manifest_errors = (
             orjson.JSONDecodeError,
             FileNotFoundError,
             RequestError,
             ValidationError,
             TypeError,
-        ):
-            logger.exception(
-                "compare_snapshots: failed to load or parse manifest",
+        )
+        try:
+            head_manifest = _get_json(session, head_manifest_key, SnapshotManifest)
+        except manifest_errors:
+            _fail_manifest_load("head")
+            return
+
+        try:
+            base_manifest = _get_json(session, base_manifest_key, SnapshotManifest)
+        except FileNotFoundError:
+            logger.warning(
+                "compare_snapshots: base manifest missing",
                 extra={
                     "head_artifact_id": head_artifact_id,
                     "base_artifact_id": base_artifact_id,
+                    "base_manifest_key": base_manifest_key,
                 },
             )
             _fail_comparison(
-                PreprodSnapshotComparison.ErrorCode.INTERNAL_ERROR,
-                "Failed to load or parse snapshot manifest.",
+                PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING,
+                _base_manifest_missing_message(head_artifact),
             )
+            return
+        except manifest_errors:
+            _fail_manifest_load("base")
             return
 
         # Gate on the manifest, not base_metrics.is_selective: the manifest is the source of

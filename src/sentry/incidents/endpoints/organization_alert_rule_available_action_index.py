@@ -25,6 +25,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.silo.base import cell_silo_function
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 @cell_silo_function
@@ -98,6 +99,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         """
         Fetches actions that an alert rule can perform for an organization
         """
+        enforce_alerts_api_deprecation(organization)
 
         actions = []
 
