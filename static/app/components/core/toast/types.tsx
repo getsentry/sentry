@@ -13,8 +13,6 @@ export interface ToastAction {
 export interface ToastOptions {
   /** Renders a button next to the message. The toast dismisses after onClick. */
   action?: ToastAction;
-  /** Defaults to true. When false the toast has no close button and ignores swipe. */
-  dismissible?: boolean;
   /** ms. Use `Infinity` to keep the toast until it is dismissed. */
   duration?: number;
   /** Pass an existing id to replace that toast instead of adding one. */

@@ -33,7 +33,7 @@ function dismissOtherVariants(variant: ToastVariant, toastIdToUpdate?: ToastId) 
 }
 
 function show(variant: ToastVariant, message: ReactNode, options: ToastOptions = {}) {
-  const {action, dismissible = true, duration, id, onDismiss} = options;
+  const {action, duration, id, onDismiss} = options;
 
   dismissOtherVariants(variant, id);
 
@@ -43,12 +43,11 @@ function show(variant: ToastVariant, message: ReactNode, options: ToastOptions =
         variant={variant}
         message={message}
         action={action}
-        onDismiss={dismissible ? () => sonnerToast.dismiss(renderedToastId) : undefined}
+        onDismiss={() => sonnerToast.dismiss(renderedToastId)}
       />
     ),
     {
       duration,
-      dismissible,
       onDismiss: dismissedToast => {
         removeActiveToast(variant, dismissedToast.id);
         onDismiss?.();

@@ -11,7 +11,6 @@ type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
 interface IndicatorOptions {
   append?: boolean;
-  disableDismiss?: boolean;
   duration?: number | null;
   undo?: () => void;
 }
@@ -44,7 +43,7 @@ export function addMessage(
   type: IndicatorType,
   options: IndicatorOptions = {}
 ): void {
-  const {duration: optionsDuration, disableDismiss, undo} = options;
+  const {duration: optionsDuration, undo} = options;
 
   // XXX: Debug for https://sentry.io/organizations/sentry/issues/1595204979/
   if (
@@ -60,9 +59,7 @@ export function addMessage(
     );
   }
 
-  const toastOptions: ToastOptions = {
-    dismissible: disableDismiss !== true,
-  };
+  const toastOptions: ToastOptions = {};
 
   if (optionsDuration !== undefined) {
     toastOptions.duration =

@@ -43,17 +43,6 @@ describe('Toast', () => {
     await waitForElementToBeRemoved(() => screen.queryByRole('status'));
   });
 
-  it('does not dismiss when dismissible is false', async () => {
-    render(<div />);
-    act(() => void toast.message('Keep me', {duration: Infinity, dismissible: false}));
-
-    const toastElement = await screen.findByRole('status');
-    await userEvent.click(toastElement);
-
-    expect(toastElement).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Dismiss'})).not.toBeInTheDocument();
-  });
-
   it('dismisses all toasts', async () => {
     render(<div />);
     act(() => {

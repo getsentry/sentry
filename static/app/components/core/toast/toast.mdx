@@ -62,23 +62,19 @@ The API provides four variants:
 - `loading` indicates work in progress.
 - `message` displays a neutral notification.
 
-Toasts use the current visual theme and keep the existing success, error, and loading icons.
-
 ## Options
 
 Pass a `ToastOptions` object as the second argument:
 
 ```tsx
 toast.error('Could not save changes', {
-  duration: 10000,
-  dismissible: false,
+  duration: 10_000,
 });
 ```
 
-- `duration` is in milliseconds. It defaults to 6000. Use `Infinity` for a persistent toast.
-- `dismissible` defaults to `true`. When `false`, the toast has no close button and ignores swipes.
+- `duration` is in milliseconds. It defaults to `6_000`. Use `Infinity` for a persistent toast.
 - `id` updates an existing toast with the same id instead of adding another toast.
-- `onDismiss` runs when Sonner dismisses the toast.
+- `onDismiss` runs when the toast is dismissed.
 
 ## Actions
 
@@ -113,7 +109,7 @@ toast.success('Item deleted', {
 ## Dismissing toasts
 
 Toasts dismiss automatically after their duration. Users can also click the `Dismiss` button or swipe
-a dismissible toast. Toasts of the same variant stack up to three at once; showing a different variant
+a toast. Toasts of the same variant stack up to three at once; showing a different variant
 dismisses the previous variant's active toasts.
 
 ```tsx

@@ -14,9 +14,9 @@ import type {ToastAction, ToastVariant} from './types';
 
 interface ToastProps {
   message: React.ReactNode;
+  onDismiss: () => void;
   variant: ToastVariant;
   action?: ToastAction;
-  onDismiss?: () => void;
 }
 
 export function Toast({message, variant, action, onDismiss}: ToastProps) {
@@ -38,7 +38,7 @@ export function Toast({message, variant, action, onDismiss}: ToastProps) {
             onClick={event => {
               event.stopPropagation();
               action.onClick();
-              onDismiss?.();
+              onDismiss();
             }}
             icon={action.icon}
           >
@@ -46,17 +46,15 @@ export function Toast({message, variant, action, onDismiss}: ToastProps) {
           </Button>
         </Flex>
       ) : null}
-      {onDismiss ? (
-        <Flex align="center" justify="center" padding="0 lg">
-          <Button
-            aria-label={t('Dismiss')}
-            variant="transparent"
-            size="xs"
-            icon={<IconClose size="xs" />}
-            onClick={onDismiss}
-          />
-        </Flex>
-      ) : null}
+      <Flex align="center" justify="center" padding="0 lg">
+        <Button
+          aria-label={t('Dismiss')}
+          variant="transparent"
+          size="xs"
+          icon={<IconClose size="xs" />}
+          onClick={onDismiss}
+        />
+      </Flex>
     </ToastContainer>
   );
 }
