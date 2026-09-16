@@ -573,7 +573,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         insert_index=data.get("insert_index"),
                         user=request.user,
                         enable_bash_tools=data.get("enable_bash_tools", False),
-                        actor_user_id=request.user.id if not is_autofix_kickoff else None,
+                        actor_user_id=(
+                            request.user.id if step == AutofixStep.CODE_CHANGES.value else None
+                        ),
                     )
                 except NoSeerQuotaException:
                     return Response(
