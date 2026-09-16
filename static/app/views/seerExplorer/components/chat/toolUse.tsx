@@ -760,9 +760,9 @@ function CallRow({
  * markdown surface stay identical.
  *
  * The record's label becomes the title, its outcome the leading glyph, its navigable resource a
- * trailing link chip (a real anchor, so middle/cmd-click still work), and any transport failure a
- * notification line. The request it ran — and its bounded response body — hangs off the detail slot
- * below the title.
+ * trailing link chip (a real anchor, so middle/cmd-click still work), and any transport failure its
+ * output. The request it ran — and its bounded response body — hangs off the detail slot below the
+ * title.
  */
 function CodeModeCallRow({
   record,
@@ -805,6 +805,7 @@ function CodeModeCallRow({
       }
       failureLabel={isFailure && record.status ? String(record.status) : undefined}
       input={inputQuery ? <ProvidedFormattedQuery query={inputQuery} /> : undefined}
+      output={record.error && failure ? <Text size="sm">{failure}</Text> : undefined}
       notifications={!isFailure && failure ? [failure] : undefined}
     >
       {detail && !isFailure ? <RequestDetail detail={detail} /> : null}

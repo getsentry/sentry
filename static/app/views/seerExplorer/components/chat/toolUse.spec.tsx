@@ -1518,6 +1518,23 @@ describe('ToolUseBlock', () => {
       expect(screen.queryByText('Output:')).not.toBeInTheDocument();
       expect(screen.queryByText('Returned HTTP 500')).not.toBeInTheDocument();
     });
+
+    it('shows useful error context for a transport failure', () => {
+      const block = codeModeCallsBlock([
+        {
+          ...issueCall,
+          status: undefined,
+          error: 'Error: Connection timed out',
+          title: 'Retrieve an issue',
+        },
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
+      expect(screen.getByText('Output:')).toBeInTheDocument();
+      expect(
+        screen.getByText('Request failed: Error: Connection timed out')
+      ).toBeInTheDocument();
+    });
   });
 });
 
