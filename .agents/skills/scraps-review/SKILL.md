@@ -19,7 +19,7 @@ Accept a PR number or full GitHub URL from `$ARGUMENTS` or ask:
 ## Step 2: Classify and mark
 
 ```bash
-uv run .agents/skills/scraps-review/scripts/classify_pr_files.py <pr> --mark-viewed --json
+uv run .agents/skills/scraps-review/scripts/classify_pr_files.py <pr> --mark-viewed
 ```
 
 If the PR is in a different repo, pass `--repo owner/repo` or let the script extract it from the URL.
@@ -28,19 +28,42 @@ If the PR is in a different repo, pass `--repo owner/repo` or let the script ext
 
 ```json
 {
-  "noise": [{"path": "...", "reason": "import-only"}],
-  "substantive": [{"path": "...", "reason": "destination-dir"}],
-  "noise_count": 128,
-  "substantive_count": 11,
-  "marked_viewed": 128
+  "summary": {
+    "total": 139,
+    "noise": 128,
+    "substantive": 11,
+    "marked_viewed": 128
+  },
+  "substantive": [
+    {
+      "path": "static/app/components/core/dropdownMenu/index.tsx",
+      "classification": "substantive",
+      "reason": "destination-dir"
+    }
+  ],
+  "noise": [
+    {
+      "path": "static/app/components/actions/archive.tsx",
+      "classification": "noise",
+      "reason": "import-only"
+    }
+  ]
 }
 ```
 
-Reasons: `import-only` (all hunks are import swaps or blank lines), `known-noise-file` (codeowners baseline, snapshot mocks), `pure-rename` (no content diff), `destination-dir` (inside the core/ target directory), `has-substantive-changes` (real logic changes).
+Classification reasons:
+
+| Reason                    | Meaning                                        |
+| ------------------------- | ---------------------------------------------- |
+| `import-only`             | all hunks are import path swaps or blank lines |
+| `known-noise-file`        | codeowners baseline, snapshot mocks            |
+| `destination-dir`         | inside the `components/core/` target directory |
+| `pure-rename`             | git rename with no content diff                |
+| `has-substantive-changes` | real logic changes beyond imports              |
 
 ## Step 3: Report
 
-Show the substantive files as a table with the reason column. End with the count summary ("Marked N noise files as viewed, M files left to review").
+Show the substantive files as a table with the reason column. End with the count summary.
 
 | File                                                   | Reason                  |
 | ------------------------------------------------------ | ----------------------- |
@@ -52,7 +75,7 @@ Show the substantive files as a table with the reason column. End with the count
 If the script fails, classify manually:
 
 1. `gh pr diff <pr> --repo getsentry/sentry` to get the diff.
-2. For each file, check whether all added/removed lines are import statements. If yes, it's noise.
+2. For each file, check whether all added/removed lines are import statements.
 3. Files inside the `components/core/` destination directory are always substantive.
-4. Mark noise via GraphQL: `gh api graphql -f query='mutation { markFileAsViewed(input: {pullRequestId: "<id>", path: "<path>"}) { pullRequest { id } } }'`
-5. Get the PR node ID with `gh pr view <pr> --repo getsentry/sentry --json id --jq .id`.
+4. Get the PR node ID with `gh pr view <pr> --repo getsentry/sentry --json id --jq .id`.
+5. Mark noise via GraphQL: `gh api graphql -f query='mutation { markFileAsViewed(input: {pullRequestId: "<id>", path: "<path>"}) { pullRequest { id } } }'`
