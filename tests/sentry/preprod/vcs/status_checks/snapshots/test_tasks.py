@@ -774,7 +774,7 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
     @patch(f"{TASK_MODULE}.post_snapshot_status_check_task")
     @patch(f"{TASK_MODULE}.get_status_check_provider")
     @patch(f"{TASK_MODULE}.get_status_check_client")
-    def test_timeout_with_base_arrived_runs_normal_path(
+    def test_timeout_with_base_arrived_skips_update(
         self, mock_get_client, mock_get_provider, mock_post_task
     ):
         mock_get_client.return_value = (Mock(), Mock())
@@ -815,6 +815,6 @@ class CreateSnapshotStatusCheckGracePeriodTest(SnapshotTasksTestBase):
             is_timeout_check=True,
         )
 
-        mock_post_task.delay.assert_called_once()
-        call_kwargs = mock_post_task.delay.call_args[1]
-        assert call_kwargs["status"] == StatusCheckStatus.SUCCESS.value
+        mock_get_client.assert_not_called()
+        mock_get_provider.assert_not_called()
+        mock_post_task.delay.assert_not_called()

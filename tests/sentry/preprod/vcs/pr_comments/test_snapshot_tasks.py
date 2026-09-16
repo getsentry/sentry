@@ -420,7 +420,7 @@ class CreateSnapshotPrCommentSoloTest(SnapshotPrCommentTaskTestBase):
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.get_commit_context_client")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.format_snapshot_pr_comment")
     @patch("sentry.preprod.models.PreprodArtifact.get_base_artifacts_for_commit")
-    def test_timeout_with_base_arrived_runs_normal_path(
+    def test_timeout_with_base_arrived_skips_update(
         self, mock_get_base, mock_format_normal, mock_get_client, mock_evaluate_changes, mock_delay
     ):
         mock_get_client.return_value = Mock()
@@ -432,9 +432,9 @@ class CreateSnapshotPrCommentSoloTest(SnapshotPrCommentTaskTestBase):
 
         create_preprod_snapshot_pr_comment_task(head_artifact.id, is_timeout_check=True)
 
-        mock_format_normal.assert_called_once()
-        mock_delay.assert_called_once()
-        assert mock_delay.call_args.kwargs["comment_body"] == "normal body"
+        mock_evaluate_changes.assert_not_called()
+        mock_format_normal.assert_not_called()
+        mock_delay.assert_not_called()
 
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.post_snapshot_pr_comment_task.delay")
     @patch("sentry.preprod.vcs.pr_comments.snapshot_tasks.evaluate_snapshot_changes_by_artifact_id")
