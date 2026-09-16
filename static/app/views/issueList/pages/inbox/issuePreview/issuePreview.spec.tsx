@@ -9,7 +9,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {clearIndicators} from 'sentry/actionCreators/indicator';
 import Indicators from 'sentry/components/indicators';
@@ -90,6 +90,17 @@ describe('IssuePreview', () => {
       },
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      body: {
+        groupId: group.id,
+        headline: 'Checkout requests fail when the active user is missing',
+        whatsWrong: 'The checkout handler reads a property from a missing user.',
+        trace: 'The request fails in the checkout handler after the user lookup.',
+        possibleCause: 'The user lookup result is not checked before it is used.',
+      },
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/attachments/`,
       body: [],
     });
@@ -117,6 +128,89 @@ describe('IssuePreview', () => {
       url: `/organizations/${organization.slug}/replay-count/`,
       body: {},
     });
+  });
+
+  it('shows the generated issue summary at the top of the preview sections', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              externalUrl: 'https://github.com/example/repo-name/pull/10',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    const summary = await screen.findByRole('region', {name: 'Issue Summary'});
+    expect(
+      screen.getByText('Checkout requests fail when the active user is missing')
+    ).toBeVisible();
+    expect(
+      screen.getByText('The checkout handler reads a property from a missing user.')
+    ).toBeVisible();
+    expect(
+      screen.getByText('The request fails in the checkout handler after the user lookup.')
+    ).toBeVisible();
+    expect(
+      screen.getByText('The user lookup result is not checked before it is used.')
+    ).toBeVisible();
+
+    const pullRequests = screen.getByRole('region', {name: 'Pull Requests'});
+    expect(
+      summary.compareDocumentPosition(pullRequests) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('does not block the preview while the issue summary loads', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/summarize/`,
+      method: 'POST',
+      asyncDelay: new Promise<void>(() => {}),
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {
+        pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '10',
+              externalUrl: 'https://github.com/example/repo-name/pull/10',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-07-20T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
+        ],
+      },
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(await screen.findByRole('region', {name: 'Pull Requests'})).toBeVisible();
+    const summary = screen.getByRole('region', {name: 'Issue Summary'});
+    expect(within(summary).getAllByTestId('loading-placeholder')).toHaveLength(6);
   });
 
   it('links to an open user pull request and shows the next Autofix step', async () => {

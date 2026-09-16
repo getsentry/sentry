@@ -1,5 +1,6 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -54,6 +55,11 @@ import {
   IssuePreviewSeerProvider,
   useIssuePreviewSeer,
 } from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
+import {
+  IssuePreviewSummary,
+  IssuePreviewSummarySkeleton,
+  issueSummaryQueryOptions,
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
@@ -153,6 +159,13 @@ function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer();
   const linkedPullRequests = useLinkedPullRequests({group});
+  const issueSummary = useQuery(
+    issueSummaryQueryOptions({
+      enabled: previewSeer.aiConfig.hasSummary,
+      groupId: group.id,
+      organizationSlug: organization.slug,
+    })
+  );
   const {title: primaryTitle} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
@@ -252,11 +265,16 @@ function IssuePreviewContent() {
           />
         </Flex>
       </Flex>
-      {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
+      {/* Autofix and pull requests load asynchronously, so block to avoid pop-in. */}
       {previewSeer.isLoading || linkedPullRequests.isPending ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
+          {previewSeer.aiConfig.hasSummary && issueSummary.isPending ? (
+            <IssuePreviewSummarySkeleton />
+          ) : issueSummary.data ? (
+            <IssuePreviewSummary summary={issueSummary.data} />
+          ) : null}
           {linkedPullRequests.data?.pullRequests.length ? (
             <IssuePreviewSection aria-label={t('Pull Requests')} defaultExpanded>
               <IssuePreviewSection.Title>{t('Pull Requests')}</IssuePreviewSection.Title>
