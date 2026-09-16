@@ -1,13 +1,30 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
-from urllib.parse import quote, unquote, urlparse
+from urllib.parse import quote, unquote, urlencode, urlparse
 
+from django.utils.translation import gettext_lazy as _
+
+from sentry import options
 from sentry.exceptions import InvalidIdentity
-from sentry.integrations.cursor_origin.client import CursorOriginApiClient
-from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEB_BASE_URL
+from sentry.integrations.base import (
+    FeatureDescription,
+    IntegrationData,
+    IntegrationFeatures,
+    IntegrationMetadata,
+    IntegrationProvider,
+)
+from sentry.integrations.cursor_origin.client import (
+    CursorOriginApiClient,
+    CursorOriginSetupApiClient,
+)
+from sentry.integrations.cursor_origin.constants import (
+    CURSOR_ORIGIN_INSTALL_URL,
+    CURSOR_ORIGIN_SCOPES,
+    CURSOR_ORIGIN_WEB_BASE_URL,
+)
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
@@ -17,7 +34,11 @@ from sentry.integrations.source_code_management.repository import (
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
+from sentry.shared_integrations.exceptions import (
+    ApiError,
+    ApiPaginationTruncated,
+    IntegrationError,
+)
 
 logger = logging.getLogger("sentry.integrations.cursor_origin")
 
@@ -133,3 +154,86 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
             return "", ""
         branch, _, filepath = path[len(prefix) :].partition("/")
         return branch, filepath
+
+
+DESCRIPTION = """
+Connect your Cursor Origin repositories to Sentry. Origin is Cursor's git forge --
+linking it lets Sentry suggest the right platform when you create a project and map
+stack traces back to source.
+"""
+
+FEATURES = [
+    FeatureDescription(
+        """
+        Add your Origin repositories to Sentry to tie issues back to the code they come
+        from.
+        """,
+        IntegrationFeatures.COMMITS,
+    ),
+    FeatureDescription(
+        """
+        Link stack traces directly to source code in Origin.
+        """,
+        IntegrationFeatures.STACKTRACE_LINK,
+    ),
+]
+
+metadata = IntegrationMetadata(
+    description=DESCRIPTION.strip(),
+    features=FEATURES,
+    author="Sentry",
+    noun=_("Installation"),
+    issue_url="https://github.com/getsentry/sentry/issues",
+    source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/cursor_origin",
+    aspects={},
+)
+
+
+class CursorOriginIntegrationProvider(IntegrationProvider):
+    key = IntegrationProviderSlug.CURSOR_ORIGIN.value
+    name = "Cursor Origin"
+    metadata = metadata
+    integration_cls = CursorOriginIntegration
+
+    # Origin's install redirect returns the installation directly, so unlike GitHub
+    # there is no separate OAuth identity to link.
+    needs_default_identity = False
+
+    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
+
+    requires_feature_flag = True
+
+    def build_integration(self, state: Mapping[str, str]) -> IntegrationData:
+        installation_id = state["installation_id"]
+
+        try:
+            installation = CursorOriginSetupApiClient().get_installation(installation_id)
+        except ApiError as e:
+            raise IntegrationError(f"Could not read the Cursor Origin installation: {e}")
+
+        name = installation["target"]["slug"]
+
+        return {
+            "name": name,
+            "external_id": installation_id,
+            "metadata": {
+                "installation_id": installation_id,
+                "target": installation["target"],
+                "scopes": installation["scopes"],
+                "repo_selection_mode": installation["repoSelectionMode"],
+                "domain_name": f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}",
+            },
+        }
+
+
+def build_install_url(state: str, redirect_uri: str, scopes: Sequence[str] | None = None) -> str:
+    """Where a workspace admin is sent to grant the app access to their codebase."""
+    return f"{CURSOR_ORIGIN_INSTALL_URL}?" + urlencode(
+        {
+            "client_id": options.get("cursor-origin-app.id"),
+            "scope": " ".join(scopes or CURSOR_ORIGIN_SCOPES),
+            "redirect_uri": redirect_uri,
+            "state": state,
+        },
+        quote_via=quote,
+    )
