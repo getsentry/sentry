@@ -5,7 +5,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {useConversation} from './useConversation';
+import {useConversation, type ConversationAggregates} from './useConversation';
 
 const BASE_SPAN = {
   'gen_ai.conversation.id': 'conv-123',
@@ -21,14 +21,45 @@ const BASE_SPAN = {
   'gen_ai.operation.type': 'ai_client',
 };
 
+const AGGREGATES: ConversationAggregates = {
+  endTimestamp: 1_000_500,
+  generationDuration: 500,
+  inputTokens: 70,
+  llmCalls: 1,
+  usageByModel: [
+    {
+      cacheReadTokens: 0,
+      cacheWriteTokens: 0,
+      inputCost: 0.0006,
+      inputTokens: 70,
+      hasCompleteTokenData: true,
+      model: 'model-a',
+      outputCost: 0.0004,
+      outputTokens: 30,
+      reasoningTokens: 0,
+      totalCost: 0.001,
+      totalTokens: 100,
+    },
+  ],
+  outputTokens: 30,
+  startTimestamp: 1_000_000,
+  toolCalls: 0,
+  toolErrors: 0,
+  toolNames: [],
+  totalCost: 0.001,
+  totalTokens: 100,
+};
+
 function envelope(
   spans: Array<Record<string, unknown>>,
-  title: string | null = null
+  title: string | null = null,
+  aggregates: ConversationAggregates = AGGREGATES
 ): Record<string, unknown> {
   return {
     conversationId: spans[0]?.['gen_ai.conversation.id'] ?? '',
     title,
     spans,
+    ...aggregates,
   };
 }
 
@@ -49,6 +80,7 @@ describe('useConversation', () => {
       {organization}
     );
 
+    expect(result.current.aggregates).toBeNull();
     expect(result.current.nodes).toEqual([]);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.title).toBeNull();
@@ -58,7 +90,13 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-title/`,
       body: envelope(
-        [{...BASE_SPAN, 'gen_ai.conversation.id': 'conv-title', span_id: 'span-title'}],
+        [
+          {
+            ...BASE_SPAN,
+            'gen_ai.conversation.id': 'conv-title',
+            span_id: 'span-title',
+          },
+        ],
         'My great conversation'
       ),
     });
@@ -71,6 +109,7 @@ describe('useConversation', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.title).toBe('My great conversation');
+    expect(result.current.aggregates).toMatchObject(AGGREGATES);
   });
 
   it('returns a null title when the envelope has none', async () => {
@@ -94,10 +133,16 @@ describe('useConversation', () => {
     const requests = Array.from({length: 10}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
-        match: [MockApiClient.matchQuery({cursor: index === 0 ? undefined : `${index}`})],
+        match: [
+          MockApiClient.matchQuery({
+            cursor: index === 0 ? undefined : `${index}`,
+          }),
+        ],
         body: envelope([{...BASE_SPAN, span_id: `span-${index}`}]),
         headers: {
-          Link: `<${url}?cursor=${index + 1}>; rel="next"; results="true"; cursor="${index + 1}"`,
+          Link: `<${url}?cursor=${
+            index + 1
+          }>; rel="next"; results="true"; cursor="${index + 1}"`,
         },
       })
     );
@@ -812,7 +857,11 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-no-issues/`,
       body: envelope([
-        {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
+        {
+          ...BASE_SPAN,
+          'gen_ai.conversation.id': 'conv-no-issues',
+          span_id: 'span-x',
+        },
       ]),
     });
 

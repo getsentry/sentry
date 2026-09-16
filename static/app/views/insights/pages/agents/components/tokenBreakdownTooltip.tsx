@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
+import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
 import {ModelName} from './modelName';
 
@@ -15,7 +16,10 @@ export interface TokenBreakdownDetails {
   output: number;
   reasoning: number;
   total: number;
+  inputCost?: number;
   model?: string;
+  outputCost?: number;
+  totalCost?: number;
 }
 
 export function TokenBreakdownTooltip({
@@ -30,8 +34,20 @@ export function TokenBreakdownTooltip({
           {breakdown.model && <ModelName modelId={breakdown.model} size={14} gap="sm" />}
           <TokenBreakdownGrid>
             {breakdown.isComplete ? <CompleteBreakdown breakdown={breakdown} /> : null}
-            <span>{t('Total')}</span>
+            <span>
+              {breakdown.totalCost === undefined ? t('Total') : t('Total tokens')}
+            </span>
             <span>{breakdown.total.toLocaleString()}</span>
+            {breakdown.totalCost !== undefined && (
+              <Fragment>
+                <span>{t('Input cost')}</span>
+                <span>{formatLLMCosts(breakdown.inputCost ?? 0)}</span>
+                <span>{t('Output cost')}</span>
+                <span>{formatLLMCosts(breakdown.outputCost ?? 0)}</span>
+                <span>{t('Total cost')}</span>
+                <span>{formatLLMCosts(breakdown.totalCost)}</span>
+              </Fragment>
+            )}
           </TokenBreakdownGrid>
         </BreakdownGroup>
       ))}
