@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
 import {type ReactElement} from 'react';
-import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
@@ -217,7 +217,7 @@ beforeEach(closeModal);
 afterEach(() => {
   const {toast} =
     jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  toast.dismiss();
+  act(() => void toast.dismiss());
   resetResizeObservers();
 });
 
