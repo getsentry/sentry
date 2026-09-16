@@ -10,6 +10,7 @@ import sentry_sdk
 
 from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
+from sentry.utils.event_frames import get_crashing_thread
 from sentry.utils.safe import get_path, set_path, setdefault_path
 from sentry.utils.tracing import start_span
 
@@ -317,17 +318,17 @@ def get_crash_frame_from_event_data(data, frame_filter=None):
         - there are no frames
         - all frames fail the given filter test
         - we're unable to find any frames nested in either event.exception or
-          event.stacktrace, and there's anything other than exactly one thread
-          in the data
+          event.stacktrace, and the data doesn't contain a single identifiable
+          crashing thread
     """
 
     frames = get_path(data, "exception", "values", -1, "stacktrace", "frames") or get_path(
         data, "stacktrace", "frames"
     )
     if not frames:
-        threads = get_path(data, "threads", "values")
-        if threads and len(threads) == 1:
-            frames = get_path(threads, 0, "stacktrace", "frames")
+        thread = get_crashing_thread(get_path(data, "threads", "values", filter=True))
+        if thread is not None:
+            frames = get_path(thread, "stacktrace", "frames")
 
     default = None
     for frame in reversed(frames or ()):
