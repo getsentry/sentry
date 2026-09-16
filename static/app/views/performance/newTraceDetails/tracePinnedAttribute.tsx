@@ -37,7 +37,7 @@ import {
 } from './tracePinnedAttributeValues';
 
 export const TRACE_ATTRIBUTE_PINNING_FEATURE = 'trace-waterfall-attribute-pinning';
-export const PINNED_ATTRIBUTE_PARAM = 'pinnedAttribute';
+const PINNED_ATTRIBUTE_PARAM = 'pinnedAttribute';
 
 type PinnedAttributeState = {
   attribute: string | null;
