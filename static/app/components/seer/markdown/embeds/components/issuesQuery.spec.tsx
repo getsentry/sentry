@@ -51,7 +51,11 @@ describe('issues query embed', () => {
       data: {ids},
     });
 
-    expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
+    // The row only appears once the lazily imported GroupList chunk resolves,
+    // which outruns the default timeout when the whole directory runs at once.
+    expect(
+      await screen.findByText(issue.shortId, undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
     await waitFor(() =>
       expect(issuesRequest).toHaveBeenCalledWith(
         expect.anything(),
@@ -101,7 +105,9 @@ describe('issues query embed', () => {
       'href',
       expect.stringContaining('/organizations/org-slug/issues/')
     );
-    expect(await screen.findByText(issue.shortId)).toBeInTheDocument();
+    expect(
+      await screen.findByText(issue.shortId, undefined, {timeout: 10_000})
+    ).toBeInTheDocument();
     expect(
       screen.getAllByLabelText('issue:[JAVASCRIPT-991,JAVASCRIPT-992]').length
     ).toBeGreaterThan(0);
