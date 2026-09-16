@@ -311,6 +311,13 @@ const seerActivities = [
   seerActivity(GroupActivityType.SEER_PR_CREATED, {
     pull_requests: [seerPullRequest],
   }),
+  {
+    ...seerActivity(GroupActivityType.SEER_PR_CREATED, {
+      pull_requests: [seerPullRequest],
+    }),
+    id: 'seer-pr-created-by-user',
+    user,
+  },
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
     referrer: 'github.pr_comment',
@@ -339,9 +346,12 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   seerActivityAt(GroupActivityType.SEER_CODING_COMPLETED, '2025-01-01T00:30:00Z', {
     run_id: 3,
   }),
-  seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
-    run_id: 3,
-  }),
+  {
+    ...seerActivityAt(GroupActivityType.SEER_CODING_STARTED, '2025-01-01T00:22:00Z', {
+      run_id: 3,
+    }),
+    user,
+  },
   seerActivityAt(GroupActivityType.SEER_ITERATION_COMPLETED, '2025-01-01T00:37:00Z', {
     pull_requests: [seerPullRequest],
     run_id: 4,

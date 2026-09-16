@@ -2081,6 +2081,38 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Plan started')).toBeInTheDocument();
   });
 
+  it('uses the actor from a collapsed Seer coding start activity', async () => {
+    const seerGroup = GroupFixture({
+      id: '1343',
+      activity: [
+        {
+          type: GroupActivityType.SEER_CODING_COMPLETED,
+          id: 'seer-coding-completed',
+          dateCreated: '2020-01-01T00:30:00Z',
+          data: {run_id: 123},
+          user: null,
+        },
+        {
+          type: GroupActivityType.SEER_CODING_STARTED,
+          id: 'seer-coding-started',
+          dateCreated: '2020-01-01T00:20:00Z',
+          data: {run_id: 123},
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+        <ActivitySection group={seerGroup} variant="standalone" />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText('Code changes suggested')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+  });
+
   it('collapses Seer PR iteration activity', async () => {
     const seerIterationGroup = GroupFixture({
       id: '1346',
