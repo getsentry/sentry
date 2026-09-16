@@ -1,6 +1,9 @@
 import queryString from 'query-string';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -33,11 +36,15 @@ export function getIssuesQueryHref(
   });
 }
 
-export function IssuesQueryLink(props: EmbedOutput<'issuesQuery'>) {
+export function IssuesQueryLink({
+  format,
+  ...props
+}: EmbedOutput<'issuesQuery'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconIssues}
       href={getIssuesQueryHref(props, organization.slug)}
       title={props.title ?? t('Issue search')}
