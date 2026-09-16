@@ -82,9 +82,9 @@ interface ConversationApiSpan {
 export interface ConversationModelUsage {
   cacheReadTokens: number;
   cacheWriteTokens: number;
+  hasCompleteTokenData: boolean;
   inputCost: number;
   inputTokens: number;
-  isComplete: boolean;
   model: string | null;
   outputCost: number;
   outputTokens: number;
@@ -98,7 +98,6 @@ export interface ConversationAggregates {
   generationDuration: number;
   inputTokens: number;
   llmCalls: number;
-  modelUsage: ConversationModelUsage[];
   outputTokens: number;
   startTimestamp: number;
   toolCalls: number;
@@ -106,6 +105,7 @@ export interface ConversationAggregates {
   toolNames: string[];
   totalCost: number;
   totalTokens: number;
+  usageByModel: ConversationModelUsage[];
 }
 
 interface ConversationApiResponse extends ConversationAggregates {

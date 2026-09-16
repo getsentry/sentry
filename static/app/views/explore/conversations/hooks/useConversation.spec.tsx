@@ -26,13 +26,13 @@ const AGGREGATES: ConversationAggregates = {
   generationDuration: 500,
   inputTokens: 70,
   llmCalls: 1,
-  modelUsage: [
+  usageByModel: [
     {
       cacheReadTokens: 0,
       cacheWriteTokens: 0,
       inputCost: 0.0006,
       inputTokens: 70,
-      isComplete: true,
+      hasCompleteTokenData: true,
       model: 'model-a',
       outputCost: 0.0004,
       outputTokens: 30,

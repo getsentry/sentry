@@ -8,13 +8,6 @@ import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLM
 
 import {ModelName} from './modelName';
 
-export interface CostBreakdownDetails {
-  input: number;
-  output: number;
-  total: number;
-  model?: string;
-}
-
 export interface TokenBreakdownDetails {
   cacheRead: number;
   cacheWrite: number;
@@ -23,27 +16,10 @@ export interface TokenBreakdownDetails {
   output: number;
   reasoning: number;
   total: number;
+  inputCost?: number;
   model?: string;
-}
-
-export function CostBreakdownTooltip({breakdowns}: {breakdowns: CostBreakdownDetails[]}) {
-  return (
-    <Stack gap="0">
-      {breakdowns.map((breakdown, index) => (
-        <BreakdownGroup gap="sm" key={breakdown.model ?? index}>
-          {breakdown.model && <ModelName modelId={breakdown.model} size={14} gap="sm" />}
-          <TokenBreakdownGrid>
-            <span>{t('Input cost')}</span>
-            <span>{formatLLMCosts(breakdown.input)}</span>
-            <span>{t('Output cost')}</span>
-            <span>{formatLLMCosts(breakdown.output)}</span>
-            <span>{t('Total cost')}</span>
-            <span>{formatLLMCosts(breakdown.total)}</span>
-          </TokenBreakdownGrid>
-        </BreakdownGroup>
-      ))}
-    </Stack>
-  );
+  outputCost?: number;
+  totalCost?: number;
 }
 
 export function TokenBreakdownTooltip({
@@ -58,8 +34,20 @@ export function TokenBreakdownTooltip({
           {breakdown.model && <ModelName modelId={breakdown.model} size={14} gap="sm" />}
           <TokenBreakdownGrid>
             {breakdown.isComplete ? <CompleteBreakdown breakdown={breakdown} /> : null}
-            <span>{t('Total')}</span>
+            <span>
+              {breakdown.totalCost === undefined ? t('Total') : t('Total tokens')}
+            </span>
             <span>{breakdown.total.toLocaleString()}</span>
+            {breakdown.totalCost !== undefined && (
+              <Fragment>
+                <span>{t('Input cost')}</span>
+                <span>{formatLLMCosts(breakdown.inputCost ?? 0)}</span>
+                <span>{t('Output cost')}</span>
+                <span>{formatLLMCosts(breakdown.outputCost ?? 0)}</span>
+                <span>{t('Total cost')}</span>
+                <span>{formatLLMCosts(breakdown.totalCost)}</span>
+              </Fragment>
+            )}
           </TokenBreakdownGrid>
         </BreakdownGroup>
       ))}
