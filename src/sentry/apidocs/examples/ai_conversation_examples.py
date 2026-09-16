@@ -14,6 +14,21 @@ class AIConversationExamples:
                 "generationDuration": 1250.0,
                 "inputTokens": 0,
                 "llmCalls": 1,
+                "modelUsage": [
+                    {
+                        "model": "gpt-4o-mini-2024-07-18",
+                        "inputTokens": 0,
+                        "outputTokens": 0,
+                        "totalTokens": 485,
+                        "cacheReadTokens": 0,
+                        "cacheWriteTokens": 0,
+                        "reasoningTokens": 0,
+                        "inputCost": 0,
+                        "outputCost": 0,
+                        "totalCost": 0.0042,
+                        "isComplete": False,
+                    }
+                ],
                 "outputTokens": 0,
                 "startTimestamp": 1743465600000,
                 "toolCalls": 0,

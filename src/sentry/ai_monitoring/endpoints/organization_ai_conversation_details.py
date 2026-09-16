@@ -56,6 +56,22 @@ type SpanKey = tuple[str, str]
 
 MAX_RETENTION_DAYS = 30
 MAX_PARENT_REPAIR_DEPTH = 5
+MAX_MODEL_USAGE_ROWS = 100
+
+MODEL_USAGE_COLUMNS = [
+    "gen_ai.request.model",
+    "gen_ai.response.model",
+    "sum_if(gen_ai.cost.input_tokens,gen_ai.operation.type,equals,ai_client) as input_cost",
+    "sum_if(gen_ai.cost.output_tokens,gen_ai.operation.type,equals,ai_client) as output_cost",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_read.input_tokens) as cache_read_tokens",
+    "sum_if(`gen_ai.operation.type:ai_client !has:gen_ai.usage.cache_read.input_tokens`,gen_ai.usage.input_tokens.cached) as legacy_cache_read_tokens",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.cache_creation.input_tokens) as cache_write_tokens",
+    "sum_if(`gen_ai.operation.type:ai_client !has:gen_ai.usage.cache_creation.input_tokens`,gen_ai.usage.input_tokens.cache_write) as legacy_cache_write_tokens",
+    "sum_if(`gen_ai.operation.type:ai_client`,gen_ai.usage.reasoning.output_tokens) as reasoning_tokens",
+    "sum_if(`gen_ai.operation.type:ai_client !has:gen_ai.usage.reasoning.output_tokens`,gen_ai.usage.output_tokens.reasoning) as legacy_reasoning_tokens",
+    "count_if(`gen_ai.operation.type:ai_client has:gen_ai.usage.input_tokens`,span.duration) as input_token_spans",
+    "count_if(`gen_ai.operation.type:ai_client has:gen_ai.usage.output_tokens`,span.duration) as output_token_spans",
+]
 
 _WIDENING_STEPS = [timedelta(days=7), timedelta(days=14), timedelta(days=MAX_RETENTION_DAYS)]
 
@@ -135,9 +151,24 @@ AI_CONVERSATION_ATTRIBUTES = [
 ]
 
 
+class AIConversationModelUsage(TypedDict):
+    model: str | None
+    inputTokens: int
+    outputTokens: int
+    totalTokens: int
+    cacheReadTokens: int
+    cacheWriteTokens: int
+    reasoningTokens: int
+    inputCost: float
+    outputCost: float
+    totalCost: float
+    isComplete: bool
+
+
 class AIConversationPageData(TypedDict):
     data: list[SpanRow]
     aggregates: AIConversationAggregates
+    modelUsage: list[AIConversationModelUsage]
 
 
 class AIConversationDetailsResponse(AIConversationAggregates):
@@ -148,6 +179,95 @@ class AIConversationDetailsResponse(AIConversationAggregates):
     projects: list[ConversationProject]
     webUrl: str
     spans: list[dict[str, Any]]
+    modelUsage: list[AIConversationModelUsage]
+
+
+def _model_name(row: Mapping[str, Any]) -> str | None:
+    for field in ("gen_ai.response.model", "gen_ai.request.model"):
+        value = row.get(field)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _parse_grouped_aggregates(
+    rows: Sequence[Mapping[str, Any]],
+) -> tuple[AIConversationAggregates, list[AIConversationModelUsage]]:
+    aggregates = parse_conversation_aggregates({})
+    tool_names: set[str] = set()
+    usage_by_model: dict[str | None, AIConversationModelUsage] = {}
+    completeness_by_model: defaultdict[str | None, list[int]] = defaultdict(lambda: [0, 0, 0])
+
+    for row in rows:
+        row_aggregates = parse_conversation_aggregates(row)
+        aggregates["generationDuration"] += row_aggregates["generationDuration"]
+        aggregates["inputTokens"] += row_aggregates["inputTokens"]
+        aggregates["llmCalls"] += row_aggregates["llmCalls"]
+        aggregates["outputTokens"] += row_aggregates["outputTokens"]
+        aggregates["toolCalls"] += row_aggregates["toolCalls"]
+        aggregates["toolErrors"] += row_aggregates["toolErrors"]
+        aggregates["totalCost"] += row_aggregates["totalCost"]
+        aggregates["totalTokens"] += row_aggregates["totalTokens"]
+        tool_names.update(row_aggregates["toolNames"])
+
+        start_timestamp = row_aggregates["startTimestamp"]
+        if start_timestamp and (
+            not aggregates["startTimestamp"] or start_timestamp < aggregates["startTimestamp"]
+        ):
+            aggregates["startTimestamp"] = start_timestamp
+        aggregates["endTimestamp"] = max(aggregates["endTimestamp"], row_aggregates["endTimestamp"])
+
+        if row_aggregates["llmCalls"] == 0:
+            continue
+
+        model = _model_name(row)
+        usage = usage_by_model.setdefault(
+            model,
+            {
+                "model": model,
+                "inputTokens": 0,
+                "outputTokens": 0,
+                "totalTokens": 0,
+                "cacheReadTokens": 0,
+                "cacheWriteTokens": 0,
+                "reasoningTokens": 0,
+                "inputCost": 0,
+                "outputCost": 0,
+                "totalCost": 0,
+                "isComplete": False,
+            },
+        )
+        usage["inputTokens"] += row_aggregates["inputTokens"]
+        usage["outputTokens"] += row_aggregates["outputTokens"]
+        usage["totalTokens"] += row_aggregates["totalTokens"]
+        usage["cacheReadTokens"] += int(row.get("cache_read_tokens") or 0) + int(
+            row.get("legacy_cache_read_tokens") or 0
+        )
+        usage["cacheWriteTokens"] += int(row.get("cache_write_tokens") or 0) + int(
+            row.get("legacy_cache_write_tokens") or 0
+        )
+        usage["reasoningTokens"] += int(row.get("reasoning_tokens") or 0) + int(
+            row.get("legacy_reasoning_tokens") or 0
+        )
+        usage["inputCost"] += float(row.get("input_cost") or 0)
+        usage["outputCost"] += float(row.get("output_cost") or 0)
+        usage["totalCost"] += row_aggregates["totalCost"]
+
+        completeness = completeness_by_model[model]
+        completeness[0] += row_aggregates["llmCalls"]
+        completeness[1] += int(row.get("input_token_spans") or 0)
+        completeness[2] += int(row.get("output_token_spans") or 0)
+
+    aggregates["toolNames"] = sorted(tool_names)
+    for model, usage in usage_by_model.items():
+        llm_calls, input_token_spans, output_token_spans = completeness_by_model[model]
+        usage["isComplete"] = input_token_spans == llm_calls == output_token_spans
+
+    model_usage = sorted(
+        usage_by_model.values(),
+        key=lambda usage: (-usage["totalTokens"], usage["model"] or ""),
+    )
+    return aggregates, model_usage
 
 
 @extend_schema(tags=["Explore"])
@@ -242,6 +362,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     "projects": [serialize_conversation_project(project)] if project else [],
                     "webUrl": get_conversation_url(organization, conversation_id, project_id),
                     "spans": spans,
+                    "modelUsage": page["modelUsage"],
                     **page["aggregates"],
                 }
 
@@ -533,10 +654,12 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 TableQuery(
                     name="aggregates",
                     query_string=query_string,
-                    selected_columns=CONVERSATION_AGGREGATE_COLUMNS,
+                    selected_columns=[*CONVERSATION_AGGREGATE_COLUMNS, *MODEL_USAGE_COLUMNS],
                     orderby=None,
                     offset=0,
-                    limit=1,
+                    # ponytail: 100 model pairs is enough today; paginate this grouped query if
+                    # real conversations approach the limit.
+                    limit=MAX_MODEL_USAGE_ROWS,
                     referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
                     sampling_mode="HIGHEST_ACCURACY",
                     resolver=resolver,
@@ -545,11 +668,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             snuba_params.debug,
         )
         aggregate_rows = results["aggregates"].get("data", [])
+        aggregates, model_usage = _parse_grouped_aggregates(aggregate_rows)
         return {
             "data": results["spans"].get("data", []),
-            "aggregates": parse_conversation_aggregates(
-                aggregate_rows[0] if aggregate_rows else {}
-            ),
+            "aggregates": aggregates,
+            "modelUsage": model_usage,
         }
 
     @trace
