@@ -230,152 +230,6 @@ function ManageDashboards() {
     return typeof query === 'string' ? query : undefined;
   }
 
-  function renderActions() {
-    const activeSort = getActiveSort();
-    return (
-      <Grid
-        columns={{zero: 'auto', xl: 'auto max-content max-content'}}
-        gap="md"
-        marginBottom="xl"
-      >
-        <SearchBar
-          query={getQuery()}
-          placeholder={t('Search Dashboards')}
-          onSearch={query => handleSearch(query)}
-        />
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
-          )}
-          value={activeSort!.value}
-          options={sortOptions}
-          onChange={opt => handleSortChange(opt.value)}
-          position="bottom-end"
-          data-test-id="sort-by-select"
-        />
-        {areAiFeaturesAllowed ? (
-          <DashboardCreateLimitWrapper>
-            {({
-              hasReachedDashboardLimit,
-              isLoading: isLoadingDashboardsLimit,
-              limitMessage,
-            }) => (
-              <DropdownMenu
-                items={[
-                  {
-                    key: 'create-dashboard',
-                    label: t('Create dashboard manually'),
-                    onAction: () => onCreate(),
-                    disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                    details: limitMessage,
-                  },
-                  {
-                    key: 'create-dashboard-agent',
-                    textValue: t('Generate dashboard'),
-                    label: (
-                      <Flex gap="sm" align="center" as="span">
-                        {t('Generate dashboard')}
-                        <FeatureBadge type="beta" />
-                      </Flex>
-                    ),
-                    onAction: () => onGenerateDashboard(),
-                    disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                    details: limitMessage,
-                  },
-                ]}
-                trigger={triggerProps => (
-                  <Button
-                    {...triggerProps}
-                    data-test-id="dashboard-create"
-                    variant="primary"
-                    icon={<IconAdd />}
-                  >
-                    {t('Create Dashboard')}
-                  </Button>
-                )}
-              />
-            )}
-          </DashboardCreateLimitWrapper>
-        ) : (
-          <DashboardCreateLimitWrapper>
-            {({
-              hasReachedDashboardLimit,
-              isLoading: isLoadingDashboardsLimit,
-              limitMessage,
-            }) => (
-              <Button
-                data-test-id="dashboard-create"
-                onClick={event => {
-                  event.preventDefault();
-                  onCreate();
-                }}
-                variant="primary"
-                icon={<IconAdd />}
-                disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                tooltipProps={{
-                  title: limitMessage,
-                }}
-              >
-                {t('Create Dashboard')}
-              </Button>
-            )}
-          </DashboardCreateLimitWrapper>
-        )}
-      </Grid>
-    );
-  }
-
-  function renderNoAccess() {
-    return (
-      <Stack flex={1}>
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t("You don't have access to this feature")}
-          </Alert>
-        </Alert.Container>
-      </Stack>
-    );
-  }
-
-  function renderDashboards() {
-    return (
-      <DashboardTable
-        api={api}
-        dashboards={dashboards}
-        organization={organization}
-        location={location}
-        onDashboardsChange={invalidateDashboards}
-        isLoading={isLoading}
-        isOnlyPrebuilt={isOnlyPrebuilt}
-      />
-    );
-  }
-
-  function renderPagination() {
-    return (
-      <PaginationRow
-        pageLinks={dashboardsPageLinks}
-        onCursor={(cursor, path, query, direction) => {
-          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
-
-          const newQuery: Query & {cursor?: string} = {...query, cursor};
-          const isPrevious = direction === -1;
-
-          if (offset <= 0 && isPrevious) {
-            delete newQuery.cursor;
-          }
-
-          trackAnalytics('dashboards_manage.paginate', {organization});
-
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
-        }}
-      />
-    );
-  }
-
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
@@ -394,6 +248,146 @@ function ManageDashboards() {
       })
     );
   }
+
+  const activeSort = getActiveSort();
+  const actions = (
+    <Grid
+      columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+      gap="md"
+      marginBottom="xl"
+    >
+      <SearchBar
+        query={getQuery()}
+        placeholder={t('Search Dashboards')}
+        onSearch={query => handleSearch(query)}
+      />
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+        )}
+        value={activeSort!.value}
+        options={sortOptions}
+        onChange={opt => handleSortChange(opt.value)}
+        position="bottom-end"
+        data-test-id="sort-by-select"
+      />
+      {areAiFeaturesAllowed ? (
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
+            <DropdownMenu
+              items={[
+                {
+                  key: 'create-dashboard',
+                  label: t('Create dashboard manually'),
+                  onAction: () => onCreate(),
+                  disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                  details: limitMessage,
+                },
+                {
+                  key: 'create-dashboard-agent',
+                  textValue: t('Generate dashboard'),
+                  label: (
+                    <Flex gap="sm" align="center" as="span">
+                      {t('Generate dashboard')}
+                      <FeatureBadge type="beta" />
+                    </Flex>
+                  ),
+                  onAction: () => onGenerateDashboard(),
+                  disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                  details: limitMessage,
+                },
+              ]}
+              trigger={triggerProps => (
+                <Button
+                  {...triggerProps}
+                  data-test-id="dashboard-create"
+                  variant="primary"
+                  icon={<IconAdd />}
+                >
+                  {t('Create Dashboard')}
+                </Button>
+              )}
+            />
+          )}
+        </DashboardCreateLimitWrapper>
+      ) : (
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
+            <Button
+              data-test-id="dashboard-create"
+              onClick={event => {
+                event.preventDefault();
+                onCreate();
+              }}
+              variant="primary"
+              icon={<IconAdd />}
+              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+              tooltipProps={{
+                title: limitMessage,
+              }}
+            >
+              {t('Create Dashboard')}
+            </Button>
+          )}
+        </DashboardCreateLimitWrapper>
+      )}
+    </Grid>
+  );
+
+  function renderNoAccess() {
+    return (
+      <Stack flex={1}>
+        <Alert.Container>
+          <Alert variant="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
+        </Alert.Container>
+      </Stack>
+    );
+  }
+
+  const dashboardsView = (
+    <DashboardTable
+      api={api}
+      dashboards={dashboards}
+      organization={organization}
+      location={location}
+      onDashboardsChange={invalidateDashboards}
+      isLoading={isLoading}
+      isOnlyPrebuilt={isOnlyPrebuilt}
+    />
+  );
+
+  const pagination = (
+    <PaginationRow
+      pageLinks={dashboardsPageLinks}
+      onCursor={(cursor, path, query, direction) => {
+        const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
+
+        const newQuery: Query & {cursor?: string} = {...query, cursor};
+        const isPrevious = direction === -1;
+
+        if (offset <= 0 && isPrevious) {
+          delete newQuery.cursor;
+        }
+
+        trackAnalytics('dashboards_manage.paginate', {organization});
+
+        navigate({
+          pathname: path,
+          query: newQuery,
+        });
+      }}
+    />
+  );
 
   return (
     <Feature
@@ -452,9 +446,9 @@ function ManageDashboards() {
                 </TopBar.Slot>
                 <Layout.Body>
                   <Layout.Main width="full">
-                    {renderActions()}
-                    <div id="dashboard-list-container">{renderDashboards()}</div>
-                    {renderPagination()}
+                    {actions}
+                    <div id="dashboard-list-container">{dashboardsView}</div>
+                    {pagination}
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
