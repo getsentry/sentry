@@ -1,18 +1,19 @@
 import {ThemeProvider} from '@emotion/react';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {PriorityLevel} from 'sentry/types/group';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import {StreamGroupRow} from './streamGroupRow';
 
 const themes = {light: lightTheme, dark: darkTheme};
 
-// The issue list sets container-type: inline-size on the panel body,
-// and column visibility uses container queries against that width.
 function IssueListContainer({children}: {children: React.ReactNode}) {
   return (
-    <div style={{containerType: 'inline-size', width: 1200, padding: 8}}>{children}</div>
+    <Container containerType="inline-size" width="1200px" padding="sm">
+      {children}
+    </Container>
   );
 }
 
@@ -50,7 +51,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
 
     it.snapshot(
@@ -74,7 +75,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
 
     it.snapshot(
@@ -92,7 +93,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
 
     it.snapshot(
@@ -111,7 +112,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
 
     it.snapshot(
@@ -128,7 +129,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
 
     it.snapshot(
@@ -156,7 +157,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
 
     it.snapshot(
@@ -186,7 +187,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
 
     it.snapshot(
@@ -202,7 +203,7 @@ describe('StreamGroupRow', () => {
           </IssueListContainer>
         </ThemeProvider>
       ),
-      {theme: themeName, viewport: 1400}
+      {viewport: 1400}
     );
   });
 });
