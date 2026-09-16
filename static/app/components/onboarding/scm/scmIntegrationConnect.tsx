@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {Fragment, useCallback, useEffect, useRef} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
@@ -14,6 +14,7 @@ import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmIntegrationSelect} from './scmIntegrationSelect';
+import {ScmPickerSection} from './scmPickerSection';
 import {ScmProviderPills} from './scmProviderPills';
 import {ScmRepoSelector} from './scmRepoSelector';
 import {useScmPlatformDetection} from './useScmPlatformDetection';
@@ -198,13 +199,15 @@ export function ScmIntegrationConnect({
   }
 
   const repoSelector = (
-    <ScmRepoSelector
-      analyticsFlow={analyticsFlow}
-      integration={effectiveIntegration}
-      selectedRepository={selectedRepository}
-      onRepositoryChange={onRepositoryChange}
-      onClearDerivedState={onClearDerivedState}
-    />
+    <Stack width="100%">
+      <ScmRepoSelector
+        analyticsFlow={analyticsFlow}
+        integration={effectiveIntegration}
+        selectedRepository={selectedRepository}
+        onRepositoryChange={onRepositoryChange}
+        onClearDerivedState={onClearDerivedState}
+      />
+    </Stack>
   );
 
   if (allowIntegrationSwitching) {
@@ -229,25 +232,20 @@ export function ScmIntegrationConnect({
   }
 
   // Single-integration hosts (onboarding) frame the connected provider and repo
-  // selector as one card, with the provider logo standing in for its name.
+  // selector in the shared picker card, with the provider logo standing in for
+  // the provider's name.
   return (
-    <Stack
-      key="with-integration"
-      gap="lg"
-      width="100%"
-      maxWidth={maxWidth}
-      background="primary"
-      border="primary"
-      radius="xl"
-      padding="xl"
-    >
-      <Flex align="center" gap="md">
-        {getIntegrationIcon(effectiveIntegration.provider.key)}
-        <Text bold size="lg">
-          {effectiveIntegration.name}
-        </Text>
-      </Flex>
-      {repoSelector}
+    <Stack key="with-integration" width="100%" maxWidth={maxWidth}>
+      <ScmPickerSection
+        title={
+          <Fragment>
+            {getIntegrationIcon(effectiveIntegration.provider.key)}
+            <Text size="lg">{effectiveIntegration.name}</Text>
+          </Fragment>
+        }
+      >
+        {repoSelector}
+      </ScmPickerSection>
     </Stack>
   );
 }

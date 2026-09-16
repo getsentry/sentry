@@ -7,12 +7,12 @@ import {Text} from '@sentry/scraps/text';
 
 import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegrationConnect';
 import {ScmStepHeader} from 'sentry/components/onboarding/scm/scmStepHeader';
+import {ScmStepLayout} from 'sentry/components/onboarding/scm/scmStepLayout';
 import {useScmProviders} from 'sentry/components/onboarding/scm/useScmProviders';
 import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 
-import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
 
 interface ScmConnectProps {
@@ -41,7 +41,7 @@ const SCM_INFO_SECTIONS: Array<{
   tooltip?: string;
 }> = [
   {
-    title: t('How we use access'),
+    title: t('How we use repository access:'),
     icon: <IconCheckmark size="xs" variant="success" />,
     items: [
       {
@@ -63,7 +63,7 @@ const SCM_INFO_SECTIONS: Array<{
     ],
   },
   {
-    title: t('Never without your permission'),
+    title: t('We will never (without your permission):'),
     tooltip: t(
       "If a feature needs more access to your code, we'll always ask you first. No surprises."
     ),
@@ -96,47 +96,50 @@ export function ScmConnect({
     // The onboarding flow has no page-level query container (project creation
     // resolves against `#main`), and the flow's fixed footers preclude one
     // higher up, so each SCM step declares its own.
-    <Stack align="center" gap="2xl" containerType="inline-size">
-      <ScmStepHeader
-        heading={t('Connect your code')}
-        subtitle={t(
-          'Linking a repo auto-detects your platform and unlocks stack trace linking, suspect commits, suggested assignees, and Seer.'
-        )}
-      />
-
-      <LayoutGroup>
-        <ScmIntegrationConnect
-          analyticsFlow="onboarding"
-          onClearDerivedState={onClearDerivedState}
-          onIntegrationChange={onIntegrationChange}
-          onRepositoryChange={onRepositoryChange}
-          selectedIntegration={selectedIntegration}
-          selectedRepository={selectedRepository}
-          pillsJustify="center"
+    <Stack containerType="inline-size">
+      <ScmStepLayout>
+        <ScmStepHeader
+          heading={t('Connect your code')}
+          subtitle={t(
+            'Linking a repo auto-detects your platform and unlocks stack trace linking, suspect commits, suggested assignees, and Seer.'
+          )}
         />
-        <MotionFlex
-          layout="position"
-          gap="sm"
-          align="center"
-          justify="center"
-          width="100%"
-          maxWidth={SCM_STEP_CONTENT_WIDTH}
-        >
-          <IconLock size="sm" variant="secondary" locked />
-          <Text variant="secondary" size="md" density="comfortable">
-            {t('Revoke any time from Settings / Integrations')}
-          </Text>
-        </MotionFlex>
 
-        {/* Once a provider is connected the access explainer has done its job. */}
-        {effectiveIntegration ? null : (
+        <LayoutGroup>
+          {/* The note belongs to the control above it, so the two sit together
+              rather than a step's worth of space apart. */}
+          <Stack gap="md" width="100%">
+            <ScmIntegrationConnect
+              analyticsFlow="onboarding"
+              onClearDerivedState={onClearDerivedState}
+              onIntegrationChange={onIntegrationChange}
+              onRepositoryChange={onRepositoryChange}
+              selectedIntegration={selectedIntegration}
+              selectedRepository={selectedRepository}
+              pillsJustify="center"
+            />
+
+            {/* The provider buttons are the page's focus until one is
+                connected; after that the note follows the repo picker's edge. */}
+            <MotionFlex
+              layout="position"
+              gap="sm"
+              align="center"
+              justify={effectiveIntegration ? 'start' : 'center'}
+            >
+              <IconLock size="sm" variant="secondary" locked />
+              <Text variant="secondary" size="md" density="comfortable">
+                {t('Revoke access any time in settings')}
+              </Text>
+            </MotionFlex>
+          </Stack>
+
           <MotionGrid
             columns="1fr"
             gap="2xl"
             width="100%"
-            maxWidth={SCM_STEP_CONTENT_WIDTH}
             layout="position"
-            background="tertiary"
+            background="secondary"
             border="primary"
             radius="xl"
             padding="xl"
@@ -144,7 +147,7 @@ export function ScmConnect({
             {SCM_INFO_SECTIONS.map(section => (
               <Stack key={section.title} gap="lg">
                 <Flex align="center" gap="sm">
-                  <Text bold size="md" density="compressed" variant="primary">
+                  <Text size="md" density="compressed" variant="primary">
                     {section.title}
                   </Text>
                   {section.tooltip && <InfoTip title={section.tooltip} size="sm" />}
@@ -175,22 +178,17 @@ export function ScmConnect({
               </Stack>
             ))}
           </MotionGrid>
-        )}
 
-        <MotionFlex
-          layout="position"
-          align="center"
-          justify="between"
-          width="100%"
-          maxWidth={SCM_STEP_CONTENT_WIDTH}
-          paddingTop="3xl"
-        >
-          <Flex align="center">{genBackButton?.()}</Flex>
-          <Flex align="center" gap="md" minWidth={0}>
-            {/* A repo can linger in session storage after its integration is
-                gone; without a provider there is no Continue, so this is the
-                only way forward. */}
-            {(!effectiveIntegration || !selectedRepository) && (
+          <MotionFlex
+            layout="position"
+            align="center"
+            justify="between"
+            gap="md"
+            width="100%"
+            paddingTop="2xl"
+          >
+            <Flex align="center">{genBackButton?.()}</Flex>
+            <Flex align="center" gap="md">
               <Button
                 analyticsEventKey="onboarding.scm_connect_skip_clicked"
                 analyticsEventName="Onboarding: SCM Connect Skip Clicked"
@@ -199,25 +197,20 @@ export function ScmConnect({
                 }}
                 onClick={() => onComplete()}
                 variant="transparent"
-                style={{minWidth: 0}}
               >
-                <Text ellipsis variant="inherit">
-                  {t('Continue without a repo')}
-                </Text>
+                {t('Continue without a repo')}
               </Button>
-            )}
 
-            {effectiveIntegration && (
               <Button
                 variant="primary"
                 analyticsEventKey="onboarding.scm_connect_continue_clicked"
                 analyticsEventName="Onboarding: SCM Connect Continue Clicked"
                 analyticsParams={{
-                  provider: effectiveIntegration.provider.key,
+                  provider: effectiveIntegration?.provider.key ?? '',
                   repo: selectedRepository?.name ?? '',
                 }}
                 onClick={() => {
-                  if (!selectedIntegration) {
+                  if (effectiveIntegration && !selectedIntegration) {
                     onIntegrationChange(effectiveIntegration);
                   }
                   onComplete();
@@ -226,10 +219,10 @@ export function ScmConnect({
               >
                 {t('Continue')}
               </Button>
-            )}
-          </Flex>
-        </MotionFlex>
-      </LayoutGroup>
+            </Flex>
+          </MotionFlex>
+        </LayoutGroup>
+      </ScmStepLayout>
     </Stack>
   );
 }
