@@ -156,33 +156,14 @@ describe('DetectorDetails', () => {
       render(<Component />, {organization, initialRouterConfig});
       await screen.findByRole('heading', {name: /detector1/});
 
-      const readNode = () =>
-        getLLMContext!().nodes.find(node => node.nodeType === 'monitor-detail')?.data as
-          | Record<string, unknown>
-          | undefined;
-
+      // What only this test can prove: the node is registered and published for
+      // the monitor in view. The field mapping itself is covered by
+      // detectorLLMContext.spec.tsx.
       await waitFor(() => {
-        expect(readNode()).toBeDefined();
+        expect(
+          getLLMContext!().nodes.find(node => node.nodeType === 'monitor-detail')?.data
+        ).toEqual(expect.objectContaining({id: '1', name: 'detector1'}));
       });
-
-      const data = readNode()!;
-      expect(data).toEqual(
-        expect.objectContaining({
-          id: '1',
-          name: 'detector1',
-          type: 'metric_issue',
-          project: project.slug,
-          owner: `team:${ownerTeam.slug}`,
-          connectedAlertIds: ['1', '2'],
-        })
-      );
-      expect(data.config).toEqual(
-        expect.objectContaining({
-          query: 'test',
-          environment: 'test-environment',
-          detectionType: 'static',
-        })
-      );
     });
 
     it('renders the detector details and snuba query', async () => {

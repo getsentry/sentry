@@ -9,16 +9,21 @@ import {
   UptimeDetectorFixture,
 } from 'sentry-fixture/detectors';
 
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  DetectorPriorityLevel,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {detectorToLLMContext} from 'sentry/views/detectors/utils/detectorLLMContext';
 
 describe('detectorToLLMContext', () => {
-  it('reports the shared identity fields for every detector type', () => {
+  it('reports the shared identity fields', () => {
     const detector = MetricDetectorFixture({
       id: '42',
       name: 'Checkout latency',
       enabled: false,
       description: 'Watches p95 on checkout',
-      owner: ActorFixture({type: 'team', name: 'backend'}),
+      owner: ActorFixture({id: '7', type: 'team', name: 'backend'}),
       workflowIds: ['100', '101'],
     });
 
@@ -28,8 +33,8 @@ describe('detectorToLLMContext', () => {
         name: 'Checkout latency',
         type: 'metric_issue',
         enabled: false,
-        project: 'project-slug',
-        owner: 'team:backend',
+        projectSlug: 'project-slug',
+        owner: {type: 'team', id: '7', name: 'backend'},
         description: 'Watches p95 on checkout',
         connectedAlertIds: ['100', '101'],
       })
@@ -48,46 +53,73 @@ describe('detectorToLLMContext', () => {
   it('reports the query and thresholds for a metric monitor', () => {
     const {config} = detectorToLLMContext(MetricDetectorFixture(), 'project-slug');
 
-    expect(config).toEqual(
-      expect.objectContaining({
-        aggregate: expect.any(String),
-        dataset: expect.any(String),
-        query: expect.any(String),
-        timeWindowSeconds: expect.any(Number),
-        detectionType: 'static',
-        // Static detection carries no comparison delta.
-        comparisonDelta: null,
-      })
-    );
-    const thresholds = config.thresholds as {
-      conditions: unknown[];
-      logicType: string;
-    };
-    expect(thresholds.logicType).toEqual(expect.any(String));
-    expect(thresholds.conditions.length).toBeGreaterThan(0);
-    for (const condition of thresholds.conditions) {
-      expect(condition).toEqual({
-        type: expect.any(String),
-        comparison: expect.anything(),
-        priority: expect.anything(),
-      });
-    }
+    expect(config).toEqual({
+      aggregate: 'count()',
+      dataset: 'events',
+      query: 'is:unresolved',
+      eventTypes: ['error'],
+      timeWindowSeconds: 60,
+      detectionType: 'static',
+      // Static detection carries no comparison delta and counts have no unit.
+      comparisonDelta: null,
+      thresholdSuffix: '',
+      thresholds: {
+        logicType: DataConditionGroupLogicType.ANY,
+        conditions: [
+          {
+            type: DataConditionType.GREATER,
+            comparison: 8,
+            priority: DetectorPriorityLevel.HIGH,
+          },
+          {
+            type: DataConditionType.LESS_OR_EQUAL,
+            comparison: 8,
+            priority: DetectorPriorityLevel.OK,
+          },
+        ],
+      },
+    });
   });
 
-  it('reports the comparison delta for percent-change detection', () => {
-    const {config} = detectorToLLMContext(
-      MetricDetectorFixture({config: {detectionType: 'percent', comparisonDelta: 10}}),
-      'project-slug'
-    );
+  it('converts a percent-change threshold to the delta the page shows', () => {
+    const detector = MetricDetectorFixture({
+      config: {detectionType: 'percent', comparisonDelta: 3600},
+      conditionGroup: {
+        id: '1',
+        logicType: DataConditionGroupLogicType.ANY,
+        conditions: [
+          {
+            id: '1',
+            type: DataConditionType.GREATER,
+            comparison: 110,
+            conditionResult: DetectorPriorityLevel.HIGH,
+          },
+        ],
+      },
+    });
 
-    expect(config).toEqual(
-      expect.objectContaining({detectionType: 'percent', comparisonDelta: 10})
-    );
+    const {config} = detectorToLLMContext(detector, 'project-slug');
+
+    // The backend stores 110 for "10% higher than baseline"; sending the raw
+    // 110 alongside detectionType 'percent' would read as a 110% threshold.
+    expect(config.thresholds).toEqual({
+      logicType: DataConditionGroupLogicType.ANY,
+      conditions: [
+        {
+          type: DataConditionType.GREATER,
+          comparison: 10,
+          priority: DetectorPriorityLevel.HIGH,
+        },
+      ],
+    });
+    expect(config.thresholdSuffix).toBe('%');
   });
 
-  it('reports the request and thresholds for an uptime monitor, and never its credentials', () => {
+  it('reports the request and thresholds for an uptime monitor, never its credentials', () => {
     const {config} = detectorToLLMContext(UptimeDetectorFixture(), 'project-slug');
 
+    // Exact match: the uptime data source also holds `headers` and `body`,
+    // which routinely carry auth tokens and must not reach a prompt.
     expect(config).toEqual({
       url: 'https://example.com',
       method: 'GET',
@@ -96,30 +128,26 @@ describe('detectorToLLMContext', () => {
       traceSampling: false,
       downtimeThreshold: 3,
       recoveryThreshold: 1,
-      mode: 1,
-      environment: 'production',
+      autoDetected: false,
     });
-    // Request headers and body can hold auth tokens — they must not reach a prompt.
-    expect(config).not.toHaveProperty('headers');
-    expect(config).not.toHaveProperty('body');
   });
 
   it('reports the schedule for a cron monitor, not the whole Monitor object', () => {
     const {config} = detectorToLLMContext(CronDetectorFixture(), 'project-slug');
 
-    expect(config).toEqual(
-      expect.objectContaining({
-        schedule: expect.anything(),
-        scheduleType: expect.any(String),
-        failureIssueThreshold: 1,
-        recoveryThreshold: 2,
-        environments: expect.any(Array),
-      })
-    );
-    // The cron data source is an entire Monitor; its project and per-environment
-    // check-in state stay out of the payload.
-    expect(config).not.toHaveProperty('project');
-    expect(config).not.toHaveProperty('owner');
+    // Exact match: the cron data source is an entire Monitor, so its project,
+    // owner and per-environment check-in state stay out of the payload.
+    expect(config).toEqual({
+      schedule: expect.anything(),
+      scheduleType: expect.any(String),
+      timezone: 'UTC',
+      checkinMarginMinutes: null,
+      maxRuntimeMinutes: null,
+      failureIssueThreshold: 1,
+      recoveryThreshold: 2,
+      status: expect.any(String),
+      environments: expect.any(Array),
+    });
   });
 
   it('reports the measurement and thresholds for a mobile build monitor', () => {
@@ -139,10 +167,6 @@ describe('detectorToLLMContext', () => {
     ['issue_stream', IssueStreamDetectorFixture()],
     ['issue_stream (all projects)', AllProjectsDetectorFixture()],
   ])('reports identity only for a %s detector', (_label, detector) => {
-    const result = detectorToLLMContext(detector, 'project-slug');
-
-    expect(result.config).toEqual({});
-    expect(result.id).toEqual(expect.any(String));
-    expect(result.name).toEqual(expect.any(String));
+    expect(detectorToLLMContext(detector, 'project-slug').config).toEqual({});
   });
 });

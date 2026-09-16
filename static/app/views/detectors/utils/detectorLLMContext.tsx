@@ -1,13 +1,22 @@
 import type {Detector, MetricConditionGroup} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
+import {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
+import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
+import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 
 /**
  * Flatten a detector's condition group into the thresholds it represents.
  *
- * `comparison` is a number for static thresholds and an object for anomaly
- * detection; both are JSON-serializable, so it passes through as-is.
+ * Percent-change detectors store their comparison as an absolute percentage of
+ * the baseline — 110 means "10% higher" — so those are converted to the delta
+ * the page displays. Everything else passes through: static thresholds are
+ * plain numbers, and anomaly detection's comparison is an object.
  */
-function summarizeConditions(group: MetricConditionGroup | null) {
+function summarizeConditions(
+  group: MetricConditionGroup | null,
+  isPercentChange = false
+) {
   if (!group) {
     return null;
   }
@@ -15,7 +24,10 @@ function summarizeConditions(group: MetricConditionGroup | null) {
     logicType: group.logicType,
     conditions: group.conditions.map(condition => ({
       type: condition.type,
-      comparison: condition.comparison,
+      comparison:
+        isPercentChange && typeof condition.comparison === 'number'
+          ? percentThresholdAbsoluteToDelta(condition.comparison)
+          : condition.comparison,
       priority: condition.conditionResult,
     })),
   };
@@ -36,17 +48,22 @@ function getDetectorConfig(detector: Detector): Record<string, unknown> {
   switch (detectorType) {
     case 'metric_issue': {
       const {snubaQuery} = detector.dataSources[0].queryObj;
+      const {detectionType} = detector.config;
       return {
         aggregate: snubaQuery.aggregate,
         dataset: snubaQuery.dataset,
         query: snubaQuery.query,
         eventTypes: snubaQuery.eventTypes,
-        environment: snubaQuery.environment ?? null,
         timeWindowSeconds: snubaQuery.timeWindow,
-        detectionType: detector.config.detectionType,
+        detectionType,
         comparisonDelta:
           'comparisonDelta' in detector.config ? detector.config.comparisonDelta : null,
-        thresholds: summarizeConditions(detector.conditionGroup),
+        // Without a unit, a threshold of 500 could be milliseconds or a count.
+        thresholdSuffix: getMetricDetectorSuffix(detectionType, snubaQuery.aggregate),
+        thresholds: summarizeConditions(
+          detector.conditionGroup,
+          detectionType === 'percent'
+        ),
       };
     }
     case 'uptime_domain_failure': {
@@ -59,8 +76,7 @@ function getDetectorConfig(detector: Detector): Record<string, unknown> {
         traceSampling: subscription.traceSampling,
         downtimeThreshold: detector.config.downtimeThreshold,
         recoveryThreshold: detector.config.recoveryThreshold,
-        mode: detector.config.mode,
-        environment: detector.config.environment,
+        autoDetected: detector.config.mode !== UptimeMonitorMode.MANUAL,
       };
     }
     case 'monitor_check_in_failure': {
@@ -74,6 +90,8 @@ function getDetectorConfig(detector: Detector): Record<string, unknown> {
         failureIssueThreshold: monitor.config.failure_issue_threshold ?? null,
         recoveryThreshold: monitor.config.recovery_threshold ?? null,
         status: monitor.status,
+        // Crons are the one multi-environment type, so they list their own
+        // environments rather than using the shared `environment` field.
         environments: monitor.environments.map(environment => environment.name),
       };
     }
@@ -89,8 +107,7 @@ function getDetectorConfig(detector: Detector): Record<string, unknown> {
       // No type-specific configuration. Identity fields still apply.
       return {};
     default:
-      unreachable(detectorType);
-      return {};
+      return unreachable(detectorType);
   }
 }
 
@@ -105,8 +122,11 @@ export function detectorToLLMContext(detector: Detector, projectSlug: string) {
     name: detector.name,
     type: detector.type,
     enabled: detector.enabled,
-    project: projectSlug,
-    owner: detector.owner ? `${detector.owner.type}:${detector.owner.name}` : null,
+    projectSlug,
+    environment: getDetectorEnvironment(detector),
+    owner: detector.owner
+      ? {type: detector.owner.type, id: detector.owner.id, name: detector.owner.name}
+      : null,
     description: detector.description,
     lastTriggered: detector.lastTriggered,
     // Alerts are `workflows` in the API but "alerts" in the product.

@@ -20,15 +20,18 @@ type DetectorDetailsContentProps = {
   project: Project;
 };
 
+/**
+ * Only the facts the node's own data cannot state. The monitor's type and
+ * settings are reported as fields, so they are not restated here.
+ */
+const CONTEXT_HINT =
+  'Sentry monitor detail page, for the one monitor named below. connectedAlertIds are the ' +
+  'alerts this monitor notifies through; they are `workflows` in the API. Use search_events ' +
+  'or issue search scoped to this project to see what it has actually been firing on.';
+
 function DetectorDetailsContentInner({detector, project}: DetectorDetailsContentProps) {
   useLLMContext({
-    contextHint:
-      'Sentry monitor detail page. A monitor watches one signal — a metric query, a cron ' +
-      "check-in, an uptime check, a project's errors, or a mobile build size — and opens issues " +
-      'when it fires. config holds the detection settings for this monitor type only, so its ' +
-      'shape differs per type. connectedAlertIds are the alerts this monitor notifies through; ' +
-      'they are `workflows` in the API. Use search_events or issue search scoped to this project ' +
-      'to see what the monitor has actually been firing on.',
+    contextHint: CONTEXT_HINT,
     ...detectorToLLMContext(detector, project.slug),
   });
 
