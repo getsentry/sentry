@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -48,7 +48,12 @@ class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer
 
 
 class SentryAppIssueLinkOptionsSerializer(serializers.Serializer):
-    expectedExternalIssueUrl = serializers.URLField(required=False)
+    expectedExternalIssueUrl = serializers.URLField(
+        required=False,
+        help_text="The exact canonical webUrl of the external issue to link. "
+        "Only supported for action=link. An existing matching association is a no-op; "
+        "a different association or callback URL returns 409 without replacing the link.",
+    )
 
 
 @extend_schema(tags=["Integration"])
@@ -66,14 +71,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         summary="Create or Link an External Issue Through a Sentry App",
         parameters=[
             SentryAppParams.INSTALLATION_UUID,
-            OpenApiParameter(
-                name="expectedExternalIssueUrl",
-                location=OpenApiParameter.QUERY,
-                type=str,
-                description="The exact canonical webUrl of the external issue to link. "
-                "Only supported for action=link. An existing matching association is a no-op; "
-                "a different association or callback URL returns 409 without replacing the link.",
-            ),
+            SentryAppIssueLinkOptionsSerializer,
         ],
         request=SentryAppInstallationExternalIssueActionsSerializer,
         responses={

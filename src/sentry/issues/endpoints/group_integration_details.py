@@ -541,16 +541,15 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                             group.project, request.user, link_data
                         )
                         installation.after_link_issue(external_issue, data=link_data)
-                        with transaction.atomic(router.db_for_write(GroupLink)):
-                            _, changed = GroupLink.objects.get_or_create(
-                                group_id=group.id,
-                                linked_type=GroupLink.LinkedType.issue,
-                                linked_id=external_issue.id,
-                                defaults={
-                                    "project_id": group.project_id,
-                                    "relationship": GroupLink.Relationship.references,
-                                },
-                            )
+                        _, changed = GroupLink.objects.get_or_create(
+                            group_id=group.id,
+                            linked_type=GroupLink.LinkedType.issue,
+                            linked_id=external_issue.id,
+                            defaults={
+                                "project_id": group.project_id,
+                                "relationship": GroupLink.Relationship.references,
+                            },
+                        )
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
                 return Response(dict(exc.field_errors or {}), status=400)
