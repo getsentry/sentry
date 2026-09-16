@@ -94,7 +94,7 @@ def _record_partition_set_metrics(missing_partitions: frozenset[int] | None) -> 
     metrics.gauge("monitors.task.clock_stall_gap", stall_gap, sample_rate=1.0)
 
 
-def _hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
+def _should_hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
     if not missing_partitions:
         return False
 
@@ -161,7 +161,7 @@ def try_monitor_clock_tick(ts: datetime, partition: int):
     missing_partitions = _missing_partitions(partition_clocks)
     _record_partition_set_metrics(missing_partitions)
 
-    if _hold_clock_tick(missing_partitions):
+    if _should_hold_clock_tick(missing_partitions):
         return
 
     # the first tuple is the slowest (part-<id>, score), the score is the
