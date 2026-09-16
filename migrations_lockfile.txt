@@ -19,7 +19,7 @@ hybridcloud: 0038_cellcacheversion_backfill_keyname
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0007_drop_producing_seer_run_fk
+investigations: 0008_delete_investigation_cell_tables
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
