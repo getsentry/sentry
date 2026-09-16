@@ -40,11 +40,12 @@ function getMeta(projection: InvestigationOrchestration): string | undefined {
     return undefined;
   }
   const checkCount = countCompletedChecks(projection);
-  return t(
-    '%s • %s',
+  // Each half is translated; the bullet between them is punctuation, not a
+  // string a translator has anything to do with.
+  return [
     tn('%s possible cause', '%s possible causes', causeCount),
-    tn('%s check completed', '%s checks completed', checkCount)
-  );
+    tn('%s check completed', '%s checks completed', checkCount),
+  ].join(' • ');
 }
 
 /**
