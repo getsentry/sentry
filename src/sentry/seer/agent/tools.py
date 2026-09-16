@@ -1251,7 +1251,7 @@ def _get_recommended_event(
         # Get candidate events with the standard recommended ordering.
         # This is an expensive orderby, hence the inner limit and sliding window.
         try:
-            candidates = eventstore.backend.get_event_candidates_snql(
+            events = eventstore.backend.get_events_snql(
                 organization_id=organization.id,
                 group_id=group.id,
                 start=window_start,
@@ -1266,6 +1266,7 @@ def _get_recommended_event(
                 dataset=dataset,
                 tenant_ids={"organization_id": group.project.organization_id},
                 inner_limit=1000,
+                load_bodies=False,
             )
         except Exception:
             logger.exception(
@@ -1274,10 +1275,10 @@ def _get_recommended_event(
             )
             break
 
-        if candidates and not fallback_events:
-            fallback_events = [candidate.event for candidate in candidates]
+        if events and not fallback_events:
+            fallback_events = events
 
-        trace_ids = list({candidate.trace_id for candidate in candidates if candidate.trace_id})
+        trace_ids = list({event.trace_id for event in events if event.trace_id})
 
         try:
             # Include spans either side of the event window, within retention.
@@ -1287,11 +1288,7 @@ def _get_recommended_event(
                 start=max(window_start - timedelta(days=1), retention_boundary),
                 end=window_end + timedelta(days=1),
             )
-            matching_events = [
-                candidate.event
-                for candidate in candidates
-                if candidate.trace_id in traces_with_spans
-            ]
+            matching_events = [event for event in events if event.trace_id in traces_with_spans]
             event = _load_first_available_event(group, matching_events)
             if event is not None:
                 return event

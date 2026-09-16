@@ -620,6 +620,25 @@ class GroupEventOccurrenceTest(TestCase, OccurrenceTestMixin):
             assert fetch_mock.call_count == 2
 
 
+@pytest.mark.parametrize(
+    "snuba_data,expected,body_reads",
+    [
+        ({"trace_id": "b" * 32}, "b" * 32, 0),
+        ({"trace_id": None}, None, 0),
+        ({}, "c" * 32, 1),
+    ],
+)
+def test_trace_id(snuba_data: dict[str, str | None], expected: str | None, body_reads: int) -> None:
+    event = Event(project_id=1, event_id="a" * 32, snuba_data=snuba_data)
+    with mock.patch.object(
+        nodestore.backend,
+        "get",
+        return_value={"contexts": {"trace": {"trace_id": "c" * 32, "span_id": "d" * 16}}},
+    ) as get_body:
+        assert event.trace_id == expected
+    assert get_body.call_count == body_reads
+
+
 @django_db_all
 def test_renormalization(factories, task_runner, default_project) -> None:
     from sentry_relay.processing import StoreNormalizer

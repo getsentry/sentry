@@ -92,6 +92,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
     @property
     def trace_id(self) -> str | None:
+        if "trace_id" in self._snuba_data:
+            return cast(str | None, self._snuba_data["trace_id"])
         return get_path(self.data, "contexts", "trace", "trace_id")
 
     @property
