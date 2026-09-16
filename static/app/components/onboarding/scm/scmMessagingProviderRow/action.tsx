@@ -6,6 +6,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ScmMessagingResolvedProvider} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {IconAdd} from 'sentry/icons/iconAdd';
+import {IconDelete} from 'sentry/icons/iconDelete';
+import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 
 import type {RowVisualState} from './types';
@@ -88,10 +90,10 @@ export function RowActions({
   if (visualState === 'configured') {
     return (
       <Fragment>
-        <Button size="sm" variant="link" onClick={onEditDestination}>
+        <Button size="sm" icon={<IconEdit size="xs" />} onClick={onEditDestination}>
           {t('Edit')}
         </Button>
-        <Button size="sm" variant="link" onClick={onStartRemoving}>
+        <Button size="sm" icon={<IconDelete size="xs" />} onClick={onStartRemoving}>
           {t('Remove')}
         </Button>
       </Fragment>

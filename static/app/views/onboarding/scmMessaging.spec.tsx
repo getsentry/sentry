@@ -691,7 +691,9 @@ describe('ScmMessaging', () => {
       expect(await screen.findByText('slack')).toBeInTheDocument();
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.queryByText('msteams')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
       await waitFor(() =>
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
       );
@@ -722,7 +724,9 @@ describe('ScmMessaging', () => {
       // brings the footer back.
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.queryByText('msteams')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Set up later'})
+      ).not.toBeInTheDocument();
       await waitFor(() =>
         expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled()
       );
@@ -763,7 +767,7 @@ describe('ScmMessaging', () => {
 
       expect(await screen.findByText('slack')).toBeInTheDocument();
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));
 
@@ -776,7 +780,7 @@ describe('ScmMessaging', () => {
 
       expect(screen.queryByText('discord')).not.toBeInTheDocument();
       expect(screen.queryByText('msteams')).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
     });
 
     it('confirming Remove restores sibling rows and the footer', async () => {
@@ -833,7 +837,7 @@ describe('ScmMessaging', () => {
       render(<MessagingSetupController />);
 
       expect(await screen.findByText('slack')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Set up later'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
 
       // Enter removing mode — footer disappears.
       await userEvent.click(screen.getByRole('button', {name: /Remove/}));

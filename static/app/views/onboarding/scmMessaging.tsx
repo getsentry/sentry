@@ -13,16 +13,15 @@ import type {
   ScmMessagingActiveRow,
   ScmMessagingSetup,
 } from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import {ScmStepLayout} from 'sentry/components/onboarding/scm/scmStepLayout';
 import {useScmMessagingProviders} from 'sentry/components/onboarding/scm/useScmMessagingProviders';
 import {
   isEligibleForIssueAlerts,
   isIntegrationActive,
   useScmMessagingSetupValidation,
 } from 'sentry/components/onboarding/scm/useScmMessagingSetupValidation';
-import {IconMail} from 'sentry/icons/iconMail';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import type {StepProps} from './types';
 
@@ -38,16 +37,19 @@ interface ScmMessagingProps {
   messagingSetup: ScmMessagingSetup;
   onComplete: StepProps['onComplete'];
   onMessagingSetupChange: (messagingSetup: ScmMessagingSetup) => void;
+  /**
+   * Not rendered, but the step only exists once a platform is chosen: hosts
+   * narrow on this before mounting, and the created project depends on it.
+   */
   selectedPlatform: OnboardingSelectedSDK;
   genBackButton?: StepProps['genBackButton'];
 }
 
 export function ScmMessaging({
-  genBackButton,
   messagingSetup,
+  genBackButton,
   onMessagingSetupChange,
   onComplete,
-  selectedPlatform,
 }: ScmMessagingProps) {
   const validation = useScmMessagingSetupValidation({
     messagingSetup,
@@ -68,11 +70,11 @@ export function ScmMessaging({
   const validatedActiveRow = validateActiveRow(activeRow, providers, messagingSetup);
   const visibleProviders = listedProviders(providers, validatedActiveRow, messagingSetup);
 
-  // Continue creates the project and alert rules. It renders as soon as a
-  // destination is selected so Set up later does not shift, but stays disabled
-  // until the destination is conclusively revalidated.
-  const canContinue = validation.isValid;
+  // The step offers exactly one way forward: Set up later until a destination is
+  // selected, then Continue, which creates the project and its alert rules and
+  // stays disabled until that destination is conclusively revalidated.
   const showContinue = messagingSetup.mode === 'selected';
+  const canContinue = validation.isValid;
 
   const handleContinue = () => onComplete();
 
@@ -103,16 +105,15 @@ export function ScmMessaging({
     // The onboarding flow has no page-level query container (project creation
     // resolves against `#main`), and the flow's fixed footers preclude one
     // higher up, so each SCM step declares its own.
-    <Stack align="center" gap="2xl" containerType="inline-size">
-      <Stack gap="2xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`} width="100%">
-        <Stack gap="lg" paddingBottom="xl">
+    <Stack containerType="inline-size">
+      <ScmStepLayout>
+        <Stack gap="lg" paddingBottom="2xl">
           <Heading as="h2" size="3xl" align="center">
             {SCM_MESSAGING_TITLE}
           </Heading>
           <Text align="center" variant="muted" size="lg" density="comfortable">
             {t(
-              "Choose where to send alerts for your %s project. We'll create the project and its alert rules when you continue.",
-              selectedPlatform.name
+              'Send high priority issue alerts to Slack, Discord, or Teams. Email alerts stay on even if you skip. You can change this anytime.'
             )}
           </Text>
         </Stack>
@@ -155,11 +156,6 @@ export function ScmMessaging({
               )}
             </MotionStack>
           )}
-
-          <MotionFlex layout="position" align="center" justify="center" gap="sm">
-            <IconMail size="sm" variant="muted" />
-            <Text variant="muted">{t('Email alerts will be included by default')}</Text>
-          </MotionFlex>
 
           <AnimatePresence mode="wait" initial={false}>
             {isPending ? (
@@ -223,23 +219,14 @@ export function ScmMessaging({
               layout="position"
               align="center"
               justify="between"
+              gap="md"
               width="100%"
-              paddingTop="sm"
+              paddingTop="2xl"
             >
               <Flex align="center">{genBackButton?.()}</Flex>
               <Flex align="center" gap="md">
-                <Button
-                  size="sm"
-                  variant="transparent"
-                  analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
-                  analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
-                  onClick={handleSetupLater}
-                >
-                  {t('Set up later')}
-                </Button>
-                {showContinue && (
+                {showContinue ? (
                   <Button
-                    size="sm"
                     variant="primary"
                     disabled={!canContinue}
                     analyticsEventKey="onboarding.scm_messaging_continue_clicked"
@@ -248,12 +235,21 @@ export function ScmMessaging({
                   >
                     {t('Continue')}
                   </Button>
+                ) : (
+                  <Button
+                    variant="transparent"
+                    analyticsEventKey="onboarding.scm_messaging_setup_later_clicked"
+                    analyticsEventName="Onboarding: SCM Messaging Setup Later Clicked"
+                    onClick={handleSetupLater}
+                  >
+                    {t('Set up later')}
+                  </Button>
                 )}
               </Flex>
             </MotionFlex>
           )}
         </LayoutGroup>
-      </Stack>
+      </ScmStepLayout>
     </Stack>
   );
 }

@@ -2,7 +2,7 @@ import {useCallback, useMemo, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Select, type SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -165,8 +165,8 @@ export function ScmMessagingChannelPicker({
   };
 
   return (
-    <Stack gap="xl">
-      <Grid columns="1fr 1fr" gap="md">
+    <Stack gap="0">
+      <Stack gap="xl" padding="lg xl">
         <Stack gap="xs">
           <Text bold size="sm">
             {t('Workspace')}
@@ -202,13 +202,19 @@ export function ScmMessagingChannelPicker({
             )}
           </ChannelField>
         </Stack>
-      </Grid>
-      {isChannelsError && (
-        <Alert variant="warning">
-          {t('Failed to load channels. You can still type a channel name.')}
-        </Alert>
-      )}
-      <Flex gap="md" justify="end">
+        {isChannelsError && (
+          <Alert variant="warning">
+            {t('Failed to load channels. You can still type a channel name.')}
+          </Alert>
+        )}
+      </Stack>
+      <Flex
+        gap="md"
+        justify="end"
+        background="secondary"
+        borderTop="primary"
+        padding="lg xl"
+      >
         {onCancel && (
           <Button size="sm" variant="transparent" onClick={onCancel}>
             {t('Cancel')}

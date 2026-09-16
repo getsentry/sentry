@@ -144,7 +144,8 @@ export interface ScmMessagingProviderRowProps {
    * callbacks: `onConfigured` (save the chosen destination to session state) and
    * `onCancel` (close without saving). Only invoked when `status === 'connected'`.
    *
-   * Omitting this prop leaves the configuring state with an empty body.
+   * Omitting this prop leaves the configuring state with an empty body. The
+   * row does not pad this slot; supply your own padding.
    */
   renderChannelPicker?: (props: {
     integrations: OrganizationIntegration[];
@@ -266,8 +267,8 @@ export function ScmMessagingProviderRow({
                 <ProviderLogo providerKey={resolvedProvider.providerKey} />
               </Container>
               <Stack gap="sm">
-                <Flex gap="xs" align="center">
-                  <Text bold size="md">
+                <Flex gap="md" align="center">
+                  <Text bold size="lg">
                     {visualState === 'removing'
                       ? t('Remove this destination?')
                       : resolvedProvider.provider.name}
@@ -299,7 +300,7 @@ export function ScmMessagingProviderRow({
               </Stack>
             </Flex>
 
-            <Flex gap="sm" align="center" style={{flexShrink: 0}}>
+            <Flex gap="md" align="center" style={{flexShrink: 0}}>
               <RowActions
                 visualState={visualState}
                 resolvedProvider={resolvedProvider}
@@ -314,9 +315,11 @@ export function ScmMessagingProviderRow({
           </Flex>
         )}
 
+        {/* No padding here: the picker pads its own sections so its action bar
+            can span the card. */}
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
-            <Container borderTop="primary" padding="lg xl">
+            <Container borderTop="primary">
               {renderChannelPicker ? (
                 renderChannelPicker({
                   integrations: resolvedProvider.eligibleIntegrations,
