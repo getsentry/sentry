@@ -151,7 +151,9 @@ def create_preprod_snapshot_status_check_task(
     for approval in approval_qs:
         approvals_map[approval.preprod_artifact_id] = approval
 
-    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(
+        all_artifacts, require_snapshot_metrics=True
+    )
 
     has_base_artifacts = bool(base_artifact_map)
 
