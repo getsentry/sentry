@@ -22,11 +22,11 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json, redis
 
-HOLD_OPTION = "crons.clock_tick.hold_on_missing_partitions"
+DISABLE_HOLD_OPTION = "crons.clock_tick.disable_hold_on_missing_partitions"
 
 BASE_OPTIONS = {
     "crons.system_incidents.collect_metrics": False,
-    HOLD_OPTION: False,
+    DISABLE_HOLD_OPTION: True,
 }
 
 
@@ -334,7 +334,7 @@ def run_loss_sequence(now: datetime, lost_keys: list[str]) -> None:
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
 def test_hold_clock_tick_all_keys_lost(dispatch_tick: mock.MagicMock) -> None:
     """
     Redis loses the partition clock set and the last triggered timestamp. The
@@ -361,7 +361,7 @@ def test_hold_clock_tick_all_keys_lost(dispatch_tick: mock.MagicMock) -> None:
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
 def test_hold_clock_tick_only_clock_set_lost(dispatch_tick: mock.MagicMock) -> None:
     """
     Redis loses only the partition clock set. The clock holds while the set is
@@ -391,7 +391,7 @@ def test_hold_clock_tick_only_clock_set_lost(dispatch_tick: mock.MagicMock) -> N
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
 def test_hold_clock_tick_holds_while_set_is_short(dispatch_tick: mock.MagicMock) -> None:
     """
     The clock holds for as long as the partition set is short. Nothing lets the
@@ -419,7 +419,7 @@ def test_hold_clock_tick_holds_while_set_is_short(dispatch_tick: mock.MagicMock)
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
 def test_hold_clock_tick_compares_partition_ids(dispatch_tick: mock.MagicMock) -> None:
     """
     A stale member can make the size of the partition clock set look complete
@@ -447,7 +447,7 @@ def test_hold_clock_tick_compares_partition_ids(dispatch_tick: mock.MagicMock) -
 
 
 @mock.patch("sentry.monitors.clock_dispatch._dispatch_tick")
-@override_options({**BASE_OPTIONS, HOLD_OPTION: True})
+@override_options({**BASE_OPTIONS, DISABLE_HOLD_OPTION: False})
 def test_hold_clock_tick_no_pulse_seen(
     dispatch_tick: mock.MagicMock,
     partition_set_state: PartitionSetState,

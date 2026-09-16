@@ -98,7 +98,7 @@ def _should_hold_clock_tick(missing_partitions: frozenset[int] | None) -> bool:
     if not missing_partitions:
         return False
 
-    return bool(options.get("crons.clock_tick.hold_on_missing_partitions"))
+    return not options.get("crons.clock_tick.disable_hold_on_missing_partitions")
 
 
 def _dispatch_tick(ts: datetime):

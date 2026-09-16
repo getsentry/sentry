@@ -2797,18 +2797,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Stalls the monitor clock tick while the partition clock set is short of the
-# partition list learned from the clock pulse. This is a protection against
-# losing the clock data in Redis, so that partitions arriving after data loss
-# are not automatically treated as "the minimum", and incorrectly bump the clock
-# to beyond the actual minimum partition timestamp.
+# Killswitch for the monitor clock tick hold.
 #
-# Disable this if you want to un-stall the monitors clock. Be aware that doing
-# so could result in an incorrect fast-forwarded monitor clock time, since
-# it will no longer wait to assess the actual minimum time from the full partition set.
+# The hold stalls the monitor clock tick while the partition clock set is short
+# of the partition list learned from the clock pulse. This is a protection
+# against losing the clock data in Redis, so that partitions arriving after
+# data loss are not automatically treated as "the minimum", and incorrectly
+# bump the clock to beyond the actual minimum partition timestamp.
+#
+# Enable this if you want to un-stall the monitors clock. Be aware
+# that doing so could result in an incorrect fast-forwarded monitor
+# clock time, since the clock will no longer wait to assess the actual minimum
+# time from the full partition set.
 register(
-    "crons.clock_tick.hold_on_missing_partitions",
-    default=False,
+    "crons.clock_tick.disable_hold_on_missing_partitions",
+    default=True,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
