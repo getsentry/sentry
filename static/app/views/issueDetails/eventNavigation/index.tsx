@@ -12,7 +12,6 @@ import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {DropdownButton} from 'sentry/components/dropdownButton';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -30,10 +29,7 @@ import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
-import {
-  issueAndEventToMarkdown,
-  useActiveThreadId,
-} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
+import {useIssueDetailsMarkdown} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {
   IssueDetailsTour,
@@ -114,32 +110,22 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
 
   const isListView = LIST_VIEW_TABS.has(currentTab);
 
-  const activeThreadId = useActiveThreadId();
-
-  // Get data for markdown copy functionality
-  const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
-    enabled: false,
-  });
+  const {
+    text: markdownText,
+    isPending: isMarkdownPending,
+    hasAutofix,
+  } = useIssueDetailsMarkdown(group, event);
 
   const handleCopyMarkdown = useCallback(() => {
-    const markdownText = issueAndEventToMarkdown({
-      group,
-      event,
-      autofixData,
-      activeThreadId,
-      organization,
-      autofixFormatted,
-    });
-
     trackAnalytics('issue_details.copy_issue_details_as_markdown', {
       organization,
       groupId: group.id,
       eventId: event?.id,
-      hasAutofix: Boolean(autofixData),
+      hasAutofix,
     });
 
     return markdownText;
-  }, [activeThreadId, event, group, autofixData, organization, autofixFormatted]);
+  }, [event, group, hasAutofix, organization, markdownText]);
 
   return (
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
@@ -284,6 +270,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   )}
                   <CopyAsDropdown
                     usePortal
+                    isDisabled={isMarkdownPending}
                     size="xs"
                     zIndex={theme.zIndex.stickyHeader + 1}
                     items={CopyAsDropdown.makeDefaultCopyAsOptions({

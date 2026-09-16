@@ -16,8 +16,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {getKeyValueListData as getRegressionIssueKeyValueList} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {
+  resolveSlowDBQueryEvidence,
+  slowDBQueryEvidenceOptions,
+  usesSlowDBQuerySpanData,
+} from 'sentry/components/events/interfaces/performance/slowDBQueryEvidence';
+import {
   slowDBQuerySpanFromEvent,
-  slowDBQuerySpanFromTraceItem,
   type SlowDBQuerySpan,
 } from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
 import {
@@ -59,8 +63,6 @@ import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {traceItemDetailsApiOptions} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   MissingFrame,
   StackTraceMiniFrame,
@@ -468,11 +470,7 @@ export function SpanEvidenceKeyValueList({
   const issueType = getIssueTypeFromOccurrenceType(typeId);
   const requiresSpanInfo = isTransactionBased(typeId) && isOccurrenceBased(typeId);
 
-  if (
-    issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY &&
-    organization.features.includes('issue-details-slow-query-span-data') &&
-    event.occurrence
-  ) {
+  if (usesSlowDBQuerySpanData(organization, event)) {
     return (
       <SlowDBQueryEvidenceFromDataset
         event={event}
@@ -540,49 +538,16 @@ function SlowDBQueryEvidenceFromEvent(props: SpanEvidenceKeyValueListProps) {
 
 function SlowDBQueryEvidenceFromDataset(props: SlowDBQueryEvidenceProps) {
   const {event, organization, projectSlug} = props;
-  const offenderSpanId: unknown = event.occurrence?.evidenceData.offenderSpanIds?.[0];
-  const traceId = event.contexts.trace?.trace_id;
-  const projectIdOrSlug = projectSlug ?? event.projectID;
-  const hasTimeRange =
-    Number.isFinite(event.startTimestamp) &&
-    Number.isFinite(event.endTimestamp) &&
-    event.endTimestamp >= event.startTimestamp;
-  const canFetch =
-    typeof offenderSpanId === 'string' &&
-    !!offenderSpanId &&
-    !!traceId &&
-    !!projectIdOrSlug &&
-    hasTimeRange;
+  const options = slowDBQueryEvidenceOptions({event, organization, projectSlug});
+  const spanQuery = useQuery(options);
 
-  const spanQuery = useQuery({
-    ...traceItemDetailsApiOptions({
-      organizationSlug: organization.slug,
-      projectSlug: projectIdOrSlug,
-      traceItemId: canFetch ? offenderSpanId : '',
-      traceItemType: TraceItemDataset.SPANS,
-      traceId: traceId ?? '',
-      referrer: 'api.organization-trace-item-details',
-      // Use the occurrence's segment bounds, not the current page filters or
-      // detection time: the offending span can start much earlier in a long segment.
-      ...(hasTimeRange
-        ? {
-            start: new Date(event.startTimestamp * 1000 - 1000).toISOString(),
-            end: new Date(event.endTimestamp * 1000 + 1000).toISOString(),
-          }
-        : {}),
-    }),
-    retry: false,
-  });
-
-  if (canFetch && spanQuery.isPending) {
+  if (options.enabled && spanQuery.isPending) {
     return <LoadingIndicator>{t('Loading span evidence…')}</LoadingIndicator>;
   }
 
   // Keep the recorded evidence available for older or unindexed spans. The
   // successful dataset path never reads the event's embedded span entries.
-  const span = spanQuery.data
-    ? slowDBQuerySpanFromTraceItem(spanQuery.data)
-    : slowDBQuerySpanFromEvent(getSpanInfoFromTransactionEvent(event)?.offendingSpans[0]);
+  const span = resolveSlowDBQueryEvidence(event, spanQuery.data) ?? undefined;
 
   return <SlowDBQueryEvidence {...props} span={span} />;
 }

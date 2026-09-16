@@ -2,6 +2,7 @@ import {
   getKeyValueListData,
   keyValueListDataToMarkdownLines,
 } from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
+import type {SlowDBQuerySpan} from 'sentry/components/events/interfaces/performance/slowDBQuerySpan';
 import {
   formatChangingQueryParameters,
   getSpanDuration,
@@ -268,7 +269,11 @@ function formatIssueTypeMetrics(
  * issues. Returns an empty string for issues that don't expose span evidence
  * (e.g. errors).
  */
-export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string {
+export function formatSpanEvidenceToMarkdown(
+  event: Event,
+  group: Group,
+  slowDBQuerySpan?: SlowDBQuerySpan | null
+): string {
   const issueType = group.issueType;
 
   const regressionData = getKeyValueListData(issueType, event);
@@ -289,6 +294,39 @@ export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string
   // performance types are added.
   if (!getConfigForIssueType(group, group.project).spanEvidence.enabled) {
     return '';
+  }
+
+  // An explicit null means both sources were unavailable. Undefined preserves
+  // the existing formatter for flag-off and other performance issue types.
+  if (
+    issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY &&
+    slowDBQuerySpan !== undefined
+  ) {
+    const lines = event.title ? [`**Transaction:** ${event.title}`] : [];
+    if (slowDBQuerySpan) {
+      const span = slowDBQuerySpan;
+      if (span.description) {
+        lines.push(
+          '**Slow DB Query:**',
+          '```sql',
+          sqlFormatter.toString(span.description),
+          '```'
+        );
+      }
+      if (span.durationMs !== undefined) {
+        lines.push(
+          `**Duration:** ${formatGroupTiming(span.durationMs, event as EventTransaction)}`
+        );
+      }
+      if (span.codeFilepath) {
+        const line = span.codeLineNumber === undefined ? '' : `:${span.codeLineNumber}`;
+        const fn = span.codeFunction ? ` ${span.codeFunction}` : '';
+        lines.push(`code: ${span.codeFilepath}${line}${fn}`);
+      }
+    } else {
+      lines.push('Span evidence is unavailable.');
+    }
+    return `\n## Span Evidence\n\n${lines.join('\n')}\n`;
   }
 
   const evidenceData = event.occurrence?.evidenceData ?? {};
