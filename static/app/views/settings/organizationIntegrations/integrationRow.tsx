@@ -46,6 +46,19 @@ const urlMap = {
   docIntegration: 'document-integrations',
 };
 
+function IntegrationStatusContent({
+  baseUrl,
+  status,
+}: {
+  baseUrl: string;
+  status?: IntegrationInstallationStatus;
+}) {
+  if (status) {
+    return <IntegrationStatus status={status} />;
+  }
+  return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
+}
+
 export function IntegrationRow(props: Props) {
   const {
     organization,
@@ -113,14 +126,6 @@ export function IntegrationRow(props: Props) {
     );
   };
 
-  const renderStatus = () => {
-    // status should be undefined for document integrations
-    if (status) {
-      return <IntegrationStatus status={status} />;
-    }
-    return <LearnMore to={baseUrl}>{t('Learn More')}</LearnMore>;
-  };
-
   const getUpgradeTooltipTitle = () => {
     if (!hasIntegrationAccess) {
       return tct(
@@ -163,7 +168,7 @@ export function IntegrationRow(props: Props) {
             )}
           </Flex>
           <IntegrationDetails>
-            {renderStatus()}
+            <IntegrationStatusContent baseUrl={baseUrl} status={status} />
             {renderDetails()}
           </IntegrationDetails>
         </TitleContainer>
