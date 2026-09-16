@@ -152,7 +152,7 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
-  const widgetQueryError = getWidgetConfigError(props.widget);
+  const widgetQueryError = getWidgetConfigError(props.widget, organization);
 
   // Push widget metadata into the LLM context tree for Seer Explorer.
   useLLMContext({

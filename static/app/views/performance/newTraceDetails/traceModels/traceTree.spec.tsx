@@ -543,17 +543,18 @@ describe('TraceTree', () => {
         }),
         {
           meta: {
-            transaction_child_count_map: {
+            transactionChildCountMap: {
               transaction: 10,
               'no-spans-transaction': 1,
               // we have no data for child transaction
             },
-            errors: 0,
-            performance_issues: 0,
-            projects: 0,
-            transactions: 0,
-            span_count: 0,
-            span_count_map: {},
+            errorsCount: 0,
+            logsCount: 0,
+            metricsCount: 0,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+            spansCountMap: {},
+            uptimeCount: 0,
           },
           replay: null,
           organization,

@@ -277,6 +277,9 @@ function SpanTabContentSectionInner({
     useExploreTimeseries({
       query,
       enabled: isReady,
+      includeAnnotations: organization.features.includes(
+        'explore-data-fidelity-annotations'
+      ),
       queryExtras: {
         caseInsensitive,
         ...crossEventQueries,

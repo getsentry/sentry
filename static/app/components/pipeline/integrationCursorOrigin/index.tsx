@@ -57,7 +57,7 @@ function CursorOriginInstallStep({
   }, [stepData, advance]);
 
   if (stepData?.originInitiated) {
-    return <Text>{t('Finishing up your Cursor Origin installation...')}</Text>;
+    return <Text>{t('Finishing up your Origin installation...')}</Text>;
   }
 
   return (
