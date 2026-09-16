@@ -98,11 +98,11 @@ class ViewValidator(serializers.Serializer):
     def validate_query(self, value: str) -> str:
         # The view is stored verbatim and only parsed when someone opens it, so an
         # unparseable query saves fine and then 400s at read time. Parse here so the
-        # write fails with the parser's own message instead.
+        # write fails during validation instead.
         try:
             parse_search_query(value)
-        except InvalidSearchQuery as e:
-            raise ValidationError(detail=f"Invalid issue search query: {e}")
+        except InvalidSearchQuery:
+            raise ValidationError(detail="Invalid issue search query")
         return value
 
     def validate_projects(self, value):
