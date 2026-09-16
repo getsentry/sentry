@@ -17,7 +17,6 @@ import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/c
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -96,9 +95,7 @@ export function NewDetectorLayout<
   return (
     <EditLayoutDeprecated formProps={formProps}>
       <EditLayoutDeprecated.Header maxWidth={maxWidth}>
-        <TopBar.Slot name="title">
-          <DetectorFormBreadcrumbs />
-        </TopBar.Slot>
+        <DetectorFormBreadcrumbs />
 
         <div>
           <MonitorFeedbackButton />
