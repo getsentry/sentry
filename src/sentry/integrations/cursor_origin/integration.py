@@ -8,6 +8,7 @@ from urllib.parse import quote, unquote, urlencode, urlparse
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
 from sentry.integrations.base import (
     FeatureDescription,
@@ -156,6 +157,42 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
             return "", ""
         branch, _, filepath = path[len(prefix) :].partition("/")
         return branch, filepath
+
+    def uninstall(self) -> None:
+        """Remove the installation on Origin; a failure must not block disconnecting."""
+        from sentry.integrations.services.integration import integration_service
+
+        # One Origin installation can serve several Sentry organizations. Deleting it
+        # while another still uses it would stop that one minting tokens.
+        org_integrations = integration_service.get_organization_integrations(
+            integration_id=self.model.id,
+            providers=[IntegrationProviderSlug.CURSOR_ORIGIN.value],
+        )
+        active = [
+            oi
+            for oi in org_integrations
+            if oi.status not in (ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS)
+        ]
+        if len(active) > 1:
+            return
+
+        installation_id = self.model.external_id
+        try:
+            CursorOriginSetupApiClient().delete_installation(installation_id)
+        except ApiError as e:
+            if e.code == 404:
+                # Already gone on Origin's side.
+                return
+            logger.warning(
+                "cursor_origin.uninstall.failed",
+                extra={"installation_id": installation_id, "status": e.code},
+            )
+        except Exception:
+            # Includes an app whose signing key is no longer configured, which raises
+            # before the request is even made.
+            logger.exception(
+                "cursor_origin.uninstall.failed", extra={"installation_id": installation_id}
+            )
 
 
 DESCRIPTION = """
