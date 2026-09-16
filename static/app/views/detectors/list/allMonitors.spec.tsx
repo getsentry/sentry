@@ -3,6 +3,7 @@ import {AutomationFixture} from 'sentry-fixture/automations';
 import {ErrorDetectorFixture, MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -15,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
   DataConditionGroupLogicType,
   DataConditionType,
@@ -29,6 +31,7 @@ describe('DetectorsList', () => {
   });
 
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -160,6 +163,23 @@ describe('DetectorsList', () => {
         }),
       })
     );
+  });
+
+  it('allows project-scoped alert writers to create monitors', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        id: '1',
+        access: ['project:read', 'alerts:write'],
+      }),
+    ]);
+
+    render(<AllMonitors />, {
+      organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Create Monitor'})
+    ).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   describe('search', () => {
