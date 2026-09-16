@@ -140,9 +140,12 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         branch = branch or repo.config["default_branch"]
         return (
-            f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/blob/"
+            f"{CURSOR_ORIGIN_WEB_BASE_URL}/{quote(repo.name)}/blob/"
             f"{quote(branch, safe='')}/{quote(filepath)}"
         )
+
+    def encode_source_url(self, url: str) -> str:
+        return url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         return unquote(self._split_blob_url(repo, url)[0])
@@ -151,7 +154,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         return unquote(self._split_blob_url(repo, url)[1])
 
     def _split_blob_url(self, repo: Repository, url: str) -> tuple[str, str]:
-        prefix = f"{urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path}/{repo.name}/blob/"
+        prefix = f"{urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path}/{quote(repo.name)}/blob/"
         path = urlparse(url).path
         if not path.startswith(prefix):
             return "", ""

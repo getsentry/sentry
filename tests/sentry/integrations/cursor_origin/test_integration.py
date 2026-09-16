@@ -156,12 +156,30 @@ class CursorOriginIntegrationTest(TestCase):
 
         assert url == f"{WEB}/{REPO}/blob/danf%2Ftest-branch/AGENTS.md"
 
+    def test_the_stacktrace_link_keeps_the_encoded_branch(self) -> None:
+        repo = self._repo()
+        source_url = self.install.format_source_url(repo, "src/app.py", "release/test")
+
+        with mock.patch.object(self.install, "check_file", return_value=source_url):
+            link = self.install.get_stacktrace_link(repo, "src/app.py", "main", "release/test")
+
+        assert link == f"{WEB}/{REPO}/blob/release%2Ftest/src/app.py"
+
     def test_the_slashed_branch_round_trips(self) -> None:
         repo = self._repo()
         url = self.install.format_source_url(repo, "src/deep/app.py", "danf/test-branch")
 
         assert self.install.extract_branch_from_source_url(repo, url) == "danf/test-branch"
         assert self.install.extract_source_path_from_source_url(repo, url) == "src/deep/app.py"
+
+    def test_a_repo_name_needing_encoding_round_trips(self) -> None:
+        """Nothing re-encodes the URL after us, so the name is encoded on both sides."""
+        repo = self._repo(name="acme/my repo")
+        url = self.install.format_source_url(repo, "src/app.py", "release/test")
+
+        assert url == f"{WEB}/acme/my%20repo/blob/release%2Ftest/src/app.py"
+        assert self.install.extract_branch_from_source_url(repo, url) == "release/test"
+        assert self.install.extract_source_path_from_source_url(repo, url) == "src/app.py"
 
     def test_a_path_needing_encoding_round_trips(self) -> None:
         repo = self._repo()
