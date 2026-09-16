@@ -88,9 +88,8 @@ describe('issues query embed', () => {
 
     await userEvent.click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
-    expect(document.getElementById(toggle.getAttribute('aria-controls')!)).toHaveAttribute(
-      'aria-hidden',
-      'true'
-    );
+    expect(
+      document.getElementById(toggle.getAttribute('aria-controls')!)
+    ).toHaveAttribute('aria-hidden', 'true');
   });
 });

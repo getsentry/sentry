@@ -8,7 +8,15 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function getIssuesQueryHref(
-  {query, sort, projects, environments, statsPeriod, start, end}: EmbedOutput<'issuesQuery'>,
+  {
+    query,
+    sort,
+    projects,
+    environments,
+    statsPeriod,
+    start,
+    end,
+  }: EmbedOutput<'issuesQuery'>,
   organizationSlug: string
 ) {
   return queryString.stringifyUrl({
