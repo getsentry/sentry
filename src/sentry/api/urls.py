@@ -1620,14 +1620,14 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-explore-saved-query-starred-order",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/saved-query/starred/order/$",
-        SavedQueryStarredOrderEndpoint.as_view(),
-        name="sentry-api-0-saved-query-starred-order",
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/all-queries/$",
+        SavedQueriesEndpoint.as_view(),
+        name="sentry-api-0-explore-all-queries",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/saved-query/$",
-        SavedQueriesEndpoint.as_view(),
-        name="sentry-api-0-saved-queries",
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/all-queries/starred/order/$",
+        SavedQueryStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-explore-all-queries-starred-order",
     ),
     # Attribute Mappings
     re_path(

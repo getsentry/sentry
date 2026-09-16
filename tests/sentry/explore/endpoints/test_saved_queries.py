@@ -79,7 +79,7 @@ class SavedQueriesTest(APITestCase):
             is_homepage=True,
         )
 
-        self.url = reverse("sentry-api-0-saved-queries", args=[self.org.slug])
+        self.url = reverse("sentry-api-0-explore-all-queries", args=[self.org.slug])
 
     def test_get(self) -> None:
         with self.feature(self.features):
