@@ -1,6 +1,12 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHook,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import {SpanNode} from './traceModels/traceTreeNode/spanNode';
 import {makeSpan} from './traceModels/traceTreeTestUtils';
@@ -8,6 +14,7 @@ import {TraceScheduler} from './traceRenderers/traceScheduler';
 import {TraceView} from './traceRenderers/traceView';
 import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 import {CollapsedGapMarkers} from './collapsedGapMarkers';
+import {useTraceSpaceListeners} from './useTraceSpaceListeners';
 
 function setup(spanStarts = [0, 0.3, 0.9]) {
   const scheduler = new TraceScheduler();
@@ -36,6 +43,17 @@ function setup(spanStarts = [0, 0.3, 0.9]) {
   manager.recomputeTimeCompression();
   scheduler.on('set trace view', () => manager.draw());
   scheduler.on('divider resize', view => manager.draw(view));
+  renderHook(() =>
+    useTraceSpaceListeners({
+      traceScheduler: scheduler,
+      view: manager.view,
+      viewManager: manager,
+    })
+  );
+  scheduler.on('set container physical space', () => {
+    manager.recomputeTimeCompression();
+    manager.draw();
+  });
 
   const {unmount} = render(
     <div
@@ -182,6 +200,98 @@ describe('CollapsedGapMarkers', () => {
       ).toBeInTheDocument();
     }
   );
+
+  it('keeps model and markers aligned when the container resizes during a drag', async () => {
+    const user = userEvent.setup();
+    const {manager} = setup();
+    const divider = screen.getByTestId('divider');
+    act(() => manager.scheduler.dispatch('set trace view', {x: 100, width: 800}));
+    await user.pointer({target: divider, keys: '[MouseLeft>]', coords: {x: 1000, y: 0}});
+    await user.pointer({target: divider, coords: {x: 1500, y: 0}});
+    act(() =>
+      manager.scheduler.dispatch('set container physical space', [0, 0, 1800, 1])
+    );
+
+    expect(manager.view.trace_physical_space.width).toBe(450);
+    expect(manager.container?.style.getPropertyValue('--span-column-width')).toBe('0.25');
+    expect(manager.columns.span_list.width).toBe(0.5);
+    expect(manager.view.trace_view.serialize()).toEqual([100, 0, 800, 1]);
+    expect(screen.getAllByText(/^\d+\.\d{2}ms$/)).toHaveLength(1);
+    expect(screen.getByText('286.67ms')).toBeInTheDocument();
+    const marker = manager.collapsed_gap_markers[0]!;
+    const markerLeft = Number.parseFloat(
+      marker.ref.style.transform.replace('translateX(', '')
+    );
+    expect(markerLeft + 20).toBeCloseTo(
+      (manager.transformXFromTimestamp(400 + 48000 / 450) +
+        manager.transformXFromTimestamp(900 - 48000 / 450)) /
+        2
+    );
+    expect(manager.spanTextOverlapsCollapsedGap(markerLeft, 20)).toBe(true);
+
+    await user.pointer({target: divider, coords: {x: 1501, y: 0}});
+    expect(manager.view.trace_physical_space.width).toBeCloseTo(399);
+    expect(
+      Number(manager.container!.style.getPropertyValue('--span-column-width')) * 1800
+    ).toBeCloseTo(399);
+    await user.pointer({target: divider, keys: '[/MouseLeft]', coords: {x: 1501, y: 0}});
+    act(() =>
+      manager.scheduler.dispatch('set container physical space', [0, 0, 1600, 1])
+    );
+    expect(manager.view.trace_physical_space.width).toBeCloseTo((399 / 1800) * 1600);
+    expect(
+      Number(manager.container!.style.getPropertyValue('--span-column-width'))
+    ).toBeCloseTo(399 / 1800);
+    expect(manager.view.trace_view.serialize()).toEqual([100, 0, 800, 1]);
+  });
+
+  it('reconciles gaps when a scrollbar appears and disappears during a drag', async () => {
+    const user = userEvent.setup();
+    const {manager} = setup();
+    const divider = screen.getByTestId('divider');
+    jest.spyOn(manager.container!, 'getBoundingClientRect').mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      left: 0,
+      right: 2000,
+      bottom: 1,
+      width: 2000,
+      height: 1,
+      toJSON: () => ({}),
+    });
+    await user.pointer({target: divider, keys: '[MouseLeft>]', coords: {x: 1000, y: 0}});
+    await user.pointer({target: divider, coords: {x: 1358, y: 0}});
+    expect(manager.view.trace_physical_space.width).toBeCloseTo(642);
+    expect(screen.getByText('50.47ms')).toBeInTheDocument();
+    expect(screen.getByText('350.47ms')).toBeInTheDocument();
+
+    act(() => manager.onScrollbarWidthChange(16));
+    expect(manager.view.trace_physical_space.width).toBeCloseTo(636.864);
+    expect(
+      Number(manager.container!.style.getPropertyValue('--span-column-width'))
+    ).toBeCloseTo(0.321);
+    expect(manager.columns.span_list.width).toBe(0.5);
+    expect(screen.queryByText('50.47ms')).not.toBeInTheDocument();
+    expect(screen.getAllByText(/^\d+\.\d{2}ms$/)).toHaveLength(1);
+    expect(screen.getByText('349.26ms')).toBeInTheDocument();
+    expect(
+      manager.spanTextOverlapsCollapsedGap(manager.transformXFromTimestamp(200), 20)
+    ).toBe(false);
+
+    act(() => manager.onScrollbarWidthChange(0));
+    expect(manager.view.trace_physical_space.width).toBeCloseTo(642);
+    expect(screen.getByText('50.47ms')).toBeInTheDocument();
+    expect(screen.getByText('350.47ms')).toBeInTheDocument();
+    expect(
+      manager.spanTextOverlapsCollapsedGap(manager.transformXFromTimestamp(200), 20)
+    ).toBe(true);
+    await user.pointer({target: divider, keys: '[/MouseLeft]', coords: {x: 1358, y: 0}});
+    await user.hover(screen.getByText('50.47ms'));
+    expect(
+      await screen.findByText('Skipped 50.47ms inactive period')
+    ).toBeInTheDocument();
+  });
 
   it('clears markers and overlap when compression is disabled and recreates them when enabled', () => {
     const {manager, options, unmount} = setup();

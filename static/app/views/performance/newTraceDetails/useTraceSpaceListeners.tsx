@@ -32,7 +32,7 @@ export function useTraceSpaceListeners(props: {
         props.view.setTracePhysicalSpace(container, [
           0,
           0,
-          adjustedWidth * props.viewManager.columns.span_list.width,
+          adjustedWidth * props.viewManager.currentSpanListWidth,
           container[3],
         ]);
       };

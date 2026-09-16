@@ -247,6 +247,10 @@ export class VirtualizedViewManager {
   previousDividerClientVec: [number, number] | null = null;
   private activeDividerView: {list: number; span_list: number} | null = null;
 
+  get currentSpanListWidth() {
+    return this.activeDividerView?.span_list ?? this.columns.span_list.width;
+  }
+
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
       return;
@@ -1622,10 +1626,7 @@ export class VirtualizedViewManager {
 
     const list_width =
       options.list ?? this.activeDividerView?.list ?? this.columns.list.width;
-    const span_list_width =
-      options.span_list ??
-      this.activeDividerView?.span_list ??
-      this.columns.span_list.width;
+    const span_list_width = options.span_list ?? this.currentSpanListWidth;
 
     this.drawContainers(this.container, {
       list_width,
