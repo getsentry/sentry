@@ -258,7 +258,7 @@ def _handle_step_started_events(
                 "organization_id": group.organization.id,
                 "activity_already_recorded": True,
             }
-            if step == AutofixStep.PR_ITERATION:
+            if step == AutofixStep.PR_ITERATION or actor_user_id is not None:
                 activity_attribution = {"referrer": referrer}
                 if actor_user_id is not None:
                     activity_attribution["actor_user_id"] = actor_user_id
@@ -960,13 +960,14 @@ def trigger_push_changes(
     repo_name: str | None = None,
     verify_content: bool = False,
     author: SeerCommitAuthor | None = None,
+    user: User | RpcUser | AnonymousUser | None = None,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    client = get_autofix_agent_client(group)
+    client = get_autofix_agent_client(group, user=user)
 
     if state is None:
         state = _get_group_run_state(client, group, run_id)

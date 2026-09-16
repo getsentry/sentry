@@ -58,6 +58,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
 def run_state(
@@ -1399,6 +1400,25 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_pr_created_activity_records_actor(self, mock_broadcast, mock_emit):
+        with patch(
+            "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access",
+            return_value=True,
+        ):
+            AutofixOnCompletionHook._send_step_webhook(
+                organization=self.organization,
+                run_id=123,
+                state=self._pr_created_state(),
+                group=self.group,
+                fallback_referrer=AutofixReferrer.WEB,
+                actor_user_id=self.user.id,
+            )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
+        assert activity.user_id == self.user.id
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_pr_is_ready_on_open(self, mock_broadcast, mock_emit):
         state = self._pr_created_state()
         AutofixOnCompletionHook._send_step_webhook(
@@ -1573,6 +1593,31 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
 
 class AutofixOnCompletionHookTest(TestCase):
     """Test the AutofixOnCompletionHook behavior."""
+
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._maybe_continue_pipeline"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._send_step_webhook")
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    def test_passes_viewer_actor_to_step_webhook(
+        self, mock_fetch_run_status, mock_send_webhook, mock_continue_pipeline
+    ):
+        group = self.create_group(project=self.project)
+        mock_fetch_run_status.return_value = run_state(
+            blocks=[code_changes_memory_block()],
+            metadata={"group_id": group.id},
+        )
+
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                actor_type=ActorType.USER,
+            )
+        ):
+            AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert mock_send_webhook.call_args.kwargs["actor_user_id"] == self.user.id
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
