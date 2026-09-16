@@ -207,12 +207,52 @@ describe('MetricsTabContent', () => {
 
     await userEvent.click(addButton);
 
-    await waitFor(() => {
-      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
-    });
-    toolbars = screen.getAllByTestId('metric-toolbar');
+    toolbars = await screen.findAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(2);
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+  });
+
+  it('copies the last edited metric when adding another metric', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              metric: [encodedBarMetric, encodedBarMetric],
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    let toolbars = screen.getAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(2);
+    await waitFor(() => {
+      expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
+    });
+
+    await userEvent.click(within(toolbars[1]!).getByRole('button', {name: 'bar'}));
+    await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
+    expect(
+      await within(toolbars[1]!).findByRole('button', {name: 'foo'})
+    ).toBeInTheDocument();
+
+    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
+    expect(addButton).toBeEnabled();
+    await userEvent.click(addButton);
+
+    toolbars = await screen.findAllByTestId('metric-toolbar');
+    expect(toolbars).toHaveLength(3);
+    expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+    expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
   it.isKnownFlake('should fire analytics for metadata', async () => {
