@@ -6,6 +6,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {IconBot} from 'sentry/icons';
@@ -81,11 +82,19 @@ export function AgentSetupCard({
       <Flex area="icon" align="center" justify="center">
         <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
       </Flex>
-      <Flex area="title" align="center" gap="md" wrap="wrap">
-        <Heading as="h3" size="lg">
-          {t('Set up with your coding agent')}
-        </Heading>
-        <Tag variant="info">{t('Recommended')}</Tag>
+      <Flex area="title" align="center" justify="between" gap="md" wrap="wrap">
+        <Flex align="center" gap="md" wrap="wrap">
+          <Heading as="h3" size="lg">
+            {t('Set up with your coding agent')}
+          </Heading>
+          <Tag variant="info">{t('Recommended')}</Tag>
+        </Flex>
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            tags: {'feedback.source': 'onboarding-agent-setup'},
+          }}
+        />
       </Flex>
 
       <Stack area="meta" gap="xs" paddingTop="md" paddingBottom="2xl">
