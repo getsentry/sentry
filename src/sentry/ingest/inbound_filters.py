@@ -510,6 +510,18 @@ def get_generic_filters(
 CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
 
 
+# Separates the exception type from its value in the "{type}: {value}" text the legacy
+# error message filter globs, and so in the patterns written for it.
+_ERROR_TYPE_SEPARATOR = ": "
+
+
+def _split_typed_pattern(glob: str) -> tuple[str, str] | None:
+    ty, separator, value = glob.partition(_ERROR_TYPE_SEPARATOR)
+    if separator and ty and value:
+        return ty, value
+    return None
+
+
 def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     """
     Matches events whose exception type, exception value, or log entry message
@@ -517,10 +529,14 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
 
     The legacy ``errorMessages`` filter matches patterns against the formatted
     ``"{type}: {value}"`` message. Relay's rule DSL cannot express that
-    concatenation, so type and value are matched individually instead.
+    concatenation, so type and value are matched individually. A glob written in
+    that form, such as ``TypeError: Cannot read*``, additionally matches an exception
+    whose type matches the part before the separator and whose value matches the
+    part after it, which is what the legacy filter matched.
     """
     patterns: list[tuple[str | None, str | None]] = [(glob, None) for glob in values]
     patterns += [(None, glob) for glob in values]
+    patterns += [typed for glob in values if (typed := _split_typed_pattern(glob))]
     return _error_message_condition(patterns, match_logentry=True)
 
 
