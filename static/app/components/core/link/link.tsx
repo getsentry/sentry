@@ -47,20 +47,18 @@ const getLinkStyles = ({
   theme: Theme;
   disabled?: LinkProps['disabled'];
 }) => css`
-  && {
-    /* @TODO(jonasbadalic) This was defined on theme and only used here */
-    border-radius: 2px;
-    pointer-events: ${disabled ? 'none' : undefined};
+  /* @TODO(jonasbadalic) This was defined on theme and only used here */
+  border-radius: 2px;
+  pointer-events: ${disabled ? 'none' : undefined};
+  color: ${disabled ? theme.tokens.content.disabled : undefined};
+
+  &:hover {
     color: ${disabled ? theme.tokens.content.disabled : undefined};
+  }
 
-    &:hover {
-      color: ${disabled ? theme.tokens.content.disabled : undefined};
-    }
-
-    &:focus-visible {
-      text-decoration: none;
-      ${theme.focusRing()}
-    }
+  &:focus-visible {
+    text-decoration: none;
+    ${theme.focusRing()}
   }
 `;
 
@@ -107,11 +105,15 @@ const StyledLink = styled(LinkBase)`
   ${getLinkStyles}
 `;
 
+const LinkText = styled(Text)`
+  font-family: inherit;
+`;
+
 export function Link(props: LinkProps) {
   return (
-    <Text variant="inherit">
+    <LinkText variant="inherit">
       {textProps => <StyledLink {...mergeProps(textProps, props)} />}
-    </Text>
+    </LinkText>
   );
 }
 
