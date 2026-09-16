@@ -229,6 +229,15 @@ class CursorOriginIntegrationTest(TestCase):
         ):
             self.install.uninstall()
 
+    def test_uninstall_is_not_blocked_by_an_unconfigured_app(self) -> None:
+        """get_jwt raises before the request when the signing key is gone."""
+        with mock.patch.object(
+            CursorOriginSetupApiClient,
+            "delete_installation",
+            side_effect=ValueError("cursor-origin-app.id is not configured"),
+        ):
+            self.install.uninstall()
+
     def test_uninstall_is_not_blocked_by_an_origin_failure(self) -> None:
         """Disconnecting from Sentry must not depend on Origin answering."""
         with mock.patch.object(

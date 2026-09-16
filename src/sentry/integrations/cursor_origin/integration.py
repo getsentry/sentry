@@ -187,6 +187,12 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
                 "cursor_origin.uninstall.failed",
                 extra={"installation_id": installation_id, "status": e.code},
             )
+        except Exception:
+            # Includes an app whose signing key is no longer configured, which raises
+            # before the request is even made.
+            logger.exception(
+                "cursor_origin.uninstall.failed", extra={"installation_id": installation_id}
+            )
 
 
 DESCRIPTION = """
