@@ -238,7 +238,9 @@ describe('autofix embed', () => {
       'href',
       `/organizations/${organization.slug}/issues/${ISSUE.id}/`
     );
-    expect(screen.queryByText('The cart total throws on an empty cart.')).not.toBeVisible();
+    expect(
+      screen.queryByText('The cart total throws on an empty cart.')
+    ).not.toBeVisible();
   });
 
   it('renders the root cause sections a live run shows', async () => {
