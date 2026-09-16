@@ -713,7 +713,7 @@ function CostCount({
 }) {
   const value = total < 0 ? <NegativeCostInfo cost={total} /> : <LLMCosts cost={total} />;
 
-  if (!breakdowns.some(breakdown => breakdown.totalCost !== undefined)) {
+  if (total <= 0 || !breakdowns.some(breakdown => breakdown.totalCost !== undefined)) {
     return value;
   }
 
