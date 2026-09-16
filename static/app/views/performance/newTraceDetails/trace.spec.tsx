@@ -963,7 +963,8 @@ describe('trace view', () => {
             timestamp: new Date(start * 1000).toISOString(),
             attributes: [
               {name: 'custom.region', type: 'str', value: 'drawer-region'},
-              {name: 'custom.size', type: 'integer', value: 0},
+              {name: 'tags[custom.size,number]', type: 'int', value: 0},
+              {name: 'tags[custom.enabled,boolean]', type: 'bool', value: false},
             ],
           },
         });
@@ -1028,8 +1029,10 @@ describe('trace view', () => {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.size']})],
-        body: [{...root, additional_attributes: {'custom.size': 0}}],
+        match: [
+          MockApiClient.matchQuery({additional_attributes: ['tags[custom.size,number]']}),
+        ],
+        body: [{...root, additional_attributes: {'tags[custom.size,number]': 0}}],
       });
       const {router} = render(<TraceView />, {initialRouterConfig, organization});
       await userEvent.click(await screen.findByText('pinnable root'));
@@ -1090,16 +1093,16 @@ describe('trace view', () => {
       ).toBeLessThan(originalTimelineWidth);
       await userEvent.click(
         within(
-          (await screen.findByTestId('tree-key-custom.size')).closest<HTMLElement>(
-            '[data-test-id="attribute-tree-row"]'
-          )!
+          (
+            await screen.findByTestId('tree-key-tags[custom.size,number]')
+          ).closest<HTMLElement>('[data-test-id="attribute-tree-row"]')!
         ).getByRole('button', {name: 'Attribute Actions Menu'})
       );
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Pin to waterfall'})
       );
       await waitFor(() =>
-        expect(router.location.query.pinnedAttribute).toBe('custom.size')
+        expect(router.location.query.pinnedAttribute).toBe('tags[custom.size,number]')
       );
       expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument();
       expect(
@@ -1108,7 +1111,7 @@ describe('trace view', () => {
         })
       ).not.toBeInTheDocument();
       expect(
-        within(screen.getByTestId('tree-key-custom.size')).getByRole('img', {
+        within(screen.getByTestId('tree-key-tags[custom.size,number]')).getByRole('img', {
           name: 'Pinned attribute',
         })
       ).toBeInTheDocument();
@@ -1117,9 +1120,9 @@ describe('trace view', () => {
       ).toBeInTheDocument();
       await userEvent.click(
         within(
-          (await screen.findByTestId('tree-key-custom.size')).closest<HTMLElement>(
-            '[data-test-id="attribute-tree-row"]'
-          )!
+          (
+            await screen.findByTestId('tree-key-tags[custom.size,number]')
+          ).closest<HTMLElement>('[data-test-id="attribute-tree-row"]')!
         ).getByRole('button', {name: 'Attribute Actions Menu'})
       );
       await userEvent.click(
@@ -1136,6 +1139,81 @@ describe('trace view', () => {
       router.navigate(-1);
       await waitFor(() => expect(router.location.query.pinnedAttribute).toBeUndefined());
     });
+
+    it.each([
+      {attribute: 'tags[custom.size,number]', value: 0},
+      {attribute: 'tags[custom.enabled,boolean]', value: false},
+    ])(
+      'preserves the typed key for $attribute when pinning and reloading',
+      async ({attribute, value}) => {
+        const {organization, root} = setupPinnedTrace();
+        const attributeRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace/trace-id/',
+          match: [MockApiClient.matchQuery({additional_attributes: [attribute]})],
+          body: [{...root, additional_attributes: {[attribute]: value}}],
+        });
+        const {router, unmount} = render(<TraceView />, {
+          initialRouterConfig,
+          organization,
+        });
+        await userEvent.click(await screen.findByText('pinnable root'));
+        await userEvent.click(
+          within(
+            (await screen.findByTestId(`tree-key-${attribute}`)).closest<HTMLElement>(
+              '[data-test-id="attribute-tree-row"]'
+            )!
+          ).getByRole('button', {name: 'Attribute Actions Menu'})
+        );
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Pin to waterfall'})
+        );
+        const copyButton = await screen.findByRole('button', {
+          name: 'Copy attribute value',
+        });
+        expect(
+          within(copyButton.closest<HTMLElement>('.TracePinnedAttributeCell')!).getByText(
+            String(value)
+          )
+        ).toBeInTheDocument();
+        expect(router.location.query.pinnedAttribute).toBe(attribute);
+        expect(attributeRequest).toHaveBeenCalledTimes(1);
+        expect(
+          within(screen.getByTestId(`tree-key-${attribute}`)).getByRole('img', {
+            name: 'Pinned attribute',
+          })
+        ).toBeInTheDocument();
+
+        const query = {pinnedAttribute: attribute};
+        unmount();
+        mockQueryString(
+          `?${new URLSearchParams({pinnedAttribute: attribute}).toString()}`
+        );
+        render(<TraceView />, {
+          organization,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              pathname: '/organizations/org-slug/performance/trace/trace-id/',
+              query,
+            },
+          },
+        });
+        const reloadedCopyButton = await screen.findByRole('button', {
+          name: 'Copy attribute value',
+        });
+        expect(
+          within(
+            reloadedCopyButton.closest<HTMLElement>('.TracePinnedAttributeCell')!
+          ).getByText(String(value))
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByText('pinnable root'));
+        expect(
+          within(await screen.findByTestId(`tree-key-${attribute}`)).getByRole('img', {
+            name: 'Pinned attribute',
+          })
+        ).toBeInTheDocument();
+      }
+    );
 
     it('loads a shared pin, keeps the trace usable on failure, and retries only the attribute', async () => {
       const {organization, root} = setupPinnedTrace();
