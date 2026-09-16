@@ -568,7 +568,10 @@ describe('Slow-query evidence from the spans dataset', () => {
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
       expect(writeText).not.toHaveBeenCalled();
 
-      await act(async () => resolve());
+      await act(() => {
+        resolve();
+        return promise;
+      });
       await screen.findByText(/SELECT id FROM authors/);
       await copyFromMenu();
       expect(writeText).toHaveBeenLastCalledWith(

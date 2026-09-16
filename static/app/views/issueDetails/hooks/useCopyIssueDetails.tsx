@@ -46,7 +46,7 @@ function getActiveThreadId() {
   return _activeThreadId;
 }
 
-export function useActiveThreadId() {
+function useActiveThreadId() {
   return useSyncExternalStore(callback => {
     _listeners.add(callback);
     return () => _listeners.delete(callback);
