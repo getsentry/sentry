@@ -85,12 +85,7 @@ describe('getConfigFromTimeRange', () => {
     // calendar day the labels should still show only the time.
     const start = new Date('2026-11-01T04:00:00Z'); // 2026-11-01 00:00 EDT
     const end = new Date('2026-11-02T04:30:00Z'); // 2026-11-01 23:30 EST
-    const config = getConfigFromTimeRange(
-      start,
-      end,
-      timelineWidth,
-      'America/New_York'
-    );
+    const config = getConfigFromTimeRange(start, end, timelineWidth, 'America/New_York');
     expect(config.dateTimeProps).toEqual({timeOnly: true});
   });
 
