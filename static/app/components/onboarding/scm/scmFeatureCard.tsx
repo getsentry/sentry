@@ -1,17 +1,17 @@
 import type {ComponentType, ReactNode} from 'react';
-import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {InfoText} from '@sentry/scraps/info';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
 
-import {ScmCardButton} from './scmCardButton';
+import {ScmSelectableCardButton} from './scmCardButton';
 
 interface ScmFeatureRowProps {
   description: string;
@@ -23,17 +23,14 @@ interface ScmFeatureRowProps {
   volumeTooltip: string;
   disabled?: boolean;
   disabledReason?: ReactNode;
-  // The first row skips its top divider; the parent list draws the frame.
-  isFirst?: boolean;
   isVolumeLoading?: boolean;
   showVolume?: boolean;
 }
 
 /**
- * A list entry for a product toggle: icon, label, description, and a checkbox
- * indicator. Meant to be stacked inside one framed list rather than laid out
- * as standalone cards. Selection lives on the row button; the checkbox only
- * mirrors it.
+ * A product toggle as its own card: icon, label, description, and a checkbox
+ * indicator. Meant to be laid out in a grid alongside its siblings. Selection
+ * lives on the card button; the checkbox only mirrors it.
  */
 export function ScmFeatureRow({
   icon: Icon,
@@ -42,7 +39,6 @@ export function ScmFeatureRow({
   isSelected,
   disabled,
   disabledReason,
-  isFirst,
   onClick,
   volume,
   volumeTooltip,
@@ -51,53 +47,25 @@ export function ScmFeatureRow({
 }: ScmFeatureRowProps) {
   return (
     <Tooltip title={disabledReason} disabled={!disabledReason} delay={500}>
-      <RowButton
+      <ScmSelectableCardButton
         disabled={disabled}
         onClick={onClick}
         role="checkbox"
         aria-checked={isSelected}
       >
-        <Container borderTop={isFirst ? undefined : 'primary'} padding="xl">
-          <Grid
-            columns="min-content 1fr min-content"
-            rows="min-content min-content"
-            gap="xs lg"
-            align="center"
-            width="100%"
-            areas={`
-              "icon label       toggle"
-              ".    description description"
-            `}
-          >
-            <Flex area="icon" align="center" alignSelf="start" paddingTop="2xs">
-              <Icon size="md" variant="secondary" />
-            </Flex>
-
-            <Container area="label">
-              <Text bold size="md">
-                {label}
-              </Text>
-            </Container>
-
-            <Container area="description">
-              <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
-                {description}
-              </Text>
-            </Container>
-
-            <Flex area="toggle" align="center" alignSelf="start" gap="md">
-              {showVolume &&
-                (isVolumeLoading ? (
-                  <Placeholder height="22px" width="100px" />
-                ) : (
-                  <Tooltip title={volumeTooltip} delay={100}>
-                    <Tag variant="muted" icon={<IconInfo size="sm" />}>
-                      {volume}
-                    </Tag>
-                  </Tooltip>
-                ))}
-              {/* Presentational only: let the row own hover and cursor. */}
-              <Flex pointerEvents="none">
+        <Container height="100%" radius="lg" padding="xl">
+          <Stack height="100%" gap="md">
+            <Flex align="center" justify="between" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
+                <Flex flexShrink={0}>
+                  <Icon size="md" variant="secondary" />
+                </Flex>
+                <Text bold size="md">
+                  {label}
+                </Text>
+              </Flex>
+              {/* Presentational only: let the card own hover and cursor. */}
+              <Flex flexShrink={0} pointerEvents="none">
                 <Checkbox
                   checked={isSelected}
                   disabled={disabled}
@@ -107,18 +75,41 @@ export function ScmFeatureRow({
                 />
               </Flex>
             </Flex>
-          </Grid>
+
+            {/* Grows so the volume row sits on the card's floor, level with
+                its siblings however long their descriptions run. */}
+            <Stack flexGrow={1}>
+              <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
+                {description}
+              </Text>
+            </Stack>
+
+            {showVolume ? (
+              <Stack gap="md" width="100%" paddingTop="md">
+                <Separator orientation="horizontal" border="primary" />
+                <Flex align="center" justify="between" gap="md">
+                  <Text variant="muted" size="sm">
+                    {t('After 14 days')}
+                  </Text>
+                  {isVolumeLoading ? (
+                    <Placeholder height="18px" width="88px" />
+                  ) : (
+                    <InfoText
+                      title={volumeTooltip}
+                      delay={100}
+                      variant="primary"
+                      size="sm"
+                      bold
+                    >
+                      {volume}
+                    </InfoText>
+                  )}
+                </Flex>
+              </Stack>
+            ) : null}
+          </Stack>
         </Container>
-      </RowButton>
+      </ScmSelectableCardButton>
     </Tooltip>
   );
 }
-
-const RowButton = styled(ScmCardButton)`
-  display: block;
-  width: 100%;
-
-  &:hover:not(:disabled) {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-`;

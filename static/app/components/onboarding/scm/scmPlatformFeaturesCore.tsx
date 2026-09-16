@@ -1,10 +1,10 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Select, type StylesConfig} from '@sentry/scraps/select';
 import {createFilter} from '@sentry/scraps/select';
@@ -15,7 +15,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconBroadcast} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -28,6 +28,7 @@ import {
   scmFlowVariantParams,
   trackScmPlatformSelected,
 } from './scmAnalyticsFlow';
+import {ScmPickerSection} from './scmPickerSection';
 import {ScmPlatformRow} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
@@ -391,129 +392,133 @@ export function ScmPlatformFeaturesCore({
     hasDetectedPlatforms &&
     (!currentPlatformKey || currentPlatformIsDetected);
 
-  return showDetectedPlatforms ? (
-    <MotionStack
-      key="detected"
-      initial={{opacity: 0}}
-      animate={{opacity: 1}}
-      gap="lg"
-      width="100%"
-    >
-      <Flex
-        justify="between"
-        align={{zero: 'start', xl: 'center'}}
-        gap="md"
-        direction={{zero: 'column', xl: 'row'}}
-      >
-        <Flex align="center" gap="sm">
-          <Flex flexShrink={0}>
-            <IconBroadcast size="sm" />
-          </Flex>
-          <Heading as="h4">
-            {selectedRepository
-              ? t('Detected from %s', selectedRepository.name)
-              : t('Auto-detected from your repository')}
-          </Heading>
-        </Flex>
-        <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
-          {isDetecting
-            ? t('Skip detection and select manually')
-            : t("Not what you're building? Pick another")}
-        </Button>
+  const detectedTitle = (
+    <Fragment>
+      <Flex flexShrink={0}>
+        <IconBroadcast size="sm" />
       </Flex>
-      <Stack gap="lg" width="100%">
-        {isDetecting ? (
-          <Flex justify="center">
-            <LoadingIndicator mini />
-          </Flex>
-        ) : (
-          <Stack
-            width="100%"
-            background="primary"
-            border="primary"
-            radius="xl"
-            overflow="hidden"
-            role="radiogroup"
-            style={{borderBottomWidth: 2}}
+      <Text size="md" variant="secondary">
+        {selectedRepository
+          ? tct('Detected from [repo]', {
+              repo: (
+                <Text as="span" bold>
+                  {selectedRepository.name}
+                </Text>
+              ),
+            })
+          : t('Auto-detected from your repository')}
+      </Text>
+    </Fragment>
+  );
+
+  const manualTitle = isOnboarding ? null : (
+    <Stack gap="sm">
+      <Heading as="h4">{t('Platform')}</Heading>
+      <Text variant="secondary" density="comfortable" size="sm">
+        {t('Determines your SDK and available monitoring features')}
+      </Text>
+    </Stack>
+  );
+
+  const canReturnToDetected =
+    hasScmConnected && !isDetectionError && hasDetectedPlatforms;
+
+  return (
+    <ScmPickerSection
+      title={showDetectedPlatforms ? detectedTitle : manualTitle}
+      action={
+        showDetectedPlatforms ? (
+          <Button size="sm" variant="link" onClick={handleChangePlatformClick}>
+            {isDetecting
+              ? t('Skip detection and select manually')
+              : t("Not what you're building? Pick another")}
+          </Button>
+        ) : canReturnToDetected ? (
+          <Button size="sm" variant="link" onClick={handleBackToRecommended}>
+            {t('Back to what we found')}
+          </Button>
+        ) : null
+      }
+    >
+      {showDetectedPlatforms ? (
+        isDetecting ? (
+          <MotionFlex
+            key="detecting"
+            justify="center"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
           >
-            {resolvedPlatforms.map(({platform, info}, index) => (
+            <LoadingIndicator mini />
+          </MotionFlex>
+        ) : (
+          <MotionGrid
+            key="detected"
+            width="100%"
+            columns={{
+              zero: '1fr',
+              md: 'repeat(2, minmax(0, 1fr))',
+            }}
+            gap="lg"
+            role="radiogroup"
+            initial={{opacity: 0}}
+            animate={{opacity: 1}}
+          >
+            {resolvedPlatforms.map(({platform, info}) => (
               <ScmPlatformRow
                 key={platform}
                 platform={platform}
                 name={info.name}
-                isFirst={index === 0}
                 isSelected={currentPlatformKey === platform}
                 onClick={() => handleSelectDetectedPlatform(platform)}
               />
             ))}
-          </Stack>
-        )}
-      </Stack>
-    </MotionStack>
-  ) : (
-    // Framed like the connected-repo card so the two pickers read as siblings.
-    <MotionStack
-      key="manual"
-      gap="lg"
-      width="100%"
-      background="primary"
-      border="primary"
-      radius="xl"
-      padding="xl"
-      initial={{opacity: 0}}
-      animate={{opacity: 1}}
-    >
-      <Flex justify="between" align="end">
-        <Flex gap="sm" direction={isOnboarding ? undefined : 'column'}>
-          <Heading as="h4">
-            {isOnboarding ? t('Language or framework') : t('Platform')}
-          </Heading>
-          {isOnboarding ? null : (
-            <Text variant="secondary" density="comfortable" size="sm">
-              {t('Determines your SDK and available monitoring features')}
-            </Text>
-          )}
-        </Flex>
-        {hasScmConnected && !isDetectionError && hasDetectedPlatforms && (
-          <Button size="xs" variant="link" onClick={handleBackToRecommended}>
-            {t('Back to what we found')}
-          </Button>
-        )}
-      </Flex>
-      {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
-          core Select types `clearable` as a discriminated-union literal (`?: false`
-          vs `: true`, which also selects the onChange signature), so a dynamic
-          boolean is not assignable and will not typecheck. Each branch passes a
-          literal. Clear is only offered when no platform was detected: a detected
-          one re-resolves into currentPlatformKey, so clearing would leave the
-          picker (and the feature panel) showing it while the committed selection
-          is empty. "Back to recommended platforms" covers reverting. */}
-      {detectedPlatformKey ? (
-        <Select<(typeof platformOptions)[number]>
-          placeholder={t('Search')}
-          options={platformOptionGroups}
-          value={currentPlatformKey ?? null}
-          onChange={handleManualPickerChange}
-          onInputChange={handleManualPickerSearch}
-          searchable
-          components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
-          styles={manualPickerStyles}
-        />
+          </MotionGrid>
+        )
       ) : (
-        <Select<(typeof platformOptions)[number]>
-          placeholder={t('Search')}
-          options={platformOptionGroups}
-          value={currentPlatformKey ?? null}
-          onChange={handleManualPickerChange}
-          onInputChange={handleManualPickerSearch}
-          clearable
-          searchable
-          components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
-          styles={manualPickerStyles}
-        />
+        <MotionStack
+          key="manual"
+          width="100%"
+          initial={{opacity: 0}}
+          animate={{opacity: 1}}
+        >
+          {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
+              core Select types `clearable` as a discriminated-union literal (`?: false`
+              vs `: true`, which also selects the onChange signature), so a dynamic
+              boolean is not assignable and will not typecheck. Each branch passes a
+              literal. Clear is only offered when no platform was detected: a detected
+              one re-resolves into currentPlatformKey, so clearing would leave the
+              picker (and the feature panel) showing it while the committed selection
+              is empty. "Back to what we found" covers reverting. */}
+          {detectedPlatformKey ? (
+            <Select<(typeof platformOptions)[number]>
+              placeholder={t('Search')}
+              options={platformOptionGroups}
+              value={currentPlatformKey ?? null}
+              onChange={handleManualPickerChange}
+              onInputChange={handleManualPickerSearch}
+              searchable
+              components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+              styles={manualPickerStyles}
+            />
+          ) : (
+            <Select<(typeof platformOptions)[number]>
+              placeholder={t('Search')}
+              options={platformOptionGroups}
+              value={currentPlatformKey ?? null}
+              onChange={handleManualPickerChange}
+              onInputChange={handleManualPickerSearch}
+              clearable
+              searchable
+              components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
+              styles={manualPickerStyles}
+            />
+          )}
+        </MotionStack>
       )}
-    </MotionStack>
+    </ScmPickerSection>
   );
 }
 
+const MotionFlex = motion.create(Flex);
+const MotionGrid = motion.create(Grid);
 const MotionStack = motion.create(Stack);

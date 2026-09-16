@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {InfoText} from '@sentry/scraps/info';
@@ -7,33 +6,29 @@ import {Radio} from '@sentry/scraps/radio';
 
 import type {PlatformKey} from 'sentry/types/platform';
 
-import {ScmCardButton} from './scmCardButton';
+import {ScmSelectableCardButton} from './scmCardButton';
 
 interface ScmPlatformRowProps {
   isSelected: boolean;
   name: string;
   onClick: () => void;
   platform: PlatformKey;
-  // The first row skips its top divider; the parent list draws the frame.
-  isFirst?: boolean;
 }
 
 /**
- * A single-line list entry for a detected platform: icon, name, and a radio
- * indicator. Meant to be stacked inside one framed list rather than laid out
- * as standalone cards. Selection lives on the row button; the radio only
- * mirrors it.
+ * A detected platform as its own card: icon, name, and a radio indicator.
+ * Meant to be laid out in a grid alongside its siblings. Selection lives on the
+ * card button; the radio only mirrors it.
  */
 export function ScmPlatformRow({
   platform,
   name,
   isSelected,
-  isFirst,
   onClick,
 }: ScmPlatformRowProps) {
   return (
-    <RowButton onClick={onClick} role="radio" aria-checked={isSelected}>
-      <Container borderTop={isFirst ? undefined : 'primary'} padding="xl">
+    <ScmSelectableCardButton onClick={onClick} role="radio" aria-checked={isSelected}>
+      <Container height="100%" radius="lg" padding="xl">
         <Flex gap="lg" align="center">
           <Flex flexShrink={0}>
             <PlatformIcon platform={platform} size={20} format="lg" alt="" />
@@ -43,7 +38,7 @@ export function ScmPlatformRow({
               {name}
             </InfoText>
           </Flex>
-          {/* Presentational only: let the row own hover and cursor. */}
+          {/* Presentational only: let the card own hover and cursor. */}
           <Flex pointerEvents="none">
             <Radio
               checked={isSelected}
@@ -55,15 +50,6 @@ export function ScmPlatformRow({
           </Flex>
         </Flex>
       </Container>
-    </RowButton>
+    </ScmSelectableCardButton>
   );
 }
-
-const RowButton = styled(ScmCardButton)`
-  display: block;
-  width: 100%;
-
-  &:hover {
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-`;

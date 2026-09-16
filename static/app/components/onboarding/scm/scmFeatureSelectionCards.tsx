@@ -1,5 +1,4 @@
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Grid} from '@sentry/scraps/layout';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {DisabledProducts} from 'sentry/components/onboarding/productSelection';
@@ -28,55 +27,37 @@ export function ScmFeatureSelectionCards({
   isOnboarding,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Stack gap="lg" width="100%" justify="center">
-      {isOnboarding ? (
-        <Flex justify="between" align="center" gap="md">
-          <Heading as="h4" ellipsis>
-            {t('What do you want to track?')}
-          </Heading>
-          {availableFeatures.length > 1 ? (
-            <Container>
-              <Text size="sm" variant="secondary" wrap="nowrap">
-                {t('Pick as many as you like')}
-              </Text>
-            </Container>
-          ) : null}
-        </Flex>
-      ) : null}
-
-      <Stack
-        width="100%"
-        background="primary"
-        border="primary"
-        radius="xl"
-        overflow="hidden"
-        style={{borderBottomWidth: 2}}
-      >
-        {availableFeatures.map((feature, index) => {
-          const meta = featureMeta[feature];
-          const disabledProduct = disabledProducts[feature];
-          const disabledReason = meta.alwaysEnabled
-            ? t('Error monitoring is always enabled')
-            : disabledProduct?.reason;
-          return (
-            <ScmFeatureRow
-              key={feature}
-              icon={meta.icon}
-              label={meta.label}
-              description={meta.description}
-              isFirst={index === 0}
-              isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
-              disabled={!!meta.alwaysEnabled || !!disabledProduct}
-              disabledReason={disabledReason}
-              onClick={() => onToggleFeature(feature)}
-              volume={meta.volume}
-              volumeTooltip={meta.volumeTooltip}
-              isVolumeLoading={isVolumeLoading}
-              showVolume={isOnboarding}
-            />
-          );
-        })}
-      </Stack>
-    </Stack>
+    <Grid
+      width="100%"
+      columns={{
+        zero: '1fr',
+        md: 'repeat(2, minmax(0, 1fr))',
+      }}
+      gap="lg"
+    >
+      {availableFeatures.map(feature => {
+        const meta = featureMeta[feature];
+        const disabledProduct = disabledProducts[feature];
+        const disabledReason = meta.alwaysEnabled
+          ? t('Error monitoring is always enabled')
+          : disabledProduct?.reason;
+        return (
+          <ScmFeatureRow
+            key={feature}
+            icon={meta.icon}
+            label={meta.label}
+            description={meta.description}
+            isSelected={selectedFeatures.includes(feature) || !!meta.alwaysEnabled}
+            disabled={!!meta.alwaysEnabled || !!disabledProduct}
+            disabledReason={disabledReason}
+            onClick={() => onToggleFeature(feature)}
+            volume={meta.volume}
+            volumeTooltip={meta.volumeTooltip}
+            isVolumeLoading={isVolumeLoading}
+            showVolume={isOnboarding}
+          />
+        );
+      })}
+    </Grid>
   );
 }

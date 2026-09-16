@@ -87,7 +87,8 @@ describe('ScmPlatformFeaturesCore', () => {
   it('renders the manual platform picker when no repository is connected', () => {
     render(<ScmPlatformFeaturesCore {...defaultProps()} />, {organization});
 
-    expect(screen.getByText('Language or framework')).toBeInTheDocument();
+    expect(screen.getByText('Python')).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
   });
 
   it('fires step_viewed analytics in onboarding on mount', () => {
