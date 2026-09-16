@@ -5,6 +5,7 @@ import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/a
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 
+import {rowContent} from './presets';
 import {Value, ValueLink} from './value';
 
 export interface KeyValueTableDataRowProps {
@@ -107,21 +108,31 @@ export function KeyValueTableDataRow({
   );
 }
 
-type RowState = {hasErrors: boolean; isSuspectFlag: boolean};
+type RowState = {hasErrors: boolean; isSuspectFlag: boolean; striped?: boolean};
 
-const rowStateStyles = ({theme, hasErrors, isSuspectFlag}: RowState & {theme: Theme}) => {
-  const [content, tint] = hasErrors
-    ? [theme.colors.red500, theme.colors.red100]
+const rowStateStyles = ({
+  theme,
+  hasErrors,
+  isSuspectFlag,
+  striped,
+}: RowState & {theme: Theme}) => {
+  const tint = hasErrors
+    ? theme.colors.red100
     : isSuspectFlag
-      ? [theme.colors.yellow500, theme.colors.yellow100]
-      : [theme.tokens.content.secondary, null];
+      ? theme.colors.yellow100
+      : null;
 
   return css`
-    color: ${content};
+    color: ${rowContent({theme, hasErrors, isSuspect: isSuspectFlag})};
     box-shadow: inset 0 0 0 1px ${tint ?? 'transparent'};
     background-color: ${tint ?? theme.tokens.background.primary};
-    &:nth-child(odd) {
-      background-color: ${tint ?? theme.tokens.background.secondary};
+    ${
+      striped &&
+      css`
+        &:nth-child(odd) {
+          background-color: ${tint ?? theme.tokens.background.secondary};
+        }
+      `
     }
   `;
 };
