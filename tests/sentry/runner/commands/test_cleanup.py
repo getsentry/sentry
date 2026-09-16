@@ -50,9 +50,9 @@ class SynchronousTaskQueue:
         # You can use this to inspect the calls to the queue.
         self.put_calls: list[tuple[str, tuple[int, ...], int | None]] = []
 
-    def put(self, item: tuple[str, tuple[int, ...], int | None]) -> None:
-        self.put_calls.append(item)
-        task_execution(item[0], item[1], item[2])
+    def put(self, model_name: str, chunk: tuple[int, ...], project_id: int | None = None) -> None:
+        self.put_calls.append((model_name, chunk, project_id))
+        task_execution(model_name, chunk, project_id)
 
     def join(self) -> None:
         pass
@@ -182,7 +182,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
             models_attempted: set[str] = set()
             run_bulk_deletes_by_project(
-                task_queue=task_queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
+                scheduler=task_queue,  # type: ignore[arg-type]  # It partially implements the queue protocol
                 project_id=None,
                 start_from_project_id=None,
                 is_filtered=lambda model: False,
@@ -228,7 +228,7 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
 
             models_attempted: set[str] = set()
             run_bulk_deletes_by_project(
-                task_queue=task_queue,  # type: ignore[arg-type]
+                scheduler=task_queue,  # type: ignore[arg-type]
                 project_id=None,
                 start_from_project_id=None,
                 is_filtered=lambda model: False,
