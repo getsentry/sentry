@@ -8,7 +8,6 @@ one never locks the run, and two iterations never contend with each other.
 
 from __future__ import annotations
 
-from collections import Counter
 from datetime import datetime
 from typing import Any
 
@@ -61,15 +60,12 @@ def count_iterations_before(cutoff: datetime) -> int:
     return SeerRunPrIteration.objects.filter(date_updated__lt=cutoff).count()
 
 
-def remove_iterations_before(cutoff: datetime, limit: int) -> dict[bool, int]:
-    """Delete rows untouched since ``cutoff``. Returns how many went, by ``triggered``."""
-    stale = list(
-        SeerRunPrIteration.objects.filter(date_updated__lt=cutoff)
-        .order_by("date_updated")
-        .values_list("id", "triggered")[:limit]
-    )
-    if not stale:
-        return {}
+def iterations_before(cutoff: datetime, limit: int) -> list[SeerRunPrIteration]:
+    """Rows untouched since ``cutoff``, oldest first.
 
-    SeerRunPrIteration.objects.filter(id__in=[row_id for row_id, _ in stale]).delete()
-    return dict(Counter(triggered for _, triggered in stale))
+    The sweep takes each row with ``remove_iteration``, because it emits the row
+    before it erases the row.
+    """
+    return list(
+        SeerRunPrIteration.objects.filter(date_updated__lt=cutoff).order_by("date_updated")[:limit]
+    )

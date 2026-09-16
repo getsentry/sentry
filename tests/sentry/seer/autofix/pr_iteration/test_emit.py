@@ -15,16 +15,13 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
-from sentry.seer.autofix.pr_iteration.details_store import (
-    open_iterations,
-    remove_iterations_before,
-    update_iteration,
-)
+from sentry.seer.autofix.pr_iteration.details_store import open_iterations, update_iteration
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     bootstrap_iteration,
     complete_pr_iteration_details,
     discard_pr_iteration_details,
+    expire_pr_iteration_details,
     outcome_for_failed_run,
     outcome_for_pause,
     record_pr_iteration_blocked,
@@ -374,27 +371,59 @@ class PrIterationDetailsTest(TestCase):
         assert self._open_rows() == []
 
     def test_a_row_left_behind_is_discarded_unemitted(self) -> None:
-        # The iteration never reached a completion hook, so no event is owed.
+        # No drain claimed the row, so the completed event does not apply to it.
         self._open()
+        (row,) = self._open_rows()
 
         with patch("sentry.analytics.record") as mock_record:
-            assert remove_iterations_before(timezone.now() + timedelta(minutes=1), 100) == {
-                False: 1
-            }
+            assert expire_pr_iteration_details(logger=MagicMock(), iteration=row) is False
 
         assert not mock_record.called
         assert self._open_rows() == []
 
-    def test_the_sweep_counts_triggered_rows_apart(self) -> None:
+    def test_a_swept_row_reports_that_no_hook_came(self) -> None:
         self._open()
         iteration_id = self._trigger()
         assert iteration_id is not None
-        self._open()
+        (row,) = self._open_rows()
 
-        assert remove_iterations_before(timezone.now() + timedelta(minutes=1), 100) == {
-            True: 1,
-            False: 1,
-        }
+        with patch("sentry.analytics.record") as mock_record:
+            assert expire_pr_iteration_details(logger=MagicMock(), iteration=row) is True
+
+        assert_last_analytics_event(
+            mock_record,
+            AiAutofixPrIterationFeedbackBatchCompletedEvent(
+                iteration_id=iteration_id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.group.id,
+                run_id=RUN_ID,
+                referrer="github_pr_comment",
+                iteration_index=-1,
+                trigger_source="feedback",
+                feedback_count=2,
+                queued_count=3,
+                dropped_count=1,
+                automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
+                head_shas=[],
+                outcome="no_completion_hook",
+            ),
+        )
+        assert self._open_rows() == []
+
+    def test_a_hook_that_wins_the_row_leaves_the_sweep_nothing(self) -> None:
+        """The row is the claim: a sweep never repeats a batch a hook recorded."""
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        (row,) = self._open_rows()
+        self._complete(iteration_id, outcome=PrIterationOutcome.TIMEOUT.value)
+
+        with patch("sentry.analytics.record") as mock_record:
+            assert expire_pr_iteration_details(logger=MagicMock(), iteration=row) is False
+
+        assert not mock_record.called
 
     def test_an_unknown_field_never_reaches_the_event(self) -> None:
         self._open()

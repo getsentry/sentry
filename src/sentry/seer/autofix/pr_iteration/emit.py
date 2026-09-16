@@ -55,6 +55,9 @@ EventT = TypeVar("EventT", bound=analytics.Event)
 # iteration.
 BLOCKED_OUTCOMES_DATA_KEY = "blocked_outcomes"
 
+# The sweep holds no run state, so the index of a swept iteration is not known.
+UNKNOWN_ITERATION_INDEX = -1
+
 
 class PrIterationOutcome(StrEnum):
     """An outcome of running an iteration.
@@ -92,6 +95,9 @@ class PrIterationOutcome(StrEnum):
     PAUSED_USER_STOP = "paused_user_stop"
     PAUSED_RUN_ERRORED = "paused_run_errored"
     PAUSED_PR_CLOSED = "paused_pr_closed"
+
+    # The sweep erased the row. No completion hook came, and the row waited a minimum of 24 hours.
+    NO_COMPLETION_HOOK = "no_completion_hook"
 
 
 # Every pause reason has its own outcome; there is no catch-all. mypy flags a
@@ -453,3 +459,41 @@ def complete_pr_iteration_details(
         analytics.record(event)
     except Exception:
         log_ctx.error("autofix.pr_iteration.details.complete_failed")
+
+
+@trace
+def expire_pr_iteration_details(*, logger: logging.Logger, iteration: SeerRunPrIteration) -> bool:
+    """Erase one stale row, and emit it first if a drain claimed it.
+
+    An atomic delete claims the row, the same as a completion hook does. As a
+    result, a sweep and a hook that race on one row emit one event between them.
+    Returns True when this call recorded the event.
+    """
+    log_ctx = PrIterationLogContext(
+        logger,
+        iteration=LogCtxIteration.TRIGGERED,
+        run_state=None,
+        organization_id=iteration.data.get("organization_id"),
+        group_id=iteration.data.get("group_id"),
+    )
+    try:
+        # An untriggered row has no drain counts, so the completed event does not apply to it.
+        event = (
+            _build_event(
+                log_ctx,
+                iteration,
+                AiAutofixPrIterationFeedbackBatchCompletedEvent,
+                iteration_index=UNKNOWN_ITERATION_INDEX,
+                outcome=PrIterationOutcome.NO_COMPLETION_HOOK.value,
+            )
+            if iteration.triggered
+            else None
+        )
+        if not remove_iteration(iteration) or event is None:
+            return False
+
+        analytics.record(event)
+        return True
+    except Exception:
+        log_ctx.error("autofix.pr_iteration.details.expire_failed")
+        return False

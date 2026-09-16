@@ -4,9 +4,13 @@ from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 from scm.errors import ResourceNotFound
 from scm.types import ReviewComment
 
+from sentry.analytics.events.pr_iteration_events import (
+    AiAutofixPrIterationFeedbackBatchCompletedEvent,
+)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import (
@@ -27,6 +31,8 @@ from sentry.seer.autofix.pr_iteration.emit import (
     BLOCKED_OUTCOMES_DATA_KEY,
     PrIterationOutcome,
     bootstrap_iteration,
+    record_pr_iteration_counts,
+    trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
@@ -60,7 +66,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError, SeerPermissionError
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunPrIteration
 from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
@@ -72,10 +78,12 @@ from sentry.tasks.seer.pr_iteration import (
     _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
     pause_pr_iteration_from_comment,
+    sweep_pr_iteration_details,
     trigger_consume_pr_iteration_feedback,
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
@@ -2541,3 +2549,155 @@ class BuildReviewFeedbackTest(TestCase):
         source = feedback[0].source
         assert isinstance(source, GithubPrReviewCommentFeedbackSource)
         assert source.comment.unique_id is None
+
+
+SWEEP_RUN_ID = 91011
+
+
+class SweepPrIterationDetailsTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=SWEEP_RUN_ID
+        )
+        self.log_ctx = PrIterationLogContext(
+            MagicMock(),
+            iteration=LogCtxIteration.UNTRIGGERED,
+            run_state=self._run_state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+
+    def _run_state(self) -> SeerRunState:
+        return SeerRunState(
+            run_id=SWEEP_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            metadata={"group_id": self.group.id},
+        )
+
+    def _open_row(self, *, triggered: bool) -> SeerRunPrIteration:
+        bootstrap_iteration(
+            logger=MagicMock(),
+            run_state=self._run_state(),
+            organization_id=self.organization.id,
+            group_id=self.group.id,
+        )
+        if triggered:
+            iteration_id = trigger_pr_iteration_details(
+                log_ctx=self.log_ctx,
+                run_id=SWEEP_RUN_ID,
+                organization_id=self.organization.id,
+                trigger_source="feedback",
+            )
+            assert iteration_id is not None
+            record_pr_iteration_counts(
+                log_ctx=self.log_ctx,
+                run_id=SWEEP_RUN_ID,
+                organization_id=self.organization.id,
+                iteration_id=iteration_id,
+                referrer="github_pr_comment",
+                feedback_count=2,
+                queued_count=3,
+                dropped_count=1,
+                automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
+            )
+            row = SeerRunPrIteration.objects.get(id=iteration_id)
+        else:
+            row = SeerRunPrIteration.objects.get(seer_run=self.seer_run, triggered=False)
+        return row
+
+    def _age(self, row: SeerRunPrIteration, hours: int) -> None:
+        # ``date_updated`` is ``auto_now``, so age the row with a queryset write.
+        SeerRunPrIteration.objects.filter(id=row.id).update(
+            date_updated=timezone.now() - timedelta(hours=hours)
+        )
+
+    def test_a_stale_iteration_reports_itself_before_it_goes(self) -> None:
+        row = self._open_row(triggered=True)
+        self._age(row, 25)
+
+        with patch("sentry.analytics.record") as mock_record:
+            sweep_pr_iteration_details()
+
+        assert_last_analytics_event(
+            mock_record,
+            AiAutofixPrIterationFeedbackBatchCompletedEvent(
+                iteration_id=row.id,
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                group_id=self.group.id,
+                run_id=SWEEP_RUN_ID,
+                referrer="github_pr_comment",
+                iteration_index=-1,
+                trigger_source="feedback",
+                feedback_count=2,
+                queued_count=3,
+                dropped_count=1,
+                automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
+                head_shas=[],
+                outcome=PrIterationOutcome.NO_COMPLETION_HOOK.value,
+            ),
+        )
+        assert open_iterations(self.seer_run) == []
+
+    def test_an_iteration_still_in_flight_is_left_alone(self) -> None:
+        self._open_row(triggered=True)
+
+        with patch("sentry.analytics.record") as mock_record:
+            sweep_pr_iteration_details()
+
+        assert not mock_record.called
+        assert len(open_iterations(self.seer_run)) == 1
+
+    def test_a_row_no_drain_claimed_goes_without_an_event(self) -> None:
+        row = self._open_row(triggered=False)
+        self._age(row, 25)
+
+        with patch("sentry.analytics.record") as mock_record:
+            sweep_pr_iteration_details()
+
+        assert not mock_record.called
+        assert open_iterations(self.seer_run) == []
+
+    def test_a_row_a_hook_took_mid_sweep_is_not_recorded_twice(self) -> None:
+        row = self._open_row(triggered=True)
+        self._age(row, 25)
+
+        def take_the_row(cutoff: Any, limit: int) -> list[SeerRunPrIteration]:
+            rows = [row]
+            SeerRunPrIteration.objects.filter(id=row.id).delete()
+            return rows
+
+        with (
+            patch(f"{TASK_PATH}.iterations_before", side_effect=take_the_row),
+            patch("sentry.analytics.record") as mock_record,
+        ):
+            sweep_pr_iteration_details()
+
+        assert not mock_record.called
+
+    @patch(f"{TASK_PATH}.metrics")
+    def test_the_discarded_counter_separates_what_it_recorded(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        self._age(self._open_row(triggered=True), 25)
+        self._age(self._open_row(triggered=False), 25)
+
+        sweep_pr_iteration_details()
+
+        mock_metrics.gauge.assert_called_once_with("autofix.pr_iteration.details.backlog", 2)
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.details.discarded",
+            amount=1,
+            tags={"triggered": True, "emitted": True},
+        )
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.details.discarded",
+            amount=1,
+            tags={"triggered": False, "emitted": False},
+        )

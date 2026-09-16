@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import timedelta
@@ -63,11 +64,12 @@ from sentry.seer.autofix.pr_iteration.bot_identity import bot_logins_for_feedbac
 from sentry.seer.autofix.pr_iteration.constants import PR_ITERATION_PROVIDER
 from sentry.seer.autofix.pr_iteration.details_store import (
     count_iterations_before,
-    remove_iterations_before,
+    iterations_before,
 )
 from sentry.seer.autofix.pr_iteration.emit import (
     bootstrap_iteration,
     discard_pr_iteration_details,
+    expire_pr_iteration_details,
     outcome_for_pause,
     record_pr_iteration_blocked,
     record_pr_iteration_counts,
@@ -1884,7 +1886,7 @@ def _trigger_pr_iteration_from_review(
 
 # How long an iteration row may sit untouched before it is discarded. A row
 # survives this long only when the iteration never reached a completion hook, so
-# nothing is emitted for it; this just keeps the table to iterations in flight.
+# the sweep emits it with the ``no_completion_hook`` outcome.
 STALE_DETAILS_AGE = timedelta(hours=24)
 
 # Rows deleted per pass, oldest first. The sweep is a backstop, not the main
@@ -1898,19 +1900,27 @@ STALE_DETAILS_BATCH_SIZE = 100
     processing_deadline_duration=120,
 )
 def sweep_pr_iteration_details() -> None:
-    """Discard iteration rows left behind by iterations that never completed."""
+    """Report and discard the iteration rows that no completion hook ever ended."""
     cutoff = timezone.now() - STALE_DETAILS_AGE
     backlog = count_iterations_before(cutoff)
     metrics.gauge("autofix.pr_iteration.details.backlog", backlog)
 
-    discarded = remove_iterations_before(cutoff, STALE_DETAILS_BATCH_SIZE)
-    for triggered, count in discarded.items():
+    discarded: Counter[tuple[bool, bool]] = Counter()
+    for iteration in iterations_before(cutoff, STALE_DETAILS_BATCH_SIZE):
+        emitted = expire_pr_iteration_details(logger=logger, iteration=iteration)
+        discarded[(iteration.triggered, emitted)] += 1
+
+    for (triggered, emitted), count in discarded.items():
         metrics.incr(
             "autofix.pr_iteration.details.discarded",
             amount=count,
-            tags={"triggered": triggered},
+            tags={"triggered": triggered, "emitted": emitted},
         )
     logger.info(
         "autofix.pr_iteration.details.sweep",
-        extra={"discarded": sum(discarded.values()), "backlog": backlog},
+        extra={
+            "discarded": sum(discarded.values()),
+            "emitted": sum(count for (_, emitted), count in discarded.items() if emitted),
+            "backlog": backlog,
+        },
     )
