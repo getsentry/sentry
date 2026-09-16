@@ -27,7 +27,7 @@ Out of scope:
 ## Runtime Contract
 
 - Inspect component intent and nearby usage before selecting scenarios.
-- Rely on automatic theme and organization providers and the default `3xl` container.
+- Rely on automatic theme and organization providers, capture padding, and the default `3xl` container.
 - Use explicit options only for meaningful containers, exact features, viewport behavior, or semantic pointer interactions.
 - Produce a colocated test and validate it with the targeted snapshot command and formatting checks.
 - Keep all runtime guidance inline in `SKILL.md`; load no bundled references.

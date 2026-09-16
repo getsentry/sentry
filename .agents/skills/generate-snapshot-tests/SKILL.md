@@ -32,6 +32,7 @@ it.snapshot('scenario name', context => <Component />, {
 - The render callback may ignore `context` or use `{theme, container, containerWidth, features}` when rendering truly differs by scenario.
 - Light and dark themes are automatic.
 - The default container is `3xl` (1024 px). Omit `containers` unless container-query behavior changes. When it does, list the smallest meaningful boundary set, such as `['xs', '3xl']`, rather than every size.
+- The framework adds an 8 px capture gutter. Render the component directly; do not add a padding wrapper to protect shadows, outlines, or focus rings.
 - `features` becomes the fixture organization's exact, sorted feature set. Use exact production flag names. Omit it for no features; write separately named off/on cases only when both outputs matter.
 - Use `viewport` only for behavior driven by the browser viewport. Do not use a viewport or a width wrapper to imitate container-query breakpoints.
 - Interaction targets must resolve to exactly one element inside the snapshot root. Prefer semantic `snapshotLocator.role`, `label`, or `text`; these are exact by default. Name hover and active cases separately.
@@ -103,8 +104,8 @@ Snapshots call `renderToString`, load that static HTML in Playwright, and do not
 ## Anti-Pattern Correction
 
 ```tsx
-// Wrong: duplicate tests per theme, a fixed-width wrapper standing in for a
-// container scenario, and a generated class as the interaction target.
+// Wrong: duplicate tests per theme, manual capture padding, a fixed-width
+// wrapper standing in for a container scenario, and a generated class target.
 
 // Right: one logical test expands across themes and targets stable semantics.
 it.snapshot('compact save hover', () => <ProjectActions />, {
