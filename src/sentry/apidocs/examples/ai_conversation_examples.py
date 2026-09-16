@@ -14,7 +14,7 @@ class AIConversationExamples:
                 "generationDuration": 1250.0,
                 "inputTokens": 0,
                 "llmCalls": 1,
-                "modelUsage": [
+                "usageByModel": [
                     {
                         "model": "gpt-4o-mini-2024-07-18",
                         "inputTokens": 0,
@@ -26,7 +26,7 @@ class AIConversationExamples:
                         "inputCost": 0,
                         "outputCost": 0,
                         "totalCost": 0.0042,
-                        "isComplete": False,
+                        "hasCompleteTokenData": False,
                     }
                 ],
                 "outputTokens": 0,

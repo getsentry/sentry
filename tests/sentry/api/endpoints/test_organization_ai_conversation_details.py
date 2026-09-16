@@ -1031,7 +1031,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         }
         assert {field: response.data[field] for field in expected_aggregates} == expected_aggregates
         assert response.data["generationDuration"] > 0
-        expected_model_usage = [
+        expected_usage_by_model = [
             {
                 "model": "model-b",
                 "inputTokens": 120,
@@ -1043,7 +1043,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "inputCost": 0.012,
                 "outputCost": 0.008,
                 "totalCost": 0.02,
-                "isComplete": True,
+                "hasCompleteTokenData": True,
             },
             {
                 "model": "model-a",
@@ -1056,10 +1056,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
                 "inputCost": 0.006,
                 "outputCost": 0.004,
                 "totalCost": 0.01,
-                "isComplete": True,
+                "hasCompleteTokenData": True,
             },
         ]
-        assert response.data["modelUsage"] == expected_model_usage
+        assert response.data["usageByModel"] == expected_usage_by_model
 
         links = parse_link_header(response.headers["Link"])
         query["cursor"] = next(link for link in links.values() if link["rel"] == "next")["cursor"]
@@ -1069,7 +1069,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert {
             field: next_response.data[field] for field in expected_aggregates
         } == expected_aggregates
-        assert next_response.data["modelUsage"] == expected_model_usage
+        assert next_response.data["usageByModel"] == expected_usage_by_model
 
     def test_timeout_returns_504(self) -> None:
         conversation_id = uuid4().hex
@@ -1311,7 +1311,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             "generationDuration",
             "inputTokens",
             "llmCalls",
-            "modelUsage",
+            "usageByModel",
             "outputTokens",
             "projects",
             "spans",

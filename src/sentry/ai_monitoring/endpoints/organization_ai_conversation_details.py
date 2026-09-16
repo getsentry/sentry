@@ -58,6 +58,8 @@ MAX_RETENTION_DAYS = 30
 MAX_PARENT_REPAIR_DEPTH = 5
 MAX_MODEL_USAGE_ROWS = 100
 
+# EAP stores legacy and current token conventions as separate attributes. Sum legacy
+# values only when the current attribute is absent to avoid double counting.
 MODEL_USAGE_COLUMNS = [
     "gen_ai.request.model",
     "gen_ai.response.model",
@@ -162,13 +164,14 @@ class AIConversationModelUsage(TypedDict):
     inputCost: float
     outputCost: float
     totalCost: float
-    isComplete: bool
+    hasCompleteTokenData: bool
 
 
-class AIConversationPageData(TypedDict):
+class AIConversationQueryResult(TypedDict):
+    # GenericOffsetPaginator requires the paginated list under this key.
     data: list[SpanRow]
-    aggregates: AIConversationAggregates
-    modelUsage: list[AIConversationModelUsage]
+    conversationAggregates: AIConversationAggregates
+    usageByModel: list[AIConversationModelUsage]
 
 
 class AIConversationDetailsResponse(AIConversationAggregates):
@@ -179,7 +182,7 @@ class AIConversationDetailsResponse(AIConversationAggregates):
     projects: list[ConversationProject]
     webUrl: str
     spans: list[dict[str, Any]]
-    modelUsage: list[AIConversationModelUsage]
+    usageByModel: list[AIConversationModelUsage]
 
 
 def _model_name(row: Mapping[str, Any]) -> str | None:
@@ -196,8 +199,6 @@ def _parse_grouped_aggregates(
     aggregates = parse_conversation_aggregates({})
     tool_names: set[str] = set()
     usage_by_model: dict[str | None, AIConversationModelUsage] = {}
-    completeness_by_model: defaultdict[str | None, list[int]] = defaultdict(lambda: [0, 0, 0])
-
     for row in rows:
         row_aggregates = parse_conversation_aggregates(row)
         aggregates["generationDuration"] += row_aggregates["generationDuration"]
@@ -234,7 +235,7 @@ def _parse_grouped_aggregates(
                 "inputCost": 0,
                 "outputCost": 0,
                 "totalCost": 0,
-                "isComplete": False,
+                "hasCompleteTokenData": True,
             },
         )
         usage["inputTokens"] += row_aggregates["inputTokens"]
@@ -253,21 +254,18 @@ def _parse_grouped_aggregates(
         usage["outputCost"] += float(row.get("output_cost") or 0)
         usage["totalCost"] += row_aggregates["totalCost"]
 
-        completeness = completeness_by_model[model]
-        completeness[0] += row_aggregates["llmCalls"]
-        completeness[1] += int(row.get("input_token_spans") or 0)
-        completeness[2] += int(row.get("output_token_spans") or 0)
+        usage["hasCompleteTokenData"] &= (
+            int(row.get("input_token_spans") or 0)
+            == row_aggregates["llmCalls"]
+            == int(row.get("output_token_spans") or 0)
+        )
 
     aggregates["toolNames"] = sorted(tool_names)
-    for model, usage in usage_by_model.items():
-        llm_calls, input_token_spans, output_token_spans = completeness_by_model[model]
-        usage["isComplete"] = input_token_spans == llm_calls == output_token_spans
-
-    model_usage = sorted(
+    sorted_usage = sorted(
         usage_by_model.values(),
         key=lambda usage: (-usage["totalTokens"], usage["model"] or ""),
     )
-    return aggregates, model_usage
+    return aggregates, sorted_usage
 
 
 @extend_schema(tags=["Explore"])
@@ -339,13 +337,15 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     snuba_params, request.GET.get("statsPeriod"), now, conversation_id
                 )
 
-            def data_fn(offset: int, limit: int) -> AIConversationPageData:
+            def data_fn(offset: int, limit: int) -> AIConversationQueryResult:
                 return self._fetch_spans_and_aggregates(
                     resolved_params, conversation_id, offset, limit
                 )
 
-            def on_results(page: AIConversationPageData) -> AIConversationDetailsResponse:
-                spans = page["data"]
+            def on_results(
+                query_result: AIConversationQueryResult,
+            ) -> AIConversationDetailsResponse:
+                spans = query_result["data"]
                 self._repair_parent_links(spans, resolved_params, conversation_id)
                 self._annotate_issues(spans, resolved_params, organization)
                 # Treat conversations as single-project for now. Multi-project conversations are
@@ -362,8 +362,8 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     "projects": [serialize_conversation_project(project)] if project else [],
                     "webUrl": get_conversation_url(organization, conversation_id, project_id),
                     "spans": spans,
-                    "modelUsage": page["modelUsage"],
-                    **page["aggregates"],
+                    "usageByModel": query_result["usageByModel"],
+                    **query_result["conversationAggregates"],
                 }
 
             return self.paginate(
@@ -628,7 +628,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         conversation_id: str,
         offset: int,
         limit: int,
-    ) -> AIConversationPageData:
+    ) -> AIConversationQueryResult:
         query_string = build_escaped_term_filter("gen_ai.conversation.id", [conversation_id])
         resolver = Spans.get_resolver(
             snuba_params,
@@ -657,8 +657,8 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                     selected_columns=[*CONVERSATION_AGGREGATE_COLUMNS, *MODEL_USAGE_COLUMNS],
                     orderby=None,
                     offset=0,
-                    # ponytail: 100 model pairs is enough today; paginate this grouped query if
-                    # real conversations approach the limit.
+                    # 100 model pairs is enough today. Paginate this grouped query if real
+                    # conversations approach the limit.
                     limit=MAX_MODEL_USAGE_ROWS,
                     referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
                     sampling_mode="HIGHEST_ACCURACY",
@@ -668,11 +668,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             snuba_params.debug,
         )
         aggregate_rows = results["aggregates"].get("data", [])
-        aggregates, model_usage = _parse_grouped_aggregates(aggregate_rows)
+        aggregates, usage_by_model = _parse_grouped_aggregates(aggregate_rows)
         return {
             "data": results["spans"].get("data", []),
-            "aggregates": aggregates,
-            "modelUsage": model_usage,
+            "conversationAggregates": aggregates,
+            "usageByModel": usage_by_model,
         }
 
     @trace
