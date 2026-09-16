@@ -68,40 +68,6 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
     };
   }
 
-  function renderMenuItem(operation: any, title: any) {
-    return (
-      <DropdownMenuItem>
-        <Flex justify="start" align="center" width="100%">
-          <RadioLabel>
-            <StyledRadio
-              readOnly
-              size="sm"
-              checked={eventView.sorts.some(({field}) => field === operation)}
-              onClick={() => {
-                const sortLink = generateSortLink({field: operation});
-                if (sortLink) {
-                  navigate(sortLink);
-                }
-              }}
-            />
-            <span>{title}</span>
-          </RadioLabel>
-        </Flex>
-      </DropdownMenuItem>
-    );
-  }
-
-  function renderMenuContent() {
-    return (
-      <DropdownContent>
-        {renderMenuItem('spans.http', t('Sort By HTTP'))}
-        {renderMenuItem('spans.db', t('Sort By DB'))}
-        {renderMenuItem('spans.resource', t('Sort By Resource'))}
-        {renderMenuItem('spans.browser', t('Sort By Browser'))}
-      </DropdownContent>
-    );
-  }
-
   function renderMenu() {
     const modifiers = [
       {
@@ -114,6 +80,35 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
         options: {padding: 10},
       },
     ];
+    const menuContent = (
+      <DropdownContent>
+        {[
+          {operation: 'spans.http', title: t('Sort By HTTP')},
+          {operation: 'spans.db', title: t('Sort By DB')},
+          {operation: 'spans.resource', title: t('Sort By Resource')},
+          {operation: 'spans.browser', title: t('Sort By Browser')},
+        ].map(({operation, title}) => (
+          <DropdownMenuItem key={operation}>
+            <Flex justify="start" align="center" width="100%">
+              <RadioLabel>
+                <StyledRadio
+                  readOnly
+                  size="sm"
+                  checked={eventView.sorts.some(({field}) => field === operation)}
+                  onClick={() => {
+                    const sortLink = generateSortLink({field: operation});
+                    if (sortLink) {
+                      navigate(sortLink);
+                    }
+                  }}
+                />
+                <span>{title}</span>
+              </RadioLabel>
+            </Flex>
+          </DropdownMenuItem>
+        ))}
+      </DropdownContent>
+    );
 
     return createPortal(
       <Popper placement="top" modifiers={modifiers}>
@@ -126,7 +121,7 @@ export function OperationSort({eventView, location, tableMeta, title: Title}: Pr
             style={style}
             data-placement={placement}
           >
-            {renderMenuContent()}
+            {menuContent}
           </DropdownWrapper>
         )}
       </Popper>,
