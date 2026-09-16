@@ -193,9 +193,16 @@ describe('Dashboards - DashboardTable', () => {
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    await userEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
-    );
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        (_, element) =>
+          element?.textContent ===
+          'Are you sure you want to delete the Dashboard 2 dashboard?'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', {name: /confirm/i}));
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
