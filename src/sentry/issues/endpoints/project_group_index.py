@@ -74,7 +74,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.ENVIRONMENT,
-            GlobalParams.STATS_PERIOD,
+            IssueParams.PROJECT_GROUP_STATS_PERIOD,
             CursorQueryParam,
             VisibilityParams.PER_PAGE,
             IssueParams.PROJECT_VIEW_SORT,
@@ -106,10 +106,11 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
 
         The ``statsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: ``""`` (disable),
-        ``"24h"``, ``"14d"``
+        ``"24h"``, ``"14d"``. Defaults to ``"24h"``.
 
         :qparam string statsPeriod: an optional stat period (can be one of
-                                    ``"24h"``, ``"14d"``, and ``""``).
+                                    ``"24h"``, ``"14d"``, and ``""``),
+                                    defaults to ``"24h"``.
         :qparam bool shortIdLookup: if this is set to true then short IDs are
                                     looked up by this function as well.  This
                                     can cause the return value of the function

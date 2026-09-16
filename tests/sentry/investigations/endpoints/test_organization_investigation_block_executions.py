@@ -208,6 +208,45 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         prompt = mock_client.return_value.start_run.call_args.args[0]
         assert "Focus on the checkout regression." in prompt
 
+    @patch(
+        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
+    )
+    def test_dispatch_failure_cancels_other_active_cells(self, mock_client: MagicMock) -> None:
+        sibling_block = self.create_investigation_block(
+            investigation=self.investigation,
+            kind="text",
+            prompt="Explain the spike",
+            position=1,
+        )
+        sibling_execution = self.create_investigation_block_execution(
+            block=sibling_block,
+            executor="text_generation",
+            status=InvestigationBlockExecutionStatus.RUNNING,
+            block_version=sibling_block.version,
+        )
+        sibling_block.current_execution = sibling_execution
+        sibling_block.save(update_fields=["current_execution"])
+        mock_client.return_value.start_run.side_effect = RuntimeError("Seer unavailable")
+
+        response = self.client.post(
+            self.url,
+            data={
+                "investigationVersion": self.investigation.version,
+                "version": self.block.version,
+            },
+            format="json",
+        )
+
+        assert response.status_code == 500
+        failed_execution = InvestigationBlockExecution.objects.get(block=self.block)
+        sibling_execution.refresh_from_db()
+        assert failed_execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert sibling_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert sibling_execution.error == {
+            "code": "investigation_execution_failed",
+            "message": "Cancelled because another cell in this investigation failed.",
+        }
+
 
 @with_feature(FEATURE)
 class InvestigationTextExecutionEndpointTest(APITestCase):

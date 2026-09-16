@@ -18,6 +18,7 @@ import {
   RRWebDOMFrameFixture,
   RRWebFullSnapshotFrameEventFixture,
   RRWebIncrementalSnapshotFrameEventFixture,
+  RRWebInitFrameEventsFixture,
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -410,6 +411,60 @@ describe('ReplayReader', () => {
     });
 
     expect(replay?.hasCanvasElementInReplay()).toBe(true);
+  });
+
+  describe('processingErrors', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    it('reports no errors when the replay has both a meta frame and a full snapshot', () => {
+      const replay = ReplayReader.factory({
+        attachments: [
+          ...RRWebInitFrameEventsFixture({timestamp}),
+          RRWebFullSnapshotFrameEventFixture({timestamp}),
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual([]);
+    });
+
+    it('reports a missing full snapshot when the replay only has a meta frame', () => {
+      const replay = ReplayReader.factory({
+        attachments: RRWebInitFrameEventsFixture({timestamp}),
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual(['Missing Full Snapshot Frame']);
+    });
+
+    it('reports no missing full snapshot when the replay is a video replay', () => {
+      const replay = ReplayReader.factory({
+        attachments: [
+          ...RRWebInitFrameEventsFixture({timestamp}),
+          {
+            type: EventType.Custom,
+            timestamp: timestamp.getTime(),
+            data: {
+              tag: 'video',
+              payload: {
+                duration: 5000,
+                segmentId: 0,
+                timestamp: timestamp.getTime(),
+              },
+            },
+          },
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual([]);
+    });
   });
 
   describe('clip window', () => {

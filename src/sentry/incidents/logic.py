@@ -18,7 +18,7 @@ from django.forms import ValidationError
 from django.utils import timezone as django_timezone
 from snuba_sdk import Column, Condition, Limit, Op
 
-from sentry import analytics, audit_log, features, quotas
+from sentry import analytics, audit_log, features, options, quotas
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.auth.access import SystemAccess
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, ObjectStatus
@@ -1611,7 +1611,9 @@ def _get_alert_rule_trigger_action_discord_channel_id(name: str, integration_id:
     from sentry.integrations.discord.utils.channel import validate_channel_id
 
     integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
         raise InvalidTriggerActionError("Discord integration not found.")

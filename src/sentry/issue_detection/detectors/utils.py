@@ -24,19 +24,24 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
     # The full hostname - everything between the `//` after the scheme and the `/` which marks the
     # start of the path
     (?P<full_hostname>
-        # Zero or more non-bracket, non-slash, legal hostname characters
-        [^\[\]/'"`\\<>{}|\^\s?#]*
-        (?P<value_with_brackets>
-            \[
-            (?P<bracketed_value>
-                # One or more such characters. Allows spaces in order to catch values like
-                # `[Filtered UUID]` and `[REDACTED IP]`.
-                [^\[\]/'"`\\<>{}|\^?#]+
+        # One or more copies of a bracketed value, optionally surrounded by non-bracketed characters
+        (
+            # Zero or more non-bracket, non-slash, legal hostname characters. (To avoid lots of
+            # typing, let's call them NB-NS-LH characters.)
+            [^\[\]/'"`\\<>{}|\^\s?#]*
+            # The bracketed value itself
+            (
+                \[
+                (
+                    # At least one NB-NS-LH character. Also allows spaces in order to catch values
+                    # like `[Filtered UUID]` and `[REDACTED IP]`.
+                    [^\[\]/'"`\\<>{}|\^?#]+
+                )
+                \]
             )
-            \]
-        )
-        # Zero or more such characters
-        [^\[\]/'"`\\<>{}|\^\s?#]* # Zero or more such characters
+            # Another set of zero or more NB-NS-LH characters
+            [^\[\]/'"`\\<>{}|\^\s?#]*
+        )+
     )
     # The rest of the URL (path, query string, and fragment) is technically optional
     (
@@ -57,9 +62,11 @@ URL_WITH_BRACKETED_HOSTNAME_REGEX = re.compile(
 BRACKETED_URL_PLACEHOLDER_REGEX = re.compile(
     r"""
     \[
-    # Zero or more non-bracket valid URL characters. Allows spaces in order to catch values like
-    # `[Filtered UUID]` and `[REDACTED IP]`.
-    [^'"`\\<>{}|\^\[\]]{0,32}
+    (
+        # Zero or more non-bracket valid URL characters. Allows spaces in order to catch values like
+        # `[Filtered UUID]` and `[REDACTED IP]`.
+        [^'"`\\<>{}|\^\[\]]{0,32}
+    )
     \]
     """,
     re.IGNORECASE | re.VERBOSE,
@@ -140,10 +147,15 @@ def span_has_obfuscated_hostname(span: Span) -> bool:
     if not bracketed_hostname_match:
         return False
 
-    # If there are brackets, we can still use the hostname as long as the bracketed value is a valid
-    # IP address.
-    maybe_ip = bracketed_hostname_match.group("bracketed_value")
-    return not is_valid_ip(maybe_ip)
+    full_hostname = bracketed_hostname_match.group("full_hostname")
+    hostname_bracketed_values = BRACKETED_URL_PLACEHOLDER_REGEX.findall(full_hostname)
+
+    # We can still use the hostname as long as there's only one bracketed value and it's a valid IP
+    # address
+    if len(hostname_bracketed_values) == 1 and is_valid_ip(hostname_bracketed_values[0]):
+        return False
+
+    return True
 
 
 def safer_urlparse(url: str) -> ParseResult:
@@ -163,22 +175,26 @@ def safer_urlparse(url: str) -> ParseResult:
         bracketed_hostname_match = URL_WITH_BRACKETED_HOSTNAME_REGEX.search(url)
 
         if bracketed_hostname_match:
-            match_groups = bracketed_hostname_match.groupdict()
-            orig_hostname = match_groups["full_hostname"]
-            value_with_brackets = match_groups["value_with_brackets"]
-            bracketed_value = match_groups["bracketed_value"]
+            orig_hostname = bracketed_hostname_match.group("full_hostname")
 
-            # Strip the brackets (and any spaces between them) and try parsing again
+            # Strip brackets and spaces from the hostname, and use that in place of the original.
+            # (Spaces aren't normally allowed in hostnames, but they show up in bracketed values
+            # like `[Filtered ip]`.)
+            debracketed_hostname = orig_hostname.replace("[", "").replace(" ", "").replace("]", "")
             debracketed_url = url.replace(
-                value_with_brackets,
-                bracketed_value.replace(" ", ""),
-                # In case the same parameterization exists later in the URL, too, only replace the
-                # one in the hostname
+                orig_hostname,
+                debracketed_hostname,
+                # In cases like `http://[Filtered]/some/[Filtered]/path`, where the entire hostname
+                # is a single parameterization that also appears in the path, we only want to
+                # replace the hostname.
                 count=1,
             )
-            parsed = urlparse(debracketed_url)
 
-            # Restore the original hostname value before returning the result
+            # Now that we've gotten rid of all brackets, try parsing again, then restore the
+            # original hostname before returning the result. This is purposely not wrapped in a
+            # try-except because if parsing errors at this point, it's for some other non-brackets
+            # reason we want to know about.
+            parsed = urlparse(debracketed_url)
             return parsed._replace(netloc=orig_hostname)
 
         # If the problem isn't a bracketed hostname, reraise to surface the issue

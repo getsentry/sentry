@@ -207,7 +207,16 @@ export default function TeamNotificationSettings() {
   const handleDelete = async (externalTeam: ExternalTeam) => {
     try {
       await api.requestPromise(
-        `/teams/${organization.slug}/${team.slug}/external-teams/${externalTeam.id}/`,
+        getApiUrl(
+          '/teams/$organizationIdOrSlug/$teamIdOrSlug/external-teams/$externalTeamId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              teamIdOrSlug: team.slug,
+              externalTeamId: externalTeam.id,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }

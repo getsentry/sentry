@@ -7,20 +7,29 @@ EXPLORE_SAVED_QUERY_OBJ = {
     "dateAdded": "2024-07-25T19:35:38.422859Z",
     "dateUpdated": "2024-07-25T19:35:38.422874Z",
     "environment": [],
-    "query": "span.op:pageload",
-    "fields": [
-        "span.op",
-        "project",
-        "count(span.duration)",
-        "avg(span.duration)",
-        "p75(span.duration)",
-        "p95(span.duration)",
+    "query": [
+        {
+            "query": "span.op:pageload",
+            "fields": [
+                "span.op",
+                "project",
+                "count(span.duration)",
+                "avg(span.duration)",
+                "p75(span.duration)",
+                "p95(span.duration)",
+            ],
+            "orderby": "-count(span.duration)",
+            "mode": "samples",
+        }
     ],
     "range": "24h",
-    "orderby": "-count(span.duration)",
-    "mode": "samples",
     "dataset": "spans",
     "expired": False,
+    "lastVisited": None,
+    "starred": False,
+    "position": None,
+    "isPrebuilt": False,
+    "changedReason": None,
     "createdBy": {
         "id": "1",
         "name": "Admin",
@@ -55,16 +64,22 @@ SAVED_QUERIES = [
         "dateAdded": "2024-07-25T19:35:38.422859Z",
         "dateUpdated": "2024-07-25T19:35:38.422874Z",
         "environment": [],
-        "query": "span.op:pageload",
-        "fields": [
-            "span.op",
-            "timestamp",
+        "query": [
+            {
+                "query": "span.op:pageload",
+                "fields": ["span.op", "timestamp"],
+                "orderby": "-timestamp",
+                "mode": "samples",
+            }
         ],
         "range": "24h",
-        "orderby": "-timestamp",
-        "mode": "samples",
         "dataset": "spans",
         "expired": False,
+        "lastVisited": None,
+        "starred": False,
+        "position": None,
+        "isPrebuilt": False,
+        "changedReason": None,
         "createdBy": {
             "id": "1",
             "name": "Admin",
@@ -97,17 +112,22 @@ SAVED_QUERIES = [
         "dateAdded": "2024-07-25T19:35:38.422859Z",
         "dateUpdated": "2024-07-25T19:35:38.422874Z",
         "environment": [],
-        "query": "span.op:cache.get",
-        "fields": [
-            "span.op",
-            "span.duration",
-            "timestamp",
+        "query": [
+            {
+                "query": "span.op:cache.get",
+                "fields": ["span.op", "span.duration", "timestamp"],
+                "orderby": "-timestamp",
+                "mode": "samples",
+            }
         ],
         "range": "24h",
-        "orderby": "-timestamp",
-        "mode": "samples",
         "dataset": "spans",
         "expired": False,
+        "lastVisited": None,
+        "starred": False,
+        "position": None,
+        "isPrebuilt": False,
+        "changedReason": None,
         "createdBy": {
             "id": "1",
             "name": "Admin",

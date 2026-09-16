@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {SnapshotStatusBadge} from 'sentry/components/preprod/snapshotStatusBadge';
@@ -15,7 +16,11 @@ import type {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
 
-import {BuildsTableGrid, FullRowLink} from './preprodBuildsTableStyles';
+import {
+  BuildsTableGrid,
+  buildsTableColumns,
+  FullRowLink,
+} from './preprodBuildsTableStyles';
 
 interface PreprodBuildsSnapshotTableProps {
   builds: BuildDetailsApiResponse[];
@@ -159,8 +164,7 @@ export function PreprodBuildsSnapshotTable({
 
   return (
     <BuildsTableGrid
-      tracks={snapshotTableColumns}
-      showProjectColumn={showProjectColumn}
+      columns={buildsTableColumns(snapshotTableColumns, showProjectColumn)}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Snapshot')}</SimpleTable.HeaderCell>
@@ -179,9 +183,11 @@ export function PreprodBuildsSnapshotTable({
   );
 }
 
-const snapshotTableColumns = {
-  withProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 1fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(80px, 120px)`,
-  withoutProject: `minmax(200px, 2fr) minmax(100px, 1fr) minmax(100px, 140px)
-    minmax(180px, 2fr) minmax(80px, 120px)`,
-};
+const snapshotTableColumns: TableColumnConfig[] = [
+  {key: 'snapshot', width: 'minmax(200px, 2fr)'},
+  {key: 'project', width: 'minmax(100px, 1fr)'},
+  {key: 'status', width: 'minmax(100px, 1fr)'},
+  {key: 'changes', width: 'minmax(100px, 140px)'},
+  {key: 'branch', width: 'minmax(180px, 2fr)'},
+  {key: 'created', width: 'minmax(80px, 120px)'},
+];

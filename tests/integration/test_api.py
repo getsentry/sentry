@@ -87,6 +87,7 @@ class AuthenticationTest(AuthProviderTestCase):
             resp.json()["detail"]["extra"]["loginUrl"]
             == "/auth/login/foo/?next=%2Forganizations%2Ffoo%2Fteams"
         )
+        assert resp.json()["detail"]["extra"]["organizationSlug"] == self.organization.slug
 
     def test_sso_redirect_url_internal_with_domain(self) -> None:
         sso_session_expired = SsoSession(

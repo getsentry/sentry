@@ -17,6 +17,7 @@ from sentry.preprod.snapshots.utils import (
     evaluate_snapshot_changes_by_artifact_id,
 )
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
+    format_approved_without_base_snapshot_pr_comment,
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
     format_solo_snapshot_pr_comment,
@@ -27,13 +28,14 @@ from sentry.preprod.vcs.pr_comments.tasks import (
     resolve_pr_comment_context,
     save_pr_comment_result,
 )
+from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +57,7 @@ def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChan
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -152,13 +154,25 @@ def create_preprod_snapshot_pr_comment_task(
                 comment_body = format_solo_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
+            elif all(a.id in approvals_by_artifact_id for a in all_artifacts):
+                comment_body = format_approved_without_base_snapshot_pr_comment(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
+                )
             elif not is_timeout_check:
                 comment_body = format_waiting_for_base_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
             else:
                 comment_body = format_missing_base_snapshot_pr_comment(
-                    all_artifacts, snapshot_metrics_map, project=artifact.project
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
                 )
         else:
             reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)
@@ -221,7 +235,7 @@ def create_preprod_snapshot_pr_comment_task(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),

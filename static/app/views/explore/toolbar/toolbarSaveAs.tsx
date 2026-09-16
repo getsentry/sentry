@@ -46,6 +46,10 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {isVisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  hasConditionalAggregateFilter,
+  withReadableConditionalFilter,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -91,11 +95,15 @@ export function ToolbarSaveAs() {
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
 
   const alertsUrls = visualizeYAxes.map((yAxis, index) => {
-    const func = parseFunction(yAxis);
+    const func = parseFunction(withReadableConditionalFilter(yAxis));
     const label = func ? prettifyParsedFunction(func) : yAxis;
     return {
       key: `${yAxis}-${index}`,
       label,
+      // The monitor form has no way to express an `_if` filter and silently falls back
+      // to its default aggregate when given one, so don't offer a monitor that would
+      // not match the series.
+      disabled: hasConditionalAggregateFilter(yAxis),
       to: getAlertsUrl({
         project,
         query,
@@ -168,7 +176,7 @@ export function ToolbarSaveAs() {
     return visualizeYAxes.map((yAxis, index) => {
       const dedupedYAxes = [yAxis];
       const formattedYAxes = dedupedYAxes.map(yaxis => {
-        const func = parseFunction(yaxis);
+        const func = parseFunction(withReadableConditionalFilter(yaxis));
         return func ? prettifyParsedFunction(func) : undefined;
       });
 

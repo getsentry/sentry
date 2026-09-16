@@ -34,7 +34,6 @@ from sentry.silo.base import SiloMode
 from sentry.types.cell import (
     Cell,
     Locality,
-    RegionCategory,
     find_all_cell_names,
     find_all_multitenant_locality_names,
     find_all_signup_locality_names,
@@ -365,10 +364,9 @@ class _ClientConfig:
 
         monolith_locality = get_locality_name_for_cell(settings.SENTRY_FALLBACK_CELL)
 
-        def region_display_order(region: Locality) -> tuple[bool, bool, str]:
+        def region_display_order(region: Locality) -> tuple[bool, str]:
             return (
                 region.name != monolith_locality,  # default locality comes first
-                region.category != RegionCategory.MULTI_TENANT,  # multi-tenant before single
                 region.name,  # then sort alphabetically
             )
 

@@ -143,7 +143,7 @@ describe('IssueDetailsSidebar', () => {
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /Add a comment/})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Add a comment'})).toBeInTheDocument();
     expect(screen.getByText(activityContent)).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'View 1 comment'})).toBeInTheDocument();

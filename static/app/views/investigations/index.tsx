@@ -72,7 +72,7 @@ const TableWrapper = styled('div')`
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
-    `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
+    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
 }
 
@@ -99,7 +99,7 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationsPage() {
+export function InvestigationsPage() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -117,6 +117,12 @@ function InvestigationsPage() {
   const {data, isPending, isError, error} = useQuery({
     ...listOptions,
     select: selectJsonWithHeaders,
+    refetchInterval: queryState =>
+      queryState.state.data?.json.some(item =>
+        ['pending', 'running'].includes(item.titleGeneration?.status ?? '')
+      )
+        ? 2000
+        : false,
   });
 
   const createMutation = useCreateInvestigationMutation(organization.slug, {
@@ -264,7 +270,6 @@ function InvestigationsPage() {
                   marginBottom="xl"
                 >
                   <SearchBar
-                    defaultQuery=""
                     query={query ?? ''}
                     placeholder={t('Search Investigations')}
                     onSearch={handleSearch}
@@ -292,7 +297,6 @@ function InvestigationsPage() {
                   <GridEditable
                     data={investigations}
                     columnOrder={COLUMNS}
-                    columnSortBy={[]}
                     grid={{
                       renderHeadCell: column => column.name,
                       renderBodyCell,

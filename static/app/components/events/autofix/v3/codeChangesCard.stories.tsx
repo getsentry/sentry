@@ -346,15 +346,13 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                     reviewId: 100,
                     reviewState: 'changes_requested',
                     body: 'A couple of blockers before this can merge — see inline.',
-                    login: 'octocat',
                   }),
                   githubPrReviewCommentFeedback('This branch is never hit — remove it.', {
                     reviewId: 100,
-                    login: 'octocat',
                   }),
                   githubPrReviewCommentFeedback(
                     'Guard against the null user before dereferencing.',
-                    {reviewId: 100, login: 'octocat'}
+                    {reviewId: 100}
                   ),
                 ]),
               ])}
@@ -396,11 +394,10 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                     reviewId: 300,
                     reviewState: 'commented',
                     body: 'A few thoughts, nothing blocking.',
-                    login: 'octocat',
                   }),
                   githubPrReviewCommentFeedback(
                     'Could this be extracted into a helper?',
-                    {reviewId: 300, login: 'octocat'}
+                    {reviewId: 300}
                   ),
                 ]),
               ])}
@@ -437,7 +434,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                   0,
                   githubPrReviewCommentFeedback(
                     'Drive-by comment, not part of a submitted review.',
-                    {login: 'octocat'}
+                    {}
                   )
                 ),
               ])}

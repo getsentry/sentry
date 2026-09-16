@@ -4,13 +4,10 @@ import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Heading, Text} from '@sentry/scraps/text';
-import {TextArea} from '@sentry/scraps/textarea';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
@@ -18,10 +15,11 @@ import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd, IconSeer, IconStack} from 'sentry/icons';
+import {IconStack} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -31,21 +29,27 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
-  useAddInvestigationBlockMutation,
+  investigationListQueryOptions,
+  investigationTitleGenerationQueryOptions,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
 } from 'sentry/views/investigations/api';
 import {
   InvestigationCell,
+  shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {
+  InvestigationHypotheses,
+  isInvestigationRunSettled,
+} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
-import type {
-  InvestigationBlockKind,
-  InvestigationDetail,
-} from 'sentry/views/investigations/types';
+import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
+
+const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
 function FeatureDisabledPage() {
   return (
@@ -70,7 +74,7 @@ function ClosedMembershipPage() {
   );
 }
 
-function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
+export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
@@ -85,7 +89,14 @@ function InvestigationBootstrapPage({investigationId}: {investigationId: string}
     ...detailOptions,
     refetchInterval: query => {
       const data = query.state.data?.json;
-      return shouldPollInvestigationBlocks(data?.blocks ?? []) ||
+      // A live agentic run keeps this polling too: the notebook fills in as the
+      // agent writes blocks, and `orchestration` is what gates the hypothesis
+      // row, so a stale copy would leave the row hidden or showing a run that
+      // has since finished.
+      const orchestrationActive =
+        data?.orchestration && !isInvestigationRunSettled(data.orchestration.status);
+      return orchestrationActive ||
+        shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
@@ -114,12 +125,54 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const [draftTitle, setDraftTitle] = useState(investigation.title);
+  const [draftTitle, setDraftTitle] = useState<string | null>(null);
   const persistedTitle = useRef(investigation.title);
+  const titleGenerationSettledFor = useRef<string | null>(null);
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigation.id
   );
+  const titleGenerationQuery = useQuery({
+    ...investigationTitleGenerationQueryOptions(organization.slug, investigation.id),
+    enabled: isTitleGenerationActive(investigation.titleGeneration?.status),
+    refetchInterval: query =>
+      isTitleGenerationActive(query.state.data?.json.status) ? 500 : false,
+  });
+  const generatedTitlePreview =
+    draftTitle === null &&
+    investigation.title === DEFAULT_INVESTIGATION_TITLE &&
+    isTitleGenerationActive(titleGenerationQuery.data?.status)
+      ? titleGenerationQuery.data?.preview
+      : null;
+  const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+
+  useEffect(() => {
+    const status = titleGenerationQuery.data?.status;
+    if (isTitleGenerationActive(status)) {
+      if (titleGenerationSettledFor.current === investigation.id) {
+        titleGenerationSettledFor.current = null;
+      }
+      return;
+    }
+    if (
+      (status === 'completed' || status === 'failed') &&
+      titleGenerationSettledFor.current !== investigation.id
+    ) {
+      titleGenerationSettledFor.current = investigation.id;
+      void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
+      void queryClient.invalidateQueries({
+        queryKey: investigationListQueryOptions({
+          organizationSlug: organization.slug,
+        }).queryKey,
+      });
+    }
+  }, [
+    detailOptions.queryKey,
+    investigation.id,
+    organization.slug,
+    queryClient,
+    titleGenerationQuery.data?.status,
+  ]);
 
   const renameMutation = useRenameInvestigationMutation(
     organization.slug,
@@ -142,14 +195,8 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   );
 
   useEffect(() => {
-    if (
-      draftTitle === persistedTitle.current &&
-      investigation.title !== persistedTitle.current
-    ) {
+    if (draftTitle === null) {
       persistedTitle.current = investigation.title;
-      // Keep an in-progress user edit, but adopt a generated title while the draft is clean.
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setDraftTitle(investigation.title);
     }
   }, [draftTitle, investigation.title]);
   const duplicateMutation = useDuplicateInvestigationMutation(organization.slug, {
@@ -171,12 +218,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     },
     onError: () => addErrorMessage(t('Unable to delete investigation.')),
   });
-  const addBlockMutation = useAddInvestigationBlockMutation(
-    organization.slug,
-    investigation.id,
-    {onError: () => addErrorMessage(t('Unable to add cell.'))}
-  );
-
   function handleTitleChange(nextTitle: string) {
     setDraftTitle(nextTitle);
     updateInvestigationCache(
@@ -190,6 +231,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
 
   function handleTitleBlur() {
     renameDebouncer.cancel();
+    if (draftTitle === null) {
+      return;
+    }
     const title = draftTitle.trim();
     if (title) {
       if (title !== draftTitle) {
@@ -206,27 +250,28 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       }
       return;
     }
-    handleTitleChange(persistedTitle.current);
+    setDraftTitle(null);
+    updateInvestigationCache(
+      queryClient,
+      organization.slug,
+      investigation.id,
+      current => ({...current, title: persistedTitle.current})
+    );
   }
 
   const blocks = investigation.blocks ?? [];
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
-
-  async function handleAddBlock({
-    kind,
-    prompt,
-    title,
-  }: {
-    kind: InvestigationBlockKind;
-    prompt: string;
-    title: string;
-  }) {
-    await addBlockMutation.mutateAsync({investigation, kind, prompt, title});
-  }
+  const visibleSummaryBlock =
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+      ? summaryBlock
+      : undefined;
+  const visibleNotebookCells = notebookCells.filter(block =>
+    shouldDisplayInvestigationBlock(block, blocks)
+  );
 
   return (
-    <SentryDocumentTitle title={draftTitle} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
       <Stack flex={1}>
         <Layout.Title>
           <HeaderBreadcrumbs
@@ -243,7 +288,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               {t('Investigations')}
             </HeaderBreadcrumbLink>
             <HeaderDivider>/</HeaderDivider>
-            <HeaderInvestigationTitle>{draftTitle}</HeaderInvestigationTitle>
+            <HeaderInvestigationTitle>{displayedTitle}</HeaderInvestigationTitle>
             <DropdownMenu
               items={[
                 {
@@ -288,7 +333,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <Container as="header" width="100%" padding="xl" borderBottom="primary">
+        <InvestigationHeader as="header" width="100%" padding="xl">
           <Grid
             columns="minmax(0, 1fr) auto"
             align="start"
@@ -300,7 +345,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             <Stack gap="xs" minWidth={0}>
               <NotebookTitleInput
                 aria-label={t('Investigation title')}
-                value={draftTitle}
+                value={displayedTitle}
                 onChange={event => handleTitleChange(event.target.value)}
                 onBlur={handleTitleBlur}
                 maxLength={200}
@@ -309,143 +354,77 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               <Flex align="center" gap="sm" wrap="wrap">
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
-                <Text variant="muted">{t('%s blocks', investigation.blockCount)}</Text>
-                <MetaDivider />
                 <Text variant="muted">
                   {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
                 </Text>
               </Flex>
             </Stack>
             <Flex align="center" gap="sm">
-              <Badge variant={getStatusVariant(investigation.status)}>
-                {formatStatus(investigation.status)}
-              </Badge>
-              <IconSeer size="sm" />
+              <FeedbackButton
+                feedbackOptions={{
+                  formTitle: t('Give feedback on this investigation'),
+                  messagePlaceholder: t('What was useful, incorrect, or missing?'),
+                  tags: {
+                    'feedback.source': 'investigation',
+                    'feedback.owner': 'ml-ai',
+                    'investigation.id': investigation.id,
+                    'investigation.source_type': investigation.sourceType,
+                    ...(investigation.template
+                      ? {'investigation.template': investigation.template.key}
+                      : {}),
+                  },
+                }}
+              >
+                {t('Give feedback')}
+              </FeedbackButton>
             </Flex>
           </Grid>
-        </Container>
+        </InvestigationHeader>
         <Layout.Body>
           <Layout.Main width="full">
             <InvestigationCanvas>
-              {summaryBlock ? (
-                <InvestigationCell
-                  block={summaryBlock}
-                  canRun={investigation.status === 'active'}
-                  investigation={investigation}
-                />
+              <NotebookSummaryCard
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
+
+              {/*
+               * Only an agentic investigation has hypotheses, and `orchestration`
+               * being present is the only thing that says one is: it is null for
+               * manual and template investigations, whose orchestration endpoint
+               * 404s.
+               */}
+              {investigation.orchestration ? (
+                <Stack width="min(100%, 884px)" margin="0 auto" paddingBottom="xl">
+                  <InvestigationHypotheses investigationId={investigation.id} />
+                </Stack>
               ) : null}
 
-              <Stack gap="xl">
-                {notebookCells.map(block => (
+              <Stack width="min(100%, 884px)" margin="0 auto">
+                {visibleSummaryBlock ? (
                   <InvestigationCell
-                    key={block.id}
-                    block={block}
+                    block={visibleSummaryBlock}
                     canRun={investigation.status === 'active'}
                     investigation={investigation}
                   />
-                ))}
+                ) : null}
+
+                <Stack gap="xl">
+                  {visibleNotebookCells.map(block => (
+                    <InvestigationCell
+                      key={block.id}
+                      block={block}
+                      canRun={investigation.status === 'active'}
+                      investigation={investigation}
+                    />
+                  ))}
+                </Stack>
               </Stack>
-              {investigation.status === 'active' ? (
-                <AddCellComposer
-                  isAdding={addBlockMutation.isPending}
-                  onAdd={handleAddBlock}
-                />
-              ) : null}
             </InvestigationCanvas>
           </Layout.Main>
         </Layout.Body>
       </Stack>
     </SentryDocumentTitle>
-  );
-}
-
-function AddCellComposer({
-  isAdding,
-  onAdd,
-}: {
-  isAdding: boolean;
-  onAdd: (cell: {
-    kind: InvestigationBlockKind;
-    prompt: string;
-    title: string;
-  }) => Promise<void>;
-}) {
-  const [kind, setKind] = useState<InvestigationBlockKind | null>(null);
-  const [title, setTitle] = useState('');
-  const [prompt, setPrompt] = useState('');
-
-  function reset() {
-    setKind(null);
-    setTitle('');
-    setPrompt('');
-  }
-
-  async function handleAdd() {
-    if (!kind || !prompt.trim()) {
-      return;
-    }
-    try {
-      await onAdd({kind, title: title.trim(), prompt: prompt.trim()});
-      reset();
-    } catch {
-      // The mutation owns user-facing error handling and leaves the draft intact.
-    }
-  }
-
-  if (!kind) {
-    return (
-      <AddCellActions align="center" justify="center" gap="sm">
-        <Button size="sm" icon={<IconAdd />} onClick={() => setKind('text')}>
-          {t('Text cell')}
-        </Button>
-        <Button size="sm" icon={<IconAdd />} onClick={() => setKind('query')}>
-          {t('Query cell')}
-        </Button>
-      </AddCellActions>
-    );
-  }
-
-  return (
-    <CellComposer>
-      <Stack gap="md">
-        <Heading as="h2" size="md">
-          {kind === 'text' ? t('Add text cell') : t('Add query cell')}
-        </Heading>
-        <Input
-          aria-label={t('Cell title')}
-          placeholder={t('Title (optional)')}
-          value={title}
-          onChange={event => setTitle(event.target.value)}
-        />
-        <TextArea
-          aria-label={t('Cell instructions')}
-          autosize
-          autoFocus
-          rows={3}
-          placeholder={
-            kind === 'text'
-              ? t('Describe the text to generate')
-              : t('Describe the query to run')
-          }
-          value={prompt}
-          onChange={event => setPrompt(event.target.value)}
-        />
-        <Flex align="center" justify="end" gap="sm">
-          <Button size="sm" onClick={reset} disabled={isAdding}>
-            {t('Cancel')}
-          </Button>
-          <Button
-            size="sm"
-            variant="primary"
-            busy={isAdding}
-            disabled={!prompt.trim()}
-            onClick={() => void handleAdd()}
-          >
-            {t('Add cell')}
-          </Button>
-        </Flex>
-      </Stack>
-    </CellComposer>
   );
 }
 
@@ -455,7 +434,7 @@ function isTitleGenerationActive(status: string | null | undefined) {
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
-    `/organizations/${organizationSlug}/seer/investigation/${investigationId}/`
+    `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
   );
 }
 
@@ -469,27 +448,32 @@ function formatSourceType(sourceType: string) {
   return sourceType.replaceAll('_', ' ');
 }
 
-function formatStatus(status: string) {
-  return status.replaceAll('_', ' ').replace(/^./, character => character.toUpperCase());
-}
-
 function formatNotebookDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
 
-function getStatusVariant(status: string): 'success' | 'warning' | 'muted' {
-  if (status === 'completed' || status === 'active') {
-    return 'success';
-  }
-  if (status === 'pending') {
-    return 'warning';
-  }
-  return 'muted';
-}
-
 const InvestigationCanvas = styled(Stack)`
-  width: min(100%, 884px);
+  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
   margin: 0 auto;
+`;
+
+const InvestigationHeader = styled(Container)`
+  position: relative;
+
+  &::after {
+    /* The specified divider is intentionally as subtle as the secondary surface. */
+    content: '';
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    background: ${p => p.theme.tokens.background.secondary};
+  }
+`;
+
+const NotebookSummaryCard = styled(InvestigationSummaryCard)`
+  width: 100%;
+  margin-bottom: ${p => p.theme.space.xl};
+  padding-inline: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
@@ -550,19 +534,6 @@ const NotebookTitleInput = styled(Input)`
 const MetaDivider = styled('span')`
   height: 16px;
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const AddCellActions = styled(Flex)`
-  padding: ${p => p.theme.space.xl} 0;
-`;
-
-const CellComposer = styled('section')`
-  width: min(100%, 862px);
-  margin: ${p => p.theme.space.lg} auto 0;
-  padding: ${p => p.theme.space.xl};
-  background: ${p => p.theme.tokens.background.secondary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
 `;
 
 export default function InvestigationDetailView() {

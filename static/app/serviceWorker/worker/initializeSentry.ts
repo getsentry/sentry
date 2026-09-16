@@ -40,12 +40,6 @@ export function initializeSentry({
     release: SENTRY_RELEASE_VERSION ?? sentryConfig.release,
     environment: sentryConfig.environment,
 
-    dataCollection: {},
-    enableLogs: true,
-    _experiments: {
-      enableMetrics: true,
-    },
-
     defaultIntegrations: false,
 
     beforeBreadcrumb(crumb) {

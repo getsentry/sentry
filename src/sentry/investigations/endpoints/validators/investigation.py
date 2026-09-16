@@ -5,6 +5,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.investigations.endpoints.validators.orchestration import validate_agentic_source
 from sentry.investigations.models import InvestigationStatus
 
 
@@ -20,6 +21,7 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         has_key = "template_key" in attrs
         has_version = "template_version" in attrs
+        has_source = "source" in attrs
         if has_key != has_version:
             raise serializers.ValidationError(
                 {"template_key": "templateKey and templateVersion must be provided together."}
@@ -36,10 +38,16 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
                 raise serializers.ValidationError(
                     {field: "Template creation controls this field." for field in forbidden}
                 )
+        elif has_source:
+            validate_agentic_source(attrs["source"])
+            if "parameters" in attrs:
+                raise serializers.ValidationError(
+                    {"parameters": "Agentic investigations do not use template parameters."}
+                )
         else:
             if "title" not in attrs:
                 raise serializers.ValidationError({"title": "This field is required."})
-            forbidden = set(attrs).intersection({"source", "parameters"})
+            forbidden = set(attrs).intersection({"parameters"})
             if forbidden:
                 raise serializers.ValidationError(
                     {field: "Requires a template." for field in forbidden}

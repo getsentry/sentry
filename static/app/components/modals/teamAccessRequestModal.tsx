@@ -10,6 +10,7 @@ import type {
 } from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {withApi} from 'sentry/utils/withApi';
 
 export interface CreateTeamAccessRequestModalProps
@@ -29,7 +30,10 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
 
     try {
       await api.requestPromise(
-        `/organizations/${orgId}/members/${memberId}/teams/${teamId}/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/members/$memberId/teams/$teamIdOrSlug/',
+          {path: {organizationIdOrSlug: orgId, memberId, teamIdOrSlug: teamId}}
+        ),
         {
           method: 'POST',
         }

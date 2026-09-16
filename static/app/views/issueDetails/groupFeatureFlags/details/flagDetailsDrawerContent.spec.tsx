@@ -4,17 +4,13 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {FlagDetailsDrawerContent} from './flagDetailsDrawerContent';
-
-const mockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => mockNavigate,
-}));
 
 describe('FlagDetailsDrawerContent', () => {
   beforeEach(() => {
@@ -41,7 +37,7 @@ describe('FlagDetailsDrawerContent', () => {
 
   it('renders a list of tag values', async () => {
     const group = GroupFixture();
-    render(
+    const {router} = render(
       <GroupDataContextProvider group={group} project={group.project}>
         <FlagDetailsDrawerContent group={group} />
       </GroupDataContextProvider>
@@ -75,6 +71,18 @@ describe('FlagDetailsDrawerContent', () => {
     expect(
       await screen.findByRole('menuitemradio', {name: 'Copy flag value to clipboard'})
     ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('menuitemradio', {
+        name: 'Search issues where this flag value is TRUE',
+      })
+    );
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+    });
+    expect(router.location.query).toEqual({
+      query: 'flags[test-flag-key]:"true"',
+    });
   });
 
   it('renders an error message if flag values request fails', async () => {

@@ -28,6 +28,7 @@ import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {
   makeDetailedProjectQueryKey,
   useDetailedProject,
@@ -238,10 +239,18 @@ export function SeerAutomationProjectList() {
               updateData.seerScannerAutomation = true;
             }
 
-            return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: updateData,
-            });
+            return api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: updateData,
+              }
+            );
           })
         );
       }
@@ -278,10 +287,18 @@ export function SeerAutomationProjectList() {
             if (!project) {
               return Promise.resolve();
             }
-            return api.requestPromise(`/projects/${organization.slug}/${project.slug}/`, {
-              method: 'PUT',
-              data: {seerScannerAutomation: value},
-            });
+            return api.requestPromise(
+              getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                },
+              }),
+              {
+                method: 'PUT',
+                data: {seerScannerAutomation: value},
+              }
+            );
           })
         );
       }

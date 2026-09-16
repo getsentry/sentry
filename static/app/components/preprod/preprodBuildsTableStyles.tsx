@@ -1,21 +1,20 @@
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
-interface BuildsTableTracks {
-  withProject: string;
-  withoutProject: string;
-}
-
-export const BuildsTableGrid = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'tracks' && prop !== 'showProjectColumn',
-})<{tracks: BuildsTableTracks; showProjectColumn?: boolean}>`
+export const BuildsTableGrid = styled(SimpleTable)`
   overflow: auto;
-  grid-template-columns: ${p =>
-    p.showProjectColumn ? p.tracks.withProject : p.tracks.withoutProject};
 `;
+
+export function buildsTableColumns(
+  columns: TableColumnConfig[],
+  showProjectColumn: boolean
+) {
+  return showProjectColumn ? columns : columns.filter(column => column.key !== 'project');
+}
 
 export const FullRowLink = styled(Link)`
   cursor: pointer;

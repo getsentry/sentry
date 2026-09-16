@@ -141,7 +141,7 @@ def _pr_activity_timeline(pull_request: PullRequest) -> tuple[list[PrActivityEve
                 "dropped": dropped,
             },
         )
-        metrics.incr("pr_metrics.judge.check_rows_capped")
+        metrics.incr("pr_metrics.judge.check_rows_capped", sample_rate=1.0)
         kept_check_ids = {row.id for row in check_rows[-_MAX_FORWARDED_CHECK_ROWS:]}
         rows = [
             row
@@ -245,9 +245,11 @@ def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) 
         logger.warning(
             "pr_metrics.judge.forward_rejected", extra={**log_extra, "status": response.status}
         )
-        metrics.incr("pr_metrics.judge.forward_failed", tags={"reason": "client_error"})
+        metrics.incr(
+            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}, sample_rate=1.0
+        )
         return
-    metrics.incr("pr_metrics.judge.forwarded")
+    metrics.incr("pr_metrics.judge.forwarded", sample_rate=1.0)
     logger.info("pr_metrics.judge.forwarded", extra=log_extra)
 
 
@@ -298,7 +300,7 @@ def _parse_conversation_analysis(
         return analysis
     except (ValidationError, TypeError, ValueError):
         logger.warning("pr_metrics.update.invalid_conversation_analysis", extra=dict(log_extra))
-        metrics.incr("pr_metrics.update.invalid_conversation_analysis")
+        metrics.incr("pr_metrics.update.invalid_conversation_analysis", sample_rate=1.0)
         return None
 
 
@@ -321,7 +323,7 @@ def _clean_diagnosis_labels(raw: Any, log_extra: Mapping[str, Any]) -> list[str]
     ):
         return list(raw)
     logger.warning("pr_metrics.update.invalid_diagnosis_labels", extra=dict(log_extra))
-    metrics.incr("pr_metrics.update.invalid_diagnosis_labels")
+    metrics.incr("pr_metrics.update.invalid_diagnosis_labels", sample_rate=1.0)
     return None
 
 
@@ -375,14 +377,18 @@ def update_pr_metrics(
     # internal forward sentinel) is malformed input — reject rather than write it.
     if verdict is None or verdict not in RESULT_VERDICTS:
         logger.warning("pr_metrics.update.invalid_verdict", extra={**log_extra, "verdict": verdict})
-        metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_verdict"})
+        metrics.incr(
+            "pr_metrics.update.skipped", tags={"reason": "invalid_verdict"}, sample_rate=1.0
+        )
         return UpdatePrMetricsErrorResponse(error="invalid_verdict")
 
     try:
         parsed_attributions = _parse_attributions(attributions or ())
     except (KeyError, TypeError, ValueError):
         logger.warning("pr_metrics.update.invalid_attribution", extra=log_extra)
-        metrics.incr("pr_metrics.update.skipped", tags={"reason": "invalid_attribution"})
+        metrics.incr(
+            "pr_metrics.update.skipped", tags={"reason": "invalid_attribution"}, sample_rate=1.0
+        )
         return UpdatePrMetricsErrorResponse(error="invalid_attribution")
 
     parsed_conversation_analysis = _parse_conversation_analysis(conversation_analysis, log_extra)
@@ -398,7 +404,7 @@ def update_pr_metrics(
         )
     except PullRequest.DoesNotExist:
         logger.warning("pr_metrics.update.pull_request_not_found", extra=log_extra)
-        metrics.incr("pr_metrics.update.skipped", tags={"reason": "pr_not_found"})
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "pr_not_found"}, sample_rate=1.0)
         return UpdatePrMetricsErrorResponse(error="pull_request_not_found")
 
     # Emit needs a terminal PR (closed_at + head_commit_sha). Validate it before
@@ -406,7 +412,7 @@ def update_pr_metrics(
     # verdict and then failing in emit — i.e. no committed-but-errored state.
     if pull_request.closed_at is None or pull_request.head_commit_sha is None:
         logger.warning("pr_metrics.update.not_terminal", extra=log_extra)
-        metrics.incr("pr_metrics.update.skipped", tags={"reason": "not_terminal"})
+        metrics.incr("pr_metrics.update.skipped", tags={"reason": "not_terminal"}, sample_rate=1.0)
         return UpdatePrMetricsErrorResponse(error="pull_request_not_terminal")
 
     # Only the verdict is written here; the webhook keeps the activity counters
@@ -428,7 +434,9 @@ def update_pr_metrics(
             logger.info(
                 "pr_metrics.update.already_settled", extra={**log_extra, "verdict": verdict}
             )
-            metrics.incr("pr_metrics.update.skipped", tags={"reason": "already_settled"})
+            metrics.incr(
+                "pr_metrics.update.skipped", tags={"reason": "already_settled"}, sample_rate=1.0
+            )
             return UpdatePrMetricsSuccessResponse()
         for signal_type, source, signal_details in parsed_attributions:
             record_attribution_signal(
@@ -444,7 +452,7 @@ def update_pr_metrics(
         diagnosis_labels=clean_diagnosis_labels,
     )
 
-    metrics.incr("pr_metrics.update.recorded", tags={"verdict": verdict})
+    metrics.incr("pr_metrics.update.recorded", tags={"verdict": verdict}, sample_rate=1.0)
     logger.info("pr_metrics.update.recorded", extra={**log_extra, "verdict": verdict})
     return UpdatePrMetricsSuccessResponse()
 
@@ -516,9 +524,11 @@ def _release_reopened_judge_claim(pull_request: PullRequest) -> None:
     re-close can re-claim and re-forward rather than finding the row stuck.
     """
     if not _release_judge_sentinel(pull_request):
-        metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "already_settled"})
+        metrics.incr(
+            "pr_metrics.judge.reaper.skipped", tags={"reason": "already_settled"}, sample_rate=1.0
+        )
         return
-    metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "reopened"})
+    metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "reopened"}, sample_rate=1.0)
     logger.info(
         "pr_metrics.judge.reaper.released",
         extra={
@@ -543,9 +553,13 @@ def _release_indeterminate_judge_claim(pull_request: PullRequest) -> None:
     ``INDETERMINATE`` path, which also never emits.
     """
     if not _release_judge_sentinel(pull_request):
-        metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "already_settled"})
+        metrics.incr(
+            "pr_metrics.judge.reaper.skipped", tags={"reason": "already_settled"}, sample_rate=1.0
+        )
         return
-    metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "indeterminate"})
+    metrics.incr(
+        "pr_metrics.judge.reaper.released", tags={"reason": "indeterminate"}, sample_rate=1.0
+    )
     logger.warning(
         "pr_metrics.judge.reaper.indeterminate",
         extra={
@@ -580,14 +594,36 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
     try:
         organization = Organization.objects.get(id=pull_request.organization_id)
     except Organization.DoesNotExist:
-        metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "org_gone"})
+        metrics.incr(
+            "pr_metrics.judge.reaper.skipped", tags={"reason": "org_gone"}, sample_rate=1.0
+        )
+        logger.info(
+            "pr_metrics.judge.reaper.org_gone",
+            extra={
+                "organization_id": pull_request.organization_id,
+                "repository_id": pull_request.repository_id,
+                "pull_request_id": pull_request.id,
+            },
+        )
         return
 
     if not features.has("organizations:pr-metrics", organization):
         # Org lost pr-metrics mid-forward: release the claim so the row can't sit
         # at the sentinel forever, but settle nothing for a pipeline that no longer runs.
         if _release_judge_sentinel(pull_request):
-            metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "feature_disabled"})
+            metrics.incr(
+                "pr_metrics.judge.reaper.released",
+                tags={"reason": "feature_disabled"},
+                sample_rate=1.0,
+            )
+            logger.info(
+                "pr_metrics.judge.reaper.feature_disabled",
+                extra={
+                    "organization_id": pull_request.organization_id,
+                    "repository_id": pull_request.repository_id,
+                    "pull_request_id": pull_request.id,
+                },
+            )
         return
 
     outcome = select_verdict(pull_request, organization)
@@ -611,9 +647,15 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
             pull_request=pull_request, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
         ).update(verdict=verdict)
         if not settled:
-            metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "already_settled"})
+            metrics.incr(
+                "pr_metrics.judge.reaper.skipped",
+                tags={"reason": "already_settled"},
+                sample_rate=1.0,
+            )
             return
 
     emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
-    metrics.incr("pr_metrics.judge.reaper.fallback_emitted", tags={"verdict": verdict})
+    metrics.incr(
+        "pr_metrics.judge.reaper.fallback_emitted", tags={"verdict": verdict}, sample_rate=1.0
+    )
     logger.info("pr_metrics.judge.reaper.fallback_emitted", extra=log_extra)

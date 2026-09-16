@@ -63,7 +63,9 @@ function AccountNotificationsByProject({
                   mutationFn: (data: Record<string, string>) =>
                     fetchMutation({
                       method: 'PUT',
-                      url: '/users/me/notifications/email/',
+                      url: getApiUrl('/users/$userId/notifications/email/', {
+                        path: {userId: 'me'},
+                      }),
                       data,
                     }),
                   onSuccess: () => refetchEmailsByProject(),

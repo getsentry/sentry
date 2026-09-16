@@ -119,6 +119,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
     projectId,
   ]);
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchIssuesCount();
   }, [fetchIssuesCount]);
 

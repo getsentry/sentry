@@ -39,6 +39,10 @@ describe('HighlightsDataSection', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+    });
     ProjectsStore.loadInitialData([project]);
     jest.clearAllMocks();
   });

@@ -46,7 +46,7 @@ function DiscoverContainer() {
   // Tranasctions deprecation redirects
   if (
     discoverTransactionsDeprecation &&
-    location.pathname.includes('/explore/discover/')
+    location.pathname.includes('/explore/discover')
   ) {
     // errors dataset (or no dataset specified) redirects to errors url and keeps the same query params
     if (
@@ -54,9 +54,9 @@ function DiscoverContainer() {
       location.query.dataset !== Dataset.TRANSACTIONS
     ) {
       const match = location.pathname.match(/\/explore\/discover\/([^/]+)\//);
-      const discoverPath = match?.[1] ?? 'homepage';
+      const discoverPath = match?.[1];
       const targetPath = makeDiscoverPathname({
-        path: `/${discoverPath}/`,
+        path: discoverPath ? `/${discoverPath}/` : '/',
         organization,
       });
       return <Redirect to={targetPath + location.search} />;
@@ -70,14 +70,11 @@ function DiscoverContainer() {
   // was disabled, or sent to an org without it) should still work — send the
   // user to the /explore/discover/ equivalent, which supports the full
   // Discover experience.
-  if (
-    !discoverTransactionsDeprecation &&
-    location.pathname.includes('/explore/errors/')
-  ) {
+  if (!discoverTransactionsDeprecation && location.pathname.includes('/explore/errors')) {
     const match = location.pathname.match(/\/explore\/errors\/([^/]+)\//);
-    const discoverPath = match?.[1] ?? 'homepage';
+    const discoverPath = match?.[1];
     const targetPath = makeDiscoverPathname({
-      path: `/${discoverPath}/`,
+      path: discoverPath ? `/${discoverPath}/` : '/',
       organization,
     });
     return <Redirect to={targetPath + location.search} />;

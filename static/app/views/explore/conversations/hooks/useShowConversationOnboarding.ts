@@ -6,6 +6,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
+import {ModuleName} from 'sentry/views/insights/types';
 
 /**
  * Whether the current project selection represents "all projects" (-1 or empty).
@@ -15,12 +17,15 @@ function isAllProjectsSelection(projects: number[]): boolean {
 }
 
 export function useShowConversationOnboarding(): {
+  hasAgenticSpans: boolean;
+  hasConversations: boolean;
   isLoading: boolean;
   refetch: () => void;
   showOnboarding: boolean;
 } {
   const {selection} = usePageFilters();
   const organization = useOrganization();
+  const projectSelectionHasAgenticSpans = useHasFirstSpan(ModuleName.AGENT_MODELS);
 
   // Store the raw selection values — either specific IDs like [1, 5]
   // or [-1] for "all projects". We intentionally do NOT expand "all projects"
@@ -66,13 +71,13 @@ export function useShowConversationOnboarding(): {
   )
     ? projectsWithConversations.length > 0
     : rawSelectedProjectIds.some(id => projectsWithConversations.includes(id));
+  const hasConversations = hasData || selectedProjectsHaveKnownConversations;
 
   return {
-    showOnboarding:
-      !request.isLoading &&
-      !request.data?.length &&
-      !selectedProjectsHaveKnownConversations,
-    isLoading: selectedProjectsHaveKnownConversations ? false : request.isLoading,
+    hasAgenticSpans: hasConversations || projectSelectionHasAgenticSpans,
+    hasConversations,
+    showOnboarding: !request.isLoading && !hasConversations,
+    isLoading: hasConversations ? false : request.isLoading,
     refetch: request.refetch,
   };
 }

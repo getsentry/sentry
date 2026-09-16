@@ -1,11 +1,11 @@
 import {Component} from 'react';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
-import uniqBy from 'lodash/uniqBy';
 
 import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -58,10 +58,9 @@ type State = {
 
 type RenderProps = {
   /**
-   * Calls API and searches for project, accepts a callback function with signature:
-   * fn(searchTerm, {append: bool})
+   * Calls API and searches for project
    */
-  onSearch: (searchTerm: string, options: {append: boolean}) => void;
+  onSearch: (searchTerm: string) => void;
 
   /**
    * We want to make sure that at the minimum, we return a list of objects with only `slug`
@@ -328,14 +327,11 @@ class BaseProjects extends Component<Props, State> {
 
   /**
    * This is an action provided to consumers for them to update the current projects
-   * result set using a simple search query. You can allow the new results to either
-   * be appended or replace the existing results.
+   * result set using a simple search query. New results replace the existing list.
    *
    * @param {String} search The search term to use
-   * @param {Object} options Options object
-   * @param {Boolean} options.append Results should be appended to existing list (otherwise, will replace)
    */
-  handleSearch = async (search: string, {append}: {append?: boolean} = {}) => {
+  handleSearch = async (search: string) => {
     const {api, orgId, limit} = this.props;
     const {prevSearch} = this.state;
     const cursor = this.state.nextCursor;
@@ -350,24 +346,12 @@ class BaseProjects extends Component<Props, State> {
         cursor,
       });
 
-      this.setState((state: State) => {
-        let fetchedProjects: any;
-        if (append) {
-          // Remove duplicates
-          fetchedProjects = uniqBy(
-            [...state.fetchedProjects, ...results],
-            ({slug}) => slug
-          );
-        } else {
-          fetchedProjects = results;
-        }
-        return {
-          fetchedProjects,
-          hasMore,
-          fetching: false,
-          prevSearch: search,
-          nextCursor,
-        };
+      this.setState({
+        fetchedProjects: results,
+        hasMore,
+        fetching: false,
+        prevSearch: search,
+        nextCursor,
       });
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
@@ -399,9 +383,6 @@ class BaseProjects extends Component<Props, State> {
       // that are not in the initial queryset
       hasMore: this.state.hasMore,
 
-      // Calls API and searches for project, accepts a callback function with signature:
-      //
-      // fn(searchTerm, {append: bool})
       onSearch: this.handleSearch,
 
       // Reflects whether or not the initial fetch for the requested projects
@@ -484,10 +465,15 @@ async function fetchProjects(
 
   let hasMore: null | boolean = false;
   let nextCursor: null | string = null;
-  const [data, , resp] = await api.requestPromise(`/organizations/${orgId}/projects/`, {
-    includeAllArgs: true,
-    query,
-  });
+  const [data, , resp] = await api.requestPromise(
+    getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
+      path: {organizationIdOrSlug: orgId},
+    }),
+    {
+      includeAllArgs: true,
+      query,
+    }
+  );
 
   const pageLinks = resp?.getResponseHeader('Link');
   if (pageLinks) {

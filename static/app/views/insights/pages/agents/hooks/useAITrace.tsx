@@ -42,7 +42,7 @@ const AI_TRACE_BASE_ATTRIBUTES = [
   'gen_ai.tool.output',
 ];
 
-export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceResult {
+export function useAITrace(traceSlug: string): UseAITraceResult {
   const [nodes, setNodes] = useState<AITraceSpanNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -52,12 +52,12 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
   const trace = useTrace({
     traceSlug,
-    timestamp,
     additionalAttributes: AI_TRACE_BASE_ATTRIBUTES,
   });
 
   useEffect(() => {
     if (trace.status !== 'success' || !trace.data) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setError(trace.status === 'error');
       setIsLoading(trace.status === 'pending');
       return;
@@ -107,7 +107,7 @@ export function useAITrace(traceSlug: string, timestamp?: number): UseAITraceRes
 
         setNodes(flattenedNodes);
         setIsLoading(false);
-      } catch (err) {
+      } catch {
         setError(true);
         setIsLoading(false);
       }

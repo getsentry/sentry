@@ -10,6 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.investigations.endpoints.base import investigation_ids_with_project_access
 from sentry.investigations.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
@@ -22,6 +23,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
     InvestigationSourceType,
@@ -50,9 +52,42 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
     status: str | None
 
 
+class InvestigationOrchestrationSerializerResponse(TypedDict):
+    phase: str
+    status: str
+    heartbeatAt: datetime | None
+    notebookRevision: int
+
+
+def orchestration_summaries_by_investigation(
+    investigations: Sequence[Investigation],
+) -> dict[int, InvestigationOrchestrationSerializerResponse]:
+    return {
+        investigation_id: {
+            "phase": phase,
+            "status": status,
+            "heartbeatAt": heartbeat_at,
+            "notebookRevision": notebook_revision,
+        }
+        for investigation_id, phase, status, heartbeat_at, notebook_revision in (
+            InvestigationOrchestrationRun.objects.filter(
+                investigation_id__in=[investigation.id for investigation in investigations]
+            ).values_list(
+                "investigation_id",
+                "phase",
+                "status",
+                "heartbeat_at",
+                "notebook_revision",
+            )
+        )
+    }
+
+
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
+    summary: str | None
+    summaryDescription: str | None
     status: str
     sourceType: str
     createdBy: str | None
@@ -61,6 +96,8 @@ class InvestigationSerializerResponse(TypedDict):
     version: int
     blockCount: int
     isFavorited: bool
+    titleGeneration: InvestigationTitleGenerationSerializerResponse
+    orchestration: InvestigationOrchestrationSerializerResponse | None
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -70,11 +107,13 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     projectIds: list[int]
     parameters: list[InvestigationParameterSerializerResponse]
     blocks: list[InvestigationBlockSerializerResponse]
-    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 @register(Investigation)
 class InvestigationSerializer(Serializer):
+    def __init__(self, accessible_project_ids: AbstractSet[int] | None = None) -> None:
+        self.summary_accessible_project_ids = accessible_project_ids
+
     @override
     def get_attrs(
         self,
@@ -97,10 +136,20 @@ class InvestigationSerializer(Serializer):
                 ).values_list("investigation_id", flat=True)
             )
 
+        summary_visible_ids = (
+            investigation_ids_with_project_access(item_list, self.summary_accessible_project_ids)
+            if self.summary_accessible_project_ids is not None
+            else set()
+        )
+
+        orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
+
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
+                "summary_visible": investigation.id in summary_visible_ids,
+                "orchestration": orchestration_by_investigation.get(investigation.id),
             }
             for investigation in item_list
         }
@@ -114,9 +163,12 @@ class InvestigationSerializer(Serializer):
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
         source = investigation_source(obj)
+        summary_visible = attrs["summary_visible"]
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "summary": obj.summary if summary_visible else None,
+            "summaryDescription": obj.summary_description if summary_visible else None,
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
@@ -125,6 +177,8 @@ class InvestigationSerializer(Serializer):
             "version": obj.version,
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
+            "titleGeneration": {"status": obj.title_generation_status},
+            "orchestration": attrs["orchestration"],
         }
 
 
@@ -136,6 +190,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     """
 
     def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
+        super().__init__(accessible_project_ids)
         self.accessible_project_ids = accessible_project_ids
 
     def _blocks_by_investigation(

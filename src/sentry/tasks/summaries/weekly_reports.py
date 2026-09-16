@@ -255,11 +255,7 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if (
-            not dry_run
-            and not email_override
-            and features.has("organizations:weekly-report-week-over-week-metric", ctx.organization)
-        ):
+        if not dry_run and not email_override:
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
@@ -576,10 +572,16 @@ def get_group_display(group: Group) -> dict[str, str]:
     custom_title = metadata.get("title")
 
     if event_type == "error":
+        if metadata.get("synthetic"):
+            # A synthetic exception's type is a platform label, not the identity of what went
+            # wrong, so the function name is the better title.
+            fallback = metadata.get("function") or metadata.get("type")
+        else:
+            fallback = metadata.get("type") or metadata.get("function")
         title = (
             custom_title
             if custom_title and custom_title != "<unlabeled event>"
-            else metadata.get("type") or metadata.get("function") or "<unknown>"
+            else fallback or "<unknown>"
         )
         message = metadata.get("value")
     elif event_type in ("transaction", "generic"):
@@ -1021,9 +1023,6 @@ def render_template_context(
         "errors_discover_query": errors_discover_query,
         "view_all_issues_url": view_all_issues_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
-        "show_week_over_week_metric": features.has(
-            "organizations:weekly-report-week-over-week-metric", ctx.organization
-        ),
         "notification_settings_link": "/settings/account/notifications/reports/",
         **top_spans(),
     }

@@ -4,6 +4,7 @@ import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -66,7 +67,9 @@ export function TestUptimeMonitorButton({
   >({
     mutationFn: (payload: PreviewCheckPayload) =>
       fetchMutation<PreviewCheckResult>({
-        url: `/organizations/${organization.slug}/uptime-preview-check/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/uptime-preview-check/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'POST',
         data: {...payload},
       }),

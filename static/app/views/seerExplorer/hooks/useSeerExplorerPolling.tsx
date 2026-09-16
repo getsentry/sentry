@@ -8,8 +8,8 @@ import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatState
 import type {
   SeerExplorerResponse,
   SeerExplorerRunId,
+  Block,
 } from 'sentry/views/seerExplorer/types';
-import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
   makeSeerExplorerQueryKey,
@@ -59,6 +59,9 @@ const getPollingState = (
     }
     return 'not-polling';
   }
+  if (sessionData?.failure_reason === 'timeout') {
+    return 'timed-out';
+  }
   if (isResponseComplete(sessionData)) {
     return 'not-polling';
   }
@@ -81,8 +84,11 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
 
   // Reset error poll count when runId changes
   const prevRunIdRef = useRef(runId);
+  // oxlint-disable-next-line react/refs
   if (prevRunIdRef.current !== runId) {
+    // oxlint-disable-next-line react/refs
     prevRunIdRef.current = runId;
+    // oxlint-disable-next-line react/refs
     errorPollCountRef.current = 0;
   }
 
@@ -148,6 +154,7 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
     apiData?.session,
     isError,
     error?.status,
+    // oxlint-disable-next-line react/refs
     errorPollCountRef.current
   );
 

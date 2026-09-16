@@ -199,7 +199,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
           const currentSeriesNames = [field];
           const includePreviousParam = false;
           const yAxis = provided.yAxis;
-          const interval = getInterval(pageFilterDatetime, 'medium');
+          const interval = getInterval(pageFilterDatetime);
           const partialDataParam = true;
 
           eventView.additionalConditions.setFilterValues('transaction', [

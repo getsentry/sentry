@@ -12,10 +12,10 @@ import {useTheme} from '@emotion/react';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
-import {Grid} from 'sentry/components/charts/components/grid';
+import {createGridOptions} from 'sentry/components/charts/components/grid';
 import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
-import {XAxis} from 'sentry/components/charts/components/xAxis';
-import {YAxis} from 'sentry/components/charts/components/yAxis';
+import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
+import {createYAxisOptions} from 'sentry/components/charts/components/yAxis';
 import type {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -144,7 +144,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
     () => ({
       autoHeightResize: true,
       height: 'auto',
-      grid: Grid({
+      grid: createGridOptions({
         left: theme.space.md,
         right: theme.space.md,
       }),
@@ -185,7 +185,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
         },
         theme
       ),
-      xAxis: XAxis({
+      xAxis: createXAxisOptions({
         type: 'time',
         axisLabel: {
           formatter: (time: number) =>
@@ -197,7 +197,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
         },
         theme,
       }),
-      yAxis: YAxis({
+      yAxis: createYAxisOptions({
         type: 'value',
         theme,
         minInterval: 1024 * 1024, // input is in bytes, minInterval is a megabyte

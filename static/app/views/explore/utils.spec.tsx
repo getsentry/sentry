@@ -11,6 +11,7 @@ import {
   findSuggestedColumns,
   getSamplingWarningReason,
   isSamplingSensitiveAggregate,
+  prettifyAggregation,
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
@@ -327,6 +328,28 @@ describe('viewSamplesTarget', () => {
       },
     });
   });
+
+  it('drill down on a conditional aggregate ignores the filter argument', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: [],
+      visualizes: [new VisualizeFunction('count_if(`span.op:db`,span.duration)')],
+      sorts: [{field: 'count_if(`span.op:db`,span.duration)', kind: 'desc' as const}],
+      row: {},
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: '',
+        sort: ['-span.duration'],
+      },
+    });
+  });
 });
 
 describe('findSuggestedColumns', () => {
@@ -556,19 +579,23 @@ function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] 
 }
 
 describe('isSamplingSensitiveAggregate', () => {
-  it.each(['count_unique(user)', 'failure_count()', 'failure_rate()'])(
-    'returns true for sampling-sensitive aggregate %s',
-    aggregate => {
-      expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
-    }
-  );
+  it.each([
+    'count_unique(user)',
+    'failure_count()',
+    'failure_rate()',
+    'count_unique_if(`span.op:db`,user)',
+  ])('returns true for sampling-sensitive aggregate %s', aggregate => {
+    expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
+  });
 
-  it.each(['count()', 'avg(span.duration)', 'p50(span.duration)'])(
-    'returns false for non-sensitive aggregate %s',
-    aggregate => {
-      expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
-    }
-  );
+  it.each([
+    'count()',
+    'avg(span.duration)',
+    'p50(span.duration)',
+    'count_if(`span.op:db`,span.duration)',
+  ])('returns false for non-sensitive aggregate %s', aggregate => {
+    expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
+  });
 });
 
 describe('shouldWarnSamplingSensitive', () => {
@@ -658,5 +685,21 @@ describe('getSamplingWarningReason', () => {
     expect(
       getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
     ).toBeNull();
+  });
+});
+
+describe('prettifyAggregation', () => {
+  it('prettifies typed tag keys inside conditional filters', () => {
+    expect(prettifyAggregation('avg_if(`tags[Limit,number]:>5`,span.duration)')).toBe(
+      'avg_if(`Limit:>5`,span.duration)'
+    );
+  });
+
+  it('prettifies typed tag keys in equation conditionals used as chart titles', () => {
+    expect(
+      prettifyAggregation(
+        'equation|avg_if(`tags[Limit,number]:>5`,span.duration) / p95(span.duration)'
+      )
+    ).toBe(' avg_if(`Limit:>5`,span.duration)  /  p95(span.duration) ');
   });
 });

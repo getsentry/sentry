@@ -11,6 +11,7 @@ import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -84,8 +85,11 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, endpointOptionsRef, selectAll, selectedIds} =
     listItemCheckboxState;
+  // oxlint-disable-next-line react/refs
   const endpointOptions = endpointOptionsRef.current;
+  // oxlint-disable-next-line react/refs
   const rawQuery = endpointOptions?.query?.query;
+  // oxlint-disable-next-line react/refs
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const projectIds = useMemo(
@@ -122,18 +126,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
             <InfiniteTable.HeaderCell
               key={key}
               handleSortClick={
-                sortKey
-                  ? () =>
-                      onSortClick({
-                        field: sortKey,
-                        kind:
-                          sortKey === sort.field
-                            ? sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc'
-                            : 'desc',
-                      })
-                  : undefined
+                sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
               }
               sort={sort?.field === sortKey ? sort.kind : undefined}
             >
@@ -222,9 +215,11 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
             <Flex justify="start" width="100%" wrap="wrap" gap="md">
               {tn('Selected %s project.', 'Selected %s projects.', countSelected)}
               <a onClick={selectAll}>
+                {/* oxlint-disable-next-line react/refs */}
                 {queryString
                   ? tct('Select all [count] projects that match: [queryString].', {
                       count: listItemCheckboxState.hits,
+                      // oxlint-disable-next-line react/refs
                       queryString: <var>{queryString}</var>,
                     })
                   : t('Select all %s projects.', listItemCheckboxState.hits)}
@@ -237,9 +232,11 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
       <ListItemSelectedState selected="all">
         <InfiniteTable.HeaderBanner>
           <Alert variant="info" system>
+            {/* oxlint-disable-next-line react/refs */}
             {queryString
               ? tct('Selected all [count] projects matching: [queryString].', {
                   count: countSelected,
+                  // oxlint-disable-next-line react/refs
                   queryString: <var>{queryString}</var>,
                 })
               : countSelected > settings.length

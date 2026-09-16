@@ -311,6 +311,9 @@ const seerActivities = [
   seerActivity(GroupActivityType.SEER_PR_CREATED, {
     pull_requests: [seerPullRequest],
   }),
+  seerActivity(GroupActivityType.SEER_PR_READY_FOR_REVIEW, {
+    pull_requests: [seerPullRequest],
+  }),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
     referrer: 'github.pr_comment',
@@ -353,6 +356,9 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
     }),
     user,
   },
+  seerActivityAt(GroupActivityType.SEER_PR_READY_FOR_REVIEW, '2025-01-01T00:45:00Z', {
+    pull_requests: [seerPullRequest],
+  }),
 ]);
 
 export default Storybook.story('Issue Activity', story => {
@@ -473,9 +479,9 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
           <ActivityLineNote
             key={`${item.activity.id}-${index}`}
             activity={item.activity}
-            group={group}
             inputVariant="compact"
             onDelete={async () => {}}
+            onUpdate={async () => {}}
           />
         ) : (
           <ActivityLine
@@ -501,9 +507,9 @@ function CommentExample() {
     <ActivityLineList>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
-        group={group}
         inputVariant="full"
         onDelete={async () => {}}
+        onUpdate={async () => {}}
       />
     </ActivityLineList>
   );

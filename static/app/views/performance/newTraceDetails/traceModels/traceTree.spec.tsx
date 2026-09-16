@@ -395,20 +395,20 @@ describe('TraceTree', () => {
   describe('indicators', () => {
     it('measurements are converted to indicators', () => {
       const measurementValue = 1;
+      const transaction = makeTransaction({
+        start_timestamp: start,
+        timestamp: start + 2,
+        measurements: {ttfb: {value: measurementValue, unit: 'millisecond'}},
+      });
       const tree = TraceTree.FromTrace(
         makeTrace({
-          transactions: [
-            makeTransaction({
-              start_timestamp: start,
-              timestamp: start + 2,
-              measurements: {ttfb: {value: measurementValue, unit: 'millisecond'}},
-            }),
-          ],
+          transactions: [transaction],
         }),
         traceOptions
       );
       expect(tree.indicators).toHaveLength(1);
       expect(tree.indicators[0]!.start).toBe(start * 1e3 + measurementValue);
+      expect(tree.indicators[0]!.node.value).toBe(transaction);
     });
 
     it('zero measurements are not converted to indicators', () => {
@@ -543,17 +543,18 @@ describe('TraceTree', () => {
         }),
         {
           meta: {
-            transaction_child_count_map: {
+            transactionChildCountMap: {
               transaction: 10,
               'no-spans-transaction': 1,
               // we have no data for child transaction
             },
-            errors: 0,
-            performance_issues: 0,
-            projects: 0,
-            transactions: 0,
-            span_count: 0,
-            span_count_map: {},
+            errorsCount: 0,
+            logsCount: 0,
+            metricsCount: 0,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+            spansCountMap: {},
+            uptimeCount: 0,
           },
           replay: null,
           organization,
@@ -907,8 +908,16 @@ describe('TraceTree', () => {
       const span1 = tree.root.findChild(n => n.id === 'eap-span-1');
       expect(tree.vitals.get(span1!)).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({key: 'fcp', measurement: {value: 100}}),
-          expect.objectContaining({key: 'lcp', measurement: {value: 200}}),
+          expect.objectContaining({
+            key: 'fcp',
+            measurement: {value: 100},
+            timestamp: start * 1e3 + 100,
+          }),
+          expect.objectContaining({
+            key: 'lcp',
+            measurement: {value: 200},
+            timestamp: start * 1e3 + 200,
+          }),
         ])
       );
 
@@ -1031,44 +1040,62 @@ describe('TraceTree', () => {
       const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
       expect(lcpIndicators).toHaveLength(1);
       expect(lcpIndicators[0]!.start).toBe(standaloneStart * 1e3 + 500);
+      expect(lcpIndicators[0]!.node.id).toBe('standalone-lcp-span');
     });
 
-    it('applies standalone LCP measurement offset from trace origin when present', () => {
-      const tree = TraceTree.FromTrace(
-        makeEAPTrace([
-          makeEAPSpan({
-            event_id: 'pageload-span',
-            op: 'pageload',
-            start_timestamp: start,
-            end_timestamp: start + 2,
-            is_transaction: true,
-            additional_attributes: {
-              'tags[performance.timeOrigin,number]': start,
-            },
-            measurements: {
-              'measurements.lcp': 500,
-            },
-            children: [],
-          }),
-          makeEAPSpan({
-            event_id: 'standalone-lcp-span',
-            op: 'ui.webvital.lcp',
-            start_timestamp: start + 1.5,
-            end_timestamp: start + 1.6,
-            is_transaction: false,
-            measurements: {
-              'measurements.lcp': 1240,
-            },
-            children: [],
-          }),
-        ]),
-        {meta: null, replay: null, organization}
-      );
+    it.each<{
+      additionalAttributes: Record<string, string | number>;
+      attributeName: string;
+    }>([
+      {
+        additionalAttributes: {
+          'tags[browser.performance.time_origin,number]': start,
+        },
+        attributeName: 'replacement',
+      },
+      {
+        additionalAttributes: {
+          'tags[performance.timeOrigin,number]': start,
+        },
+        attributeName: 'deprecated',
+      },
+    ])(
+      'applies standalone LCP measurement offset using the $attributeName trace origin attribute',
+      ({additionalAttributes}) => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              event_id: 'pageload-span',
+              op: 'pageload',
+              start_timestamp: start,
+              end_timestamp: start + 2,
+              is_transaction: true,
+              additional_attributes: additionalAttributes,
+              measurements: {
+                'measurements.lcp': 500,
+              },
+              children: [],
+            }),
+            makeEAPSpan({
+              event_id: 'standalone-lcp-span',
+              op: 'ui.webvital.lcp',
+              start_timestamp: start + 1.5,
+              end_timestamp: start + 1.6,
+              is_transaction: false,
+              measurements: {
+                'measurements.lcp': 1240,
+              },
+              children: [],
+            }),
+          ]),
+          {meta: null, replay: null, organization}
+        );
 
-      const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
-      expect(lcpIndicators).toHaveLength(1);
-      expect(lcpIndicators[0]!.start).toBe(start * 1e3 + 1240);
-    });
+        const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
+        expect(lcpIndicators).toHaveLength(1);
+        expect(lcpIndicators[0]!.start).toBe(start * 1e3 + 1240);
+      }
+    );
 
     it('handles cycles in EAP trace structure without infinite loop', () => {
       const cyclicSpan = makeEAPSpan({

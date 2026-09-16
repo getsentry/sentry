@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, TypedDict
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -34,6 +34,13 @@ logger = logging.getLogger(__name__)
 class NewAssignee(NamedTuple):
     id: int
     type: str
+
+
+class GroupAssignmentState(TypedDict):
+    """The outcome of an assignment attempt."""
+
+    new_assignment: bool
+    updated_assignment: bool
 
 
 class GroupAssigneeManager(BaseManager["GroupAssignee"]):
@@ -131,7 +138,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         extra: dict[str, str] | None = None,
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
-    ) -> dict[str, bool]:
+    ) -> GroupAssignmentState:
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
         from sentry.models.activity import Activity
         from sentry.models.groupsubscription import GroupSubscription
@@ -242,8 +249,14 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                     group, None, assign=False, assignment_source=assignment_source
                 )
 
-            issue_unassigned.send_robust(
-                project=group.project, group=group, user=acting_user, sender=self.__class__
+            # Deferred for the same reasons `assign` defers `issue_assigned`: the receiver
+            # publishes a snapshot, which must not happen for a transaction that may still
+            # roll back, nor while a caller holds row locks.
+            transaction.on_commit(
+                lambda: issue_unassigned.send_robust(
+                    project=group.project, group=group, user=acting_user, sender=self.__class__
+                ),
+                router.db_for_write(GroupAssignee),
             )
             self.remove_old_assignees(group, previous_groupassignee)
 

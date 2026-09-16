@@ -5,11 +5,7 @@ import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {
-  getTraceMetaLogsCount,
-  getTraceMetaMetricsCount,
-  type TraceMetaQueryResults,
-} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {useTraceContextSections} from 'sentry/views/performance/newTraceDetails/useTraceContextSections';
 import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/useTraceOverviewData';
@@ -118,8 +114,8 @@ export function getInitialTab({
   meta?: TraceMetaQueryResults['data'];
   metricsEnabled?: boolean;
 }): Tab {
-  const hasNoLogs = logsEnabled && getTraceMetaLogsCount(meta) === 0;
-  const hasNoMetrics = metricsEnabled && getTraceMetaMetricsCount(meta) === 0;
+  const hasNoLogs = logsEnabled && meta?.logsCount === 0;
+  const hasNoMetrics = metricsEnabled && meta?.metricsCount === 0;
 
   const shouldKeepLogsTabWhileLoading =
     logsEnabled && !hasNoLogs && tabSlugFromUrl === TraceLayoutTabKeys.LOGS;
@@ -227,12 +223,13 @@ export function useTraceLayoutTabs({
       );
       setSelectedTab(slug);
     },
-    [navigate, queryParams, organization]
+    [navigate, queryParams, organization, setSelectedTab]
   );
 
   // Keep the stored selection in sync with URL and availability changes. The
   // render above falls back synchronously so stale content never mounts first.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSelectedTab(initialTab.slug);
   }, [initialTab.slug]);
 

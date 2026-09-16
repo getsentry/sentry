@@ -17,10 +17,12 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import evaluate_snapshot_changes_by_artifact_id
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
 )
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
+    format_approved_without_base_snapshot_status_check_messages,
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
@@ -39,7 +41,7 @@ from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +51,7 @@ APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -221,7 +223,22 @@ def create_preprod_snapshot_status_check_task(
                 project=preprod_artifact.project,
             )
         elif commit_comparison.base_sha:
-            if not is_timeout_check:
+            if all(a.id in approvals_map for a in all_artifacts):
+                status = StatusCheckStatus.SUCCESS
+                title, subtitle, summary = (
+                    format_approved_without_base_snapshot_status_check_messages(
+                        all_artifacts,
+                        snapshot_metrics_map,
+                        project=preprod_artifact.project,
+                        base_sha=commit_comparison.base_sha,
+                        base_repo_url=resolve_base_repo_url(
+                            commit_comparison,
+                            preprod_artifact.project.organization_id,
+                            head_repository=repository,
+                        ),
+                    )
+                )
+            elif not is_timeout_check:
                 waiting_for_base = True
                 status = StatusCheckStatus.IN_PROGRESS
                 title, subtitle, summary = format_waiting_for_base_snapshot_status_check_messages(
@@ -242,6 +259,12 @@ def create_preprod_snapshot_status_check_task(
                     all_artifacts,
                     snapshot_metrics_map,
                     project=preprod_artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=resolve_base_repo_url(
+                        commit_comparison,
+                        preprod_artifact.project.organization_id,
+                        head_repository=repository,
+                    ),
                 )
         else:
             status = StatusCheckStatus.SUCCESS
@@ -332,7 +355,8 @@ def _compute_snapshot_status(
             ):
                 has_in_progress = True
             case PreprodSnapshotComparison.State.FAILED:
-                return StatusCheckStatus.FAILURE
+                if artifact.id not in approvals_map:
+                    return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
                 if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
                     return StatusCheckStatus.FAILURE
@@ -345,7 +369,7 @@ def _compute_snapshot_status(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_status_check",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),

@@ -1,15 +1,20 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
+import {useMutation, useQuery} from '@tanstack/react-query';
+import {z} from 'zod';
+
+import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useApi} from 'sentry/utils/useApi';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 type CategoryInfo = {
   api_name: string;
@@ -35,21 +40,63 @@ type Props = {
 
 type ModalProps = Props & ModalRenderProps;
 
+const formSchema = z.object({
+  dataCategory: z
+    .number()
+    .nullable()
+    .refine(value => value !== null, 'Please select a data category.'),
+});
+
+const defaultValues: z.input<typeof formSchema> = {
+  dataCategory: null,
+};
+
 function DeleteBillingMetricHistoryModal({
   onSuccess,
   organization,
   closeModal,
   Header,
   Body,
+  Footer,
 }: ModalProps) {
-  const api = useApi();
-  const [dataCategory, setDataCategory] = useState<number | null>(null);
   const orgSlug = organization.slug;
 
-  const {data: billingConfig = null, isPending: isLoadingBillingConfig} =
-    useApiQuery<BillingConfig>([getApiUrl('/billing-config/')], {
+  const {data: billingConfig = null, isPending: isLoadingBillingConfig} = useQuery(
+    apiOptions.as<BillingConfig>()('/billing-config/', {
       staleTime: Infinity,
-    });
+    })
+  );
+
+  const mutation = useMutation({
+    mutationFn: (dataCategory: number) =>
+      fetchMutation({
+        url: `/api/0/customers/${orgSlug}/delete-billing-metric-history/`,
+        method: 'POST',
+        data: {data_category: dataCategory},
+      }),
+    onSuccess: () => {
+      addSuccessMessage('Successfully deleted billing metric history.');
+      closeModal();
+      onSuccess();
+    },
+    onError: error => {
+      const errorMsg =
+        error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
+          ? error.responseJSON.detail
+          : 'Unable to delete billing metric history.';
+      addErrorMessage(errorMsg);
+    },
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+    validators: {onDynamic: formSchema},
+    onSubmit: ({value}) => {
+      const data = formSchema.parse(value);
+      return mutation.mutateAsync(data.dataCategory).catch(() => {});
+    },
+  });
 
   if (isLoadingBillingConfig || !billingConfig) {
     return (
@@ -62,63 +109,46 @@ function DeleteBillingMetricHistoryModal({
     );
   }
 
-  const dataCategoryChoices = Object.entries(billingConfig.category_info).map(
+  const dataCategoryOptions = Object.entries(billingConfig.category_info).map(
     ([key, value]) => {
       const billingMetric = Number(key);
-      return [billingMetric, `${value.display_name} (${billingMetric})`] as [
-        number,
-        string,
-      ];
+      return {
+        value: billingMetric,
+        label: `${value.display_name} (${billingMetric})`,
+      };
     }
   );
-  const onSubmit = () => {
-    if (dataCategory === null) {
-      addErrorMessage('Please select a data category.');
-      return;
-    }
-
-    api.request(`/api/0/customers/${orgSlug}/delete-billing-metric-history/`, {
-      method: 'POST',
-      data: {
-        data_category: dataCategory,
-      },
-      success: () => {
-        addSuccessMessage('Successfully deleted billing metric history.');
-        closeModal();
-        onSuccess();
-      },
-      error: error => {
-        const errorMsg =
-          error.responseJSON?.detail || 'Unable to delete billing metric history.';
-        addErrorMessage(errorMsg);
-      },
-    });
-  };
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>Delete Billing Metric History</Header>
       <Body>
-        <div>Delete billing metric history for a specific data category.</div>
-        <br />
-        <Form onSubmit={onSubmit} submitLabel="Delete" onCancel={closeModal}>
-          <SelectField
-            inline={false}
-            stacked
-            flexibleControlStateSize
-            label="Data Category"
-            name="data_category"
-            value={dataCategory}
-            onChange={(value: number) => {
-              setDataCategory(value);
-            }}
-            choices={dataCategoryChoices}
-            required
-            help="Warning: This action cannot be undone. The selected billing metric history will be permanently deleted."
-          />
-        </Form>
+        <Stack gap="lg">
+          <Text as="p">Delete billing metric history for a specific data category.</Text>
+          <form.AppField name="dataCategory">
+            {field => (
+              <field.Layout.Stack
+                label="Data Category"
+                hintText="Warning: This action cannot be undone. The selected billing metric history will be permanently deleted."
+                required
+              >
+                <field.Select
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={dataCategoryOptions}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
+        </Stack>
       </Body>
-    </Fragment>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <form.SubmitButton>Delete</form.SubmitButton>
+        </Flex>
+      </Footer>
+    </form.AppForm>
   );
 }
 

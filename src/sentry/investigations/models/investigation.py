@@ -128,6 +128,8 @@ class Investigation(DefaultFieldsModel):
         "seer.SeerRun", null=True, on_delete=models.SET_NULL, related_name="+"
     )
     title_generation_status = models.CharField(max_length=32, null=True)
+    summary = models.CharField(max_length=255, null=True)
+    summary_description = models.TextField(null=True)
 
     class Meta:
         app_label = "investigations"

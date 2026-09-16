@@ -8,11 +8,13 @@ import sentry_sdk
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 from snuba_sdk import DeleteQuery, Request
 from taskbroker_client.retry import Retry
+from taskbroker_client.state import current_task
 
 from sentry import eventstream, nodestore, options
 from sentry.deletions.tasks.scheduled import MAX_RETRIES, logger
 from sentry.eventstream.eap import delete_groups_from_eap_rpc
 from sentry.exceptions import DeleteAborted
+from sentry.killswitches import killswitch_matches_context
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.search.eap.occurrences.query_utils import (
@@ -27,6 +29,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.taskworker.namespaces import deletion_tasks
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
 from sentry.utils.snuba import UnqualifiedQueryError, bulk_snuba_queries
 from sentry.utils.snuba_rpc import (
@@ -38,6 +41,9 @@ from sentry.utils.snuba_rpc import (
 EVENT_CHUNK_SIZE = 10000
 # https://github.com/getsentry/snuba/blob/54feb15b7575142d4b3af7f50d2c2c865329f2db/snuba/datasets/configuration/issues/storages/search_issues.yaml#L139
 ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
+
+# Identifies this task in the self-chain idempotency guard.
+DELETE_EVENTS_TASK_KEY = "delete_events_from_nodestore_and_eventstore"
 
 
 class RetryTask(Exception):
@@ -91,6 +97,37 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
     if not group_ids:
         raise DeleteAborted("delete_events_from_nodestore.empty_group_ids")
 
+    if killswitch_matches_context(
+        "deletions.nodestore.killswitch-projects", {"project_id": project_id}
+    ):
+        logger.warning(
+            "deletions.nodestore.halted_by_killswitch",
+            extra={
+                "project_id": project_id,
+                "transaction_id": transaction_id,
+                "dataset": dataset_str,
+            },
+        )
+        return
+
+    # A redelivered activation that already spawned its continuation must not process the same
+    # page and spawn another child.
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(DELETE_EVENTS_TASK_KEY, activation_id):
+        logger.info(
+            "delete_events_for_groups_from_nodestore_and_eventstore.duplicate_redelivery.skipped",
+            extra={
+                "project_id": project_id,
+                "transaction_id": transaction_id,
+                "activation_id": activation_id,
+            },
+        )
+        metrics.incr(
+            "taskworker.selfchain.duplicate_skipped", tags={"task": DELETE_EVENTS_TASK_KEY}
+        )
+        return
+
     kwargs_to_schedule_next_task = {
         "organization_id": organization_id,
         "project_id": project_id,
@@ -129,6 +166,8 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
                     "last_event_timestamp": last_event.timestamp,
                 },
             )
+            if activation_id:
+                mark_spawned(DELETE_EVENTS_TASK_KEY, activation_id)
         else:
             logger.info(f"{prefix}.completed", extra=extra)
             # The fetch request for the nodestore uses the eventstore to determine what IDs to delete

@@ -224,12 +224,16 @@ describe('AutomationNewSettings', () => {
       /tagged event/i
     );
     const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
-    await userEvent.type(tagInput, 'env{enter}');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Value'}), 'prod');
+    await userEvent.click(tagInput);
+    await userEvent.paste('env');
+    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Value'}));
+    await userEvent.paste('prod');
 
     // Add an action to the block (Slack), also updates the automatic naming
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
+    await userEvent.paste('#alerts');
 
     // Add an email action
     await selectEvent.select(
@@ -368,10 +372,9 @@ describe('AutomationNewSettings', () => {
     });
 
     await addAction('MS Teams');
-    const targets = screen.getAllByRole('textbox', {name: 'Target'});
-    const msTeamsTarget = targets.at(-1);
-    expect(msTeamsTarget).toBeDefined();
-    await userEvent.type(msTeamsTarget!, 'alerts-team', {delay: null});
+    await userEvent.type(screen.getByPlaceholderText('channel name'), 'alerts-team', {
+      delay: null,
+    });
 
     await addAction('Pagerduty');
     await addAction('Opsgenie');
@@ -656,6 +659,32 @@ describe('AutomationNewSettings', () => {
 
     // Should pre-select the member project
     expect(await screen.findByText('member-project')).toBeInTheDocument();
+  });
+
+  it('pre-selects a writable project for a team admin', async () => {
+    const readOnlyProject = ProjectFixture({
+      id: '3',
+      slug: 'read-only-project',
+      isMember: true,
+      access: ['project:read', 'alerts:read'],
+    });
+    const writableProject = ProjectFixture({
+      id: '4',
+      slug: 'writable-project',
+      isMember: false,
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([readOnlyProject, writableProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(readOnlyProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
+    });
+
+    expect(await screen.findByText('writable-project')).toBeInTheDocument();
+    expect(screen.queryByText('read-only-project')).not.toBeInTheDocument();
   });
 
   it('surfaces API error message when automation creation fails', async () => {

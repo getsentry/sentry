@@ -7,6 +7,7 @@ import uniqBy from 'lodash/uniqBy';
 import {Tag} from '@sentry/scraps/badge';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {SearchBar} from 'sentry/components/searchBar';
@@ -23,6 +24,12 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 import {useUser} from 'sentry/utils/useUser';
 import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
+
+const OWNERSHIP_COLUMNS: TableColumnConfig[] = [
+  {key: 'type', width: 'min-content'},
+  {key: 'rule', width: '1fr'},
+  {key: 'owner', width: 'auto'},
+];
 
 interface OwnershipRulesTableProps {
   codeowners: CodeOwner[];
@@ -113,6 +120,7 @@ export function OwnershipRulesTable({
 
   useEffect(() => {
     if (myTeams.length > 0 && selectedActors === null) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedActors(myTeams.map(actor => `${actor.type}:${actor.id}`));
     }
   }, [myTeams, selectedActors]);
@@ -142,6 +150,7 @@ export function OwnershipRulesTable({
   useEffect(() => {
     // Reset to first page if the list of rules changes
     if (!chunkedRules[page]) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setPage(0);
     }
   }, [chunkedRules, page]);
@@ -182,6 +191,7 @@ export function OwnershipRulesTable({
       </Flex>
 
       <StyledSimpleTable
+        columns={OWNERSHIP_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
@@ -282,7 +292,6 @@ const RulesTableWrapper = styled('div')`
 `;
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: min-content 1fr auto;
   font-size: ${p => p.theme.font.size.md};
   margin-bottom: 0;
 

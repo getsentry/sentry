@@ -33,6 +33,7 @@ from sentry.seer.entrypoints.types import (
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.seer_setup import has_seer_access
 from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
@@ -47,6 +48,7 @@ SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_CODING_STARTED: ActivityType.SEER_CODING_STARTED,
     SentryAppEventType.SEER_CODING_COMPLETED: ActivityType.SEER_CODING_COMPLETED,
     SentryAppEventType.SEER_PR_CREATED: ActivityType.SEER_PR_CREATED,
+    SentryAppEventType.SEER_PR_READY_FOR_REVIEW: ActivityType.SEER_PR_READY_FOR_REVIEW,
     SentryAppEventType.SEER_ITERATION_STARTED: ActivityType.SEER_ITERATION_STARTED,
     SentryAppEventType.SEER_ITERATION_COMPLETED: ActivityType.SEER_ITERATION_COMPLETED,
 }
@@ -178,12 +180,12 @@ class SeerAutofixOperator[CachePayloadT]:
         run_id: int | None = None,
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
-            AutofixStep,
-            NoSeerQuotaException,
             get_autofix_agent_state,
             trigger_autofix_agent,
             trigger_push_changes,
         )
+        from sentry.seer.autofix.exceptions import NoSeerQuotaException
+        from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
             interaction_type=SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
@@ -546,16 +548,12 @@ class SeerAgentOperator[CachePayloadT]:
                 return None
 
             try:
-                existing_runs = client.get_runs(
-                    category_key=category_key,
-                    category_value=category_value,
-                    limit=1,
-                    only_current_user=False,
-                )
+                # Discovery uses the local run mirror; continue/start stays remote.
+                existing_run = client.latest_run(only_current_user=False)
 
-                if existing_runs:
+                if existing_run is not None:
                     run_id = client.continue_run(
-                        run_id=existing_runs[0].run_id,
+                        run_id=existing_run.run.seer_run_state_id,
                         prompt=prompt,
                         on_page_context=on_page_context,
                     ).seer_run_state_id
@@ -629,7 +627,10 @@ def _create_seer_activity(
         solution = event_payload.get("solution")
         if solution:
             activity_data["summary"] = solution.get("one_line_summary")
-    elif event_type == SentryAppEventType.SEER_PR_CREATED:
+    elif event_type in (
+        SentryAppEventType.SEER_PR_CREATED,
+        SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+    ):
         pull_requests = event_payload.get("pull_requests", [])
         if pull_requests:
             activity_data["pull_requests"] = pull_requests
@@ -797,7 +798,7 @@ def process_autofix_updates(
 def get_autofix_explorer_status(
     stopping_point: AutofixStoppingPoint, autofix_state: SeerRunState
 ) -> bool | None:
-    from sentry.seer.autofix.autofix_agent import AutofixStep
+    from sentry.seer.autofix.steps import AutofixStep
 
     expected_step = AutofixStep.from_autofix_stopping_point(stopping_point)
 
@@ -853,7 +854,7 @@ def get_autofix_explorer_status(
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
-    """Completion hook that notifies all entrypoints when a Seer Agent run finishes.
+    """Completion hook that notifies all entrypoints when a Seer Agent invocation yields.
 
     Mirrors the pattern of process_autofix_updates: iterates through the entrypoint
     registry and calls on_agent_update for each entrypoint that has access and
@@ -880,6 +881,8 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
             try:
                 state = fetch_run_status(run_id, organization)
                 for block in reversed(state.blocks):
+                    if block.message.role == "user":
+                        break
                     if block.message.role == "assistant" and block.message.content:
                         summary = block.message.content
                         break
@@ -919,6 +922,10 @@ class SeerOperatorCompletionHook(AgentOnCompletionHook):
                             cache_payload=cache_payload,
                             summary=summary,
                             run_id=run_id,
+                            pending_user_input=state.pending_user_input,
                         )
+                    except IntegrationError:
+                        # Seer's completion-hook delivery task retries failed RPC calls.
+                        raise
                     except Exception as e:
                         ept_lifecycle.record_failure(failure_reason=e)

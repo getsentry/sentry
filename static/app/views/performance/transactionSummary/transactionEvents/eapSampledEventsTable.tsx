@@ -43,7 +43,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {
+  getColumnSort,
+  renderHeadCell,
+} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -228,8 +231,14 @@ export function SampledEventsTable({
         error={error}
         data={consolidatedData}
         columnOrder={columnOrder}
-        columnSortBy={[{key: sort.field, order: sort.kind}]}
         grid={{
+          getColumnSort: column =>
+            getColumnSort({
+              column,
+              location,
+              sort,
+              sortParameterName: QueryParameterNames.SPANS_SORT,
+            }),
           renderHeadCell: column => {
             if (column.key === SPAN_OPS_BREAKDOWN_COLUMN_KEY) {
               return (
@@ -245,12 +254,7 @@ export function SampledEventsTable({
                 </Fragment>
               );
             }
-            return renderHeadCell({
-              column,
-              sort,
-              location,
-              sortParameterName: QueryParameterNames.SPANS_SORT,
-            });
+            return renderHeadCell({column});
           },
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),

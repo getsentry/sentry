@@ -92,7 +92,6 @@ export function IssueListSortOptions({
   return (
     <CompactSelect
       className={className}
-      size="md"
       onChange={opt => onSelect(opt.value)}
       options={sortKeys.map(key => ({
         value: key,

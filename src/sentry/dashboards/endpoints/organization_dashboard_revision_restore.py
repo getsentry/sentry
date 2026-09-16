@@ -6,6 +6,7 @@ from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -76,7 +77,11 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
 
         restore_data = _prepare_restore_data(revision.snapshot)
 
-        projects = self.get_projects(request, organization)
+        projects = self.get_projects(
+            request,
+            organization,
+            project_ids=set(restore_data.get("projects", [])),
+        )
         serializer = DashboardDetailsSerializer(
             data=restore_data,
             instance=dashboard,
@@ -88,6 +93,7 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
                 "validation_projects": projects
                 or self.get_projects(request, organization, include_all_accessible=True),
                 "environment": self.request.GET.getlist("environment"),
+                "allow_legacy_widget_heights": True,
             },
         )
 
@@ -104,4 +110,14 @@ class OrganizationDashboardRevisionRestoreEndpoint(OrganizationDashboardBase):
         except IntegrityError:
             return Response({"detail": "Dashboard with that title already exists."}, status=409)
 
-        return self.respond(serialize(serializer.instance, request.user), status=200)
+        updated_dashboard = serializer.instance
+        assert updated_dashboard is not None
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=updated_dashboard.id,
+            event=audit_log.get_event_id("DASHBOARD_RESTORE"),
+            data=updated_dashboard.get_audit_log_data(),
+        )
+
+        return self.respond(serialize(updated_dashboard, request.user), status=200)

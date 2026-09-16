@@ -69,7 +69,10 @@ export default function ProjectReleaseTracking() {
     mutationFn: () =>
       fetchMutation<TokenResponse>({
         method: 'POST',
-        url: `/projects/${organization.slug}/${project.slug}/releases/token/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/token/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+        ),
         data: {project: project.slug},
       }),
     onSuccess: data => {

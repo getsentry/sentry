@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectSetupWarning} from './projectSetupWarning';
 import type {ProjectConfig} from './types';
@@ -7,35 +7,41 @@ function project(slug: string): ProjectConfig {
   return {id: slug, slug, hasReposConnected: false};
 }
 
+async function openTooltip() {
+  await userEvent.hover(screen.getByLabelText('Seer setup warning'));
+}
+
 describe('ProjectSetupWarning', () => {
-  it('names a single project and links to org Seer settings', () => {
+  it('counts a single project and links to org Seer settings', async () => {
     render(
       <ProjectSetupWarning unconfiguredProjects={[project('alpha')]} orgSlug="acme" />
     );
 
-    expect(screen.getByText(/Seer isn't set up for/)).toHaveTextContent(
-      "Seer isn't set up for alpha. Set it up here."
+    await openTooltip();
+
+    expect(await screen.findByText(/Seer automation isn't set up for/)).toHaveTextContent(
+      "Seer automation isn't set up for 1 project in the current filter. Enable automation"
     );
-    expect(screen.getByRole('link', {name: 'here'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Enable automation'})).toHaveAttribute(
       'href',
       '/settings/acme/seer/'
     );
   });
 
-  it('joins two projects with "and"', () => {
-    render(
-      <ProjectSetupWarning
-        unconfiguredProjects={[project('alpha'), project('beta')]}
-        orgSlug="acme"
-      />
-    );
-
-    expect(screen.getByText(/Seer isn't set up for/)).toHaveTextContent(
-      "Seer isn't set up for alpha and beta. Set it up here."
-    );
+  it('is hidden on small screens', () => {
+    const originalWidth = window.innerWidth;
+    window.innerWidth = 375;
+    try {
+      const {container} = render(
+        <ProjectSetupWarning unconfiguredProjects={[project('alpha')]} orgSlug="acme" />
+      );
+      expect(container).toBeEmptyDOMElement();
+    } finally {
+      window.innerWidth = originalWidth;
+    }
   });
 
-  it('oxford-joins three projects', () => {
+  it('pluralizes the project count', async () => {
     render(
       <ProjectSetupWarning
         unconfiguredProjects={[project('alpha'), project('beta'), project('gamma')]}
@@ -43,27 +49,10 @@ describe('ProjectSetupWarning', () => {
       />
     );
 
-    expect(screen.getByText(/Seer isn't set up for/)).toHaveTextContent(
-      "Seer isn't set up for alpha, beta, and gamma. Set it up here."
-    );
-  });
+    await openTooltip();
 
-  it('truncates past three with an "and N others" tail', () => {
-    render(
-      <ProjectSetupWarning
-        unconfiguredProjects={[
-          project('alpha'),
-          project('beta'),
-          project('gamma'),
-          project('delta'),
-          project('epsilon'),
-        ]}
-        orgSlug="acme"
-      />
-    );
-
-    expect(screen.getByText(/Seer isn't set up for/)).toHaveTextContent(
-      "Seer isn't set up for alpha, beta, gamma, and 2 others. Set it up here."
+    expect(await screen.findByText(/Seer automation isn't set up for/)).toHaveTextContent(
+      "Seer automation isn't set up for 3 projects in the current filter. Enable automation"
     );
   });
 });

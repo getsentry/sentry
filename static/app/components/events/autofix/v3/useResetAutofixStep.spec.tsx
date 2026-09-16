@@ -107,6 +107,37 @@ describe('useResetAutofixStep', () => {
       expect(result.current.canReset).toBe(false);
     });
 
+    it('returns false when a PR create failed without opening a PR', () => {
+      const autofix = makeAutofix({
+        runState: {
+          run_id: 1,
+          status: 'completed',
+          blocks: [],
+          updated_at: '2024-01-01T00:00:00Z',
+          repo_pr_states: {
+            'repo-1': {
+              repo_name: 'repo-1',
+              branch_name: null,
+              commit_sha: null,
+              pr_creation_error: 'Failed to create pull request',
+              pr_creation_status: 'error',
+              pr_id: null,
+              pr_number: null,
+              pr_url: null,
+              title: null,
+            },
+          },
+          coding_agents: {},
+        },
+      });
+
+      const {result} = renderHookWithProviders(() =>
+        useResetAutofixStep({autofix, section: makeSection(), step: 'code_changes'})
+      );
+
+      expect(result.current.canReset).toBe(false);
+    });
+
     it('uses the canReset override when provided', () => {
       const autofix = makeAutofix({
         runState: {
