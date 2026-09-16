@@ -2,7 +2,11 @@ import {lazy, useMemo} from 'react';
 
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  resourceLinkMarkdown,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconIssues} from 'sentry/icons';
 
@@ -20,6 +24,12 @@ const BLOCK_COLUMNS: GroupListColumn[] = [
   'priority',
   'assignee',
 ];
+
+function IssueLink({format, id}: {id: string} & ResourceLinkFormatProps) {
+  return (
+    <ResourceLink format={format} icon={IconIssues} href={`/issues/${id}/`} title={id} />
+  );
+}
 
 function SingleIssueBlock({id}: {id: string}) {
   const queryParams = useMemo(() => ({query: `issue:${id}`, limit: '1'}), [id]);
@@ -65,16 +75,31 @@ function MultiIssueBlock({ids}: {ids: string[]}) {
 export const Issue = defineSeerEmbed({
   name: 'issue',
   render({id}, level) {
-    if (level === 'block') {
-      return <SingleIssueBlock id={id} />;
+    switch (level) {
+      case 'block':
+        return <SingleIssueBlock id={id} />;
+      case 'markdown':
+        return <IssueLink id={id} format="markdown" />;
+      case 'inline':
+        return <IssueLink id={id} />;
     }
-    return <ResourceLink icon={IconIssues} href={`/issues/${id}/`} title={id} />;
   },
 });
 
 export const Issues = defineSeerEmbed({
   name: 'issues',
-  render({ids}) {
-    return <MultiIssueBlock ids={ids} />;
+  render({ids}, level) {
+    switch (level) {
+      case 'markdown':
+        // The columns are live data; the list of issues is what survives. One
+        // line rather than a bulleted list, because the lexer can hand this tag
+        // over inline and a list would break the sentence around it.
+        return ids
+          .flatMap(id => resourceLinkMarkdown(`/issues/${id}/`, id) ?? [])
+          .join(', ');
+      case 'block':
+      case 'inline':
+        return <MultiIssueBlock ids={ids} />;
+    }
   },
 });
