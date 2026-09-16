@@ -29,56 +29,80 @@ export type TagSegment =
       type: 'tag';
     };
 
-function collectTags(tokens: Token[], found: TagToken[]): TagToken[] {
+/**
+ * A list keeps its content on `items`; everything else that nests keeps it on
+ * `tokens`. Table cells are neither -- marked gives them no `raw`, so there is
+ * nothing to locate them by, and a tag written in a table stays literal.
+ */
+function childTokens(token: Token): Token[] {
+  const nested = token as {items?: Token[]; tokens?: Token[]};
+  return nested.items ?? nested.tokens ?? [];
+}
+
+/**
+ * Walks a token list against the source it came from, emitting the text in
+ * between and a segment for each tag.
+ *
+ * Each token is located from where the previous one ended, inside its parent's
+ * source rather than the whole document. Searching globally would match the
+ * first identical string anywhere -- so a tag shown literally in a code fence
+ * would be taken for a later, real one.
+ */
+function walkSource(slice: string, tokens: Token[], out: TagSegment[]): void {
+  let cursor = 0;
+
   for (const token of tokens) {
-    if (token.type === 'tag') {
-      found.push(token as unknown as TagToken);
+    const raw = (token as {raw?: string}).raw;
+    if (raw === undefined) {
       continue;
     }
-    // `code` and `codespan` hold no child tokens, so this never descends into
-    // one -- which is what keeps a tag written inside them literal.
-    const children = (token as {tokens?: Token[]}).tokens;
-    if (children) {
-      collectTags(children, found);
+
+    const at = slice.indexOf(raw, cursor);
+    if (at === -1) {
+      continue;
     }
+    if (at > cursor) {
+      out.push({type: 'text', value: slice.slice(cursor, at)});
+    }
+
+    if (token.type === 'tag') {
+      const tag = token as unknown as TagToken;
+      out.push({
+        type: 'tag',
+        name: tag.name,
+        attrs: tag.attrs,
+        data: tag.data,
+        level: tag.level,
+      });
+    } else {
+      const children = childTokens(token);
+      if (children.length > 0) {
+        walkSource(raw, children, out);
+      } else {
+        // `code` and `codespan` land here, which is what keeps a tag written
+        // inside them literal.
+        out.push({type: 'text', value: raw});
+      }
+    }
+
+    cursor = at + raw.length;
   }
-  return found;
+
+  if (cursor < slice.length) {
+    out.push({type: 'text', value: slice.slice(cursor)});
+  }
 }
 
 /**
  * Splits a source string into its text and its tags, in document order.
  *
  * Lexed the way the document lexes it, so a tag only counts as one where the
- * document would render it as one. The text around them is returned exactly as
- * written -- located by each tag's own source rather than rebuilt from tokens,
- * which would lose the spacing.
+ * document would render it as one, and the text around them is returned exactly
+ * as written.
  */
 export function splitTags(src: string): TagSegment[] {
   const segments: TagSegment[] = [];
-  let offset = 0;
-
-  for (const tag of collectTags(MarkedLexer.lex(src), [])) {
-    const at = src.indexOf(tag.raw, offset);
-    if (at === -1) {
-      continue;
-    }
-    if (at > offset) {
-      segments.push({type: 'text', value: src.slice(offset, at)});
-    }
-    segments.push({
-      type: 'tag',
-      name: tag.name,
-      attrs: tag.attrs,
-      data: tag.data,
-      level: tag.level,
-    });
-    offset = at + tag.raw.length;
-  }
-
-  if (offset < src.length) {
-    segments.push({type: 'text', value: src.slice(offset)});
-  }
-
+  walkSource(src, MarkedLexer.lex(src), segments);
   return segments;
 }
 

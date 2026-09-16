@@ -102,6 +102,21 @@ describe('SeerMarkdownText', () => {
     );
   });
 
+  it('substitutes the real embed, not an identical one shown in a fence', () => {
+    const tag = '{% issue %}{"id":"A-1"}{% /issue %}';
+    const raw = `\`\`\`text\n${tag}\n\`\`\`\n\nthen ${tag} here`;
+
+    expect(copyTextFor(raw)).toBe(
+      `\`\`\`text\n${tag}\n\`\`\`\n\nthen [A-1](${origin}/issues/A-1/) here`
+    );
+  });
+
+  it('finds an embed inside a list item', () => {
+    const raw = '- see {% issue %}{"id":"A-1"}{% /issue %}\n- other';
+
+    expect(copyTextFor(raw)).toBe(`- see [A-1](${origin}/issues/A-1/)\n- other`);
+  });
+
   it('drops a tag whose embed is not registered, as the document does', () => {
     expect(copyTextFor('before {% nonsense %}{"a":1}{% /nonsense %} after')).toBe(
       'before  after'
