@@ -64,6 +64,23 @@ export type ReleaseComparisonRow = {
   tooltip?: React.ReactNode;
 };
 
+function ChartDiff({
+  diff,
+  diffColor,
+  diffDirection,
+}: Pick<ReleaseComparisonRow, 'diff' | 'diffColor' | 'diffDirection'>) {
+  return diff ? (
+    <Change color={defined(diffColor) ? diffColor : undefined}>
+      {diff}{' '}
+      {defined(diffDirection) ? (
+        <IconArrow direction={diffDirection} size="xs" />
+      ) : diff === '0%' ? null : (
+        <StyledNotAvailable />
+      )}
+    </Change>
+  ) : null;
+}
+
 type Props = {
   allSessions: SessionApiResponse | null;
   api: Client;
@@ -993,23 +1010,6 @@ export function ReleaseComparisonChart({
     return headers;
   }
 
-  function getChartDiff(
-    diff: ReleaseComparisonRow['diff'],
-    diffColor: ReleaseComparisonRow['diffColor'],
-    diffDirection: ReleaseComparisonRow['diffDirection']
-  ) {
-    return diff ? (
-      <Change color={defined(diffColor) ? diffColor : undefined}>
-        {diff}{' '}
-        {defined(diffDirection) ? (
-          <IconArrow direction={diffDirection} size="xs" />
-        ) : diff === '0%' ? null : (
-          <StyledNotAvailable />
-        )}
-      </Change>
-    ) : null;
-  }
-
   // if there are no sessions, we do not need to do row toggling because there won't be as many rows
   if (!hasHealthData) {
     charts.push(...additionalCharts);
@@ -1046,17 +1046,16 @@ export function ReleaseComparisonChart({
   }
 
   const titleChartDiff =
-    chart.diff !== '0%' && chart.thisRelease !== '0%'
-      ? getChartDiff(chart.diff, chart.diffColor, chart.diffDirection)
-      : null;
+    chart.diff && chart.diff !== '0%' && chart.thisRelease !== '0%' ? (
+      <ChartDiff
+        diff={chart.diff}
+        diffColor={chart.diffColor}
+        diffDirection={chart.diffDirection}
+      />
+    ) : null;
 
-  function renderChartRow({
-    diff,
-    diffColor,
-    diffDirection,
-    ...rest
-  }: ReleaseComparisonRow) {
-    return (
+  const chartRows = [...charts, ...(isOtherExpanded ? additionalCharts : [])].map(
+    ({diff, diffColor, diffDirection, ...rest}) => (
       <ReleaseComparisonChartRow
         {...rest}
         key={rest.type}
@@ -1064,13 +1063,17 @@ export function ReleaseComparisonChart({
         showPlaceholders={showPlaceholders}
         activeChart={activeChart}
         onChartChange={handleChartChange}
-        chartDiff={getChartDiff(diff, diffColor, diffDirection)}
+        chartDiff={
+          diff ? (
+            <ChartDiff diff={diff} diffColor={diffColor} diffDirection={diffDirection} />
+          ) : null
+        }
         onExpanderToggle={handleExpanderToggle}
         expanded={expanded.has(rest.type)}
         withExpanders={withExpanders}
       />
-    );
-  }
+    )
+  );
 
   return (
     <Fragment>
@@ -1140,8 +1143,7 @@ export function ReleaseComparisonChart({
           <SimpleTable.HeaderRow>{getTableHeaders(withExpanders)}</SimpleTable.HeaderRow>
         }
       >
-        {charts.map(chartRow => renderChartRow(chartRow))}
-        {isOtherExpanded && additionalCharts.map(chartRow => renderChartRow(chartRow))}
+        {chartRows}
         {additionalCharts.length > 0 && (
           <ShowMoreRow onClick={() => setIsOtherExpanded(!isOtherExpanded)}>
             <SimpleTable.RowCell>
