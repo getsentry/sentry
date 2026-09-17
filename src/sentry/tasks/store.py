@@ -8,6 +8,7 @@ from typing import Any
 
 import orjson
 from sentry_relay.processing import StoreNormalizer
+from sentry_sdk import traces
 
 from sentry import features, options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
@@ -37,7 +38,6 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_data, start_span, trace
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -329,7 +329,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
-@trace
+@traces.trace
 def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalizer = StoreNormalizer(
         remove_other=False,
@@ -388,9 +388,9 @@ def do_process_event(
         return _continue_to_save_event()
 
     # NOTE: This span ranges in the 1-2ms range.
-    with start_span(
-        op="tasks.store.process_event.get_project_from_cache",
+    with traces.start_span(
         name="tasks.store.process_event.get_project_from_cache",
+        attributes={"sentry.op": "tasks.store.process_event.get_project_from_cache"},
     ):
         project = Project.objects.get_from_cache(id=project_id)
 
@@ -420,10 +420,11 @@ def do_process_event(
     # Default event processors.
     preprocessors = get_event_preprocessors(data)
 
-    with start_span(
-        op="task.store.process_event.preprocessors", name="task.store.process_event.preprocessors"
+    with traces.start_span(
+        name="task.store.process_event.preprocessors",
+        attributes={"sentry.op": "task.store.process_event.preprocessors"},
     ) as span:
-        set_span_data(span, "from_symbolicate", from_symbolicate)
+        span.set_attribute("from_symbolicate", from_symbolicate)
         for processor in preprocessors:
             try:
                 result = processor(data)

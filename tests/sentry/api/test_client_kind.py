@@ -298,7 +298,7 @@ class SetClientKindAttributesTest(TestCase):
         mark_from_api_client(request)
         with (
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
-            mock.patch("sentry.api.client_kind.start_span"),
+            mock.patch("sentry.api.client_kind.traces.start_span"),
         ):
             set_client_kind_attributes(request)
         assert sdk.set_tag.call_args_list == [mock.call("client_kind_test", "script")]
@@ -339,7 +339,7 @@ class AccessLogAttributesTest(TestCase):
 class AttributionSpanTest(TestCase):
     def record(self, request: Request) -> tuple[Any, list[tuple[str, Any]]]:
         with (
-            mock.patch("sentry.api.client_kind.start_span") as start_span,
+            mock.patch("sentry.api.client_kind.traces.start_span") as start_span,
             mock.patch("sentry.api.client_kind.set_span_data") as set_span_data,
         ):
             set_client_kind_attributes(request)

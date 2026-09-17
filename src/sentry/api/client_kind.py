@@ -19,6 +19,7 @@ from enum import StrEnum
 import sentry_sdk
 from rest_framework.request import Request
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
+from sentry_sdk import traces
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
@@ -26,7 +27,6 @@ from sentry.middleware import is_frontend_request
 from sentry.seer.agent_token import is_agent_auth
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
-from sentry.utils.tracing import set_span_data, start_span
 
 FEATURE_FLAG = "organizations:api-client-kind-check"
 
@@ -226,13 +226,16 @@ def _record_attribution_span(
     route it served rather than its caller's.
     """
     route = get_transaction_name_from_request(request)
-    with start_span(op=ATTRIBUTION_SPAN_OP, name=route) as span:
-        set_span_data(span, ATTRIBUTE_NAMES.HTTP_ROUTE, route)
-        set_span_data(span, "client_kind_test", client_kind.value)
+    with traces.start_span(
+        name=route,
+        attributes=({"sentry.op": ATTRIBUTION_SPAN_OP} if ATTRIBUTION_SPAN_OP is not None else {}),
+    ) as span:
+        span.set_attribute(ATTRIBUTE_NAMES.HTTP_ROUTE, route)
+        span.set_attribute("client_kind_test", client_kind.value)
         if client_host is not None:
-            set_span_data(span, "client_host_test", client_host)
+            span.set_attribute("client_host_test", client_host)
         if user_agent is not None:
-            set_span_data(span, ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
+            span.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
 
 def get_user_agent(request: Request) -> str | None:
