@@ -448,6 +448,11 @@ def validate_regex_pattern(key: str, pattern: str) -> None:
     if not pattern:
         raise InvalidSearchQuery(f"{key}: Empty regex pattern")
 
+    # A quoted value's closing quote is escaped by a preceding backslash, so a pattern ending
+    # in one serializes to a query string that no longer parses.
+    if pattern.endswith("\\"):
+        raise InvalidSearchQuery(f"{key}: Invalid regex: a pattern cannot end with a backslash")
+
     for match in UNSUPPORTED_REGEX_SYNTAX.finditer(pattern):
         unsupported = match.group("unsupported")
         if unsupported is not None:
