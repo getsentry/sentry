@@ -396,7 +396,8 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return TraceMetricsConfig;
     case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
-    case WidgetType.METRICS:
+    case undefined:
+      return ErrorsConfig;
     default:
       throw new Error(`Unsupported widget type: ${widgetType}`);
   }
