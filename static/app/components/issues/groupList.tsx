@@ -10,6 +10,8 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {Placeholder} from 'sentry/components/placeholder';
+import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
 import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
   StreamGroup,
@@ -169,6 +171,27 @@ export function GroupList({
     [navigate]
   );
 
+  const parsedQuery = useMemo(
+    () => parseSearch(String(computedQueryParams.query ?? '')),
+    [computedQueryParams.query]
+  );
+
+  // Issues API does not support AND/OR statements. The endpoint rejects them
+  // with a 400, so skipping the request spares a round trip we know will fail.
+  const hasLogicBoolean = useMemo(
+    () =>
+      parsedQuery
+        ? treeResultLocator({
+            tree: parsedQuery,
+            noResultValue: false,
+            visitorTest: ({token, returnResult}) => {
+              return token.type === Token.LOGIC_BOOLEAN ? returnResult(true) : null;
+            },
+          })
+        : false,
+    [parsedQuery]
+  );
+
   const queryClient = useQueryClient();
 
   const issuesQueryOptions =
@@ -194,6 +217,7 @@ export function GroupList({
   } = useQuery({
     ...issuesQueryOptions,
     select: selectJsonWithHeaders,
+    enabled: !hasLogicBoolean,
   });
   const groupsData = data?.json;
 
@@ -246,6 +270,8 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
+  const hasError = hasLogicBoolean || isQueryError;
+  const loading = !hasLogicBoolean && isPending;
 
   const notifyFetchSuccess = useEffectEvent(() => {
     onFetchSuccess?.(
@@ -274,11 +300,13 @@ export function GroupList({
 
   const columns = withColumns;
 
-  if (isQueryError) {
+  if (hasError) {
     // A retry only helps a failure that could land differently next time. The
-    // query is fixed, so one the endpoint already rejected fails the same way
-    // on every press.
-    return (
+    // query here is fixed, so a boolean one the endpoint never accepts and a
+    // client error it already rejected both fail the same way on every press.
+    return hasLogicBoolean ? (
+      <LoadingError message={t('Search queries with AND or OR are not supported.')} />
+    ) : (
       <LoadingError
         message={getRequestErrorUserMessage(error, t('There was an error loading data.'))}
         onRetry={isRetryableRequestError(error) ? refetch : undefined}
@@ -286,7 +314,7 @@ export function GroupList({
     );
   }
 
-  if (!isPending && groups.length === 0) {
+  if (!loading && groups.length === 0) {
     if (typeof renderEmptyMessage === 'function') {
       return renderEmptyMessage();
     }
@@ -311,7 +339,7 @@ export function GroupList({
       <PanelContainer>
         {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
-          {isPending
+          {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />

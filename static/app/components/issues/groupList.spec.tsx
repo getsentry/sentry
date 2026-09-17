@@ -80,6 +80,38 @@ describe('GroupList', () => {
     ).toBeInTheDocument();
   });
 
+  it('explains a boolean query without asking the endpoint', async () => {
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: issuesUrl,
+      method: 'GET',
+      body: [],
+    });
+
+    render(
+      <GroupList
+        numPlaceholderRows={1}
+        queryParams={{...defaultQueryParams, query: 'foo OR bar'}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {...defaultQueryParams, query: 'foo OR bar'},
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
+    expect(
+      screen.getByText('Search queries with AND or OR are not supported.')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+    expect(issuesRequest).not.toHaveBeenCalled();
+  });
+
   it('offers no retry for a client error the endpoint already rejected', async () => {
     MockApiClient.addMockResponse({
       url: issuesUrl,
