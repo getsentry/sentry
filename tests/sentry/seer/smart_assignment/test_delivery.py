@@ -485,4 +485,4 @@ class DeliverSmartAssignmentResultTest(TestCase):
             {"candidates": []},
             None,
         )
-        self._assert_outcome(mock_metrics, "missing_run", "unknown")
+        self._assert_outcome(mock_metrics, "missing_run")
