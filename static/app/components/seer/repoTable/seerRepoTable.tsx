@@ -261,6 +261,7 @@ function VirtualizedRepoTable({
   repositories: RepositoryWithSettings[];
   scrollBodyRef: React.RefObject<HTMLDivElement | null>;
 }) {
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: repositories?.length ?? 0,
     getScrollElement: () => scrollBodyRef.current,

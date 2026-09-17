@@ -87,6 +87,7 @@ export function BreadcrumbsTimeline({
   fullyExpanded = true,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: breadcrumbs.length,
     getScrollElement: () => containerElement,

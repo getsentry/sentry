@@ -307,6 +307,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   const rows = useMemo(() => buildRows(items, contentWidth), [items, contentWidth]);
   const getItemKey = useCallback((index: number) => rows[index]!.id, [rows]);
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,

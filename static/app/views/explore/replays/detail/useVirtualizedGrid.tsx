@@ -46,6 +46,7 @@ export function useVirtualizedGrid({
     return () => window.cancelAnimationFrame(frame);
   }, [updateMeasurements]);
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: rowCount,
     estimateSize: () => rowHeight,

@@ -18,6 +18,7 @@ export function useVirtualRows({
   getScrollElement,
   overscan = 5,
 }: UseVirtualRowsOptions) {
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer<HTMLElement, Element>({
     count,
     estimateSize,

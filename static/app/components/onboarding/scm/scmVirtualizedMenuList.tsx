@@ -122,6 +122,7 @@ export function ScmVirtualizedMenuList({
   );
   const alignedMaxHeight = visibleOptionCount * optionHeight + MENU_PADDING * 2;
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,

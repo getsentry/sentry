@@ -146,6 +146,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
     return rows;
   }, [sections, collapsed, showSectionHeaders]);
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: virtualRows.length,
     getScrollElement: () => scrollRef.current,

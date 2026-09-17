@@ -54,6 +54,7 @@ export function Console() {
     [items]
   );
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,

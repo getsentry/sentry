@@ -163,6 +163,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     [allImages, filterSelections, searchTerm]
   );
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: filteredImages.length,
     getScrollElement: () => scrollContainer,

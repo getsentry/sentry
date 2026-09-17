@@ -39,6 +39,7 @@ export function Breadcrumbs() {
   const clearSearchTerm = () => setSearchTerm('');
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,

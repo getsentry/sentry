@@ -55,6 +55,7 @@ export function InfiniteListItems<ListItem, Response = Array<ApiResult<ListItem[
   const loadedRows = deduplicateItems(data?.pages ?? []);
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const rowVirtualizer = useVirtualizer({
     count: hasNextPage ? loadedRows.length + 1 : loadedRows.length,
     getScrollElement: () => parentRef.current,

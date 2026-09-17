@@ -559,6 +559,7 @@ function VirtualizedRepoList({
     [visibleRepos]
   );
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: visibleRepos.length,
     getScrollElement: () => scrollRef.current,

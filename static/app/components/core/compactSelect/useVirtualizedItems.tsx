@@ -33,6 +33,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: listItems.length,
     getScrollElement: () => scrollElementRef?.current,

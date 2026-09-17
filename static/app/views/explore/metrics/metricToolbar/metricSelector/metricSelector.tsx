@@ -514,6 +514,7 @@ export function MetricSelector({
   );
   const focusedKey = comboBoxState.selectionManager.focusedKey;
 
+  // oxlint-disable-next-line react/incompatible-library -- TanStack Virtual returns functions that are recreated each render, so the compiler skips memoizing here
   const virtualizer = useVirtualizer({
     count: collectionItems.length,
     getScrollElement: () => scrollElementRef.current,
