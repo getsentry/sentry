@@ -44,7 +44,6 @@ from sentry.tasks.seer.night_shift.simple_triage import (
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.factories import Factories
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -644,17 +643,6 @@ class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
         assert run.extras.get("error_message") is None
         assert run.extras.get("error_type") is None
         assert "num_candidates" not in run.extras
-
-    @patch("sentry.tasks.seer.night_shift.cron.schedule_judging_for_org.apply_async")
-    def test_complete_run_schedules_issue_data_judging_once(self, mock_schedule) -> None:
-        run = Factories.create_seer_workflow_run(organization=self.organization)
-
-        _complete_run(run)
-        _complete_run(run)
-
-        mock_schedule.assert_called_once_with(
-            args=[self.organization.id], headers={"sentry-propagate-traces": False}
-        )
 
     def test_extras_update_refreshes_run_instance(self) -> None:
         org = self.create_organization()

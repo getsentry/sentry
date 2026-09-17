@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID
 
 import sentry_sdk
+from django.db import router, transaction
 
 from sentry import features
 from sentry.api.serializers import EventSerializer, serialize
@@ -37,6 +38,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
+from sentry.tasks.seer.autofix_issue_data import schedule_judging_for_org
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.types.activity import ActivityType
@@ -131,6 +133,44 @@ def _capture_autofix_issue_data(
     return event_ids
 
 
+def _schedule_judging_after_delivery(
+    shard: SeerWorkflowRunExecution, log_extra: Mapping[str, object]
+) -> None:
+    judging_enabled = features.has(
+        "organizations:seer-fixability-training-data", shard.run.organization
+    )
+    using = router.db_for_write(SeerWorkflowRun)
+    with transaction.atomic(using=using):
+        locked_run = SeerWorkflowRun.objects.select_for_update().get(id=shard.run_id)
+        locked_shard = SeerWorkflowRunExecution.objects.select_for_update().get(id=shard.id)
+        shard_extras = {
+            **(locked_shard.extras or {}),
+            "autofix_issue_data_delivery_completed": True,
+        }
+        locked_shard.update(extras=shard_extras)
+
+        run_extras = dict(locked_run.extras or {})
+        completed_deliveries = SeerWorkflowRunExecution.objects.filter(
+            run=locked_run, extras__autofix_issue_data_delivery_completed=True
+        ).count()
+        if (
+            not judging_enabled
+            or run_extras.get("autofix_issue_data_judging_scheduled")
+            or completed_deliveries != locked_run.executions.count()
+        ):
+            return
+
+        run_extras["autofix_issue_data_judging_scheduled"] = True
+        locked_run.update(extras=run_extras)
+
+    try:
+        schedule_judging_for_org.apply_async(
+            args=[shard.run.organization_id], headers={"sentry-propagate-traces": False}
+        )
+    except Exception:
+        logger.exception("night_shift.autofix_issue_data.judge_dispatch_failed", extra=log_extra)
+
+
 def deliver_night_shift_result(
     organization_id: int,
     run_uuid: UUID,
@@ -183,6 +223,7 @@ def deliver_night_shift_result(
             attributes={"error_type": "delivery_error" if status == "error" else "no_artifact"},
         )
         logger.warning("night_shift.delivery.no_result", extra={**log_extra, "status": status})
+        _schedule_judging_after_delivery(shard, log_extra)
         return
 
     try:
@@ -192,6 +233,7 @@ def deliver_night_shift_result(
             "night_shift.triage_error", 1, attributes={"error_type": "invalid_artifact"}
         )
         logger.exception("night_shift.delivery.invalid_result", extra=log_extra)
+        _schedule_judging_after_delivery(shard, log_extra)
         return
 
     options = (run.extras or {}).get("options") or {}
@@ -212,6 +254,7 @@ def deliver_night_shift_result(
         prompt_version=prompt_version,
         log_extra=log_extra,
     )
+    _schedule_judging_after_delivery(shard, log_extra)
 
 
 def _process_verdicts(

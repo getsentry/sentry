@@ -107,6 +107,42 @@ class TestDeliverNightShiftResult(TestCase):
         assert shard.extras["error_type"] == SeerNightShiftRunErrorType.SHARD_DELIVERY_FAILED.value
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
 
+    def test_schedules_judging_after_final_shard_delivery(self) -> None:
+        org = self.create_organization()
+        run = self._create_night_shift_run(organization=org)
+        first_shard = run.executions.get()
+        assert first_shard.seer_run is not None
+        second_seer_run = self.create_seer_run(organization=org)
+        SeerWorkflowRunExecution.objects.create(run=run, seer_run=second_seer_run)
+
+        with (
+            self.feature("organizations:seer-fixability-training-data"),
+            patch(
+                "sentry.seer.night_shift.delivery.schedule_judging_for_org.apply_async"
+            ) as mock_schedule,
+        ):
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=first_shard.seer_run.uuid,
+                status="error",
+                result=None,
+                error="Seer exploded",
+            )
+            mock_schedule.assert_not_called()
+
+            for _ in range(2):
+                deliver_night_shift_result(
+                    organization_id=org.id,
+                    run_uuid=second_seer_run.uuid,
+                    status="completed",
+                    result={"verdicts": []},
+                    error=None,
+                )
+
+            mock_schedule.assert_called_once_with(
+                args=[org.id], headers={"sentry-propagate-traces": False}
+            )
+
     def test_sibling_shard_success_keeps_other_shard_error(self) -> None:
         """A successful shard delivery must not clear an error a sibling shard
         recorded on the same run."""
