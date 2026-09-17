@@ -1437,14 +1437,19 @@ const config = defineConfig({
       {
         terms: ['todo', 'fixme', 'xxx'],
         ignore: [],
-        ignoreDates: false,
-        ignoreDatesOnPullRequests: true,
+        // Expiry dates are enforced on master, but not on pull requests, so a
+        // TODO that lapses mid-review does not block an unrelated change.
+        checkDates: true,
+        checkDatesOnPullRequests: false,
         allowWarningComments: true,
       },
     ],
-    'unicorn-js/no-array-push-push': ['error'],
     'unicorn-js/no-unnecessary-polyfills': ['error'],
-    'unicorn-js/prefer-simple-condition-first': ['error'],
+    // Off since unicorn 73 started treating `x == null` as a simple condition,
+    // which flags ~600 call sites here. Every one is the rule's "unsafe" variant:
+    // reordering the operands can change what the short-circuit guards against, so
+    // they need to be read individually rather than swept through.
+    'unicorn-js/prefer-simple-condition-first': 'off',
   },
   overrides: [
     {
