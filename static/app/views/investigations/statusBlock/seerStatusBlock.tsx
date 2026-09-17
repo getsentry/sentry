@@ -114,7 +114,7 @@ type SeerStatusBlockProps = {
  *
  * One component covers the whole run lifecycle because the shape never changes
  * — icon, sentence, chip, elapsed time — only the words and the colour do. That
- * is deliberate: the block sits in a fixed spot at the top of the panel, and a
+ * is deliberate: the block sits in a fixed spot above the hypotheses panel, and a
  * reader who has learned where to look for "what is Seer doing" should not have
  * to relearn it when the run changes state.
  *

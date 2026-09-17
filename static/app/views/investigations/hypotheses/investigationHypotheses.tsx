@@ -194,26 +194,24 @@ export function InvestigationHypotheses({
     ];
   }
 
-  // The status block and the hypotheses are one object on the page: the block
-  // says what the run is doing and the cards are what it is doing it to. The
-  // panel is what makes that legible — without it the block reads as a
-  // page-level banner that happens to sit above an unrelated row.
   return (
-    <Container
-      border="primary"
-      radius="md"
-      background="secondary"
-      padding="xl"
-      data-test-id="investigation-run-panel"
-    >
-      <Stack gap="xl">
-        {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
-        <HypothesisList
-          hypotheses={projection.hypotheses}
-          primaryHypothesisId={projection.report.primaryHypothesisId}
-          getActions={getActions}
-        />
-      </Stack>
-    </Container>
+    <Stack gap="2xl">
+      {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
+      {projection.hypotheses.length > 0 ? (
+        <Container
+          border="primary"
+          radius="md"
+          background="secondary"
+          padding="xl"
+          data-test-id="investigation-run-panel"
+        >
+          <HypothesisList
+            hypotheses={projection.hypotheses}
+            primaryHypothesisId={projection.report.primaryHypothesisId}
+            getActions={getActions}
+          />
+        </Container>
+      ) : null}
+    </Stack>
   );
 }
