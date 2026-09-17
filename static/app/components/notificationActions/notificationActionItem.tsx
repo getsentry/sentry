@@ -361,16 +361,6 @@ export function NotificationActionItem({
     setEditedAction(updatedAction);
   };
 
-  // Edit button is located outside of the form
-  const editButton = (
-    <NotificationActionEditButton
-      disabled={disabled}
-      onDelete={handleDelete}
-      onEdit={() => setIsEditing(true)}
-      serviceType={serviceType}
-    />
-  );
-
   const getFormData = () => {
     if (editedAction.id) {
       return {
@@ -388,23 +378,6 @@ export function NotificationActionItem({
     };
   };
 
-  const notificationActionForm = (
-    <NotificationActionForm
-      action={editedAction}
-      availableActions={availableActions}
-      description={description}
-      onCallServiceChange={handleChange}
-      onCancel={handleCancel}
-      onChange={(name: string, value: any) =>
-        setEditedAction({...editedAction, [name]: value})
-      }
-      onSave={handleSave}
-      opsgenieIntegrations={opsgenieIntegrations}
-      pagerdutyIntegrations={pagerdutyIntegrations}
-      serviceType={serviceType}
-    />
-  );
-
   return (
     <StyledCard isEditing={isEditing} data-test-id="notification-action">
       {isEditing ? (
@@ -412,7 +385,18 @@ export function NotificationActionItem({
           <Flex align="center" marginRight="md">
             {icon}
           </Flex>
-          {notificationActionForm}
+          <NotificationActionForm
+            action={editedAction}
+            availableActions={availableActions}
+            description={description}
+            onCallServiceChange={handleChange}
+            onCancel={handleCancel}
+            onChange={(name, value) => setEditedAction({...editedAction, [name]: value})}
+            onSave={handleSave}
+            opsgenieIntegrations={opsgenieIntegrations}
+            pagerdutyIntegrations={pagerdutyIntegrations}
+            serviceType={serviceType}
+          />
         </Flex>
       ) : (
         <Fragment>
@@ -424,7 +408,13 @@ export function NotificationActionItem({
               {description}
             </Flex>
           </Flex>
-          {editButton}
+          {/* Edit button is located outside of the form */}
+          <NotificationActionEditButton
+            disabled={disabled}
+            onDelete={handleDelete}
+            onEdit={() => setIsEditing(true)}
+            serviceType={serviceType}
+          />
         </Fragment>
       )}
     </StyledCard>

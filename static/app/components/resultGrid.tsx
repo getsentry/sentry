@@ -86,11 +86,7 @@ function Filter({name, queryKey, options, path, value}: FilterProps) {
       onChange={opt =>
         navigate({
           pathname: path || location.pathname,
-          query: {
-            ...location.query,
-            [queryKey]: opt.value || undefined,
-            cursor: '',
-          },
+          query: {...location.query, [queryKey]: opt.value || undefined, cursor: ''},
         })
       }
       options={allOptions}
@@ -504,6 +500,170 @@ function buildRequest(query: Location['query'], defaultSort: string): Request {
     sortBy: extractQuery(query.sortBy, defaultSort),
     filters: {...query},
   };
+}
+
+type ResultRowsProps = {
+  allRegions: boolean;
+  clampedRegionIndex: number;
+  columnsForRow: (row: any, allRows: any[], state: State) => React.ReactNode[];
+  effectiveColumns: React.ReactNode[];
+  keyForRow: (row: any) => string;
+  results: Results;
+  state: State;
+};
+
+function ResultRows({
+  allRegions,
+  clampedRegionIndex,
+  columnsForRow,
+  effectiveColumns,
+  keyForRow,
+  results,
+  state,
+}: ResultRowsProps) {
+  const regionIndex = allRegions ? clampedRegionIndex : -1;
+  const columnLabels = effectiveColumns.map(extractColumnLabel);
+  // The Region column is contextual — keep the record's own first labeled
+  // column as the mobile-primary cell.
+  const firstPrimaryIndex = columnLabels.findIndex(
+    (label, index) => index !== regionIndex && (label ?? '') !== ''
+  );
+
+  // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
+  // via inheritance, which works even when cells are rendered inside wrapper components
+  // (where cloneElement can't reach the inner <td> elements).
+  const labelVars = Object.fromEntries(
+    columnLabels.map((label, j) => [
+      `--cl-${j + 1}`,
+      `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+    ])
+  );
+
+  return results.rows.map((row, i) => {
+    const rowRegion: Cell | undefined = allRegions ? row.__region : undefined;
+    const rowCells = columnsForRow(row, results.rows, state);
+    const cells = allRegions
+      ? rowCells.toSpliced(regionIndex, 0, <td key="__region">{rowRegion?.name}</td>)
+      : rowCells;
+    const labeledCells = cells.map((gridCell, j) => {
+      if (!isValidElement(gridCell)) {
+        return gridCell;
+      }
+      const extraProps: Record<string, unknown> = {
+        'data-label': columnLabels[j] ?? '',
+      };
+      if (j === firstPrimaryIndex) {
+        extraProps['data-mobile-primary'] = 'true';
+      }
+      return cloneElement(
+        gridCell as React.ReactElement<Record<string, unknown>>,
+        extraProps
+      );
+    });
+    const rowKey = keyForRow(row) ?? i;
+    return (
+      // Row ids can collide across regions, so scope the key by region.
+      <tr key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey} style={labelVars}>
+        {labeledCells}
+      </tr>
+    );
+  });
+}
+
+type ResultBodyProps = {
+  allRegions: boolean;
+  clampedRegionIndex: number;
+  columnsForRow: (row: any, allRows: any[], state: State) => React.ReactNode[];
+  effectiveColumns: React.ReactNode[];
+  keyForRow: (row: any) => string;
+  results: Results;
+  state: State;
+};
+
+function ResultBody({
+  allRegions,
+  clampedRegionIndex,
+  columnsForRow,
+  effectiveColumns,
+  keyForRow,
+  results,
+  state,
+}: ResultBodyProps) {
+  if (results.error) {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <ErrorAlert variant="danger" showIcon>
+            Something bad happened :/
+          </ErrorAlert>
+        </td>
+      </tr>
+    );
+  }
+
+  // Rows render as regions respond. The "still updating" signal lives outside
+  // the body, so rows never shift while regions trickle in, and "No results"
+  // only shows once every region has answered.
+  if (allRegions) {
+    if (results.rows.length > 0) {
+      return (
+        <ResultRows
+          allRegions={allRegions}
+          clampedRegionIndex={clampedRegionIndex}
+          columnsForRow={columnsForRow}
+          effectiveColumns={effectiveColumns}
+          keyForRow={keyForRow}
+          results={results}
+          state={state}
+        />
+      );
+    }
+    if (results.loading || results.pendingRegions.length > 0) {
+      return (
+        <tr>
+          <td colSpan={effectiveColumns.length}>
+            <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+          </td>
+        </tr>
+      );
+    }
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <EmptyMessage>No results</EmptyMessage>
+        </td>
+      </tr>
+    );
+  }
+  if (results.loading) {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+        </td>
+      </tr>
+    );
+  }
+  if (results.rows.length === 0) {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <EmptyMessage>No results</EmptyMessage>
+        </td>
+      </tr>
+    );
+  }
+  return (
+    <ResultRows
+      allRegions={allRegions}
+      clampedRegionIndex={clampedRegionIndex}
+      columnsForRow={columnsForRow}
+      effectiveColumns={effectiveColumns}
+      keyForRow={keyForRow}
+      results={results}
+      state={state}
+    />
+  );
 }
 
 export function ResultGrid({
@@ -959,13 +1119,13 @@ export function ResultGrid({
   }, []);
 
   const onChangeCell = (localityUrl: string | undefined) => {
-    let nextRegion: RegionSelection | undefined;
-    if (localityUrl === ALL_REGIONS) {
-      nextRegion = {allRegions: true, cell: undefined};
-    } else {
-      const nextCell = getCells().find(c => c.locality_url === localityUrl);
-      nextRegion = nextCell ? {allRegions: false, cell: nextCell} : undefined;
-    }
+    const nextRegion: RegionSelection | undefined =
+      localityUrl === ALL_REGIONS
+        ? {allRegions: true, cell: undefined}
+        : (() => {
+            const nextCell = getCells().find(c => c.locality_url === localityUrl);
+            return nextCell ? {allRegions: false, cell: nextCell} : undefined;
+          })();
 
     if (nextRegion === undefined) {
       return;
@@ -1019,107 +1179,6 @@ export function ResultGrid({
       )
     : columns;
 
-  const loading = (
-    <tr>
-      <td colSpan={effectiveColumns.length}>
-        <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
-      </td>
-    </tr>
-  );
-
-  const error = (
-    <tr>
-      <td colSpan={effectiveColumns.length}>
-        <ErrorAlert variant="danger" showIcon>
-          Something bad happened :/
-        </ErrorAlert>
-      </td>
-    </tr>
-  );
-
-  const noResults = (
-    <tr>
-      <td colSpan={effectiveColumns.length}>
-        <EmptyMessage>No results</EmptyMessage>
-      </td>
-    </tr>
-  );
-
-  function renderResults() {
-    const regionIndex = allRegions ? clampedRegionIndex : -1;
-    const columnLabels = effectiveColumns.map(extractColumnLabel);
-    // The Region column is contextual — keep the record's own first labeled
-    // column as the mobile-primary cell.
-    const firstPrimaryIndex = columnLabels.findIndex(
-      (label, index) => index !== regionIndex && (label ?? '') !== ''
-    );
-
-    // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
-    // via inheritance, which works even when cells are rendered inside wrapper components
-    // (where cloneElement can't reach the inner <td> elements).
-    const labelVars = Object.fromEntries(
-      columnLabels.map((label, j) => [
-        `--cl-${j + 1}`,
-        `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
-      ])
-    );
-
-    return results.rows.map((row, i) => {
-      const rowRegion: Cell | undefined = allRegions ? row.__region : undefined;
-      const rowCells = columnsForRow(row, results.rows, state);
-      const cells = allRegions
-        ? rowCells.toSpliced(regionIndex, 0, <td key="__region">{rowRegion?.name}</td>)
-        : rowCells;
-      const labeledCells = cells.map((gridCell, j) => {
-        if (!isValidElement(gridCell)) {
-          return gridCell;
-        }
-        const extraProps: Record<string, unknown> = {
-          'data-label': columnLabels[j] ?? '',
-        };
-        if (j === firstPrimaryIndex) {
-          extraProps['data-mobile-primary'] = 'true';
-        }
-        return cloneElement(
-          gridCell as React.ReactElement<Record<string, unknown>>,
-          extraProps
-        );
-      });
-      const rowKey = keyForRow(row) ?? i;
-      return (
-        // Row ids can collide across regions, so scope the key by region.
-        <tr key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey} style={labelVars}>
-          {labeledCells}
-        </tr>
-      );
-    });
-  }
-
-  function renderBody() {
-    if (results.error) {
-      return error;
-    }
-    // Rows render as regions respond. The "still updating" signal lives outside
-    // the body, so rows never shift while regions trickle in, and "No results"
-    // only shows once every region has answered.
-    if (allRegions) {
-      if (results.rows.length > 0) {
-        return renderResults();
-      }
-      if (results.loading || results.pendingRegions.length > 0) {
-        return loading;
-      }
-      return noResults;
-    }
-    if (results.loading) {
-      return loading;
-    }
-    if (results.rows.length === 0) {
-      return noResults;
-    }
-    return renderResults();
-  }
-
   const regionHint = (
     <RegionHint
       allRegions={allRegions}
@@ -1144,7 +1203,17 @@ export function ResultGrid({
         <thead>
           <tr>{effectiveColumns}</tr>
         </thead>
-        <tbody>{renderBody()}</tbody>
+        <tbody>
+          <ResultBody
+            allRegions={allRegions}
+            clampedRegionIndex={clampedRegionIndex}
+            columnsForRow={columnsForRow}
+            effectiveColumns={effectiveColumns}
+            keyForRow={keyForRow}
+            results={results}
+            state={state}
+          />
+        </tbody>
       </ResultTable>
     </TableScrollWrapper>
   );

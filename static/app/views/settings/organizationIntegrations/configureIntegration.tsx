@@ -583,31 +583,25 @@ function ConfigureIntegration() {
     }
   }
 
-  function renderMainContent() {
-    if (allTabs.length === 0) {
-      return mainTab;
-    }
-
-    return (
-      <Fragment>
-        <TabsContainer>
-          <Tabs value={tab} onChange={onTabChange}>
-            <TabList>
-              {allTabs.map(tabTuple => (
-                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-              ))}
-            </TabList>
-          </Tabs>
-        </TabsContainer>
-        {renderTabContent()}
-      </Fragment>
-    );
-  }
-
   return (
     <Fragment>
       <IntegrationNavigationHeader integration={integration} action={action} />
-      {renderMainContent()}
+      {allTabs.length === 0 ? (
+        mainTab
+      ) : (
+        <Fragment>
+          <TabsContainer>
+            <Tabs value={tab} onChange={onTabChange}>
+              <TabList>
+                {allTabs.map(tabTuple => (
+                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+                ))}
+              </TabList>
+            </Tabs>
+          </TabsContainer>
+          {renderTabContent()}
+        </Fragment>
+      )}
     </Fragment>
   );
 }

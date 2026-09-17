@@ -81,24 +81,34 @@ function choicesToOptions(
 }
 
 function DefaultNotificationField({
-  choices,
-  help,
   initialValue,
-  label,
-  mutationOptions: fieldMutationOptions,
-  name,
+  notificationType,
+  fieldMutationOptions,
 }: {
-  choices: ReadonlyArray<readonly [string, string]>;
-  help: string;
-  initialValue: string;
-  label: string;
-  mutationOptions: UseMutationOptions<
+  fieldMutationOptions: UseMutationOptions<
     NotificationOptionsObject,
     Error,
     Record<string, string>
   >;
-  name: string;
+  initialValue: string;
+  notificationType: string;
 }) {
+  const fieldDef =
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
+
+  const choices = fieldDef.choices;
+  const help =
+    notificationType === 'spikeProtection'
+      ? t('This is the default for all projects under all organizations.')
+      : isGroupedByProject(notificationType)
+        ? t('This is the default for all projects.')
+        : t('This is the default for all organizations.');
+  const label = fieldDef.label;
+  const name = notificationType;
+
+  if (!choices) {
+    return null;
+  }
   const schema = z.object({[name]: z.string()});
 
   return (
@@ -432,50 +442,6 @@ export function NotificationSettingsByType({notificationType}: Props) {
     },
   });
 
-  const renderQuotaFields = () => {
-    return QUOTA_FIELDS.map(field => {
-      const schema = z.object({[field.name]: z.string()});
-      return (
-        <AutoSaveForm
-          key={field.name}
-          name={field.name}
-          schema={schema}
-          initialValue={initialTopOptionData[field.name] ?? 'always'}
-          mutationOptions={optionMutationOptions(field.name)}
-        >
-          {fieldApi => (
-            <fieldApi.Layout.Row label={field.label} hintText={field.help}>
-              <fieldApi.Select
-                value={fieldApi.state.value}
-                onChange={fieldApi.handleChange}
-                options={choicesToOptions(field.choices)}
-              />
-            </fieldApi.Layout.Row>
-          )}
-        </AutoSaveForm>
-      );
-    });
-  };
-
-  const fieldDef =
-    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
-  const defaultField = fieldDef?.choices ? (
-    <DefaultNotificationField
-      choices={fieldDef.choices}
-      help={
-        notificationType === 'spikeProtection'
-          ? t('This is the default for all projects under all organizations.')
-          : isGroupedByProject(notificationType)
-            ? t('This is the default for all projects.')
-            : t('This is the default for all organizations.')
-      }
-      initialValue={initialTopOptionData[notificationType] ?? 'always'}
-      label={fieldDef.label}
-      mutationOptions={optionMutationOptions(notificationType)}
-      name={notificationType}
-    />
-  ) : null;
-
   return (
     <Fragment>
       <SentryDocumentTitle title={title} />
@@ -489,7 +455,36 @@ export function NotificationSettingsByType({notificationType}: Props) {
               : t('All Organizations')
           }
         >
-          {notificationType === 'quota' ? renderQuotaFields() : defaultField}
+          {notificationType === 'quota' ? (
+            QUOTA_FIELDS.map(field => {
+              const schema = z.object({[field.name]: z.string()});
+              return (
+                <AutoSaveForm
+                  key={field.name}
+                  name={field.name}
+                  schema={schema}
+                  initialValue={initialTopOptionData[field.name] ?? 'always'}
+                  mutationOptions={optionMutationOptions(field.name)}
+                >
+                  {fieldApi => (
+                    <fieldApi.Layout.Row label={field.label} hintText={field.help}>
+                      <fieldApi.Select
+                        value={fieldApi.state.value}
+                        onChange={fieldApi.handleChange}
+                        options={choicesToOptions(field.choices)}
+                      />
+                    </fieldApi.Layout.Row>
+                  )}
+                </AutoSaveForm>
+              );
+            })
+          ) : (
+            <DefaultNotificationField
+              notificationType={notificationType}
+              initialValue={initialTopOptionData[notificationType] ?? 'always'}
+              fieldMutationOptions={optionMutationOptions(notificationType)}
+            />
+          )}
         </FieldGroup>
       )}
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
