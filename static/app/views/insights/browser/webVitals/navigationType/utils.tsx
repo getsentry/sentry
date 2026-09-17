@@ -10,7 +10,7 @@ import {
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  bucketsSupportThresholds,
+  bucketsKeepThresholds,
   getBucketsFromGlobalFilters,
   isNavigationTypeGlobalFilter,
   isWebVitalsPrebuiltDashboard,
@@ -58,7 +58,7 @@ export function useNavigationTypeExperiment(
   return {
     isEnabled,
     buckets,
-    supportsThresholds: bucketsSupportThresholds(buckets),
+    supportsThresholds: bucketsKeepThresholds(buckets),
     otherSpanFilterQuery: spanFilterQueryFromGlobalFilters(
       globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter))
     ),
@@ -79,11 +79,11 @@ export function navigationTypeSuppressesThresholds(
 ): boolean {
   const globalFilters = dashboardFilters?.[DashboardFilterKeys.GLOBAL_FILTER];
 
-  // The default selection is "All", so a missing filter can't be read as a
-  // selection here or every dashboard would lose its thresholds.
+  // No filter means "All", which is every other dashboard as well as a web
+  // vitals dashboard nobody has narrowed yet.
   if (!globalFilters?.some(isNavigationTypeGlobalFilter)) {
     return false;
   }
 
-  return !bucketsSupportThresholds(getBucketsFromGlobalFilters(globalFilters));
+  return !bucketsKeepThresholds(getBucketsFromGlobalFilters(globalFilters));
 }

@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
@@ -40,18 +40,16 @@ describe('NavigationTypeSwitcher', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  it('defaults to all navigation types and writes the filter out', async () => {
+  it('defaults to all navigation types without writing a filter', async () => {
     mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: '', 'count()': 500}]);
     const onChange = jest.fn();
 
     renderSwitcher([], onChange);
 
-    expect(screen.getByText('All')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(onChange).toHaveBeenCalledWith([
-        buildNavigationTypeGlobalFilter(NAVIGATION_TYPE_BUCKET_ORDER),
-      ]);
-    });
+    expect(await screen.findByText('All')).toBeInTheDocument();
+    // "All" filters nothing, so it must not leave a temporary filter behind:
+    // the dashboard hides its save controls while one is active.
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('shows a count for every bucket, including empty ones', async () => {
@@ -148,20 +146,23 @@ describe('NavigationTypeSwitcher', () => {
     expect(await screen.findByText('All')).toBeInTheDocument();
   });
 
-  it('treats deselecting the last bucket as "All"', async () => {
+  it('drops the filter when the selection widens back to "All"', async () => {
     mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', 'count()': 10}]);
     const onChange = jest.fn();
+    const browserFilter: GlobalFilter = {
+      dataset: WidgetType.SPANS,
+      tag: {key: 'browser.name', name: 'browser.name'},
+      value: 'browser.name:Chrome',
+    };
 
     renderSwitcher(
-      [buildNavigationTypeGlobalFilter([NavigationTypeBucket.PAGE_LOAD])],
+      [browserFilter, buildNavigationTypeGlobalFilter([NavigationTypeBucket.PAGE_LOAD])],
       onChange
     );
 
     await userEvent.click(screen.getByRole('button', {name: /Measured on/}));
     await userEvent.click(await screen.findByRole('option', {name: /Page loads/}));
 
-    expect(onChange).toHaveBeenCalledWith([
-      buildNavigationTypeGlobalFilter(NAVIGATION_TYPE_BUCKET_ORDER),
-    ]);
+    expect(onChange).toHaveBeenCalledWith([browserFilter]);
   });
 });

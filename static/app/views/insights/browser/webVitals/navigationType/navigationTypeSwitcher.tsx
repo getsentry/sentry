@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 
 import {Badge} from '@sentry/scraps/badge';
 import {
@@ -57,21 +57,6 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
 
   const {counts, untaggedCount, isPending} = useNavigationTypeCounts({additionalQuery});
 
-  // With no filter yet, `buckets` is the default selection. Write it out on
-  // first render so the widgets and the threshold check read the same explicit
-  // selection as this control.
-  const hasWrittenDefault = useRef(false);
-  const hasFilter = globalFilters.some(isNavigationTypeGlobalFilter);
-  useEffect(() => {
-    if (hasFilter || hasWrittenDefault.current) {
-      return;
-    }
-    hasWrittenDefault.current = true;
-    onChange(
-      mergeGlobalFilters(globalFilters, [buildNavigationTypeGlobalFilter(buckets)])
-    );
-  }, [hasFilter, globalFilters, buckets, onChange]);
-
   const options: Array<SelectOption<NavigationTypeBucket>> =
     NAVIGATION_TYPE_BUCKET_ORDER.map(candidate => {
       const config = NAVIGATION_TYPE_BUCKETS[candidate];
@@ -111,10 +96,18 @@ export function NavigationTypeSwitcher({globalFilters, onChange}: Props) {
       }
       onChange={selected => {
         const nextBuckets = normalizeBuckets(selected.map(option => option.value));
+        const otherFilters = globalFilters.filter(
+          filter => !isNavigationTypeGlobalFilter(filter)
+        );
         onChange(
-          mergeGlobalFilters(globalFilters, [
-            buildNavigationTypeGlobalFilter(nextBuckets),
-          ])
+          // "All" filters nothing, so it drops the filter rather than leaving a
+          // no-op one behind. The filter is temporary, and the dashboard hides
+          // its save controls while any temporary filter is active.
+          isAllBucketsSelected(nextBuckets)
+            ? otherFilters
+            : mergeGlobalFilters(globalFilters, [
+                buildNavigationTypeGlobalFilter(nextBuckets),
+              ])
         );
         trackAnalytics('insight.vital.select_navigation_type', {
           organization,
