@@ -12,7 +12,7 @@ import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler} from 'sentry/views/issueList/types';
 
 import {NoGroupsHandler} from './noGroupsHandler';
 
@@ -23,7 +23,7 @@ type GroupListBodyProps = {
   groupStatsPeriod: string;
   loading: boolean;
   memberList: IndexedMembersByProject | undefined;
-  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken: IssueActionHandler;
   pageSize: number;
   query: string;
   refetchGroups: () => void;
@@ -35,7 +35,7 @@ type GroupListProps = {
   groupIds: string[];
   groupStatsPeriod: string;
   memberList: IndexedMembersByProject | undefined;
-  onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken: IssueActionHandler;
   query: string;
 };
 
