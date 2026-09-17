@@ -856,6 +856,28 @@ class ExploreSavedQueriesTest(APITestCase):
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
 
+    def test_post_starred(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "starred query",
+                    "projects": self.project_ids,
+                    "query": [{"fields": ["span.op"], "mode": "samples"}],
+                    "range": "24h",
+                    "starred": True,
+                },
+            )
+
+        assert response.status_code == 201, response.content
+        assert response.data["starred"] is True
+        assert ExploreSavedQueryStarred.objects.filter(
+            organization=self.org,
+            user_id=self.user.id,
+            explore_saved_query_id=response.data["id"],
+            starred=True,
+        ).exists()
+
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):
             response = self.client.post(
