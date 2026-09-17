@@ -5,8 +5,7 @@ import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';

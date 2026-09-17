@@ -5,8 +5,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 

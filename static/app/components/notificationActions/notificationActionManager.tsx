@@ -1,8 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotificationActionItem} from 'sentry/components/notificationActions/notificationActionItem';

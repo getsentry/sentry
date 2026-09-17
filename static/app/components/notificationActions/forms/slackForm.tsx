@@ -2,9 +2,8 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid} from '@sentry/scraps/layout';
 

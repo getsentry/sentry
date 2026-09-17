@@ -4,8 +4,7 @@ import type {LocationDescriptor} from 'history';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';

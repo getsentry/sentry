@@ -2,8 +2,11 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {
+  DropdownButton,
+  DropdownMenu,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
