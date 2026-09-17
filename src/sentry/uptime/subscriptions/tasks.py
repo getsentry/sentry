@@ -294,9 +294,10 @@ def config_drift_dispatcher(**kwargs):
 )
 def check_missing_configs(subscription_id_prefix: str, **kwargs):
     """
-    Postgres → Redis direction of the drift sweep: for ACTIVE subscriptions in this
-    subscription_id prefix, count the (subscription, store) pairs whose config is absent.
+    Postgres → Redis direction of the drift sweep: count ACTIVE subscriptions in this prefix
+    whose config is absent from each store, and republish them when repair is on.
     """
+    repair = options.get("uptime.config-drift.repair")
     for store in get_config_stores():
         result = find_missing_configs(store, subscription_id_prefix)
         missing = len(result.drifted_ids)
@@ -314,6 +315,8 @@ def check_missing_configs(subscription_id_prefix: str, **kwargs):
                     "count": missing,
                 },
             )
+            if repair:
+                repair_missing_configs(store, result.drifted_ids)
 
 
 @instrumented_task(
