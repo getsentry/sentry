@@ -150,6 +150,73 @@ describe('marked tag extension', () => {
     });
   });
 
+  describe('a tag is block only when it is alone on its line', () => {
+    const TAG = '{% issue %}{"id":"PROJ-123"}{% /issue %}';
+
+    /**
+     * Lists and tables nest tags deeper than `findTag` reaches -- a list item's tag sits
+     * under list > items > tokens > paragraph > tokens.
+     */
+    function findTagAnywhere(src: string): TagToken | undefined {
+      function walk(tokens: Token[]): TagToken | undefined {
+        for (const token of tokens) {
+          if (isTagToken(token)) {
+            return token;
+          }
+          for (const key of ['tokens', 'items', 'rows', 'header'] as const) {
+            const nested = (token as any)[key];
+            if (Array.isArray(nested)) {
+              const found = walk(nested.flat());
+              if (found) {
+                return found;
+              }
+            }
+          }
+        }
+        return undefined;
+      }
+      return walk(lex(src));
+    }
+
+    it.each([
+      ['leading text', `See ${TAG}`],
+      ['trailing text', `${TAG} is the urgent one`],
+      ['text on both sides', `See ${TAG} for details`],
+      ['a list item that leads with the tag', `- ${TAG} is the urgent one\n`],
+      ['a list item with text before the tag', `- See ${TAG}\n`],
+      ['a table cell', `| Issue |\n| --- |\n| ${TAG} |\n`],
+    ])('is inline with %s', (_label, src) => {
+      expect(findTagAnywhere(src)?.level).toBe('inline');
+    });
+
+    it.each([
+      ['on its own', TAG],
+      ['indented', `   ${TAG}`],
+      ['between paragraphs', `Before\n\n${TAG}\n\nAfter`],
+      ['alone in a list item', `- ${TAG}\n`],
+      [
+        'in a list item as its own paragraph',
+        `1. Configure:\n\n   ${TAG}\n\n2. Deploy\n`,
+      ],
+    ])('is block when %s', (_label, src) => {
+      expect(findTagAnywhere(src)?.level).toBe('block');
+    });
+
+    it('stays block when a multi-line body ends its line', () => {
+      const tag = findTagAnywhere('{% chart %}{\n  "series": [1, 2]\n}{% /chart %}');
+      expect(tag?.level).toBe('block');
+      expect(tag?.data).toEqual({series: [1, 2]});
+    });
+
+    it('goes inline when a multi-line body is followed by text', () => {
+      const tag = findTagAnywhere(
+        '{% chart %}{\n  "series": [1, 2]\n}{% /chart %} shows the spike'
+      );
+      expect(tag?.level).toBe('inline');
+      expect(tag?.data).toEqual({series: [1, 2]});
+    });
+  });
+
   describe('arbitrary tag names', () => {
     it('parses any valid tag name', () => {
       const tag = findTag('{% chart type="line" /%}');
