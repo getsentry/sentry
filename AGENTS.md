@@ -35,6 +35,8 @@ devservices up  # bring up services
 
 That is all that is required to run `pytest`. `devservices serve` starts the development server. For full environment setup/troubleshooting, use the **`setup-dev`** skill.
 
+To bump an existing Python dependency, use the **`bump-sentry-dependency`** skill.
+
 When the devserver runs, its full console output is teed to `.artifacts/dev.log` (ANSI-stripped, gitignored, truncated per process start; override with `SENTRY_DEV_LOG_FILE`). Agents can't see the devserver terminal — `tail`/`grep` this file to inspect startup, reloads, request logs, and tracebacks. Dev-only.
 
 #### Linting

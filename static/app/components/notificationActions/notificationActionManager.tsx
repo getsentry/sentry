@@ -47,7 +47,7 @@ export function NotificationActionManager({
     useState<Array<Partial<NotificationAction>>>(actions);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setNotificationActions(actions);
   }, [actions]);
 

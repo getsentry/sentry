@@ -240,7 +240,20 @@ beforeEach(closeModal);
 afterEach(() => {
   const {toast} =
     jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  act(() => void toast.dismiss());
+  act(() => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    // Sonner defers dismissal updates with requestAnimationFrame. Flush them
+    // synchronously so cleanup also works when a test has enabled fake timers.
+    window.requestAnimationFrame = callback => {
+      callback(0);
+      return 0;
+    };
+    try {
+      toast.dismiss();
+    } finally {
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
+  });
   resetResizeObservers();
 });
 

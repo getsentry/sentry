@@ -138,6 +138,7 @@ export function CodeBlock({
       onLoad: () =>
         Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [children, language, onAfterHighlight, lineHighlightLoaded]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');

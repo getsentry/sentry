@@ -170,6 +170,7 @@ describe('useSeerExplorer', () => {
       '/explore/replays/:replaySlug/',
       '/monitors/',
       '/monitors/:detectorId/',
+      '/monitors/:detectorId/edit/',
       '/monitors/crons/',
       '/monitors/errors/',
       '/monitors/metrics/',

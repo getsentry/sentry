@@ -1266,8 +1266,10 @@ describe('trace view', () => {
       )!;
       expect(within(childRow).getByText('child-region')).toBeInTheDocument();
       expect(within(rootRow).getByText('root-region')).toBeInTheDocument();
-      expect(router.location.query.node).toBe('span-pin-root');
-      expect(router.location.query.fov).toBe('100,500');
+      await waitFor(() => {
+        expect(router.location.query.node).toBe('span-pin-root');
+        expect(router.location.query.fov).toBe('100,500');
+      });
       expect(traceRequest).toHaveBeenCalledTimes(1);
       expect(attributeRequest).toHaveBeenCalledTimes(1);
     });

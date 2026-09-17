@@ -108,6 +108,7 @@ export function AttributeField({
       setSuggestedAttributeValues(elideTagBasedAttributes(traceItemAttributeResult.data));
     }
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     onChange,
     traceItemAttributeResult.data,
     traceItemAttributeResult.isLoading,

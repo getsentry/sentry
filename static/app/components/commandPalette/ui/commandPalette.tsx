@@ -358,6 +358,7 @@ export function CommandPalette({
     if (firstFocusableKey) {
       treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
   const resultsListRef = useRef<HTMLDivElement>(null);

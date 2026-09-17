@@ -291,6 +291,7 @@ export function GroupList({
     isQuerySuccess,
     // Sometimes data is already cached, so we need to include this in order to
     // trigger onFetchSuccess when new data is shown
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataUpdatedAt,
   ]);
 

@@ -126,6 +126,7 @@ export function App() {
 
   // Update guide store on location change
   const location = useLocation();
+  // oxlint-disable-next-line react/exhaustive-effect-dependencies
   useEffect(() => GuideStore.onURLChange(), [location]);
 
   useEffect(() => {
