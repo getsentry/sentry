@@ -506,4 +506,43 @@ describe('AssertionOpGroup', () => {
       });
     });
   });
+
+  describe('missing children from API response', () => {
+    it('renders without crashing when children field is missing from a group op', async () => {
+      // Simulate an API response that omits the `children` field, which the
+      // type contract declares as required but the API may not always provide.
+      const value = {
+        id: 'test-id-missing-children',
+        op: UptimeOpType.AND,
+        // intentionally omitting `children` to simulate the API bug
+      } as UptimeAndOp;
+
+      await renderGroup(value);
+
+      // Should fall back gracefully and show the empty-group state
+      expect(screen.getByText('Empty assertion group')).toBeInTheDocument();
+    });
+
+    it('renders without crashing when children field is missing from a negated group op', async () => {
+      // Simulate an API response where the inner operand omits `children`.
+      const value: UptimeNotOp = {
+        id: 'test-id-not',
+        op: UptimeOpType.NOT,
+        operand: {
+          id: 'test-id-inner',
+          op: UptimeOpType.AND,
+          // intentionally omitting `children`
+        } as UptimeAndOp,
+      };
+
+      render(
+        <AssertionOpGroup value={value} onChange={mockOnChange} onRemove={mockOnRemove} />
+      );
+      // "Assert Not All" is the label for a negated AND group
+      await screen.findByRole('button', {name: /Assert Not All/});
+
+      // Should fall back gracefully and show the empty-group state
+      expect(screen.getByText('Empty assertion group')).toBeInTheDocument();
+    });
+  });
 });
