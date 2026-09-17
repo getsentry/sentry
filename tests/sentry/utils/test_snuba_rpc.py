@@ -57,7 +57,7 @@ def test_rpc_http_errors(status: int, message: str, exception: type[Exception]) 
     error = ErrorProto(message=message)
     response = HTTPResponse(status=status, body=error.SerializeToString())
     with (
-        mock.patch.object(snuba_rpc._snuba_pool, "urlopen", return_value=response),
+        mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen", return_value=response),
         pytest.raises(exception) as raised,
     ):
         snuba_rpc.trace_item_details_rpc(TraceItemDetailsRequest(meta=_meta()))
