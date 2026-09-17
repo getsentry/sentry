@@ -1,4 +1,4 @@
-import {type ReactNode, useCallback, useMemo} from 'react';
+import {type ReactNode, useCallback, useId, useMemo} from 'react';
 import {motion} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -71,6 +71,7 @@ export function ScmFeatureSelectionPanel({
   // on an unknown plan, so we hide that framing rather than show numbers that
   // may not apply.
   const isOnboarding = analyticsFlow === 'onboarding';
+  const productsHeadingId = useId();
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
 
   const currentFeatures = useMemo(
@@ -182,6 +183,7 @@ export function ScmFeatureSelectionPanel({
         featureMeta={featureMeta}
         isVolumeLoading={isFeatureMetaLoading}
         isOnboarding={isOnboarding}
+        labelledBy={productsHeadingId}
       />
     );
   } else if (featureMode === 'informational') {
@@ -232,7 +234,9 @@ export function ScmFeatureSelectionPanel({
 
             {isOnboarding ? null : (
               <Flex justify="between" align="center" gap="md">
-                <Heading as="h4">{t('Products')}</Heading>
+                <Heading as="h4" id={productsHeadingId}>
+                  {t('Products')}
+                </Heading>
                 {currentPlatformKey ? null : (
                   <Tag
                     variant="muted"

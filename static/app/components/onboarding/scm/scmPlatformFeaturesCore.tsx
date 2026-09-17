@@ -57,6 +57,8 @@ const SKIP_DETECTION_CLICKED_EVENT = {
   'project-creation': 'project_creation.skip_detection_clicked',
 } as const;
 
+type FocusTarget = 'manualPicker' | 'selectedCard';
+
 interface ScmPlatformFeaturesCoreProps {
   analyticsFlow: ScmAnalyticsFlow;
   onFeaturesChange: (features: ProductSolution[] | undefined) => void;
@@ -95,10 +97,18 @@ export function ScmPlatformFeaturesCore({
   // The detected and manual views replace each other, which unmounts the
   // button that switched them. The incoming view's control takes focus
   // instead, but only when a user action caused the swap: an automatic swap
-  // (detection failing, a repo change) must not steal focus.
-  const [autoFocusManualPicker, setAutoFocusManualPicker] = useState(false);
-  const [autoFocusSelectedCard, setAutoFocusSelectedCard] = useState(false);
-  // Names the radiogroup and the manual picker after their visible heading.
+  // (detection failing, a repo change) must not steal focus. The request
+  // remembers the repository it was made for: cached detection results let a
+  // repo change mount the next repository's cards in the same render, before
+  // the reset effect below could clear the request.
+  const [focusRequest, setFocusRequest] = useState<{
+    repositoryId: string | undefined;
+    target: FocusTarget;
+  } | null>(null);
+  const focusTarget =
+    focusRequest && focusRequest.repositoryId === selectedRepository?.externalId
+      ? focusRequest.target
+      : null;
   const headingId = useId();
   // Guards the auto-detect analytics event below so it fires once per repo.
   const autoDetectionTrackedRef = useRef(false);
@@ -111,8 +121,7 @@ export function ScmPlatformFeaturesCore({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setShowManualPicker(false);
-    setAutoFocusManualPicker(false);
-    setAutoFocusSelectedCard(false);
+    setFocusRequest(null);
     autoDetectionTrackedRef.current = false;
   }, [selectedRepository?.externalId]);
 
@@ -276,10 +285,13 @@ export function ScmPlatformFeaturesCore({
     trackScmPlatformSelected(analyticsFlow, organization, platformKey, 'detected');
   };
 
+  function requestFocus(target: FocusTarget) {
+    setFocusRequest({repositoryId: selectedRepository?.externalId, target});
+  }
+
   function handleChangePlatformClick() {
     setShowManualPicker(true);
-    setAutoFocusManualPicker(true);
-    setAutoFocusSelectedCard(false);
+    requestFocus('manualPicker');
     // Distinguish bailing *while detection is still running* (a latency-driven
     // abandonment signal) from changing an already-detected platform.
     if (isDetecting) {
@@ -297,8 +309,7 @@ export function ScmPlatformFeaturesCore({
 
   function handleBackToRecommended() {
     setShowManualPicker(false);
-    setAutoFocusSelectedCard(true);
-    setAutoFocusManualPicker(false);
+    requestFocus('selectedCard');
     // If the host already has a detected platform committed, just reopen the
     // cards view with it still selected. The user may have committed a non-top
     // detection (or the auto-adopted default), so forcing the top detection here
@@ -405,6 +416,9 @@ export function ScmPlatformFeaturesCore({
     !isDetectionError &&
     hasDetectedPlatforms &&
     (!currentPlatformKey || currentPlatformIsDetected);
+  // "Back to recommended platforms" focuses the selected card, or the first
+  // card when nothing is selected yet.
+  const focusedDetectedPlatform = currentPlatformKey ?? resolvedPlatforms[0]?.platform;
 
   return showDetectedPlatforms ? (
     <MotionStack
@@ -458,7 +472,7 @@ export function ScmPlatformFeaturesCore({
             role="radiogroup"
             aria-labelledby={headingId}
           >
-            {resolvedPlatforms.map(({platform, info}, index) => (
+            {resolvedPlatforms.map(({platform, info}) => (
               <ScmPlatformCard
                 key={platform}
                 platform={platform}
@@ -467,8 +481,7 @@ export function ScmPlatformFeaturesCore({
                 isSelected={currentPlatformKey === platform}
                 onClick={() => handleSelectDetectedPlatform(platform)}
                 autoFocus={
-                  autoFocusSelectedCard &&
-                  (currentPlatformKey ? currentPlatformKey === platform : index === 0)
+                  focusTarget === 'selectedCard' && platform === focusedDetectedPlatform
                 }
               />
             ))}
@@ -517,7 +530,7 @@ export function ScmPlatformFeaturesCore({
       {detectedPlatformKey ? (
         <Select<(typeof platformOptions)[number]>
           aria-labelledby={headingId}
-          autoFocus={autoFocusManualPicker}
+          autoFocus={focusTarget === 'manualPicker'}
           placeholder={t('Search SDKs...')}
           options={platformOptionGroups}
           value={currentPlatformKey ?? null}
@@ -530,7 +543,7 @@ export function ScmPlatformFeaturesCore({
       ) : (
         <Select<(typeof platformOptions)[number]>
           aria-labelledby={headingId}
-          autoFocus={autoFocusManualPicker}
+          autoFocus={focusTarget === 'manualPicker'}
           placeholder={t('Search SDKs...')}
           options={platformOptionGroups}
           value={currentPlatformKey ?? null}

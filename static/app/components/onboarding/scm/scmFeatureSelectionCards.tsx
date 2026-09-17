@@ -18,6 +18,11 @@ interface ScmFeatureSelectionCardsProps {
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
+  /**
+   * Names the card group outside onboarding, which renders no heading of its
+   * own.
+   */
+  labelledBy?: string;
 }
 
 export function ScmFeatureSelectionCards({
@@ -28,6 +33,7 @@ export function ScmFeatureSelectionCards({
   featureMeta,
   isVolumeLoading,
   isOnboarding,
+  labelledBy,
 }: ScmFeatureSelectionCardsProps) {
   const headingId = useId();
 
@@ -51,8 +57,7 @@ export function ScmFeatureSelectionCards({
       <Stack
         gap="md"
         role="group"
-        aria-labelledby={isOnboarding ? headingId : undefined}
-        aria-label={isOnboarding ? undefined : t('Products')}
+        aria-labelledby={isOnboarding ? headingId : labelledBy}
       >
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];

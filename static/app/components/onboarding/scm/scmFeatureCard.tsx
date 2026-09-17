@@ -46,7 +46,9 @@ export function ScmFeatureCard({
 
   return (
     // The reason a card is disabled hangs off the card itself (not the
-    // switch inside it) so it opens on keyboard focus as well as hover.
+    // switch inside it) so it opens on keyboard focus as well as hover. The
+    // tooltip replaces aria-describedby on its trigger, so a card with a
+    // reason describes that instead of its volume.
     <Tooltip title={disabledReason} disabled={!disabledReason} delay={500} skipWrapper>
       <ScmCardButton
         disabled={disabled}
