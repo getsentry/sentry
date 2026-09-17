@@ -19,15 +19,13 @@ import {SpanFields} from 'sentry/views/insights/types';
 export const AGENTS_TABLE_TABS = ['conversations', 'traces', 'spans'] as const;
 export type AgentsTableTab = (typeof AGENTS_TABLE_TABS)[number];
 
-const LLM_CALLS_SAVED_QUERY_PARAMS = {
-  fields: [
-    SpanFields.ID,
-    SpanFields.GEN_AI_OUTPUT_MESSAGES,
-    SpanFields.GEN_AI_RESPONSE_MODEL,
-    SpanFields.GEN_AI_COST_TOTAL_TOKENS,
-    SpanFields.TIMESTAMP,
-  ],
-};
+const LLM_CALLS_SAVED_QUERY_FIELDS = [
+  SpanFields.ID,
+  SpanFields.GEN_AI_OUTPUT_MESSAGES,
+  SpanFields.GEN_AI_RESPONSE_MODEL,
+  SpanFields.GEN_AI_COST_TOTAL_TOKENS,
+  SpanFields.TIMESTAMP,
+];
 
 interface AgentsTableProps {
   activeTab: AgentsTableTab;
@@ -73,7 +71,7 @@ export function AgentsTable({
 
 function AgentsSpansTable() {
   return (
-    <SpansQueryParamsProvider frozenParams={LLM_CALLS_SAVED_QUERY_PARAMS}>
+    <SpansQueryParamsProvider fields={LLM_CALLS_SAVED_QUERY_FIELDS}>
       <AgentsSpansTableContent />
     </SpansQueryParamsProvider>
   );
