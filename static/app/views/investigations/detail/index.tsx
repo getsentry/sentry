@@ -333,7 +333,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <InvestigationHeader as="header" width="100%" padding="xl">
+        <Container as="header" width="100%" padding="xl">
           <Grid
             columns="minmax(0, 1fr) auto"
             align="start"
@@ -379,7 +379,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               </FeedbackButton>
             </Flex>
           </Grid>
-        </InvestigationHeader>
+        </Container>
         <Layout.Body>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
@@ -451,19 +451,6 @@ function formatSourceType(sourceType: string) {
 function formatNotebookDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
-
-const InvestigationHeader = styled(Container)`
-  position: relative;
-
-  &::after {
-    /* The specified divider is intentionally as subtle as the secondary surface. */
-    content: '';
-    position: absolute;
-    inset: auto 0 0;
-    height: 1px;
-    background: ${p => p.theme.tokens.background.secondary};
-  }
-`;
 
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
   width: 100%;
