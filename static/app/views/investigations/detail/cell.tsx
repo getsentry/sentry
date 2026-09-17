@@ -284,7 +284,16 @@ function QueryResult({
 
   return (
     <CellHoverSurface width="100%" gap="sm">
-      <Flex width="100%" align="center" gap="xs" data-test-id="query-cell-toolbar">
+      <Flex
+        width="100%"
+        align="center"
+        gap="xs"
+        border={expanded ? undefined : 'primary'}
+        radius="md"
+        background={expanded ? undefined : 'secondary'}
+        paddingRight={expanded ? undefined : 'xs'}
+        data-test-id="query-cell-toolbar"
+      >
         <QueryDisclosureButton
           size="sm"
           variant="transparent"
