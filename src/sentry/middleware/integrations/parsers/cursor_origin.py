@@ -13,4 +13,8 @@ class CursorOriginRequestParser(BaseRequestParser):
     webhook_identifier = WebhookProviderIdentifier.CURSOR_ORIGIN
 
     def get_response(self) -> HttpResponseBase:
+        shed_response = self.get_shed_response()
+        if shed_response is not None:
+            return shed_response
+
         return self.get_response_from_control_silo()
