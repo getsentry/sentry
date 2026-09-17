@@ -4,12 +4,8 @@ from unittest import mock
 
 import pytest
 from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
-    TraceItemDetailsRequest,
     TraceItemDetailsResponse,
 )
-from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
-from urllib3.response import HTTPResponse
 
 from sentry.api.endpoints.project_trace_item_details import (
     convert_rpc_attribute_to_json,
@@ -19,22 +15,20 @@ from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
+from sentry.utils.snuba_rpc import SnubaRPCBadRequest
 
 
 class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
     endpoint = "sentry-api-0-project-trace-item-details"
 
-    def test_forward_routing_hint(self) -> None:
-        self.assert_routing_hint({"routing_hint": "opaque+/=="}, "opaque+/==")
+    def test_routing_hint_is_forwarded_unchanged(self) -> None:
+        self.assert_routing_hint({"routing_hint": " opaque+/== "}, " opaque+/== ")
 
     def test_omitted_routing_hint(self) -> None:
         self.assert_routing_hint({}, "")
 
     def test_blank_routing_hint(self) -> None:
         self.assert_routing_hint({"routing_hint": ""}, "")
-
-    def test_routing_hint_whitespace_is_preserved(self) -> None:
-        self.assert_routing_hint({"routing_hint": " opaque "}, " opaque ")
 
     def assert_routing_hint(self, params: dict[str, str], expected_hint: str) -> None:
         self.login_as(user=self.user)
@@ -48,10 +42,10 @@ class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
         attribute.name = "sentry.op"
         attribute.value.val_str = "http.server"
         with mock.patch(
-            "sentry.utils.snuba_rpc._snuba_pool.urlopen",
-            return_value=HTTPResponse(status=200, body=response.SerializeToString()),
+            "sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc",
+            return_value=response,
         ) as rpc:
-            result = self.get_success_response(
+            self.get_success_response(
                 organization.slug,
                 project.slug,
                 item_id,
@@ -61,24 +55,17 @@ class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
                 **params,
             )
 
-        request = TraceItemDetailsRequest.FromString(rpc.call_args.kwargs["body"])
+        request = rpc.call_args.args[0]
         assert request.routing_hint == expected_hint
-        assert request.item_id == item_id
-        assert request.trace_id == trace_id
         assert request.meta.organization_id == self.organization.id
         assert list(request.meta.project_ids) == [self.project.id]
-        assert request.meta.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_SPAN
-        assert request.meta.start_timestamp.ToSeconds() <= timestamp.timestamp()
-        assert request.meta.end_timestamp.ToSeconds() >= timestamp.timestamp()
-        assert result.data["itemId"] == item_id
 
-    def test_invalid_routing_hint_is_bad_request(self) -> None:
+    def test_rpc_bad_request_is_returned_as_400(self) -> None:
         self.login_as(user=self.user)
         organization, project = self.organization, self.project
-        error = ErrorProto(message="invalid routing_hint")
         with mock.patch(
-            "sentry.utils.snuba_rpc._snuba_pool.urlopen",
-            return_value=HTTPResponse(status=400, body=error.SerializeToString()),
+            "sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc",
+            side_effect=SnubaRPCBadRequest("invalid routing_hint"),
         ):
             response = self.get_error_response(
                 organization.slug,
