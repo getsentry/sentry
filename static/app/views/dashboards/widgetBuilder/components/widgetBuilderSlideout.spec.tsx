@@ -428,6 +428,56 @@ describe('WidgetBuilderSlideout', () => {
     expect(onSave).toHaveBeenCalledWith({index: 1, widget: expect.any(Object)});
   });
 
+  it('saves the selected threshold period without changing threshold values', async () => {
+    const onSave = jest.fn();
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={onSave}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+              thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('textbox', {name: 'Period'}));
+    await userEvent.click(screen.getByText('1 hour'));
+    await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
+
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith({
+        index: 1,
+        widget: expect.objectContaining({
+          thresholds: {
+            max_values: {max1: 100, max2: 200},
+            unit: null,
+            timePeriod: '1h',
+          },
+        }),
+      });
+    });
+  });
+
   it('passes undefined as the index for onSave if the index is not defined', async () => {
     const onSave = jest.fn();
 
