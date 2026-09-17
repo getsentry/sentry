@@ -197,7 +197,7 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         return source_path
 
     def _get_debug_metadata_keys(self) -> list[str]:
-        return ["base_url", "domain_name", "scopes", "uuid", "type"]
+        return ["domain_name", "scopes", "uuid", "type"]
 
     # Bitbucket only methods
 
@@ -289,11 +289,9 @@ class BitbucketIntegrationProvider(IntegrationProvider):
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         if state.get("publicKey"):
             principal_data = state["principal"]
-            base_url = state["baseUrl"].replace("https://", "")
-            # fall back to display name, user installations will use this primarily
-            username = principal_data.get("username", principal_data["display_name"])
+            username = principal_data.get("username") or principal_data.get("display_name")
             account_type = principal_data["type"]
-            domain = f"{base_url}/{username}" if account_type == "team" else username
+            domain = f"bitbucket.org/{username}" if account_type == "team" else username
             secret = generate_token()
 
             return {
@@ -304,7 +302,6 @@ class BitbucketIntegrationProvider(IntegrationProvider):
                     "public_key": state["publicKey"],
                     "shared_secret": state["sharedSecret"],
                     "webhook_secret": secret,
-                    "base_url": state["baseApiUrl"],
                     "domain_name": domain,
                     "icon": principal_data["links"]["avatar"]["href"],
                     "scopes": self.scopes,

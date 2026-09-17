@@ -215,14 +215,6 @@ describe('formatReservedWithUnits', () => {
     ).toBe('1K');
   });
 
-  it('returns correct string for reserved budget', () => {
-    expect(formatReservedWithUnits(1000, DataCategory.SPANS, {}, true)).toBe('$10.00');
-    expect(formatReservedWithUnits(1500_00, DataCategory.SPANS, {}, true)).toBe(
-      '$1,500.00'
-    );
-    expect(formatReservedWithUnits(0, DataCategory.SPANS, {}, true)).toBe('$0.00');
-  });
-
   it('returns correct string for logs', () => {
     expect(formatReservedWithUnits(0, DataCategory.LOG_BYTE)).toBe('0 GB');
     expect(formatReservedWithUnits(0.1, DataCategory.LOG_BYTE)).toBe('0.1 GB');

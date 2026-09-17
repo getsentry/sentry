@@ -3,7 +3,6 @@ import type {Theme} from '@emotion/react';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
-import {SpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/newTraceDetails/traceRow/traceRow';
@@ -140,9 +139,9 @@ export class SpanNode extends BaseNode<TraceTree.Span> {
   }
 
   renderDetails<T extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<T>
+    _props: TraceTreeNodeDetailsProps<T>
   ): React.ReactNode {
-    return <SpanNodeDetails {...props} node={this} />;
+    return null;
   }
 
   matchWithFreeText(query: string): boolean {

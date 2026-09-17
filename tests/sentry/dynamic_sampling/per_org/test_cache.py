@@ -9,6 +9,7 @@ from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org import cache as per_org_recalibration_cache
 from sentry.dynamic_sampling.per_org.cache import (
     MIN_RECALIBRATION_FACTOR_AGE,
+    adjusted_factor_ttl_ms,
     generate_project_sample_rates_cache_key,
     generate_transaction_sample_rates_cache_key,
     get_project_sample_rate,
@@ -17,13 +18,12 @@ from sentry.dynamic_sampling.per_org.cache import (
     set_transaction_sample_rates,
     write_caches,
 )
-from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
-from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.tasks.constants import (
+from sentry.dynamic_sampling.per_org.calculations import (
     MAX_REBALANCE_FACTOR,
     MIN_REBALANCE_FACTOR,
-    adjusted_factor_ttl_ms,
 )
+from sentry.dynamic_sampling.per_org.results import DynamicSamplingResults
+from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (

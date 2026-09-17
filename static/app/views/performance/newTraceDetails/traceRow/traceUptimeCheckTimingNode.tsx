@@ -104,6 +104,8 @@ export function TraceUptimeCheckTimingNodeRow(
           </Fragment>
         </div>
       </div>
+      {/* oxlint-disable-next-line react/refs -- This is a React element, not a ref. */}
+      {props.pinnedAttributeCell}
       <div
         // oxlint-disable-next-line react/refs
         ref={props.registerSpanColumnRef}

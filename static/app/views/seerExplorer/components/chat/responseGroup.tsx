@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {ClippedDetail, MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
+import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 import {Container} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -183,12 +183,10 @@ export function ResponseGroup({
   });
 
   const startTime = new Date(group[0]!.timestamp);
-  // Keep ThinkingBlock expanded while the response is still in progress — either a tool is
-  // running, or the LLM is between tool calls (loading without tool_calls yet). Without
-  // this, the block collapses and reopens on each poll cycle when the agent retries a
-  // failing tool call, causing a visible flash.
+  // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
+  // between tool calls, but answer settles once
   const endTime =
-    (active && !settledAnswer) || pendingInput
+    !settledAnswer || pendingInput
       ? undefined
       : new Date(group[group.length - 1]!.timestamp);
 
@@ -227,16 +225,12 @@ export function ResponseGroup({
                         <Fragment key={block.id}>
                           {showThinking &&
                             hasValidContent(block.message.thinking_content) && (
-                              <ClippedDetail>
-                                <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
-                                  <SeerMarkdown raw={block.message.thinking_content} />
-                                </ThinkingProse>
-                              </ClippedDetail>
+                              <ThinkingProse data-spaced={thinkingBetweenToolCalls}>
+                                <SeerMarkdown raw={block.message.thinking_content} />
+                              </ThinkingProse>
                             )}
                           {!isAnswer && hasValidContent(block.message.content) && (
-                            <ClippedDetail>
-                              <SeerMarkdown raw={block.message.content} />
-                            </ClippedDetail>
+                            <SeerMarkdown raw={block.message.content} />
                           )}
                           {block.message.tool_calls ? (
                             <ToolCallList

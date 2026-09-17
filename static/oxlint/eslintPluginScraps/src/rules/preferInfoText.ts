@@ -1,6 +1,4 @@
-import type {Fix} from '@oxlint/plugins';
-import type {Fixer} from '@oxlint/plugins';
-import {defineRule, type ESTree} from '@oxlint/plugins';
+import {type Fix, type Fixer, defineRule, type ESTree} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
 
@@ -8,7 +6,6 @@ const TOOLTIP_SOURCE = '@sentry/scraps/tooltip';
 const TEXT_SOURCE = '@sentry/scraps/text';
 const INFO_SOURCE = '@sentry/scraps/info';
 const LOCALE_SOURCE = 'sentry/locale';
-const I18N_FUNCTIONS = new Set(['t', 'tct']);
 const TEXT_LIKE_INTRINSICS = new Set([
   'a',
   'abbr',
@@ -55,14 +52,6 @@ function getElementName(nameNode: ESTree.JSXElementName): string {
   }
 }
 
-function isI18nCall(node: ESTree.Expression, i18nNames: string[]): boolean {
-  return (
-    node.type === 'CallExpression' &&
-    node.callee.type === 'Identifier' &&
-    i18nNames.includes(node.callee.name)
-  );
-}
-
 export const preferInfoText = defineRule({
   meta: {
     type: 'suggestion',
@@ -83,7 +72,14 @@ export const preferInfoText = defineRule({
     let resolved = false;
     let tooltipNames: string[] = [];
     let textNames: string[] = [];
-    let i18nNames: string[] = [];
+
+    function isLocaleCall(node: ESTree.Expression): boolean {
+      return (
+        node.type === 'CallExpression' &&
+        node.callee.type === 'Identifier' &&
+        importTracker.resolve(node.callee.name)?.source === LOCALE_SOURCE
+      );
+    }
 
     function resolveNames() {
       if (resolved) {
@@ -92,9 +88,6 @@ export const preferInfoText = defineRule({
       resolved = true;
       tooltipNames = importTracker.findLocalNames(TOOLTIP_SOURCE, 'Tooltip');
       textNames = importTracker.findLocalNames(TEXT_SOURCE, 'Text');
-      i18nNames = Array.from(I18N_FUNCTIONS).flatMap(name =>
-        importTracker.findLocalNames(LOCALE_SOURCE, name)
-      );
     }
 
     function isTextLikeExpression(expr: ESTree.Expression): boolean {
@@ -104,7 +97,7 @@ export const preferInfoText = defineRule({
         case 'TemplateLiteral':
           return true;
         case 'CallExpression':
-          return isI18nCall(expr, i18nNames);
+          return isLocaleCall(expr);
         case 'ConditionalExpression':
           return (
             isTextLikeExpression(expr.consequent) && isTextLikeExpression(expr.alternate)

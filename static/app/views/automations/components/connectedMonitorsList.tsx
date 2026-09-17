@@ -17,6 +17,8 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+import {canConnectAutomationToDetector} from 'sentry/views/automations/utils/permissions';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 import {DetectorAssigneeCell} from 'sentry/views/detectors/components/detectorListTable/detectorAssigneeCell';
 import {DetectorTypeCell} from 'sentry/views/detectors/components/detectorListTable/detectorTypeCell';
@@ -91,6 +93,7 @@ export function ConnectedMonitorsList({
 }: Props) {
   const getPaginationCaption = useGetPaginationCaption();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const canEdit = Boolean(connectedDetectorIds && typeof toggleConnected === 'function');
   const emptySelection = defined(detectorIds) && detectorIds.length === 0;
 
@@ -165,31 +168,50 @@ export function ConnectedMonitorsList({
         )}
         {isSuccess &&
           !emptySelection &&
-          detectors?.map(detector => (
-            <SimpleTable.Row key={detector.id}>
-              <SimpleTable.RowCell>
-                <DetectorLink detector={detector} openInNewTab={openInNewTab} />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="type">
-                <DetectorTypeCell type={detector.type} />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="last-issue">
-                <IssueCell group={detector.latestGroup} />
-              </SimpleTable.RowCell>
-              <SimpleTable.RowCell columnKey="owner">
-                <DetectorAssigneeCell assignee={detector.owner} />
-              </SimpleTable.RowCell>
-              {canEdit && (
-                <SimpleTable.RowCell columnKey="connected" justify="end">
-                  <Button onClick={() => toggleConnected?.({detector})} size="sm">
-                    {connectedDetectorIds?.has(detector.id)
-                      ? t('Disconnect')
-                      : t('Connect')}
-                  </Button>
+          detectors?.map(detector => {
+            const canEditConnection = canConnectAutomationToDetector({
+              organization,
+              detector,
+              project: projects.find(project => project.id === detector.projectId),
+            });
+
+            return (
+              <SimpleTable.Row key={detector.id}>
+                <SimpleTable.RowCell>
+                  <DetectorLink detector={detector} openInNewTab={openInNewTab} />
                 </SimpleTable.RowCell>
-              )}
-            </SimpleTable.Row>
-          ))}
+                <SimpleTable.RowCell columnKey="type">
+                  <DetectorTypeCell type={detector.type} />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell columnKey="last-issue">
+                  <IssueCell group={detector.latestGroup} />
+                </SimpleTable.RowCell>
+                <SimpleTable.RowCell columnKey="owner">
+                  <DetectorAssigneeCell assignee={detector.owner} />
+                </SimpleTable.RowCell>
+                {canEdit && (
+                  <SimpleTable.RowCell columnKey="connected" justify="end">
+                    <Button
+                      onClick={() => toggleConnected?.({detector})}
+                      size="sm"
+                      disabled={!canEditConnection}
+                      tooltipProps={{
+                        title: canEditConnection
+                          ? undefined
+                          : t(
+                              "You don't have permission to change this monitor's alert connections."
+                            ),
+                      }}
+                    >
+                      {connectedDetectorIds?.has(detector.id)
+                        ? t('Disconnect')
+                        : t('Connect')}
+                    </Button>
+                  </SimpleTable.RowCell>
+                )}
+              </SimpleTable.Row>
+            );
+          })}
       </SimpleTable>
       {limit && (
         <Pagination

@@ -102,8 +102,16 @@ describe('AutomationsList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/',
       body: [
-        AutomationFixture({id: '100', name: 'Automation 1', detectorIds: ['1']}),
-        AutomationFixture({id: '101', name: 'Automation 2', detectorIds: ['2']}),
+        AutomationFixture({
+          id: '100',
+          name: 'Automation 1',
+          detectorIds: ['1'],
+        }),
+        AutomationFixture({
+          id: '101',
+          name: 'Automation 2',
+          detectorIds: ['2'],
+        }),
       ],
     });
 
@@ -125,10 +133,16 @@ describe('AutomationsList', () => {
     // Projects column should show the correct project for each row
     await waitFor(() => {
       expect(
-        within(rows[0]!).getByRole('link', {name: 'View Project Details', hidden: true})
+        within(rows[0]!).getByRole('link', {
+          name: 'View Project Details',
+          hidden: true,
+        })
       ).toHaveAttribute('aria-description', 'project-1');
       expect(
-        within(rows[1]!).getByRole('link', {name: 'View Project Details', hidden: true})
+        within(rows[1]!).getByRole('link', {
+          name: 'View Project Details',
+          hidden: true,
+        })
       ).toHaveAttribute('aria-description', 'project-2');
     });
 
@@ -676,6 +690,28 @@ describe('AutomationsList', () => {
     const createButton = screen.getByRole('button', {name: 'Create Alert'});
     expect(createButton).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getByRole('columnheader', {name: 'Name'})).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
+  });
+
+  it('does not enable bulk controls for project-scoped alert writers', async () => {
+    const teamAdminOrg = OrganizationFixture({
+      access: ['org:read', 'alerts:read'],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        ...project,
+        access: ['project:read', 'alerts:write'],
+      }),
+    ]);
+
+    render(<AutomationsList />, {organization: teamAdminOrg});
+
+    expect(await screen.findByRole('button', {name: 'Create Alert'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await screen.findByTestId('automation-list-row');
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
   });

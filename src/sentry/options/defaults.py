@@ -1403,12 +1403,6 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.action_log.dedicated_outbox_rollout_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
     default=False,
@@ -1904,14 +1898,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control sampling percentage of schema validation on the generic metrics pipeline
-# based on namespace.
-register(
-    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
-    default={},  # empty dict means validate schema for all use cases
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to control sampling percentage of schema validation on the release health metrics
 # pipeline based on namespace.
 register(
@@ -1951,11 +1937,6 @@ register(
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
 register(
-    "sentry-metrics.writes-limiter.limits.performance.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.writes-limiter.limits.transactions.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1980,17 +1961,7 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-register(
-    "sentry-metrics.writes-limiter.limits.performance.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.writes-limiter.limits.transactions.global",
     default=[],
@@ -2013,11 +1984,6 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.custom.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2066,13 +2032,6 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[
         {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
     ],
@@ -2830,6 +2789,24 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for the monitor clock tick hold.
+#
+# The hold stalls the monitor clock tick while the partition clock set is short
+# of the partition list learned from the clock pulse. This is a protection
+# against losing the clock data in Redis, so that partitions arriving after
+# data loss are not automatically treated as "the minimum", and incorrectly
+# bump the clock to beyond the actual minimum partition timestamp.
+#
+# Enable this if you want to un-stall the monitors clock. Be aware
+# that doing so could result in an incorrect fast-forwarded monitor
+# clock time, since the clock will no longer wait to assess the actual minimum
+# time from the full partition set.
+register(
+    "crons.clock_tick.disable_hold_on_missing_partitions",
+    default=True,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 

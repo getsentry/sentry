@@ -1930,7 +1930,12 @@ class _IssueOwnership:
                         continue
                     seen.add(("user", owner.id))
                     owners.append(
-                        IssueOwner(type="user", email=owner.email, name=owner.get_display_name())
+                        IssueOwner(
+                            type="user",
+                            email=owner.email,
+                            username=owner.username,
+                            name=owner.get_display_name(),
+                        )
                     )
 
         return owners, sorted(matched_rules)
@@ -1969,7 +1974,7 @@ def get_team_members(
 
     Returns:
         A ``TeamMembersResponse`` with ``team_id``/``team_slug``/``team_name`` and
-        ``members`` (each an ``IssueOwner`` with ``type="user"``, ``email``, ``name``).
+        ``members`` (each an ``IssueOwner`` with ``type="user"``, ``username``, ``email``, ``name``).
         ``members`` is empty when the team has no active members. Returns ``None`` if the
         team cannot be found in the organization.
     """
@@ -1988,7 +1993,12 @@ def get_team_members(
     user_ids = list(team.get_member_user_ids())
     members = (
         [
-            IssueOwner(type="user", email=user.email, name=user.get_display_name())
+            IssueOwner(
+                type="user",
+                email=user.email,
+                username=user.username,
+                name=user.get_display_name(),
+            )
             for user in user_service.get_many(filter={"user_ids": user_ids})
         ]
         if user_ids

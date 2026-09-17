@@ -56,7 +56,15 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
     const parsed = schema.safeParse(data);
     // Called before the early return so the hook stays unconditional; it
     // no-ops for an embed that failed validation and renders nothing.
-    useTrackEmbedRendered({name, level, index, rendered: parsed.success});
+    //
+    // Tracking dedupes per embed instance, so counting the clipboard pass would
+    // let whichever pass ran first decide the recorded level.
+    useTrackEmbedRendered({
+      name,
+      level,
+      index,
+      rendered: parsed.success && level !== 'markdown',
+    });
     if (!parsed.success) {
       reportInvalidEmbed(name, parsed.error.issues);
       return null;
