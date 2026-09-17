@@ -59,6 +59,26 @@ class DeleteMalformedAnomalyConditionsTest(TestMigrations):
             alert_rule_trigger_id=alert_rule_trigger.id,
         )
 
+        second_malformed_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id
+        )
+        self.second_anomaly_condition = DataCondition.objects.create(
+            condition_group_id=second_malformed_group.id,
+            type="anomaly_detection",
+            comparison=0.0,
+            condition_result=75,
+        )
+        self.second_malformed_condition = DataCondition.objects.create(
+            condition_group_id=second_malformed_group.id,
+            type="lte",
+            comparison=0,
+            condition_result=0,
+        )
+        DataConditionAlertRuleTrigger.objects.create(
+            data_condition_id=self.second_anomaly_condition.id,
+            alert_rule_trigger_id=alert_rule_trigger.id,
+        )
+
         orphaned_group = DataConditionGroup.objects.create(organization_id=self.organization.id)
         self.orphaned_anomaly_condition = DataCondition.objects.create(
             condition_group_id=orphaned_group.id,
@@ -111,6 +131,10 @@ class DeleteMalformedAnomalyConditionsTest(TestMigrations):
             "threshold_type": 1,
         }
         assert not DataCondition.objects.filter(id=self.malformed_condition.id).exists()
+
+        second_anomaly_condition = DataCondition.objects.get(id=self.second_anomaly_condition.id)
+        assert second_anomaly_condition.comparison == anomaly_condition.comparison
+        assert not DataCondition.objects.filter(id=self.second_malformed_condition.id).exists()
 
         orphaned_anomaly_condition = DataCondition.objects.get(
             id=self.orphaned_anomaly_condition.id
