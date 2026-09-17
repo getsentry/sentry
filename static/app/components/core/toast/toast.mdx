@@ -76,13 +76,13 @@ toast.error('Could not save changes', {
 ```
 
 - `duration` is in milliseconds. It defaults to `6_000`. Use `Infinity` for a persistent toast.
-- `id` updates an existing toast with the same id instead of adding another toast.
+- `id` opts out of automatic replacement. Reuse it to update the same toast.
 - `onDismiss` runs when the toast is dismissed.
 
 ## Updating an operation
 
-Reuse a toast's returned id to replace loading with the result. Other notifications stay visible.
-You can also supply your own stable id, as the demo does.
+Supply an id when starting an operation, then reuse it to replace loading with the result.
+Toasts with explicit ids stay separate from automatic replacement, so unrelated notifications stay visible.
 
 Start resolving, show an unrelated notification, then complete or fail the operation.
 Loading stays visible until you choose a result; the result uses the normal timeout.
@@ -137,7 +137,10 @@ export function OperationToastDemo() {
 </Storybook.Demo>
 
 ```tsx
+import {uuid4} from '@sentry/core';
+
 const id = toast.loading('Resolving issues…', {
+  id: uuid4(),
   duration: Infinity,
 });
 
@@ -178,7 +181,8 @@ toast.success('Item deleted', {
 ## Dismissing toasts
 
 Toasts dismiss automatically after their duration. Users can also click the `Dismiss` button or swipe
-a toast. Toasts of different variants coexist and stack up to three at once.
+a toast. Without an explicit id, showing a different variant dismisses previous toasts that also have
+no explicit id. Toasts with explicit ids are unaffected. Up to three toasts are visible at once.
 
 ```tsx
 // Dismiss one toast by id

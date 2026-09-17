@@ -48,7 +48,7 @@ describe('Toast', () => {
     act(() => {
       toast.error('First error', {duration: Infinity});
       toast.error('Second error', {duration: Infinity});
-      toast.error('Third error', {duration: Infinity});
+      toast.error('Third error', {id: 'third-error', duration: Infinity});
     });
 
     expect(await screen.findByText('First error')).toBeInTheDocument();
@@ -116,7 +116,7 @@ describe('Toast', () => {
     expect(getEmotionRules(messageElement).join('')).toMatch(/word-break:\s*break-word/);
   });
 
-  it('keeps toasts of different variants together', async () => {
+  it('dismisses toasts when the variant changes', async () => {
     render(<div />);
     act(() => void toast.loading('Loading', {duration: Infinity}));
 
@@ -124,7 +124,24 @@ describe('Toast', () => {
 
     act(() => void toast.success('Success', {duration: Infinity}));
 
-    expect(await screen.findByText('Success')).toBeInTheDocument();
+    await waitForElementToBeRemoved(() => screen.queryByText('Loading'));
+    expect(screen.getByText('Success')).toBeInTheDocument();
+  });
+
+  it('keeps explicit IDs separate from automatic replacement', async () => {
+    render(<div />);
+    act(() => {
+      toast.message('Other notification', {duration: Infinity});
+      toast.loading('Loading', {id: 'operation', duration: Infinity});
+    });
+
+    expect(await screen.findByText('Loading')).toBeInTheDocument();
+    expect(screen.getByText('Other notification')).toBeInTheDocument();
+
+    act(() => void toast.success('Success', {duration: Infinity}));
+
+    await waitForElementToBeRemoved(() => screen.queryByText('Other notification'));
+    expect(screen.getByText('Success')).toBeInTheDocument();
     expect(screen.getByText('Loading')).toBeInTheDocument();
   });
 
@@ -144,6 +161,10 @@ describe('Toast', () => {
     expect(await screen.findByText('Success')).toBeInTheDocument();
     expect(screen.queryByText('Loading')).not.toBeInTheDocument();
     expect(screen.getByText('Other operation')).toBeInTheDocument();
+
+    act(() => void toast.message('Other notification', {duration: Infinity}));
+    await waitForElementToBeRemoved(() => screen.queryByText('Other operation'));
+    expect(screen.getByText('Success')).toBeInTheDocument();
   });
 
   it('runs an action and dismisses the toast', async () => {

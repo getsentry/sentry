@@ -9,8 +9,6 @@ import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 type IndicatorType = 'loading' | 'error' | 'success' | 'undo' | '';
 
-const activeIndicatorIds = new Map<IndicatorType, Set<string | number>>();
-
 interface IndicatorOptions {
   append?: boolean;
   duration?: number | null;
@@ -19,17 +17,12 @@ interface IndicatorOptions {
 
 type UndoIndicatorOptions = IndicatorOptions & {undo: () => void};
 
-// Clears all legacy indicators
+// Clears all indicators
 /**
  * @deprecated Use `toast.dismiss()` from `@sentry/scraps/toast` instead.
  */
 export function clearIndicators() {
-  for (const ids of activeIndicatorIds.values()) {
-    for (const id of ids) {
-      toast.dismiss(id);
-    }
-  }
-  activeIndicatorIds.clear();
+  toast.dismiss();
 }
 
 /**
@@ -81,36 +74,21 @@ export function addMessage(
     };
   }
 
-  // Preserve replacement behavior for legacy indicators without clearing newer toasts.
-  const variant = type === 'undo' ? '' : type;
-  for (const [activeVariant, ids] of activeIndicatorIds) {
-    if (activeVariant !== variant) {
-      for (const id of ids) {
-        toast.dismiss(id);
-      }
-      activeIndicatorIds.delete(activeVariant);
-    }
+  switch (type) {
+    case 'loading':
+      toast.loading(msg, toastOptions);
+      break;
+    case 'error':
+      toast.error(msg, toastOptions);
+      break;
+    case 'success':
+      toast.success(msg, toastOptions);
+      break;
+    case 'undo':
+    case '':
+      toast.message(msg, toastOptions);
+      break;
   }
-
-  const ids = activeIndicatorIds.get(variant) ?? new Set<string | number>();
-  const showToast = {
-    loading: toast.loading,
-    error: toast.error,
-    success: toast.success,
-    '': toast.message,
-  }[variant];
-  const id = showToast(msg, {
-    ...toastOptions,
-    onDismiss: () => {
-      const activeIds = activeIndicatorIds.get(variant);
-      activeIds?.delete(id);
-      if (activeIds?.size === 0) {
-        activeIndicatorIds.delete(variant);
-      }
-    },
-  });
-  ids.add(id);
-  activeIndicatorIds.set(variant, ids);
 }
 
 /**

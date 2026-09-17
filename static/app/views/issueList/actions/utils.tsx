@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {uuid4} from '@sentry/core';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -327,6 +328,7 @@ export function performBulkUpdate({
   const previousGroups = itemIds?.map(id => GroupStore.get(id)).filter(defined) ?? [];
   const messages = getBulkActionMessages(data, itemIds);
   const toastId = toast.loading(messages.loading, {
+    id: uuid4(),
     duration: Infinity,
   });
 
