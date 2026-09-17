@@ -41,6 +41,8 @@ import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {CustomFilters} from './customFilters';
+
 const filterDescriptions = {
   'browser-extensions': {
     label: t('Filter out errors known to be caused by browser extensions'),
@@ -873,6 +875,10 @@ export function ProjectFiltersSettings({project, params}: Props) {
             </FieldGroup>
 
             <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
+
+            {organization.features.includes('inbound-filters-v2') && (
+              <CustomFilters project={project} />
+            )}
           </Fragment>
         )}
       </Access>
