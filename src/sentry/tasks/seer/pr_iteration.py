@@ -167,6 +167,16 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
+def _get_feedback_types(items: list[QueuedAutofixFeedback]) -> str:
+    """Every referrer in the batch, sorted and deduped, as one ``,``-joined string.
+
+    Unlike ``_get_feedback_referrer`` this never collapses a mixed batch to
+    ``unknown``: two review comments and a check suite read as
+    ``github.check_suite,github.pr_comment``.
+    """
+    return ",".join(sorted({item.referrer.value for item in items}))
+
+
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
     actor_user_ids = {item.actor_user_id for item in items}
     if len(actor_user_ids) == 1:
@@ -700,6 +710,7 @@ def _drain_queued_autofix_feedback(
             organization_id=organization_id,
             iteration_id=iteration_id,
             referrer=referrer.value,
+            feedback_types=_get_feedback_types(consumable_items),
             feedback_count=len(feedback_items),
             queued_count=len(queued_items),
             dropped_count=len(dropped),
