@@ -10,6 +10,7 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
+from sentry.explore.saved_query_url import build_explore_saved_query_url
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
@@ -77,6 +78,9 @@ class ExploreSavedQueryResponseOptional(TypedDict, total=False):
     interval: str
     crossEvents: list[CrossEventResponseType]
     agent: list[str]
+    # Absent for a saved query whose Explore URL cannot be built exactly --
+    # see sentry.explore.saved_query_url.
+    url: str
 
 
 class ExploreSavedQueryChangedReasonType(TypedDict):
@@ -194,5 +198,11 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
 
         if obj.query.get("all_projects"):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
+
+        # Built last: it reads the serialized query, so every field above it has
+        # to be settled first.
+        url = build_explore_saved_query_url(data, obj.organization.slug)
+        if url is not None:
+            data["url"] = url
 
         return data
