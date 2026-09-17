@@ -278,6 +278,10 @@ describe('IssueListBulkCommandPaletteActions', () => {
     act(() => jest.advanceTimersByTime(10_000));
     expect(screen.getByText('Resolving issues…')).toBeInTheDocument();
 
+    act(() => jest.advanceTimersByTime(20_000));
+    act(() => jest.advanceTimersByTime(400));
+    expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
+
     act(() => response.resolve());
     expect(await screen.findByText('Selected issues resolved')).toBeInTheDocument();
     expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();

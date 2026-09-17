@@ -85,7 +85,7 @@ Supply an id when starting an operation, then reuse it to replace loading with t
 Toasts with explicit ids stay separate from automatic replacement, so unrelated notifications stay visible.
 
 Start resolving, show an unrelated notification, then complete or fail the operation.
-Loading stays visible until you choose a result; the result uses the normal timeout.
+Loading has a 30-second timeout; the result uses the normal timeout and still appears if loading has expired.
 
 export function OperationToastDemo() {
   const id = useId();
@@ -101,7 +101,7 @@ export function OperationToastDemo() {
       <Button
         disabled={pending}
         onClick={() => {
-          toast.loading('Resolving issues…', {id, duration: Infinity});
+          toast.loading('Resolving issues…', {id, duration: 30_000});
           setPending(true);
         }}
       >
@@ -141,7 +141,7 @@ import {uuid4} from '@sentry/core';
 
 const id = toast.loading('Resolving issues…', {
   id: uuid4(),
-  duration: Infinity,
+  duration: 30_000,
 });
 
 // When the request finishes, update the same toast.

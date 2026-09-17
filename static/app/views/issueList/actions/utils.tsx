@@ -329,7 +329,7 @@ export function performBulkUpdate({
   const messages = getBulkActionMessages(data, itemIds);
   const toastId = toast.loading(messages.loading, {
     id: uuid4(),
-    duration: Infinity,
+    duration: 30_000,
   });
 
   bulkUpdate(
