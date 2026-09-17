@@ -166,44 +166,38 @@ Every embed also renders at a third level, **`markdown`**, used when a reply is 
 
 <EmbedStory name="conversationsQuery" />
 
-## Placement: tables and lists
+## Placement: what decides inline vs block
 
-Every embed's schema says it `MUST NOT appear inside a markdown table or list`. Nothing
-throws if you ignore that, and the markup stays valid -- but **a tag's position decides
-whether it renders inline or as a block**, and in a list that is easy to get wrong by
-accident.
+An embed renders as a block card when its tag is **alone on its line**, and inline when the
+tag **shares its line with prose**. That is the whole rule, and it holds the same way in a
+paragraph, a list item, or a table cell -- the container is not what decides. A list marker
+does not count as content, because marked strips it before the tag is ever looked at.
 
-The rule the parser applies: a tag that _starts_ a block is block-level; a tag with text
-before it on the same line stays inline. A table cell is the exception -- markdown gives a
-cell no way to hold block content, so a tag there is always inline.
+A table cell is inline always: markdown gives a cell no way to hold block content.
 
-**In a table, inline embeds behave.** Each one is an anchor and sits in a cell the way a
-link does.
+**Inline in a table.** Each embed is an anchor and sits in a cell the way a link does.
 
 <Storybook.Demo>
   <TablePlacementDemo />
 </Storybook.Demo>
 
-**In a list, put something before the tag and it stays inline.**
+**Inline in a list.** A bullet with a few words of lead-in keeps the reference inline.
 
 <Storybook.Demo>
   <ListInlinePlacementDemo />
 </Storybook.Demo>
 
-**Start the list item with the tag and it becomes a card.** This is the trap. The markdown
-below differs from the one above only in word order, but each item now opens with a
-full-width block embed and leaves its own sentence stranded underneath.
+**Also inline when the bullet opens with the tag.** This is the form a summary naturally
+takes -- lead with the issue, then say what about it. It reads the same as the one above,
+because the `-` is not content and the sentence continues past the tag.
 
 <Storybook.Demo>
   <ListLeadingTagDemo />
 </Storybook.Demo>
 
-This is not specific to lists -- a paragraph that opens with a tag promotes it the same
-way. A list just makes it likely, because a bullet that leads with the issue it is about
-reads naturally when you write it.
-
-**A block embed you actually meant is fine in a list.** It nests as a sibling of the item's
-paragraph and keeps the list's indentation.
+**A block card in a list, when you want one.** Give the tag its own line inside the item and
+it renders as a full card, nested as a sibling of the item's paragraph and keeping the
+list's indentation.
 
 <Storybook.Demo>
   <ListBlockPlacementDemo />
@@ -215,8 +209,8 @@ The same card at the top level, for comparison:
   <BaselineBlockDemo />
 </Storybook.Demo>
 
-So: keep a reference inline by giving it a few words of lead-in, and give a block embed its
-own line.
+So: to reference something mid-sentence, write the sentence -- the embed follows. To show a
+card, give the tag a line of its own.
 
 ## Embed Architecture
 
