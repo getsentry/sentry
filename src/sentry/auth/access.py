@@ -904,17 +904,17 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
     @cached_property
     def accessible_team_ids(self) -> frozenset[int]:
         return frozenset(
-            t.id
-            for t in self.rpc_user_organization_context.organization.teams
-            if t.status == TeamStatus.ACTIVE
+            organization_service.get_active_team_ids(
+                organization_id=self.rpc_user_organization_context.organization.id
+            )
         )
 
     @cached_property
     def accessible_project_ids(self) -> frozenset[int]:
         return frozenset(
-            p.id
-            for p in self.rpc_user_organization_context.organization.projects
-            if p.status == ObjectStatus.ACTIVE
+            organization_service.get_active_project_ids(
+                organization_id=self.rpc_user_organization_context.organization.id
+            )
         )
 
 
@@ -1411,7 +1411,10 @@ def from_rpc_member(
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if isinstance(auth, AuthenticatedToken) and auth.superuser is not None:
         context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=auth.user_id
+            id=organization.id,
+            user_id=auth.user_id,
+            include_projects=False,
+            include_teams=False,
         )
         return from_superuser_access(auth, context) if context is not None else DEFAULT
     if is_system_auth(auth):

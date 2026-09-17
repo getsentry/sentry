@@ -235,7 +235,10 @@ class SentryPermission(ScopedPermission):
             org_context = organization
         else:
             org_context = organization_service.get_organization_by_id(
-                id=extract_id_from(organization), user_id=user_id
+                id=extract_id_from(organization),
+                user_id=user_id,
+                include_projects=False,
+                include_teams=False,
             )
 
         if org_context is None:
@@ -401,6 +404,8 @@ class DemoSafePermission(SentryPermission):
             org_context = organization_service.get_organization_by_id(
                 id=extract_id_from(organization),
                 user_id=request.user.id if request.user else None,
+                include_projects=False,
+                include_teams=False,
             )
 
         assert org_context is not None, "Failed to fetch organization in determine_access"
