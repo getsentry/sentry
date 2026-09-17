@@ -89,7 +89,7 @@ export function RowSubtitle({
     return (
       <Flex gap="xs" align="center">
         <Text size="sm">{messagingSetup.channelName}</Text>
-        <Text variant="muted" size="sm" aria-hidden>
+        <Text variant="muted" size="sm">
           {t('in')}
         </Text>
         <Text size="sm">{workspaceName}</Text>
