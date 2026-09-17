@@ -16,7 +16,13 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {UptimeCheckFixture} from 'sentry-fixture/uptimeCheck';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -162,6 +168,24 @@ describe('DetectorDetails', () => {
       expect(
         await screen.findByRole('link', {name: `#${ownerTeam.slug}`})
       ).toBeInTheDocument();
+    });
+
+    it('renders the project platform badge beside the page title', async () => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: project.id, platform: 'javascript'}),
+      ]);
+
+      render(<DetectorDetails />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      const heading = await screen.findByRole('heading', {
+        name: snubaQueryDetector.name,
+        level: 1,
+      });
+
+      expect(within(heading).getByTestId('platform-icon-javascript')).toBeInTheDocument();
     });
 
     it('can edit the detector when the user has alerts:write access', async () => {
