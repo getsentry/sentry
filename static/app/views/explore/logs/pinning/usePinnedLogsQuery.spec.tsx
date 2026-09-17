@@ -100,7 +100,7 @@ describe('usePinnedLogsQuery', () => {
       method: 'GET',
       body: {
         data: [missingLog],
-        meta: {fields: {id: 'string'}, units: {}},
+        meta: {fields: {id: 'string'}, units: {}, routingHint: 'pinned-hint'},
       },
     });
 
@@ -129,6 +129,9 @@ describe('usePinnedLogsQuery', () => {
       })
     );
     expect(result.current.fetchedRows[0]?.[OurLogKnownFieldKey.ID]).toBe('log-missing');
+    expect(result.current.routingHintsByRow.get(result.current.fetchedRows[0]!)).toBe(
+      'pinned-hint'
+    );
   });
 
   it('windows the request to a narrow range derived from the pin id when the id is a valid v7 timestamp', async () => {

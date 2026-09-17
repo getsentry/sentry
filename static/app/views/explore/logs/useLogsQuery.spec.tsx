@@ -89,6 +89,103 @@ describe('useInfiniteLogsQuery', () => {
     expect(result.current.data).toHaveLength(0);
   });
 
+  it('keeps the surviving row paired with its page hint across pagination and refresh', async () => {
+    const first = createMockLogsData([
+      {id: '3', timestamp_precise: '300', timestamp: '300'},
+      {id: '2', timestamp_precise: '200', timestamp: '200'},
+    ]);
+    const second = createMockLogsData([
+      {id: '2', timestamp_precise: '200', timestamp: '200'},
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    first.meta!.routingHint = 'first-page';
+    second.meta!.routingHint = 'second-page';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: first,
+      headers: linkHeaders,
+    });
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      organization,
+      additionalWrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(2));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: second,
+      headers: linkHeaders,
+    });
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(3));
+    const hints = () =>
+      result.current.data.map(row => [row.id, result.current.routingHintsByRow.get(row)]);
+    expect(hints()).toEqual([
+      ['3', 'first-page'],
+      ['2', 'first-page'],
+      ['1', 'second-page'],
+    ]);
+
+    // Replace responses without changing row values or the number of pages.
+    act(() => {
+      queryClient.setQueryData(result.current.queryKey, previous => {
+        if (!previous) {
+          throw new Error('Expected cached log pages');
+        }
+        return {
+          ...previous,
+          pages: previous.pages.map((page, index) => ({
+            ...page,
+            json: {
+              ...page.json,
+              meta: {
+                ...page.json.meta!,
+                routingHint: index === 0 ? 'refreshed-page' : undefined,
+              },
+            },
+          })),
+        };
+      });
+    });
+    await waitFor(() =>
+      expect(hints()).toEqual([
+        ['3', 'refreshed-page'],
+        ['2', 'refreshed-page'],
+        ['1', undefined],
+      ])
+    );
+    expect(result.current.data.every(row => !('routingHint' in row))).toBe(true);
+  });
+
+  it('reads raw routing metadata from trace log responses', async () => {
+    const body = createMockLogsData([
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    body.meta!.routing_hint = 'trace-log-hint';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body,
+    });
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      organization,
+      additionalWrapper: ({children}) => (
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+          source="state"
+          freeze={{traceId: '00000000000000000000000000000000'}}
+        >
+          {children}
+        </LogsQueryParamsProvider>
+      ),
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(1));
+    expect(result.current.routingHintsByRow.get(result.current.data[0]!)).toBe(
+      'trace-log-hint'
+    );
+  });
+
   test.each([
     ['DESC', ['9', '8', '7', '6', '5', '4', '4.1', '3', '2']],
     ['ASC', ['1', '2', '3', '4', '5', '6', '6.1', '7', '8']],

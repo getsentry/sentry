@@ -26,6 +26,7 @@ export interface TraceOverviewData {
     availability: TraceDataAvailability;
     count: number | undefined;
     representative: EventsLogsResult['data'] | undefined;
+    routingHint?: string;
   };
   metrics: {
     availability: TraceDataAvailability;
@@ -299,6 +300,9 @@ export function useTraceOverviewData({
       availability: logsAvailability,
       count: logsCount,
       representative: representativeLogResult.data?.data,
+      routingHint:
+        representativeLogResult.data?.meta?.routingHint ??
+        representativeLogResult.data?.meta?.routing_hint,
     },
     metrics: {
       availability: metricsAvailability,

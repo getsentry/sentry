@@ -1,10 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {EAPTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/types';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import {useTraceOverviewData} from './useTraceOverviewData';
 
@@ -84,6 +87,13 @@ describe('useTraceOverviewData', () => {
 
   it('loads project ids and one representative log for an EAP log-only trace', async () => {
     const organization = OrganizationFixture();
+    const project = ProjectFixture({id: '1'});
+    ProjectsStore.loadInitialData([project]);
+    const tree = TraceTree.Empty();
+    const details = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/log-id/`,
+      body: {attributes: [], meta: {}, itemId: 'log-id', timestamp: '2017-10-16'},
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       match: [
@@ -112,19 +122,31 @@ describe('useTraceOverviewData', () => {
     };
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
-      body: {data: [representativeLog]},
+      body: {
+        data: [representativeLog],
+        meta: {fields: {}, units: {}, routing_hint: 'representative-hint'},
+      },
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceOverviewData({
+      () => {
+        const overview = useTraceOverviewData({
           logsEnabled: true,
           meta: makeEapMeta({logsCount: 2}),
           metricsEnabled: true,
           queryParams: QUERY_PARAMS,
           traceSlug: TRACE_SLUG,
-          tree: makeEmptyTree(),
-        }),
+          tree,
+        });
+        useTraceRootEvent({
+          tree,
+          logs: overview.logs.representative,
+          logsRoutingHint: overview.logs.routingHint,
+          traceId: TRACE_SLUG,
+          timestamp: undefined,
+        });
+        return overview;
+      },
       {organization}
     );
 
@@ -140,7 +162,10 @@ describe('useTraceOverviewData', () => {
       availability: 'present',
       count: 2,
       representative: [representativeLog],
+      routingHint: 'representative-hint',
     });
+    await waitFor(() => expect(details).toHaveBeenCalledTimes(1));
+    expect(details.mock.calls[0]![1].query.routing_hint).toBe('representative-hint');
   });
 
   it('loads project ids for an EAP metric-only trace', async () => {

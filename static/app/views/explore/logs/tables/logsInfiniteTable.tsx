@@ -149,6 +149,7 @@ export function LogsInfiniteTable({
     isEmpty,
     meta: rawMeta,
     data: originalData,
+    routingHintsByRow,
     isError,
     error,
     refetch,
@@ -520,6 +521,10 @@ export function LogsInfiniteTable({
       return (
         <LogRowContent
           dataRow={dataRow}
+          routingHint={
+            routingHintsByRow.get(dataRow) ??
+            pinnedLogsQuery.routingHintsByRow.get(dataRow)
+          }
           meta={meta}
           highlightTerms={highlightTerms}
           embedded={false}
@@ -550,6 +555,8 @@ export function LogsInfiniteTable({
       logStart,
       logsPinning,
       meta,
+      routingHintsByRow,
+      pinnedLogsQuery.routingHintsByRow,
     ]
   );
 
@@ -669,6 +676,11 @@ export function LogsInfiniteTable({
               <Fragment key={virtualRow.key}>
                 <LogRowContent
                   dataRow={dataRow as OurLogsResponseItem}
+                  routingHint={
+                    isRegularLogResponseItem(dataRow)
+                      ? routingHintsByRow.get(dataRow)
+                      : undefined
+                  }
                   errorRow={isErrorLogRow(dataRow) ? dataRow.__error : undefined}
                   meta={meta}
                   highlightTerms={highlightTerms}

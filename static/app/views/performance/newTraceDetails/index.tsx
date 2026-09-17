@@ -143,6 +143,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const rootEventResults = useTraceRootEvent({
     tree,
     logs: overview.logs.representative,
+    logsRoutingHint: overview.logs.routingHint,
     timestamp: queryParams.timestamp,
     traceId: traceSlug,
   });
