@@ -59,7 +59,7 @@ from sentry.sentry_apps.utils.webhooks import (
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
@@ -541,7 +541,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             try:
                 client.send_card(channel, attachment)
                 return True
-            except ApiError as e:
+            except (ApiError, IntegrationError) as e:
                 record_lifecycle_termination_level(lifecycle, e)
             except Exception as e:
                 lifecycle.add_extras({"integration_id": integration_id, "channel": channel})

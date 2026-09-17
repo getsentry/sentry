@@ -9,6 +9,7 @@ from taskbroker_client.retry import Retry
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, normalize_scm_provider
 from sentry.models.repository import Repository
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
@@ -18,6 +19,7 @@ from sentry.preprod.snapshots.utils import (
     evaluate_snapshot_changes_by_artifact_id,
 )
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
+    format_approved_without_base_snapshot_pr_comment,
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
     format_solo_snapshot_pr_comment,
@@ -28,13 +30,15 @@ from sentry.preprod.vcs.pr_comments.tasks import (
     resolve_pr_comment_context,
     save_pr_comment_result,
 )
+from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +58,97 @@ def get_snapshot_pr_comment_reporting_criteria(project: Project) -> SnapshotChan
     )
 
 
+def _emit_pr_head_comparison_telemetry(
+    *,
+    organization_id: int,
+    repo_name: str,
+    provider: str,
+    pr_number: int,
+    commit_comparison_id: int,
+    head_sha: str,
+    artifact_id: int | None,
+) -> None:
+    try:
+        repository, repository_resolution = Repository.objects.resolve_active(
+            organization_id=organization_id,
+            name=repo_name,
+            normalized_provider=normalize_scm_provider(provider),
+        )
+
+        pull_request_data = None
+        if repository is not None:
+            pull_request_data = (
+                PullRequest.objects.filter(
+                    organization_id=organization_id,
+                    repository_id=repository.id,
+                    key=str(pr_number),
+                )
+                .values_list("id", "head_commit_sha")
+                .first()
+            )
+
+        if repository is None:
+            result = f"repository_{repository_resolution}"
+            pr_head_sha = None
+        elif pull_request_data is None:
+            result = "missing_pr"
+            pr_head_sha = None
+        else:
+            _, pr_head_sha = pull_request_data
+            if pr_head_sha is None:
+                result = "missing_head_sha"
+            elif pr_head_sha == head_sha:
+                result = "matched"
+            else:
+                result = "mismatched"
+
+        metrics.incr(
+            "preprod.snapshot_pr_comments.head_comparison",
+            sample_rate=1.0,
+            tags={"result": result},
+        )
+
+        if result not in ("matched", "mismatched"):
+            logger.info(
+                "preprod.snapshot_pr_comments.post.head_comparison_unavailable",
+                extra={
+                    "commit_comparison_id": commit_comparison_id,
+                    "organization_id": organization_id,
+                    "preprod_artifact_id": artifact_id,
+                    "repo_name": repo_name,
+                    "pr_number": pr_number,
+                    "reason": result,
+                },
+            )
+        elif result == "mismatched":
+            logger.info(
+                "preprod.snapshot_pr_comments.post.head_mismatch",
+                extra={
+                    "commit_comparison_id": commit_comparison_id,
+                    "organization_id": organization_id,
+                    "preprod_artifact_id": artifact_id,
+                    "repo_name": repo_name,
+                    "pr_number": pr_number,
+                    "comparison_head_sha": head_sha,
+                    "pr_head_sha": pr_head_sha,
+                },
+            )
+    except Exception:
+        logger.exception(
+            "preprod.snapshot_pr_comments.post.head_comparison_telemetry_failed",
+            extra={
+                "commit_comparison_id": commit_comparison_id,
+                "organization_id": organization_id,
+                "preprod_artifact_id": artifact_id,
+                "repo_name": repo_name,
+                "pr_number": pr_number,
+            },
+        )
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -129,13 +221,24 @@ def create_preprod_snapshot_pr_comment_task(
         for approval in approval_qs:
             approvals_by_artifact_id[approval.preprod_artifact_id] = approval
 
-        base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
+        base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(
+            all_artifacts, require_snapshot_metrics=True
+        )
 
-        is_solo = not base_artifact_map
+        has_base_artifacts = bool(base_artifact_map)
+
+        # If the base arrives before this delayed check runs, comparison processing
+        # will update the PR comment. Avoid overwriting it from this stale timeout.
+        if is_timeout_check and has_base_artifacts:
+            logger.info(
+                "preprod.snapshot_pr_comments.create.skipped_timeout_base_resolved",
+                extra={"preprod_artifact_id": artifact.id},
+            )
+            return
 
         cc_id = cc.id
 
-        if is_solo:
+        if not has_base_artifacts:
             app_ids = {a.app_id for a in all_artifacts if a.app_id}
             has_previous_snapshots = (
                 PreprodSnapshotMetrics.objects.filter(
@@ -153,24 +256,25 @@ def create_preprod_snapshot_pr_comment_task(
                 comment_body = format_solo_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
+            elif all(a.id in approvals_by_artifact_id for a in all_artifacts):
+                comment_body = format_approved_without_base_snapshot_pr_comment(
+                    all_artifacts,
+                    snapshot_metrics_map,
+                    project=artifact.project,
+                    base_sha=commit_comparison.base_sha,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
+                )
             elif not is_timeout_check:
                 comment_body = format_waiting_for_base_snapshot_pr_comment(
                     all_artifacts, snapshot_metrics_map, project=artifact.project
                 )
             else:
-                assert commit_comparison.base_sha is not None
-                base_repo_name = commit_comparison.base_repo_name or head_repo_name
-                base_repository = Repository.objects.filter(
-                    organization_id=organization.id,
-                    name=base_repo_name,
-                    provider=f"integrations:{provider}",
-                ).first()
                 comment_body = format_missing_base_snapshot_pr_comment(
                     all_artifacts,
                     snapshot_metrics_map,
                     project=artifact.project,
                     base_sha=commit_comparison.base_sha,
-                    base_repo_url=base_repository.url if base_repository else None,
+                    base_repo_url=resolve_base_repo_url(commit_comparison, organization.id),
                 )
         else:
             reporting_criteria = get_snapshot_pr_comment_reporting_criteria(artifact.project)
@@ -233,7 +337,7 @@ def create_preprod_snapshot_pr_comment_task(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),
@@ -337,6 +441,16 @@ def post_snapshot_pr_comment_task(
             extra={"commit_comparison_id": commit_comparison_id},
         )
         return
+
+    _emit_pr_head_comparison_telemetry(
+        organization_id=organization.id,
+        repo_name=repo_name,
+        provider=provider,
+        pr_number=pr_number,
+        commit_comparison_id=cc.id,
+        head_sha=cc.head_sha,
+        artifact_id=artifact_id,
+    )
 
     # Re-raised outside the transaction so the failure record is committed
     # before the retry fires. Terminal 4xx (except 429) are swallowed; 429,

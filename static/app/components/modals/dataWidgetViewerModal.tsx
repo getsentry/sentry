@@ -809,7 +809,6 @@ function DataWidgetViewerModal(props: Props) {
                         title={widget.description}
                         containerDisplayMode="grid"
                         showOnlyOnOverflow
-                        isHoverable
                         position="bottom"
                       >
                         <WidgetDescription>{widget.description}</WidgetDescription>

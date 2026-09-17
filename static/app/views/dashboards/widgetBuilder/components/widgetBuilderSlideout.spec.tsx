@@ -11,7 +11,6 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
-import {useParams} from 'sentry/utils/useParams';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -24,7 +23,6 @@ import {
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
 jest.mock('sentry/actionCreators/indicator');
-jest.mock('sentry/utils/useParams');
 
 describe('WidgetBuilderSlideout', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
@@ -42,8 +40,6 @@ describe('WidgetBuilderSlideout', () => {
     jest
       .mocked(useTraceMetricItemAttributes)
       .mockReturnValue({attributes: {}, secondaryAliases: {}, isLoading: false});
-
-    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -316,10 +312,14 @@ describe('WidgetBuilderSlideout', () => {
     );
 
     await userEvent.type(await screen.findByPlaceholderText('Add Alias'), 'test alias');
+    expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias');
+
     await userEvent.click(await screen.findByRole('button', {name: 'Transactions'}));
     await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
-    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
+    });
   }, 10_000);
 
   it('clears the alias when display type changes', async () => {
@@ -356,13 +356,16 @@ describe('WidgetBuilderSlideout', () => {
       await screen.findByPlaceholderText('Add Alias'),
       'test alias again'
     );
+    expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('test alias again');
 
     await userEvent.click(await screen.findByText('Table'));
     await userEvent.click(await screen.findByText('Area'));
     await userEvent.click(await screen.findByText('Area'));
     await userEvent.click(await screen.findByText('Table'));
 
-    expect(await screen.findByPlaceholderText('Add Alias')).toHaveValue('');
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('Add Alias')).toHaveValue('');
+    });
   }, 10_000);
 
   it('only renders thresholds for big number widgets', async () => {
@@ -397,8 +400,6 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('calls the save method with the index if it is defined', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
-
     const onSave = jest.fn();
     render(
       <WidgetBuilderProvider>
@@ -415,6 +416,10 @@ describe('WidgetBuilderSlideout', () => {
       </WidgetBuilderProvider>,
       {
         organization,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {pathname: '/dashboards/1/'},
+        },
       }
     );
 
@@ -424,8 +429,6 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('passes undefined as the index for onSave if the index is not defined', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: undefined});
-
     const onSave = jest.fn();
 
     // This is the case where we're adding a new widget
@@ -529,7 +532,6 @@ describe('WidgetBuilderSlideout', () => {
         'performance-transaction-deprecation-banner',
       ],
     });
-    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -546,8 +548,9 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization: organizationWithFeature,
         initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
           location: {
-            pathname: '/dashboards/',
+            pathname: '/dashboards/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,
@@ -568,7 +571,6 @@ describe('WidgetBuilderSlideout', () => {
   });
 
   it('should not show deprecation alert when flag enabled', async () => {
-    jest.mocked(useParams).mockReturnValue({widgetIndex: '1'});
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
@@ -585,8 +587,9 @@ describe('WidgetBuilderSlideout', () => {
       {
         organization,
         initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
           location: {
-            pathname: '/dashboards/',
+            pathname: '/dashboards/1/',
             query: {
               dataset: WidgetType.TRANSACTIONS,
               displayType: DisplayType.LINE,

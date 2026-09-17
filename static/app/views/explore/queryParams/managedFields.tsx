@@ -194,6 +194,7 @@ function findChangedFields(
 
   // TODO: check if we need to distinguish between null and undefined here
   if (defined(writableQueryParams.fields)) {
+    // oxlint-disable-next-line no-inner-declarations -- Match ESLint's handling of block-scoped functions.
     function countFields(counter: Counter, field: string) {
       const count = counter.get(field) || 0;
       counter.set(field, count + 1);

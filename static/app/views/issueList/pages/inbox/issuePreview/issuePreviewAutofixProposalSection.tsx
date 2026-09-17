@@ -65,7 +65,9 @@ export function IssuePreviewAutofixProposalSection({
             prompt={t('How can this code change be improved?')}
           />
           {section.status === 'processing' ? (
-            <WorkingIndicator>{t('Generating code changes...')}</WorkingIndicator>
+            <WorkingIndicator blocks={section.blocks}>
+              {t('Generating code changes...')}
+            </WorkingIndicator>
           ) : patchesByRepo.size > 0 ? (
             <Text>{proposalSummary}</Text>
           ) : (

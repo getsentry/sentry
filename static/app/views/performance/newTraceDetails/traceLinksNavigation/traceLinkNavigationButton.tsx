@@ -29,7 +29,6 @@ export function TraceLinkNavigationButton({
       tooltipProps={{
         position: 'top',
         delay: 400,
-        isHoverable: true,
         title: tooltip,
       }}
       onClick={onClick}

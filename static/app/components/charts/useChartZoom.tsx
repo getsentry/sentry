@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
 
 import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
-import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
+import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {getToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
@@ -111,7 +111,6 @@ interface UseChartZoomOptions {
    * inside dataZoom model for synced charts.
    */
   disabled?: boolean;
-  onZoom?: (period: FormattedPeriod) => void;
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Will persist zoom state to page filters
@@ -123,7 +122,6 @@ interface UseChartZoomOptions {
    * Sets the start, end, and statsPeriod query params.
    */
   usePageDate?: boolean;
-  xAxisIndex?: number | number[];
 }
 
 /**
@@ -151,6 +149,7 @@ function useChartZoomCancel(disabled?: boolean) {
   );
 
   const handleMouseUp = useCallback(() => {
+    // oxlint-disable-next-line react/immutability
     document.body.removeEventListener('mouseup', handleMouseUp);
     document.body.removeEventListener('keydown', handleKeyDown, true);
   }, [handleKeyDown]);
@@ -215,10 +214,8 @@ function useChartZoomCancel(disabled?: boolean) {
  */
 export function useChartZoom({
   disabled,
-  onZoom,
   usePageDate,
   saveOnZoom,
-  xAxisIndex,
 }: UseChartZoomOptions): ZoomRenderProps {
   const {handleChartReady} = useChartZoomCancel(disabled);
   const location = useLocation();
@@ -244,14 +241,9 @@ export function useChartZoom({
 
   const setPeriod = useCallback(
     (newPeriod: DateTimeUpdate) => {
-      const formattedPeriod = getFormattedPeriod(newPeriod);
-
-      // Callback to let parent component know zoom has changed.
-      onZoom?.(formattedPeriod);
-
-      commitZoomPeriod(formattedPeriod);
+      commitZoomPeriod(getFormattedPeriod(newPeriod));
     },
-    [commitZoomPeriod, onZoom]
+    [commitZoomPeriod]
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
@@ -304,12 +296,11 @@ export function useChartZoom({
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     // Keep the inside dataZoom model even when disabled so synced charts can
     // still receive x-range changes without this hook writing URL state.
-    const zoomInside = DataZoomInside({
+    const zoomInside = dataZoomInside({
       id: 'useChartZoom-inside',
-      xAxisIndex,
     });
     return zoomInside;
-  }, [xAxisIndex]);
+  }, []);
 
   const toolBox = useMemo<ToolboxComponentOption>(() => {
     if (disabled) {
@@ -322,7 +313,6 @@ export function useChartZoom({
       {id: 'useChartZoom-toolbox'},
       {
         dataZoom: {
-          xAxisIndex,
           title: {
             zoom: '',
             back: '',
@@ -335,7 +325,7 @@ export function useChartZoom({
         },
       }
     );
-  }, [disabled, xAxisIndex]);
+  }, [disabled]);
 
   const renderProps = useMemo<ZoomRenderProps>(
     () => ({

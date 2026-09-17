@@ -270,19 +270,16 @@ export const getIntegrationSourceUrl = (
   }
 };
 
-export function getCodeOwnerIcon(
-  provider: CodeOwner['provider'],
-  iconSize: SVGIconProps['size'] = 'md'
-) {
+export function getCodeOwnerIcon(provider: CodeOwner['provider']) {
   switch (provider ?? '') {
     case 'github':
-      return <IconGithub size={iconSize} />;
+      return <IconGithub size="md" />;
     case 'gitlab':
-      return <IconGitlab size={iconSize} />;
+      return <IconGitlab size="md" />;
     case 'perforce':
-      return <IconPerforce size={iconSize} />;
+      return <IconPerforce size="md" />;
     default:
-      return <IconSentry size={iconSize} />;
+      return <IconSentry size="md" />;
   }
 }
 /**

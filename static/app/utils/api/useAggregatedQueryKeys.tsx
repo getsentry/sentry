@@ -119,6 +119,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   );
 
   // The counts for each query key that this instance cares about
+  // oxlint-disable-next-line react/refs
   const [data, setData] = useState<undefined | Data>(readCache);
 
   const timer = useRef<null | NodeJS.Timeout>(null);
@@ -160,6 +161,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
       });
 
       if (allQueuedQueries.length > queuedQueriesBatch.length) {
+        // oxlint-disable-next-line react/immutability
         fetchData();
       }
     } catch (error) {

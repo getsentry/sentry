@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.notifications.types import FallthroughChoiceType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
@@ -314,6 +316,13 @@ class TestEnsurePullRequestWorkflow(TestCase):
         second = ensure_pull_request_workflow(self.organization, random_detector)
 
         assert first.id != second.id
+
+    def test_duplicate_workflows_raises(self) -> None:
+        ensure_pull_request_workflow(self.organization, self.all_projects_detector)
+        create_and_connect_pull_request_workflow(self.organization, self.all_projects_detector)
+
+        with pytest.raises(Workflow.MultipleObjectsReturned):
+            ensure_pull_request_workflow(self.organization, self.all_projects_detector)
 
 
 class TestEnsureDefaultOrganizationWorkflows(TestCase):

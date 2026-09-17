@@ -65,7 +65,7 @@ class ControlAccessService(AccessService):
                 organization_id=member.organization_id,
                 user__is_active=True,
             )
-            .exclude(id=member.id)
+            .exclude(organizationmember_id=member.id)
             .values_list("user_id")
         )
         return not AuthIdentity.objects.filter(

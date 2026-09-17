@@ -19,6 +19,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
 import {
   type DatasetConfig,
   type SearchBarData,
@@ -242,16 +243,43 @@ function useTraceMetricsSearchScope() {
 export {formatTraceMetricsFunction};
 
 export function useGlobalFilterTraceMetricsSearchBarDataProvider(
-  props: Pick<SearchBarDataProviderProps, 'pageFilters'>
+  props: Pick<SearchBarDataProviderProps, 'filterKeySearch' | 'pageFilters'>
 ): SearchBarData {
-  const {pageFilters} = props;
+  const {filterKeySearch, pageFilters} = props;
+  const attributeOptions = {
+    search: filterKeySearch,
+    staleTime: WIDGET_BUILDER_ATTRIBUTE_STALE_TIME,
+  };
 
-  const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'string', HiddenTraceMetricSearchFields);
-  const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'number', HiddenTraceMetricSearchFields);
-  const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
-    useTraceMetricItemAttributes({}, 'boolean', HiddenTraceMetricSearchFields);
+  const {
+    attributes: stringAttributes,
+    isLoading: stringAttributesLoading,
+    secondaryAliases: stringSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    attributeOptions,
+    'string',
+    HiddenTraceMetricSearchFields
+  );
+  const {
+    attributes: numberAttributes,
+    isLoading: numberAttributesLoading,
+    secondaryAliases: numberSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    attributeOptions,
+    'number',
+    HiddenTraceMetricSearchFields
+  );
+  const {
+    attributes: booleanAttributes,
+    isLoading: booleanAttributesLoading,
+    secondaryAliases: booleanSecondaryAliases,
+  } = useTraceMetricItemAttributes(
+    attributeOptions,
+    'boolean',
+    HiddenTraceMetricSearchFields
+  );
+  const isFetchingFilterKeys =
+    stringAttributesLoading || numberAttributesLoading || booleanAttributesLoading;
 
   const {filterKeys, filterKeySections, getTagValues} =
     useTraceItemSearchQueryBuilderProps({
@@ -272,6 +300,7 @@ export function useGlobalFilterTraceMetricsSearchBarDataProvider(
     getFilterKeySections: () => filterKeySections,
     getFilterKeys: () => filterKeys,
     getTagValues,
+    isFetchingFilterKeys,
   };
 }
 
@@ -358,9 +387,7 @@ export const TraceMetricsConfig: DatasetConfig<
   getFieldHeaderMap: widgetQuery => {
     return (
       widgetQuery?.aggregates.reduce<Record<string, string>>((acc, aggregate) => {
-        acc[aggregate] = stripEquationPrefix(
-          formatTraceMetricsFunction(aggregate) as string
-        );
+        acc[aggregate] = stripEquationPrefix(formatTraceMetricsFunction(aggregate));
         return acc;
       }, {}) ?? {}
     );
@@ -402,16 +429,8 @@ function filterYAxisOptions() {
   };
 }
 
-function getGroupByFieldOptions(
-  organization: Organization,
-  tags?: TagCollection,
-  customMeasurements?: CustomMeasurementCollection
-) {
-  const primaryFieldOptions = getPrimaryFieldOptions(
-    organization,
-    tags,
-    customMeasurements
-  );
+function getGroupByFieldOptions(organization: Organization, tags?: TagCollection) {
+  const primaryFieldOptions = getPrimaryFieldOptions(organization, tags);
   const yAxisFilter = filterYAxisOptions();
   const filterGroupByOptions = (option: FieldValueOption) => !yAxisFilter(option);
 

@@ -6,21 +6,17 @@ from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Relati
 
 from sentry.exceptions import InvalidQuerySubscription, UnsupportedQuerySubscription
 from sentry.models.group import GroupStatus
-from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve, resolve_tag_key, resolve_tag_value
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     EventsEntitySubscription,
     MetricsCountersEntitySubscription,
     MetricsSetsEntitySubscription,
-    PerformanceMetricsEntitySubscription,
     PerformanceSpansEAPRpcEntitySubscription,
     PerformanceTransactionsEntitySubscription,
-    get_entity_key_from_snuba_query,
     get_entity_subscription,
-    get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import ExtrapolationMode, SnubaQuery
@@ -258,61 +254,6 @@ class EntitySubscriptionTestCase(TestCase):
 
     # This test has been kept in order to validate whether the old queries through metrics are supported, in the future
     # this should be removed.
-    @pytest.mark.skip("Generic metrics sets, gauges, and distributions are no longer queryable")
-    def test_get_entity_subscription_for_performance_metrics_dataset(self) -> None:
-        aggregate = "percentile(transaction.duration,.95)"
-        entity_subscription = get_entity_subscription(
-            query_type=SnubaQuery.Type.PERFORMANCE,
-            dataset=Dataset.PerformanceMetrics,
-            aggregate=aggregate,
-            time_window=3600,
-            extra_fields={"org_id": self.organization.id},
-        )
-        assert isinstance(entity_subscription, PerformanceMetricsEntitySubscription)
-        assert entity_subscription.aggregate == aggregate
-        assert entity_subscription.get_entity_extra_params() == {
-            "organization": self.organization.id,
-            "granularity": 60,
-        }
-        assert entity_subscription.dataset == Dataset.PerformanceMetrics
-        snql_query = entity_subscription.build_query_builder(
-            "",
-            [self.project.id],
-            None,
-            {
-                "organization_id": self.organization.id,
-            },
-        ).get_snql_query()
-
-        metric_id = resolve(
-            UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["transaction.duration"]
-        )
-
-        assert snql_query.query.select == [
-            Function(
-                function="arrayElement",
-                parameters=[
-                    Function(
-                        function="quantilesIf(0.95)",
-                        parameters=[
-                            Column(name="value"),
-                            Function(
-                                function="equals",
-                                parameters=[Column(name="metric_id"), metric_id],
-                            ),
-                        ],
-                    ),
-                    1,
-                ],
-                alias="percentile_transaction_duration__95",
-            )
-        ]
-        assert snql_query.query.where == [
-            Condition(Column("project_id"), Op.IN, [self.project.id]),
-            Condition(Column("org_id"), Op.EQ, self.organization.id),
-            Condition(Column("metric_id"), Op.IN, [metric_id]),
-        ]
-
     def test_get_entity_subscription_for_events_dataset(self) -> None:
         aggregate = "count_unique(user)"
         entity_subscription = get_entity_subscription(
@@ -492,138 +433,3 @@ class EntitySubscriptionTestCase(TestCase):
             rpc_timeseries_request.expressions[0].aggregation.extrapolation_mode
             == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
         )
-
-
-class GetEntitySubscriptionFromSnubaQueryTest(TestCase):
-    def test(self) -> None:
-        cases = [
-            (EventsEntitySubscription, SnubaQuery.Type.ERROR, Dataset.Events, "count()"),
-            (
-                PerformanceTransactionsEntitySubscription,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Transactions,
-                "count()",
-            ),
-            (
-                PerformanceMetricsEntitySubscription,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Metrics,
-                "count()",
-            ),
-            (
-                PerformanceMetricsEntitySubscription,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "count()",
-            ),
-            (
-                PerformanceMetricsEntitySubscription,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Metrics,
-                "count_unique(user)",
-            ),
-            (
-                PerformanceMetricsEntitySubscription,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "count_unique(user)",
-            ),
-            (
-                PerformanceMetricsEntitySubscription,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "max(d:transactions/sentry.process_profile.track_outcome@second)",
-            ),
-            (
-                MetricsCountersEntitySubscription,
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            ),
-            (
-                MetricsSetsEntitySubscription,
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-            ),
-        ]
-
-        for expected_entity_subscription, query_type, dataset, aggregate in cases:
-            snuba_query = SnubaQuery.objects.create(
-                time_window=60,
-                type=query_type.value,
-                dataset=dataset.value,
-                aggregate=aggregate,
-                resolution=5,
-            )
-            assert isinstance(
-                get_entity_subscription_from_snuba_query(snuba_query, self.organization.id),
-                expected_entity_subscription,
-            )
-
-
-class GetEntityKeyFromSnubaQueryTest(TestCase):
-    def test(self) -> None:
-        cases = [
-            (EntityKey.Events, SnubaQuery.Type.ERROR, Dataset.Events, "count()", "", True, True),
-            (
-                EntityKey.Transactions,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.Transactions,
-                "count()",
-                "",
-                True,
-                True,
-            ),
-            (
-                EntityKey.GenericMetricsCounters,
-                SnubaQuery.Type.PERFORMANCE,
-                Dataset.PerformanceMetrics,
-                "sum(c:transactions/sentry.process_profile.track_outcome@second)",
-                "",
-                # Custom metrics are not supported when the metrics layer integration with mqb is disabled.
-                False,
-                True,
-            ),
-            (
-                EntityKey.MetricsCounters,
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-                "",
-                True,
-                True,
-            ),
-            (
-                EntityKey.MetricsSets,
-                SnubaQuery.Type.CRASH_RATE,
-                Dataset.Metrics,
-                "percentage(users_crashed, users) AS _crash_rate_alert_aggregate",
-                "",
-                True,
-                True,
-            ),
-        ]
-
-        for (
-            expected_entity_key,
-            query_type,
-            dataset,
-            aggregate,
-            query,
-            supported_with_no_metrics_layer,
-            supported_with_metrics_layer,
-        ) in cases:
-            snuba_query = SnubaQuery.objects.create(
-                time_window=60,
-                type=query_type.value,
-                dataset=dataset.value,
-                aggregate=aggregate,
-                query=query,
-                resolution=5,
-            )
-
-            if supported_with_no_metrics_layer:
-                assert expected_entity_key == get_entity_key_from_snuba_query(
-                    snuba_query, self.organization.id, self.project.id
-                )

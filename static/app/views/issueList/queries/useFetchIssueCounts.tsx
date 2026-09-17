@@ -11,8 +11,6 @@ interface FetchIssueCountsParameters {
   project: number[];
   query: string[];
   end?: string | null;
-  groupStatsPeriod?: string | null;
-  sort?: string;
   start?: string | null;
   statsPeriod?: string | null;
 }

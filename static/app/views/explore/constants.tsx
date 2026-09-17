@@ -180,3 +180,7 @@ export const MAX_PERIOD_FOR_CROSS_EVENTS = '7d';
 export const MAX_DAYS_FOR_CROSS_EVENTS = statsPeriodToDays(MAX_PERIOD_FOR_CROSS_EVENTS);
 
 export const EXPLORE_FIVE_MIN_STALE_TIME = 5 * 60 * 1000;
+
+// Some fields don't make sense to allow users to group by as they create
+// very high cardinality groupings and is not useful.
+export const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);

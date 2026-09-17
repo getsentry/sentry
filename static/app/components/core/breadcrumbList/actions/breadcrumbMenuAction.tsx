@@ -1,7 +1,6 @@
 import {Button} from '@sentry/scraps/button';
-
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 export interface BreadcrumbMenuActionProps {
   /** Menu entries rendered inside the dropdown. */

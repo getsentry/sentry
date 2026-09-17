@@ -58,33 +58,11 @@ describe('SaveQueryModal', () => {
 
     await userEvent.click(screen.getByLabelText('Create a New Query'));
 
-    await waitFor(() => expect(saveQuery).toHaveBeenCalledWith('Query Name', true));
-  });
-
-  it('should call saveQuery without starring the query', async () => {
-    const saveQuery = jest.fn();
-    render(
-      <SaveQueryModal
-        Header={stubEl}
-        Footer={stubEl as ModalRenderProps['Footer']}
-        Body={stubEl as ModalRenderProps['Body']}
-        CloseButton={stubEl}
-        closeModal={() => {}}
-        organization={initialData.organization}
-        saveQuery={saveQuery}
-        traceItemDataset={TraceItemDataset.SPANS}
-      />
+    await waitFor(() =>
+      expect(saveQuery).toHaveBeenCalledWith(
+        expect.objectContaining({name: 'Query Name'})
+      )
     );
-
-    await userEvent.type(
-      screen.getByTitle('Enter a name for your new query'),
-      'Query Name'
-    );
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Starred'}));
-
-    await userEvent.click(screen.getByLabelText('Create a New Query'));
-
-    await waitFor(() => expect(saveQuery).toHaveBeenCalledWith('Query Name', false));
   });
 
   it('should render rename ui', () => {

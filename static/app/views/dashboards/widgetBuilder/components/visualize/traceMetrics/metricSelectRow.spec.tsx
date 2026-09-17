@@ -4,7 +4,6 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import {
@@ -14,18 +13,19 @@ import {
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
-jest.mock('sentry/utils/useNavigate');
-const mockedUseNavigate = jest.mocked(useNavigate);
-
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 
-describe('MetricSelectRow', () => {
-  let mockNavigate!: jest.Mock;
-  beforeEach(() => {
-    mockNavigate = jest.fn();
-    mockedUseNavigate.mockReturnValue(mockNavigate);
+/**
+ * A query param holding a single value comes back as a string rather than a
+ * one-element array, so normalise before comparing to a serialized list.
+ */
+function queryList(value: string | string[] | undefined | null) {
+  return value === undefined || value === null ? [] : [value].flat();
+}
 
+describe('MetricSelectRow', () => {
+  beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       method: 'GET',
@@ -233,7 +233,7 @@ describe('MetricSelectRow', () => {
   });
 
   it('replaces invalid aggregates when changing to an incompatible metric type', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
@@ -268,24 +268,19 @@ describe('MetricSelectRow', () => {
 
     // p50 is invalid for counter, so it should be replaced with sum
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('preserves valid aggregates when changing metric type', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
@@ -320,24 +315,19 @@ describe('MetricSelectRow', () => {
 
     // sum should remain since it's valid for distribution, but args updated
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'distribution_metric', 'distribution', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('handles mixed valid and invalid aggregates on metric change', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
@@ -376,38 +366,33 @@ describe('MetricSelectRow', () => {
 
     // per_second stays, p99 replaced with sum, count replaced with sum
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: [
-                  'per_second' as AggregationKeyWithAlias,
-                  'value',
-                  'counter_metric',
-                  'counter',
-                  'none',
-                ],
-              },
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
-              },
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: [
+              'per_second' as AggregationKeyWithAlias,
+              'value',
+              'counter_metric',
+              'counter',
+              'none',
+            ],
+          },
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+          },
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('replaces invalid aggregates for big number display', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
@@ -440,24 +425,19 @@ describe('MetricSelectRow', () => {
 
     // avg is invalid for counter, replaced with sum
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            field: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.field)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('uses avg for gauge metrics', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
@@ -492,24 +472,19 @@ describe('MetricSelectRow', () => {
 
     // p50 is invalid for counter, replaced with avg
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            yAxis: serializeFields([
-              {
-                kind: FieldValueKind.FUNCTION,
-                function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
-              },
-            ]),
-          }),
-        }),
-        expect.anything()
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['avg', 'value', 'gauge_metric', 'gauge', 'none'],
+          },
+        ])
       );
     });
   });
 
   it('converts - to none for unit', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <MetricSelectRow
           field={{
@@ -538,19 +513,16 @@ describe('MetricSelectRow', () => {
     await userEvent.click(metricSelector);
     await userEvent.click(await screen.findByRole('option', {name: 'counter_metric'}));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: serializeFields([
-            {
-              kind: FieldValueKind.FUNCTION,
-              function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
-            },
-          ]),
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(queryList(router.location.query.yAxis)).toEqual(
+        serializeFields([
+          {
+            kind: FieldValueKind.FUNCTION,
+            function: ['sum', 'value', 'counter_metric', 'counter', 'none'],
+          },
+        ])
+      );
+    });
   });
 
   it('disables non-distribution metrics when the display type is a heat map', async () => {

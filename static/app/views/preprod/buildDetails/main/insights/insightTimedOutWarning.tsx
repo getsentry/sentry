@@ -21,7 +21,6 @@ export function InsightTimedOutWarning({insight}: {insight: ProcessedInsight}) {
 
   return (
     <Tooltip
-      isHoverable
       title={
         <span>
           {t(

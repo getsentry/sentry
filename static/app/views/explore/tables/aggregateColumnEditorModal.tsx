@@ -8,18 +8,13 @@ import cloneDeep from 'lodash/cloneDeep';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {SelectKey, SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
-import {InvalidReason} from 'sentry/components/searchSyntax/parser';
 import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -31,17 +26,14 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   AggregationKey,
-  FieldKind,
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  TraceItemSearchQueryBuilder,
-  type TraceItemSearchQueryBuilderProps,
-} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
+import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
+import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -54,7 +46,6 @@ import {
   updateVisualizeAggregate,
 } from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import type {Column} from 'sentry/views/explore/hooks/useDragNDropColumns';
-import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
@@ -73,7 +64,6 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
   buildConditionalAggregate,
-  CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
@@ -516,32 +506,6 @@ function AggregateSelector({
     hasConditionalAggregates &&
     supportsConditionalAggregateFilter(parsedFunction?.name ?? '');
 
-  const {selection} = usePageFilters();
-  const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
-    projects: selection.projects,
-    initialQuery: filter,
-    onSearch: handleFilterSearch,
-    searchSource: 'explore-conditional-aggregate',
-    placeholder: t('Filter spans for this series'),
-    // Attribute-only, same "Invalid key" UX as metrics for aggregates in the filter:
-    // never offer visualize aggregates, and mark them invalid if typed.
-    supportedAggregates: [],
-  });
-
-  const searchQueryBuilderProps = useMemo<TraceItemSearchQueryBuilderProps>(
-    () => ({
-      ...spanSearchQueryBuilderProps,
-      invalidFilterKeys: [
-        ...(spanSearchQueryBuilderProps.invalidFilterKeys ?? []),
-        ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
-      ],
-      invalidMessages: {
-        [InvalidReason.INVALID_KEY]: CONDITIONAL_FILTER_AGGREGATE_INVALID_MESSAGE,
-      },
-    }),
-    [spanSearchQueryBuilderProps]
-  );
-
   return (
     <Stack flex="3" minWidth="0" gap="sm">
       <Flex gap="md" align="center" width="100%">
@@ -585,33 +549,14 @@ function AggregateSelector({
         )}
       </Flex>
       {showFilterSearchBar && (
-        <FilterSearchBar searchQueryBuilderProps={searchQueryBuilderProps} />
+        <ConditionalAggregateFilterBar
+          data-test-id="editor-visualize-filter"
+          initialQuery={filter}
+          onSearch={handleFilterSearch}
+          searchSource="explore-conditional-aggregate"
+        />
       )}
     </Stack>
-  );
-}
-
-interface FilterSearchBarProps {
-  searchQueryBuilderProps: TraceItemSearchQueryBuilderProps;
-}
-
-/**
- * Search bar rendered underneath the aggregate dropdowns, used to attach an `_if` filter
- * to this series. Callers supply dataset-specific `TraceItemSearchQueryBuilder` props.
- */
-function FilterSearchBar({searchQueryBuilderProps}: FilterSearchBarProps) {
-  return (
-    <Container data-test-id="editor-visualize-filter" minWidth="0">
-      <TraceItemSearchQueryBuilder
-        {...searchQueryBuilderProps}
-        showSearchIcon={false}
-        // The modal clips and stacks above menus that are not portaled, and the full width
-        // filter key menu anchors itself inside the bar, so it has to be turned off for
-        // portaling to cover every menu.
-        portalTarget={document.body}
-        disableFullWidthFilterKeyMenu
-      />
-    </Container>
   );
 }
 
@@ -785,33 +730,6 @@ function EquationSelector({
 }: VisualizeSelectorProps) {
   const expression = stripEquationPrefix(visualize.yAxis);
 
-  const functionArguments: FunctionArgument[] = useMemo(() => {
-    return [
-      ...Object.entries(numberTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.MEASUREMENT,
-          name: key,
-          label: tag.name,
-        };
-      }),
-      ...Object.entries(stringTags).map(([key, tag]) => {
-        return {
-          kind: FieldKind.TAG,
-          name: key,
-          label: tag.name,
-        };
-      }),
-    ];
-  }, [numberTags, stringTags]);
-
-  const getSpanFieldDefinition = useCallback(
-    (key: string) => {
-      const tag = numberTags[key] ?? stringTags[key];
-      return getFieldDefinition(key, 'span', tag?.kind);
-    },
-    [numberTags, stringTags]
-  );
-
   const handleExpressionChange = useCallback(
     (newExpression: Expression) => {
       onChange(visualize.replace({yAxis: `${EQUATION_PREFIX}${newExpression.text}`}));
@@ -819,21 +737,15 @@ function EquationSelector({
     [onChange, visualize]
   );
 
-  const getSuggestedAttribute = useExploreSuggestedAttribute({
-    numberAttributes: numberTags,
-    stringAttributes: stringTags,
-    booleanAttributes: booleanTags,
-  });
-
   return (
-    <ArithmeticBuilder
+    <ExploreEquationArithmeticBuilder
       data-test-id="editor-visualize-equation"
-      aggregations={ALLOWED_EXPLORE_VISUALIZE_AGGREGATES}
-      functionArguments={functionArguments}
-      getFieldDefinition={getSpanFieldDefinition}
       expression={expression}
       setExpression={handleExpressionChange}
-      getSuggestedKey={getSuggestedAttribute}
+      traceItemType={TraceItemDataset.SPANS}
+      numberTags={numberTags}
+      stringTags={stringTags}
+      booleanTags={booleanTags}
     />
   );
 }

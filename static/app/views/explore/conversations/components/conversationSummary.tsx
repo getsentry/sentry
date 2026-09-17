@@ -2,6 +2,7 @@ import type React from 'react';
 import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -21,6 +22,7 @@ import {t} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -35,6 +37,10 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
+  TokenBreakdownTooltip,
+  type TokenBreakdownDetails,
+} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
+import {
   getNumberAttr,
   getStringAttr,
   hasError,
@@ -43,6 +49,7 @@ import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
+import {getTokenBreakdown} from 'sentry/views/insights/pages/agents/utils/tokenBreakdown';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -58,6 +65,16 @@ interface ConversationSummaryProps {
 }
 
 const VISIBLE_TOOL_COUNT = 6;
+
+// Rendered heights of the content the loading skeletons stand in for. Text trims
+// to its font's ascender and descender, so those values are the trimmed boxes
+// rather than the line heights.
+const TEXT_XL_HEIGHT = '23px'; // `Text size="xl"`, and `Heading as="h2"` with it
+const TEXT_MD_HEIGHT = '16px'; // the `ProjectBadge` name, at the body font size
+const TEXT_SM_HEIGHT = '14px';
+const TAG_HEIGHT = '20px'; // `Tag`, and `ToolTag` with it
+// The zero-size dropdown button the trace link renders for several traces.
+const TRACE_LINK_HEIGHT = '24px';
 
 export function ConversationSummary({
   nodes,
@@ -105,19 +122,22 @@ export function ConversationSummary({
 
   return (
     <Flex
-      direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+      direction={{zero: 'column', xl: 'row'}}
       justify="between"
-      align={{'screen:xs': 'stretch', 'screen:md': 'center'}}
+      align={{zero: 'stretch', xl: 'center'}}
       gap="xl"
       flex={1}
       minWidth={0}
     >
       <Stack gap="md" minWidth={0} flex={1}>
-        <Container minWidth={0}>
+        {/* A flex box rather than a block: Tooltip wraps the heading in an
+            inline-block span, and as a block this would size to a line box,
+            adding the font strut's descender under the heading. */}
+        <Container minWidth={0} display="flex">
           {isLoading ? (
             // The title is only known once the conversation loads, so show a
             // skeleton rather than briefly flashing the id and swapping it out.
-            <Placeholder width="240px" height="28px" />
+            <Placeholder width="240px" height={TEXT_XL_HEIGHT} />
           ) : (
             <Tooltip
               title={headingTooltip}
@@ -132,30 +152,30 @@ export function ConversationSummary({
         {isLoading ? (
           <Fragment>
             <Flex align="center" gap="sm" minWidth={0} wrap="wrap">
-              <Placeholder width="40px" height="14px" />
-              <Placeholder width="72px" height="20px" />
-              <Placeholder width="72px" height="20px" />
+              <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
+              <Placeholder width="72px" height={TAG_HEIGHT} />
             </Flex>
-            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+            <MetaRow>
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
-                <Placeholder width="140px" height="14px" />
+                <Placeholder width="140px" height={TEXT_SM_HEIGHT} />
               </Flex>
               <Flex align="center" gap="xs">
                 <Placeholder width="12px" height="12px" />
-                <Placeholder width="40px" height="14px" />
+                <Placeholder width="40px" height={TEXT_SM_HEIGHT} />
               </Flex>
-              {project && (
-                <Flex align="center" gap="xs">
-                  <Placeholder width="16px" height="16px" />
-                  <Placeholder width="80px" height="14px" />
-                </Flex>
-              )}
+              {/* The project comes from the conversation's spans, so it is only
+                  known once they load; its space is reserved either way. */}
+              <Flex align="center" gap="sm">
+                <Placeholder width="16px" height="16px" />
+                <Placeholder width="80px" height={TEXT_MD_HEIGHT} />
+              </Flex>
               <Flex align="center" gap="xs">
                 <Placeholder width="16px" height="16px" />
-                <Placeholder width="120px" height="14px" />
+                <Placeholder width="120px" height={TEXT_SM_HEIGHT} />
               </Flex>
-            </Flex>
+            </MetaRow>
           </Fragment>
         ) : (
           <Fragment>
@@ -193,7 +213,7 @@ export function ConversationSummary({
                 )}
               </Flex>
             )}
-            <Flex align="center" gap="xl" minWidth={0} wrap="wrap">
+            <MetaRow>
               {aggregates.startTimestamp !== null && (
                 <Flex align="center" gap="xs">
                   <IconCalendar size="md" />
@@ -233,7 +253,7 @@ export function ConversationSummary({
                   </InfoText>
                 )}
               </Flex>
-            </Flex>
+            </MetaRow>
           </Fragment>
         )}
       </Stack>
@@ -266,7 +286,12 @@ export function ConversationSummary({
         />
         <Stat
           label={t('Tokens')}
-          value={<Count value={aggregates.totalTokens} />}
+          value={
+            <TokenCount
+              breakdowns={aggregates.tokenBreakdowns}
+              total={aggregates.totalTokens}
+            />
+          }
           isLoading={isLoading}
         />
         <Stat
@@ -281,6 +306,19 @@ export function ConversationSummary({
           isLoading={isLoading}
         />
       </Flex>
+    </Flex>
+  );
+}
+
+/**
+ * The row of conversation metadata under the title. Its minHeight matches the
+ * trace link's dropdown button, the tallest thing it holds, so the row keeps
+ * its height whether the link renders as a button, a plain link, or a skeleton.
+ */
+function MetaRow({children}: {children: React.ReactNode}) {
+  return (
+    <Flex align="center" gap="xl" minWidth={0} wrap="wrap" minHeight={TRACE_LINK_HEIGHT}>
+      {children}
     </Flex>
   );
 }
@@ -322,7 +360,7 @@ function Stat({
         {label}
       </Text>
       {isLoading ? (
-        <Placeholder width="32px" height="24px" />
+        <Placeholder width="32px" height={TEXT_XL_HEIGHT} />
       ) : isInteractive ? (
         <Link to={to} onClick={onClick}>
           {valueContent}
@@ -340,6 +378,7 @@ interface ConversationAggregates {
   llmCalls: number;
   /** When the conversation began, or null when no span carries a start time. */
   startTimestamp: number | null;
+  tokenBreakdowns: TokenBreakdownDetails[];
   toolCalls: number;
   toolNames: string[];
   totalCost: number;
@@ -350,12 +389,25 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
+function getNumberAttrByConvention(
+  node: AITraceSpanNode,
+  key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
+): number | undefined {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]?.deprecationChain ?? [key]) {
+    const value = getNumberAttr(node, candidate);
+    if (value !== undefined) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
   let llmCalls = 0;
   let toolCalls = 0;
   let errorCount = 0;
-  let totalTokens = 0;
   let totalCost = 0;
+  const tokensByModel = new Map<string, TokenBreakdownDetails>();
   let startTimestamp: number | null = null;
   const toolNameSet = new Set<string>();
   const erroredToolNameSet = new Set<string>();
@@ -372,7 +424,49 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
 
     if (getIsAiGenerationSpan(opType)) {
       llmCalls++;
-      totalTokens += getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      const cached =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_read.input_tokens') ?? 0;
+      const cacheWrite =
+        getNumberAttrByConvention(node, 'gen_ai.usage.cache_creation.input_tokens') ?? 0;
+      const input = getNumberAttr(node, SpanFields.GEN_AI_USAGE_INPUT_TOKENS);
+      const output = getNumberAttr(node, SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS);
+      const reasoning =
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS) ?? 0;
+      const reportedTotal =
+        getNumberAttr(node, SpanFields.GEN_AI_USAGE_TOTAL_TOKENS) ?? 0;
+      const breakdown = getTokenBreakdown({
+        inputTokens: input ?? 0,
+        cachedTokens: cached,
+        cacheWriteTokens: cacheWrite,
+        outputTokens: output ?? 0,
+        reasoningTokens: reasoning,
+        totalTokens: reportedTotal,
+      });
+      const inputTotal = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
+      const isComplete = input !== undefined && output !== undefined;
+
+      const model =
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        t('Unknown model');
+      const modelTokens = tokensByModel.get(model) ?? {
+        cacheRead: 0,
+        cacheWrite: 0,
+        input: 0,
+        isComplete: true,
+        model,
+        output: 0,
+        reasoning: 0,
+        total: 0,
+      };
+      modelTokens.input += inputTotal;
+      modelTokens.output += breakdown.output;
+      modelTokens.cacheRead += breakdown.cached;
+      modelTokens.cacheWrite += breakdown.cacheWrite;
+      modelTokens.reasoning += reasoning;
+      modelTokens.isComplete &&= isComplete;
+      modelTokens.total += isComplete ? inputTotal + breakdown.output : reportedTotal;
+      tokensByModel.set(model, modelTokens);
       totalCost += getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) ?? 0;
     } else if (getIsExecuteToolSpan(opType)) {
       toolCalls++;
@@ -396,6 +490,9 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     ...sortedToolNames.filter(name => erroredToolNameSet.has(name)),
     ...sortedToolNames.filter(name => !erroredToolNameSet.has(name)),
   ];
+  const tokenBreakdowns = Array.from(tokensByModel.values()).sort(
+    (a, b) => b.total - a.total
+  );
 
   return {
     llmCalls,
@@ -403,7 +500,8 @@ function calculateAggregates(nodes: AITraceSpanNode[]): ConversationAggregates {
     errorCount,
     startTimestamp,
     erroredToolNames: erroredToolNameSet,
-    totalTokens,
+    tokenBreakdowns,
+    totalTokens: tokenBreakdowns.reduce((total, breakdown) => total + breakdown.total, 0),
     totalCost,
     toolNames,
   };
@@ -477,7 +575,12 @@ export function ConversationAggregatesBar({
       />
       <AggregateItem
         label={t('Tokens')}
-        value={<Count value={aggregates.totalTokens} />}
+        value={
+          <TokenCount
+            breakdowns={aggregates.tokenBreakdowns}
+            total={aggregates.totalTokens}
+          />
+        }
         isLoading={isLoading}
       />
       <AggregateItem
@@ -556,6 +659,20 @@ export function ConversationAggregatesBar({
   );
 }
 
+function TokenCount({
+  breakdowns,
+  total,
+}: {
+  breakdowns: TokenBreakdownDetails[];
+  total: number;
+}) {
+  return (
+    <Tooltip title={<TokenBreakdownTooltip breakdowns={breakdowns} />}>
+      <TokenCountValue>{formatAbbreviatedNumber(total)}</TokenCountValue>
+    </Tooltip>
+  );
+}
+
 function AggregateItem({
   label,
   value,
@@ -596,6 +713,11 @@ function AggregateItem({
 
   return content;
 }
+
+const TokenCountValue = styled('span')`
+  text-decoration: underline dotted;
+  text-underline-offset: ${p => p.theme.space['2xs']};
+`;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
   ${p =>

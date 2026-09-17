@@ -12,6 +12,7 @@ import {
   userEvent,
   waitFor,
   within,
+  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Automation} from 'sentry/types/workflowEngine/automations';
@@ -20,16 +21,23 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useParams} from 'sentry/utils/useParams';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 import AutomationEdit from 'sentry/views/automations/edit';
 
-jest.mock('sentry/utils/useParams');
 jest.mock('sentry/utils/analytics');
 
 describe('EditAutomation', () => {
   const automation = AutomationFixture();
   const organization = OrganizationFixture();
+  const initialRouterConfig = {
+    routes: [
+      '/organizations/:orgId/monitors/alerts/:automationId/',
+      '/organizations/:orgId/monitors/alerts/:automationId/edit/',
+    ],
+    location: {
+      pathname: `/organizations/${organization.slug}/monitors/alerts/${automation.id}/edit/`,
+    },
+  } satisfies RouterConfig;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -82,10 +90,6 @@ describe('EditAutomation', () => {
       method: 'GET',
       body: [],
     });
-
-    jest.mocked(useParams).mockReturnValue({
-      automationId: automation.id,
-    });
   });
 
   it('displays `any` for ANY in the filter logic dropdown', async () => {
@@ -102,6 +106,7 @@ describe('EditAutomation', () => {
 
     render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Wait for the form to load
@@ -119,6 +124,7 @@ describe('EditAutomation', () => {
 
     const {router} = render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -153,6 +159,7 @@ describe('EditAutomation', () => {
 
     render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Wait for the component to load and display automation actions
@@ -184,6 +191,7 @@ describe('EditAutomation', () => {
 
     const {router} = render(<AutomationEdit />, {
       organization,
+      initialRouterConfig,
     });
 
     // Update an existing filter value field
@@ -231,6 +239,41 @@ describe('EditAutomation', () => {
     );
   });
 
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the alert name as the page title', async () => {
+      render(<AutomationEdit />, {organization, initialRouterConfig});
+
+      const alertsCrumb = await screen.findByRole('link', {name: 'Alerts'});
+      expect(alertsCrumb).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/alerts/`
+      );
+
+      expect(
+        screen.getByRole('heading', {name: automation.name, level: 1})
+      ).toBeInTheDocument();
+
+      const trail = alertsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(automation.name)).not.toBeInTheDocument();
+    });
+
+    it('edits the alert name from the page title', async () => {
+      render(<AutomationEdit />, {organization, initialRouterConfig});
+
+      await userEvent.click(await screen.findByText(automation.name));
+
+      const input = screen.getByRole('textbox', {name: 'Alert Name'});
+      expect(input).toHaveValue(automation.name);
+
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Renamed alert{enter}');
+
+      expect(
+        screen.getByRole('heading', {name: 'Renamed alert', level: 1})
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('initial trigger conditions', () => {
     const everyEventLabel = dataConditionNodesMap.get(
       DataConditionType.EVERY_EVENT
@@ -257,7 +300,7 @@ describe('EditAutomation', () => {
         body: automation,
       });
 
-      render(<AutomationEdit />, {organization});
+      render(<AutomationEdit />, {organization, initialRouterConfig});
 
       await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
 

@@ -2,13 +2,11 @@ import {Fragment, useMemo, useRef} from 'react';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
-import {Text} from '@sentry/scraps/text';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useLiveRefresh} from 'sentry/components/replays/replayLiveIndicator';
-import {IconRefresh} from 'sentry/icons';
+import {IconEllipsis, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -18,6 +16,7 @@ import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayP
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useReplayMenuItems} from 'sentry/views/explore/replays/detail/header/useReplayMenuItems';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -26,19 +25,27 @@ interface Props {
 }
 
 export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
-  const replayRecord = readerResult.replayRecord;
+  const {replay, replayRecord, projectSlug} = readerResult;
   const organization = useOrganization();
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
   const project = useProjectFromId({
     project_id: replayRecord?.project_id ?? undefined,
   });
-  const {currentTime} = useReplayContext();
 
   const {replays, currentReplayIndex} = useReplayPlaylist();
   const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({
     replay: replayRecord ?? undefined,
   });
+
+  const menuItems = useReplayMenuItems({
+    projectSlug,
+    isMobile: replay?.isVideoReplay() ?? false,
+    replay: replay?.hasProcessingErrors() ? undefined : (replay ?? undefined),
+    replayRecord: replayRecord ?? undefined,
+  });
+
+  const hasActionsMenu = !!replayRecord && !replayRecord.is_archived;
 
   // We use a ref to store the initial location so that we can navigate to the
   // previous and next replays without dirtying the URL with the tab-navigation params.
@@ -55,16 +62,6 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     () => (currentReplayIndex > 0 ? replays?.[currentReplayIndex - 1] : undefined),
     [replays, currentReplayIndex]
   );
-
-  // URL with the current timestamp, for the copy action.
-  const replayUrlWithTimestamp = replayRecord
-    ? (() => {
-        const url = new URL(window.location.href);
-        const currentTimeInSeconds = Math.floor(currentTime / 1000);
-        url.searchParams.set('t', String(currentTimeInSeconds));
-        return url.toString();
-      })()
-    : '';
 
   return (
     <Fragment>
@@ -87,6 +84,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
       </TopBar.Slot>
       <TopBar.Slot name="title">
         <BreadcrumbList.Title
+          // oxlint-disable-next-line react/refs
           item={{
             type: 'page-title',
             label: replayRecord?.id
@@ -97,18 +95,22 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             ) : (
               <Placeholder width="16px" height="16px" />
             ),
+            // oxlint-disable-next-line react/refs
             pagination: {
+              // oxlint-disable-next-line react/refs
               previous: {
                 ariaLabel: t('Previous replay based on search query'),
                 tooltip: previousReplay
                   ? t('Previous replay based on search query')
                   : undefined,
+                // oxlint-disable-next-line react/refs
                 to: previousReplay
                   ? {
                       pathname: makeReplaysPathname({
                         path: `/${previousReplay.id}/`,
                         organization,
                       }),
+                      // oxlint-disable-next-line react/refs
                       query: initialLocation.current.query,
                     }
                   : undefined,
@@ -118,15 +120,18 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                     organization,
                   }),
               },
+              // oxlint-disable-next-line react/refs
               next: {
                 ariaLabel: t('Next replay based on search query'),
                 tooltip: nextReplay ? t('Next replay based on search query') : undefined,
+                // oxlint-disable-next-line react/refs
                 to: nextReplay
                   ? {
                       pathname: makeReplaysPathname({
                         path: `/${nextReplay.id}/`,
                         organization,
                       }),
+                      // oxlint-disable-next-line react/refs
                       query: initialLocation.current.query,
                     }
                   : undefined,
@@ -138,12 +143,12 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
               },
             },
             trailingActions: [
-              replayRecord
+              hasActionsMenu
                 ? {
-                    type: 'copy',
-                    text: replayUrlWithTimestamp,
-                    label: t('Copy link to replay at current timestamp'),
-                    tooltip: t('Copy link to replay at current timestamp'),
+                    type: 'menu',
+                    triggerLabel: t('Replay Actions'),
+                    triggerIcon: <IconEllipsis />,
+                    items: menuItems,
                   }
                 : null,
               shouldShowRefreshButton
@@ -154,15 +159,12 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
                         tooltipProps={{
                           title: t('Replay is outdated. Refresh for latest activity.'),
                         }}
-                        data-test-id="refresh-button"
                         size="zero"
-                        variant="link"
+                        variant="primary"
                         onClick={doRefresh}
-                        icon={<IconRefresh size="xs" variant="accent" />}
+                        icon={<IconRefresh />}
                       >
-                        <Text size="md" variant="accent">
-                          {t('Update')}
-                        </Text>
+                        {t('Update')}
                       </Button>
                     ),
                   }

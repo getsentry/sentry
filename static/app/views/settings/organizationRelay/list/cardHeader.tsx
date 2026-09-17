@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {DateTime} from 'sentry/components/dateTime';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconCopyId, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Relay} from 'sentry/types/relay';
@@ -46,9 +46,7 @@ export function CardHeader({
       <Stack gap="2xs">
         <Flex align="center" gap="md">
           {name}
-          {description && (
-            <QuestionTooltip position="top" size="sm" title={description} />
-          )}
+          {description && <InfoTip position="top" size="sm" title={description} />}
         </Flex>
         <DateCreated>
           {tct('Created on [date]', {date: <DateTime date={created} />})}

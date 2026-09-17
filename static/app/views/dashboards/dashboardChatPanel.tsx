@@ -51,6 +51,7 @@ export function DashboardChatPanel({
   // Expand history automatically when updating triggered by user input
   useEffect(() => {
     if (isUpdating) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsHistoryExpanded(true);
     }
   }, [isUpdating]);

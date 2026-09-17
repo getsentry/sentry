@@ -114,6 +114,39 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
 
         assert response.status_code == 200
         assert_not_analytics_event(mock_analytics, PreprodStatusCheckApprovalCreatedEvent)
+        mock_task.assert_called_once_with(
+            preprod_artifact_id=self.artifact.id, caller="approval_endpoint"
+        )
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.update_preprod_snapshot_vcs")
+    @patch("sentry.analytics.record")
+    def test_already_approved_snapshots_resyncs_vcs(self, mock_analytics, mock_update_vcs) -> None:
+        self.login_as(user=self.owner)
+        self.create_preprod_comparison_approval(
+            preprod_artifact=self.artifact,
+            preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            approved_by_id=self.owner.id,
+            approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
+        )
+
+        response = self.client.post(
+            self._approve_url(self.artifact.id),
+            data={"feature_type": "snapshots"},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        mock_update_vcs.assert_called_once_with(
+            preprod_artifact_id=self.artifact.id, caller="approval_endpoint"
+        )
+        assert_not_analytics_event(mock_analytics, PreprodStatusCheckApprovalCreatedEvent)
+        assert (
+            PreprodComparisonApproval.objects.filter(
+                preprod_artifact=self.artifact,
+                preprod_feature_type=PreprodComparisonApproval.FeatureType.SNAPSHOTS,
+            ).count()
+            == 1
+        )
 
     @patch("sentry.analytics.record")
     def test_invalid_feature_type_does_not_record_analytics(self, mock_analytics) -> None:

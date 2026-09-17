@@ -373,10 +373,9 @@ describe('findRangeBinarySearch', () => {
     });
 
     const target = 2;
-    const precision = 1;
 
     // First iteration will halve 1+3, next iteration will compare 2-1 <= 1 and return [1,2]
-    const [low, high] = findRangeBinarySearch({low: 1, high: 3}, fn, target, precision);
+    const [low, high] = findRangeBinarySearch({low: 1, high: 3}, fn, target);
 
     expect([low, high]).toEqual([1, 2]);
     expect(fn).toHaveBeenCalledTimes(1);
@@ -394,9 +393,8 @@ describe('findRangeBinarySearch', () => {
     });
 
     const target = 4;
-    const precision = 1;
 
-    const [low, high] = findRangeBinarySearch({low: 0, high: 10}, fn, target, precision);
+    const [low, high] = findRangeBinarySearch({low: 0, high: 10}, fn, target);
 
     expect([low, high]).toEqual([3.75, 4.375]);
     expect(fn).toHaveBeenCalledTimes(4);

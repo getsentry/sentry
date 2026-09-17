@@ -1,5 +1,6 @@
-"""Renders a serialized autofix (Seer Issue Fix) state response into text, reusing the shared
-formatter primitives. Delivered over REST via ``FormattableResponseMixin`` on the autofix endpoint.
+"""Builds the sections for a serialized autofix (Seer Issue Fix) state response, reusing the
+shared formatter. Delivered over REST via ``FormattableResponseMixin`` on the autofix endpoint.
+Like the event sections, these describe what to render and let the formatter decide how.
 """
 
 from __future__ import annotations
@@ -7,7 +8,15 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.issues.formatting.formatter import Format, Formatter, get_formatter
+from sentry.issues.formatting.formatter import (
+    Consumer,
+    Field,
+    Format,
+    Group,
+    Section,
+    Text,
+    get_formatter,
+)
 
 
 def _artifacts(autofix: Mapping[str, Any]) -> dict[str, Any]:
@@ -21,55 +30,65 @@ def _artifacts(autofix: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _root_cause(data: Any, fmt: Formatter) -> str:
+def _root_cause(data: Any) -> Section | None:
     if not data:
-        return ""
-    parts: list[str] = []
+        return None
+    groups: list[Group] = []
     if data.get("one_line_description"):
-        parts.append(data["one_line_description"])
+        groups.append(Group(items=(Text(data["one_line_description"]),)))
     whys = data.get("five_whys") or []
     if whys:
-        parts.append("\n".join(f"{i}. {why}" for i, why in enumerate(whys, 1)))
+        groups.append(
+            Group(items=(Text("\n".join(f"{i}. {why}" for i, why in enumerate(whys, 1))),))
+        )
     steps = data.get("reproduction_steps") or []
     if steps:
-        parts.append("\n".join(f"- {step}" for step in steps))
-    return fmt.block("Root Cause", "\n\n".join(parts)) if parts else ""
+        groups.append(Group(items=(Text("\n".join(f"- {step}" for step in steps)),)))
+    return Section(title="Root Cause", groups=tuple(groups)) if groups else None
 
 
-def _solution(data: Any, fmt: Formatter) -> str:
+def _solution(data: Any) -> Section | None:
     if not data:
-        return ""
-    parts: list[str] = []
+        return None
+    groups: list[Group] = []
     if data.get("one_line_summary"):
-        parts.append(data["one_line_summary"])
-    steps = [
-        fmt.field(step.get("title") or "Step", step.get("description") or "")
+        groups.append(Group(items=(Text(data["one_line_summary"]),)))
+    steps = tuple(
+        Field(step.get("title") or "Step", step.get("description") or "")
         for step in data.get("steps") or []
-    ]
+    )
     if steps:
-        parts.append("\n".join(steps))
-    return fmt.block("Solution", "\n\n".join(parts)) if parts else ""
+        groups.append(Group(items=steps))
+    return Section(title="Solution", groups=tuple(groups)) if groups else None
 
 
-def _pull_requests(autofix: Mapping[str, Any], fmt: Formatter) -> str:
-    lines = [
-        f"- {repo}: {pr['pr_url']}"
+def _pull_requests(autofix: Mapping[str, Any]) -> Section | None:
+    lines = tuple(
+        Text(f"- {repo}: {pr['pr_url']}")
         for repo, pr in (autofix.get("repo_pr_states") or {}).items()
         if pr.get("pr_url")
-    ]
-    return fmt.block("Pull Requests", "\n".join(lines)) if lines else ""
+    )
+    return Section(title="Pull Requests", groups=(Group(items=lines),)) if lines else None
 
 
-def format_autofix(data: Mapping[str, Any], format: Format = "markdown") -> str:
-    """Render a serialized autofix state response (``{"autofix": {...}}``) into text."""
+def format_autofix(
+    data: Mapping[str, Any], format: Format = "markdown", consumer: Consumer = "ui"
+) -> str:
+    """Render a serialized autofix state response (``{"autofix": {...}}``) into text or JSON.
+
+    Takes ``consumer`` to satisfy the adapter signature; the autofix body is the same for the UI
+    and for API clients, so nothing varies on it yet.
+    """
+    fmt = get_formatter(format)
     autofix = data.get("autofix")
     if not autofix:  # no autofix run on this issue yet
-        return ""
-    fmt = get_formatter(format)
+        # empty still has to parse: "" for the text formats, "{}" for json
+        return fmt.join([])
     artifacts = _artifacts(autofix)
-    parts = [
-        _root_cause(artifacts.get("root_cause"), fmt),
-        _solution(artifacts.get("solution"), fmt),
-        _pull_requests(autofix, fmt),
+    sections = [
+        _root_cause(artifacts.get("root_cause")),
+        _solution(artifacts.get("solution")),
+        _pull_requests(autofix),
     ]
-    return "\n\n".join(part for part in parts if part)
+    rendered = [fmt.render_section(s) for s in sections if s is not None]
+    return fmt.join([part for part in rendered if part])

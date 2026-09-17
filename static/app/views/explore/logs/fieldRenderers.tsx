@@ -406,7 +406,6 @@ function FilteredTooltip({
           ),
         }
       )}
-      isHoverable
     >
       {children}
     </Tooltip>

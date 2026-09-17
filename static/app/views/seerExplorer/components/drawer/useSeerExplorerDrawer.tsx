@@ -25,14 +25,8 @@ export type OpenSeerExplorerDrawerOptions = {
   initialQuery?: string;
   /**
    * Optional run ID to open. If provided, opens an existing session.
-   * Cannot be used together with `startNewRun`.
    */
   runId?: SeerExplorerRunId;
-  /**
-   * If true, switches to a new session before opening.
-   * Cannot be used together with `runId`.
-   */
-  startNewRun?: boolean;
 };
 
 export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
@@ -48,6 +42,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
   }, [isDrawerOpen]);
 
   const onCloseCallbackRef = useRef(options?.onClose);
+  // oxlint-disable-next-line react/refs
   onCloseCallbackRef.current = options?.onClose;
 
   const onOpen = useCallback(() => {
@@ -71,12 +66,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
 
   const openSeerExplorerDrawer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
-      const {
-        runId: openRunId,
-        startNewRun,
-        initialQuery,
-        appendToOpenRun,
-      } = drawerOptions ?? {};
+      const {runId: openRunId, initialQuery, appendToOpenRun} = drawerOptions ?? {};
 
       if (initialQuery) {
         // A forwarded query starts a fresh session unless the caller asked to
@@ -88,8 +78,6 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
         return;
       } else if (openRunId !== undefined) {
         dispatch({type: 'set run id', payload: openRunId});
-      } else if (startNewRun) {
-        dispatch({type: 'set run id', payload: null});
       }
 
       openDrawer(

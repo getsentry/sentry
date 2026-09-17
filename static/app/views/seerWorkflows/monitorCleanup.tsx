@@ -1,0 +1,320 @@
+import {Tag} from '@sentry/scraps/badge';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
+import {Table} from '@sentry/scraps/table';
+import {Heading, Text} from '@sentry/scraps/text';
+
+import {IconProject} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+import {
+  monitorCleanupOutputSchema,
+  type MonitorCleanupFinding,
+  type SeerWorkflowResult,
+  type WorkflowRunStatus,
+  type SeerMonitorCleanupRun,
+} from 'sentry/views/seerWorkflows/types';
+
+export function MonitorCleanupRunResults({
+  run,
+  organizationSlug,
+}: {
+  organizationSlug: string;
+  run: SeerMonitorCleanupRun;
+}) {
+  const results = run.results.filter(result => result.kind === 'duplicate_monitors');
+  return (
+    <Stack gap="md">
+      {results.length === 0 && <Text>{getMonitorRunSummary(run)}</Text>}
+      <MonitorCleanupResults
+        runStatus={run.extras.status}
+        results={results}
+        organizationSlug={organizationSlug}
+      />
+    </Stack>
+  );
+}
+
+export function getMonitorRunSummary(run: SeerMonitorCleanupRun) {
+  if (run.extras.status === 'running') {
+    return t('Scanning monitors…');
+  }
+  if (run.extras.status === 'failed') {
+    return t('Monitor scan failed');
+  }
+  const results = run.results.filter(result => result.kind === 'duplicate_monitors');
+  const findings = results.length ? getMonitorFindingSummary(results) : t('No findings');
+  return run.extras.status === 'partial' ? t('Incomplete scan — %s', findings) : findings;
+}
+
+function getMonitorFindingSummary(results: SeerWorkflowResult[]) {
+  const counts = {
+    exact_duplicate: 0,
+    overlapping_coverage: 0,
+    duplicate_notifications: 0,
+    other: 0,
+  };
+  let supported = 0;
+  for (const result of results) {
+    const parsed = monitorCleanupOutputSchema.safeParse(result.extras);
+    if (parsed.success) {
+      supported++;
+      for (const item of parsed.data.findings) {
+        switch (item.kind) {
+          case 'exact_duplicate':
+          case 'overlapping_coverage':
+          case 'duplicate_notifications':
+            counts[item.kind]++;
+            break;
+          default:
+            counts.other++;
+        }
+      }
+    }
+  }
+  if (!supported) {
+    return t('Findings unavailable');
+  }
+  const labels = [
+    counts.exact_duplicate
+      ? tn(
+          '%s exact duplicate group',
+          '%s exact duplicate groups',
+          counts.exact_duplicate
+        )
+      : null,
+    counts.overlapping_coverage
+      ? tn('%s overlap', '%s overlaps', counts.overlapping_coverage)
+      : null,
+    counts.duplicate_notifications
+      ? tn(
+          '%s notification risk',
+          '%s notification risks',
+          counts.duplicate_notifications
+        )
+      : null,
+    counts.other ? tn('%s other finding', '%s other findings', counts.other) : null,
+  ].filter(Boolean);
+  return labels.length ? labels.join(' · ') : t('No findings');
+}
+
+function findingLabel(kind: string) {
+  switch (kind) {
+    case 'exact_duplicate':
+      return t('Exact duplicates');
+    case 'overlapping_coverage':
+      return t('Overlapping coverage');
+    case 'duplicate_notifications':
+      return t('Potential duplicate notifications');
+    default:
+      return t('Monitor finding');
+  }
+}
+
+function PropertyComparison({item}: {item: MonitorCleanupFinding}) {
+  const rows = item.comparison ?? [];
+  if (rows.length === 0) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('Run a new scan to compare monitor properties.')}
+      </Text>
+    );
+  }
+  return (
+    <Container overflowX="auto">
+      <Table
+        columns={[
+          {key: 'property', width: 'minmax(100px, 1fr)', resizable: false},
+          ...item.monitors.map(member => ({
+            key: member.id,
+            width: 'minmax(140px, 2fr)',
+            resizable: false,
+          })),
+        ]}
+      >
+        <Table.Head>
+          <Table.Row>
+            <Table.HeadCell columnKey="property">{t('Property')}</Table.HeadCell>
+            {item.monitors.map(member => (
+              <Table.HeadCell key={member.id} columnKey={member.id}>
+                <Text size="sm" bold wrap="normal" wordBreak="break-word">
+                  {member.name}
+                </Text>
+              </Table.HeadCell>
+            ))}
+          </Table.Row>
+        </Table.Head>
+        <Table.Body>
+          {rows.map((row, index) => {
+            const differs = new Set(row.values.map(value => value.value)).size > 1;
+            return (
+              <Table.Row key={index} divider>
+                <Table.Cell>
+                  <Text size="sm">{row.property}</Text>
+                </Table.Cell>
+                {item.monitors.map(member => (
+                  <Table.Cell key={member.id}>
+                    <Text
+                      size="sm"
+                      wrap="normal"
+                      wordBreak="break-word"
+                      variant={differs ? 'warning' : 'primary'}
+                    >
+                      {row.values.find(value => value.monitorId === member.id)?.value ??
+                        t('Not inspected')}
+                    </Text>
+                  </Table.Cell>
+                ))}
+              </Table.Row>
+            );
+          })}
+        </Table.Body>
+      </Table>
+    </Container>
+  );
+}
+
+function FindingCard({
+  item,
+  organizationSlug,
+}: {
+  item: MonitorCleanupFinding;
+  organizationSlug: string;
+}) {
+  const canSuggestKeep = item.kind === 'exact_duplicate';
+  return (
+    <Stack
+      border="primary"
+      radius="md"
+      background="primary"
+      padding="lg"
+      gap="md"
+      minWidth="0"
+    >
+      <Heading as="h4" size="sm">
+        {findingLabel(item.kind)}
+      </Heading>
+      <Stack gap="sm">
+        {item.monitors.map(member => (
+          <Flex key={member.id} gap="sm" align="center" wrap="wrap">
+            <Link to={makeMonitorDetailsPathname(organizationSlug, member.id)}>
+              <Text size="sm" variant="accent">
+                {member.name}
+              </Text>
+            </Link>
+            {canSuggestKeep && member.id === item.suggestedKeepId && (
+              <Tag variant="success">{t('Suggested keep')}</Tag>
+            )}
+          </Flex>
+        ))}
+      </Stack>
+      {item.reason && (
+        <Text size="sm" wrap="normal" wordBreak="break-word">
+          {item.reason}
+        </Text>
+      )}
+      {(item.alerts ?? []).map(alert => (
+        <Flex key={alert.id} gap="sm" align="center" wrap="wrap">
+          <Text size="xs" variant="muted">
+            {t('Alert')}
+          </Text>
+          <Link to={makeAutomationDetailsPathname(organizationSlug, alert.id)}>
+            <Text size="sm" variant="accent">
+              {alert.name}
+            </Text>
+          </Link>
+        </Flex>
+      ))}
+      <Disclosure size="sm">
+        <Disclosure.Title>{t('View comparison')}</Disclosure.Title>
+        <Disclosure.Content>
+          <Container paddingTop="md">
+            <PropertyComparison item={item} />
+          </Container>
+        </Disclosure.Content>
+      </Disclosure>
+    </Stack>
+  );
+}
+
+export function MonitorCleanupResults({
+  results,
+  organizationSlug,
+  runStatus,
+}: {
+  organizationSlug: string;
+  results: SeerWorkflowResult[];
+  runStatus?: WorkflowRunStatus;
+}) {
+  const parsed = results.map(result =>
+    monitorCleanupOutputSchema.safeParse(result.extras)
+  );
+  const hasUnsupportedResults = parsed.some(output => !output.success);
+  const projects = new Map(
+    parsed.flatMap(output =>
+      output.success ? [[output.data.projectId, output.data] as const] : []
+    )
+  );
+  const inspected = [...projects.values()].reduce(
+    (total, output) => total + output.scan.monitorsScanned,
+    0
+  );
+  const incomplete =
+    runStatus === 'partial' ||
+    parsed.some(output => output.success && output.data.scan.status !== 'complete');
+  return (
+    <Stack gap="xl" containerType="inline-size">
+      {!hasUnsupportedResults &&
+        (projects.size > 0 || runStatus === 'complete' || runStatus === 'partial') && (
+          <Stack gap="sm" padding="lg" background="secondary" radius="md">
+            <Text size="sm">
+              {t(
+                '%s across %s',
+                tn('%s monitor inspected', '%s monitors inspected', inspected),
+                tn('%s project', '%s projects', projects.size)
+              )}
+            </Text>
+            {incomplete && (
+              <Text size="sm" variant="warning">
+                {t(
+                  'These counts cover the results received so far. Some inspection is incomplete.'
+                )}
+              </Text>
+            )}
+          </Stack>
+        )}
+      {hasUnsupportedResults && (
+        <Text variant="warning">{t('This monitor scan output is not supported.')}</Text>
+      )}
+      {Array.from(projects.values(), output => (
+        <Stack key={output.projectId} gap="lg">
+          <Flex align="center" gap="sm">
+            <IconProject size="xs" />
+            <Heading as="h3" size="sm">
+              {output.projectSlug}
+            </Heading>
+          </Flex>
+          {output.scan.status !== 'complete' && (
+            <Container padding="md" border="warning" radius="md">
+              <Text variant="warning">
+                {t('This scan is incomplete. Some monitors may not have been inspected.')}
+              </Text>
+            </Container>
+          )}
+          {output.findings.length === 0 && (
+            <Text variant="muted">
+              {output.scan.status === 'complete'
+                ? t('No findings to review.')
+                : t('No candidates returned from the inspected monitors.')}
+            </Text>
+          )}
+          {output.findings.map((item, index) => (
+            <FindingCard key={index} item={item} organizationSlug={organizationSlug} />
+          ))}
+        </Stack>
+      ))}
+    </Stack>
+  );
+}
