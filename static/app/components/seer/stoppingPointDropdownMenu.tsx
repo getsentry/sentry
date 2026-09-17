@@ -1,5 +1,4 @@
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 

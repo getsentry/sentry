@@ -3,8 +3,11 @@ import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {
+  DropdownMenu,
+  type MenuItemProps,
+  DropdownMenuFooter,
+} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 

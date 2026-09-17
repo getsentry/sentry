@@ -2,8 +2,11 @@ import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {
+  DropdownButton,
+  DropdownMenu,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 

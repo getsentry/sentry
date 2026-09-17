@@ -2,8 +2,7 @@ import {useCallback, useMemo, useState, type ReactNode} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';

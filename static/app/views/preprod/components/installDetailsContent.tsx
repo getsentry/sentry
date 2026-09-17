@@ -3,8 +3,7 @@ import {useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
