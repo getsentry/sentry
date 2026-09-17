@@ -129,7 +129,7 @@ function ReplaysListBody() {
   useReplayPageview('replay.list-time-spent');
   const organization = useOrganization();
   const hasSentReplays = useHaveSelectedProjectsSentAnyReplayEvents();
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
 
   const hasSessionReplay = organization.features.includes('session-replay');
 
