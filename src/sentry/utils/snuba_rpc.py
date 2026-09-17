@@ -476,12 +476,8 @@ def _make_rpc_request(
 
                 set_span_tag(span, "timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
-                    try:
-                        error = _parse_error(http_resp)
-                    except SnubaRPCError as parse_error:
-                        if http_resp.status == 503:
-                            raise SnubaRPCUnavailable(*parse_error.args) from parse_error
-                        raise
+                    error = _parse_error(http_resp)
+
                     if SNUBA_INFO:
                         log_snuba_info(f"{referrer}.error:\n{error}")
                     if http_resp.status == 404:
