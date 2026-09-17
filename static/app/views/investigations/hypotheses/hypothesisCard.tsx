@@ -56,7 +56,7 @@ export function HypothesisCard({
     <Card
       as="li"
       gap="md"
-      padding="xl"
+      padding="lg"
       radius="md"
       background="primary"
       data-border={getHypothesisCardBorder(hypothesis.effectiveStatus)}
