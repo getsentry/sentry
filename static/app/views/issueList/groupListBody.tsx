@@ -31,7 +31,6 @@ type GroupListBodyProps = {
   refetchGroups: () => void;
   selectedProjectIds: number[];
   supergroupLookup?: SupergroupLookup;
-  withColumns?: GroupListColumn[];
 };
 
 type GroupListProps = {
@@ -95,10 +94,9 @@ export function GroupListBody({
   pageSize,
   onActionTaken,
   supergroupLookup,
-  withColumns,
 }: GroupListBodyProps) {
   const organization = useOrganization();
-  const columns = withColumns ?? DEFAULT_COLUMNS;
+  const columns = DEFAULT_COLUMNS;
 
   if (loading) {
     return (
