@@ -338,6 +338,33 @@ class InvestigationAgentTest(TestCase):
         assert client.category_key == "investigation"
         assert client.category_value == str(self.investigation.id)
 
+    def test_start_run_passes_parameter_changes_separately_from_saved_settings(self) -> None:
+        saved_context = {
+            "currentBlock": True,
+            "queryContext": {
+                "parameters": {"environment": ["production"]},
+                "filters": {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"},
+            },
+        }
+        self.execution.input_snapshot.update(
+            {
+                "parameters": {"environment": ["staging"]},
+                "parameterChanges": {"environment": ["staging"]},
+                "context": [saved_context],
+            }
+        )
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        prompt = client.start_run.call_args.args[0]
+        serialized_context = prompt.split("<investigation_context>\n", 1)[1].split(
+            "\n</investigation_context>", 1
+        )[0]
+        context = json.loads(serialized_context)
+        assert context["parameterChanges"] == {"environment": ["staging"]}
+        assert context["notebookContext"] == [saved_context]
+
     @patch("sentry.investigations.agent.record_execution_started")
     def test_start_run_records_execution_started(self, record_started: MagicMock) -> None:
         pending_execution = self.create_investigation_block_execution(

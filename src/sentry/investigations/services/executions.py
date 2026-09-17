@@ -323,6 +323,7 @@ def build_block_execution_snapshot(
                 raise InvestigationValidationError({"parameters": {parameter.key: str(error)}})
         parameters[parameter.key] = value
     query_context = {"source": source, "filters": filters, "parameters": parameters}
+    parameter_changes: dict[str, Any] = {}
     if block.kind == InvestigationBlockKind.TEXT:
         dependencies, context, context_project_ids = _materialize_notebook_context(
             block, accessible_project_ids=accessible_project_ids
@@ -346,9 +347,17 @@ def build_block_execution_snapshot(
             reference_time = previous_execution.started_at or previous_execution.date_added
             previous_input = previous_execution.input_snapshot
             query_context = previous_input.get("queryContext") or {
-                "source": previous_input.get("source", source),
-                "filters": previous_input.get("filters", filters),
-                "parameters": previous_input.get("parameters", parameters),
+                "source": previous_input.get("source", {}),
+                "filters": previous_input.get("filters", {}),
+                "parameters": previous_input.get("parameters", {}),
+            }
+            previous_parameters = previous_input.get(
+                "parameters", query_context.get("parameters", {})
+            )
+            parameter_changes = {
+                key: value
+                for key, value in parameters.items()
+                if key not in previous_parameters or value != previous_parameters[key]
             }
             query_context = {
                 **query_context,
@@ -394,7 +403,11 @@ def build_block_execution_snapshot(
     if dataset_hint is not None:
         snapshot["datasetHint"] = dataset_hint
     if block.kind == InvestigationBlockKind.QUERY:
-        snapshot["queryContext"] = query_context
+        snapshot["parameterChanges"] = parameter_changes
+        snapshot["queryContext"] = {
+            **query_context,
+            "parameters": {**query_context.get("parameters", {}), **parameter_changes},
+        }
     return snapshot, _fingerprint(snapshot)
 
 
