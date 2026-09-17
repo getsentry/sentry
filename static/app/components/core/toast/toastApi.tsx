@@ -4,21 +4,43 @@ import {toast as sonnerToast} from 'sonner';
 import {Toast} from './toast';
 import type {ToastOptions, ToastVariant} from './types';
 
-const activeToastIds = new Map<string | number, ToastVariant>();
+type ToastId = string | number;
+
+const activeToastIds = new Map<ToastVariant, Set<ToastId>>();
+
+function removeActiveToast(variant: ToastVariant, toastId: ToastId) {
+  const ids = activeToastIds.get(variant);
+  ids?.delete(toastId);
+
+  if (ids?.size === 0) {
+    activeToastIds.delete(variant);
+  }
+}
+
+function dismissOtherVariants(variant: ToastVariant, toastIdToUpdate?: ToastId) {
+  for (const [activeVariant, ids] of activeToastIds) {
+    if (activeVariant === variant) {
+      continue;
+    }
+
+    for (const toastId of ids) {
+      if (toastId !== toastIdToUpdate) {
+        sonnerToast.dismiss(toastId);
+      }
+    }
+    activeToastIds.delete(activeVariant);
+  }
+}
 
 function show(variant: ToastVariant, message: ReactNode, options: ToastOptions = {}) {
   const {action, duration, id, onDismiss} = options;
 
-  // Explicit IDs opt out of automatic replacement, including when updating a toast.
   if (id === undefined) {
-    for (const [activeId, activeVariant] of activeToastIds) {
-      if (activeVariant !== variant) {
-        sonnerToast.dismiss(activeId);
-        activeToastIds.delete(activeId);
-      }
-    }
+    dismissOtherVariants(variant, id);
   } else {
-    activeToastIds.delete(id);
+    for (const activeVariant of activeToastIds.keys()) {
+      removeActiveToast(activeVariant, id);
+    }
   }
 
   const toastId = sonnerToast.custom(
@@ -27,20 +49,17 @@ function show(variant: ToastVariant, message: ReactNode, options: ToastOptions =
         variant={variant}
         message={message}
         action={action}
-        onDismiss={() => {
-          activeToastIds.delete(renderedToastId);
-          sonnerToast.dismiss(renderedToastId);
-        }}
+        onDismiss={() => sonnerToast.dismiss(renderedToastId)}
       />
     ),
     {
       duration,
       onDismiss: dismissedToast => {
-        activeToastIds.delete(dismissedToast.id);
+        removeActiveToast(variant, dismissedToast.id);
         onDismiss?.();
       },
       onAutoClose: dismissedToast => {
-        activeToastIds.delete(dismissedToast.id);
+        removeActiveToast(variant, dismissedToast.id);
         onDismiss?.();
       },
       ...(id === undefined ? {} : {id}),
@@ -48,7 +67,9 @@ function show(variant: ToastVariant, message: ReactNode, options: ToastOptions =
   );
 
   if (id === undefined) {
-    activeToastIds.set(toastId, variant);
+    const ids = activeToastIds.get(variant) ?? new Set<ToastId>();
+    ids.add(toastId);
+    activeToastIds.set(variant, ids);
   }
 
   return toastId;
@@ -63,12 +84,15 @@ export const toast = {
   message: (message: ReactNode, options?: ToastOptions) =>
     show('default', message, options),
   /** Dismisses one toast, or every toast when called with no id. */
-  dismiss: (id?: string | number) => {
+  dismiss: (id?: ToastId) => {
     if (id === undefined) {
       activeToastIds.clear();
     } else {
-      activeToastIds.delete(id);
+      for (const variant of activeToastIds.keys()) {
+        removeActiveToast(variant, id);
+      }
     }
+
     return sonnerToast.dismiss(id);
   },
 };
