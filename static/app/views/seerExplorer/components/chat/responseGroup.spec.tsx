@@ -264,6 +264,23 @@ describe('ResponseGroup', () => {
     );
   });
 
+  it('stays expanded in the gap between tool calls when no block is loading', () => {
+    // CW-2044: between tool calls, the backend briefly returns all blocks with
+    // loading: false before the next tool starts. The ThinkingBlock must stay
+    // expanded as long as no final answer has settled.
+    const group = [toolUseBlock('t1'), toolUseBlock('t2')];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={1} blocks={group} showThinking />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+  });
+
   it('spins inside the box while a tool works', () => {
     const group = [toolUseBlock('t1', {loading: true})];
 
@@ -290,6 +307,17 @@ describe('ResponseGroup', () => {
       screen.queryByRole('button', {name: /See thinking and tool calls/})
     ).not.toBeInTheDocument();
     expect(screen.getByText('Just an answer')).toBeInTheDocument();
+  });
+
+  it('renders a ThinkingBlock placeholder before any trace content arrives', () => {
+    const group = [llmWaitBlock()];
+
+    const {container} = render(
+      <ResponseGroup group={group} blockIndex={0} blocks={group} />,
+      {organization}
+    );
+
+    expect(queryReasoningBox(container)).toBeInTheDocument();
   });
 
   it('gates thinking prose on the showThinking toggle but keeps tool calls', async () => {

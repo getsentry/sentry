@@ -149,6 +149,7 @@ function useSelectionIndex({
   // When the input value changes (due to user input), update the selection index
   useEffect(() => {
     updateSelectionIndex();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, updateSelectionIndex]);
 
   return {

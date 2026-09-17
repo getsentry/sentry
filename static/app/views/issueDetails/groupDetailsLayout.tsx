@@ -69,7 +69,7 @@ function EventDetailsSection({children}: {children: React.ReactNode}) {
   );
 }
 
-const STICKY_BACKGROUND_FADE_DISTANCE = 24;
+const STICKY_BACKGROUND_FADE_DISTANCE = 40;
 
 function StickyIssueEventNavigation({
   event,
@@ -94,9 +94,9 @@ function StickyIssueEventNavigation({
     // gives us progress without remembering a potentially stale scroll position.
     const distance =
       navigation.getBoundingClientRect().top - section.getBoundingClientRect().top;
-    const opacity = String(
-      Math.min(1, Math.max(0, distance / STICKY_BACKGROUND_FADE_DISTANCE))
-    );
+    const progress = Math.min(1, Math.max(0, distance / STICKY_BACKGROUND_FADE_DISTANCE));
+    // Ease into and out of the fade without delaying it behind the scroll position.
+    const opacity = String(progress * progress * (3 - 2 * progress));
     if (section.style.getPropertyValue('--issue-event-header-opacity') !== opacity) {
       section.style.setProperty('--issue-event-header-opacity', opacity);
     }
@@ -250,7 +250,7 @@ const NavigationSidebarWrapper = styled(Sticky, {
   shouldForwardProp: prop => prop !== 'hasToggleSidebar',
 })<{hasToggleSidebar: boolean}>`
   isolation: isolate;
-  z-index: ${p => p.theme.zIndex.stickyHeader};
+  z-index: ${p => p.theme.zIndex.initial};
   display: flex;
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
@@ -272,6 +272,10 @@ const NavigationSidebarWrapper = styled(Sticky, {
   & > * {
     position: relative;
     z-index: 1;
+  }
+
+  &[data-stuck] {
+    z-index: ${p => p.theme.zIndex.stickyHeader};
   }
 `;
 

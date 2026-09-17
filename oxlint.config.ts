@@ -532,8 +532,12 @@ const config = defineConfig({
     'import/no-absolute-path': 'error',
     'import/no-amd': 'error',
     'import/no-anonymous-default-export': 'error',
+    'import/no-duplicates': 'error',
     'import/no-named-default': 'error',
     'import/no-nodejs-modules': 'error',
+    // Catches the parent-relative forms that `@sentry/no-relative-import-paths`
+    // lets through: dynamic `import()`, a bare `'..'`, and `'./../foo'`.
+    'import/no-relative-parent-imports': 'error',
     'import/no-webpack-loader-syntax': 'error',
     '@sentry/no-calling-components-as-functions': 'error',
     '@sentry/no-digits-in-tn': 'error',
@@ -548,9 +552,11 @@ const config = defineConfig({
     '@sentry/no-unnecessary-use-callback': 'error',
     '@sentry/scraps/no-core-import': 'error',
     '@sentry/scraps/no-double-dollar-interpolation': 'error',
+    '@sentry/scraps/no-restricted-module-mocks': 'error',
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
+    '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
       {
@@ -629,7 +635,7 @@ const config = defineConfig({
     '@tanstack/query/mutation-property-order': 'error',
     'react/capitalized-calls': 'error',
     'react/error-boundaries': 'error',
-    'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/exhaustive-effect-dependencies': 'error',
     'react/function-component-definition': 'error',
     'react/globals': 'error',
     'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
@@ -664,10 +670,10 @@ const config = defineConfig({
       },
     ],
     'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/no-deriving-state-in-effects': 'error',
     'react/preserve-manual-memoization': 'error',
     'react/purity': 'error',
-    'react/refs': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/refs': 'error',
     'react/require-render-return': 'error',
     'react/rule-suppression': 'off',
     'react/set-state-in-effect': 'error',
@@ -783,8 +789,7 @@ const config = defineConfig({
     'unicorn/no-negation-in-equality-check': 'error',
     'unicorn/no-new-array': 'error',
     'unicorn/no-new-buffer': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/no-single-promise-in-promise-methods': 'warn',
+    'unicorn/no-single-promise-in-promise-methods': 'error',
     'unicorn/no-typeof-undefined': 'error',
     'unicorn/no-unnecessary-await': 'error',
     'unicorn/no-unreadable-iife': 'error',
@@ -818,8 +823,7 @@ const config = defineConfig({
     'unicorn/prefer-native-coercion-functions': 'error',
     'unicorn/prefer-negative-index': 'error',
     'unicorn/prefer-node-protocol': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/prefer-prototype-methods': 'warn',
+    'unicorn/prefer-prototype-methods': 'error',
     'unicorn/prefer-reflect-apply': 'error',
     'unicorn/prefer-response-static-json': 'error',
     'unicorn/prefer-set-size': 'error',
@@ -1369,18 +1373,6 @@ const config = defineConfig({
         message: "Use `import {Fragment} from 'react'` instead of `React.Fragment`",
       },
       {
-        selector:
-          "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useProjects']",
-        message:
-          'Please do not mock useProjects. Use `ProjectsStore.loadInitialData([ProjectFixture()])` instead. It can be used before the component is mounted or in a beforeEach hook.',
-      },
-      {
-        selector:
-          "CallExpression[callee.object.name='jest'][callee.property.name='mock'][arguments.0.value='sentry/utils/useOrganization']",
-        message:
-          'Please do not mock useOrganization. Pass organization to the render options. `render(<Component />, {organization: OrganizationFixture({isSuperuser: true})})`',
-      },
-      {
         // Require an annotation for uninitialized let declarations, except in
         // for...of and for...in loops.
         selector:
@@ -1664,6 +1656,30 @@ const config = defineConfig({
       files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
       rules: {
         '@sentry/no-calling-components-as-functions': 'off',
+      },
+    },
+    // The lint plugins are standalone packages loaded by oxlint itself, so none
+    // of the `sentry/*` aliases resolve inside them.
+    {
+      files: ['static/oxlint/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Scraps is its own component library rather than ordinary app code, and a
+    // handful of its internal imports are deliberately parent-relative.
+    {
+      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Build scripts run outside the app bundle and are kept as bare as
+    // possible, so they reach for source with a plain relative path.
+    {
+      files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
       },
     },
     {

@@ -3,8 +3,8 @@ import type {Location} from 'history';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IdBadge} from 'sentry/components/idBadge';
 import {
   Provider as TeamKeyTransactionProvider,

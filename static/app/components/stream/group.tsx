@@ -584,6 +584,7 @@ export function StreamGroup({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
     // Original state had an inbox reason
+    // oxlint-disable-next-line react/refs
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
     !group.inbox &&
@@ -771,12 +772,10 @@ export function StreamGroup({
         >
           {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
-              hideZeros
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-              showMarkLine
             />
           ) : issueTypeConfig.stats.enabled ? (
             <Placeholder height="36px" />

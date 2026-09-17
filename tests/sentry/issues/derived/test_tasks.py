@@ -349,6 +349,50 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             group_id_end=group_ids[0] + 1,
         )
 
+    def test_logs_progress_through_scheduling_stages(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        stale = self._pick_stale_hash()
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=stale)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-batch-size": 1,
+                    "issues.derived.heal-max-tasks": 2,
+                    "issues.derived.check-task-count": 1,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
+            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+            patch.object(check_fresh_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        messages = [log_call.args[0] for log_call in mock_logger.info.call_args_list]
+        assert messages == [
+            "heal_stale_derived_data.started",
+            "heal_stale_derived_data.configuration_loaded",
+            "heal_stale_derived_data.stale_hash_discovery_started",
+            "heal_stale_derived_data.stale_hash_discovery_complete",
+            "heal_stale_derived_data.range_selection_started",
+            "heal_stale_derived_data.range_selection_complete",
+            "heal_stale_derived_data.range_selection_started",
+            "heal_stale_derived_data.range_selection_complete",
+            "heal_stale_derived_data.batch_dispatch_started",
+            "heal_stale_derived_data.batch_dispatch_complete",
+            "heal_stale_derived_data.scheduled",
+            "heal_stale_derived_data.check_range_selection_started",
+            "heal_stale_derived_data.check_range_selection_complete",
+            "heal_stale_derived_data.check_dispatch_started",
+            "heal_stale_derived_data.checks_scheduled",
+            "heal_stale_derived_data.complete",
+        ]
+
     def test_no_stale_data(self) -> None:
         groups = self.create_unprocessed_groups(2)
         for g in groups:
@@ -597,7 +641,17 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             )
 
         assert mock_incr.call_args_list == [
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={"result": "aligned", "source": "batch_check"},
+            ),
             call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={"result": "aligned", "source": "batch_check"},
+            ),
             call("issues.derived.check_group", sample_rate=1.0, tags={"result": "success"}),
         ]
 
@@ -668,11 +722,18 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
             group_id_start=group.id + 1,
             group_id_end=group.id + 2,
         )
-        mock_incr.assert_called_once_with(
-            "issues.derived.check_group",
-            sample_rate=1.0,
-            tags={"result": "no_result"},
-        )
+        assert mock_incr.call_args_list == [
+            call(
+                "issues.status_reconciliation.checked",
+                sample_rate=1.0,
+                tags={"result": "aligned", "source": "batch_check"},
+            ),
+            call(
+                "issues.derived.check_group",
+                sample_rate=1.0,
+                tags={"result": "no_result"},
+            ),
+        ]
 
     def test_records_status_inconsistency_for_backfilled_project(self) -> None:
         group = self.create_unprocessed_groups(1)[0]
@@ -707,6 +768,7 @@ class CheckFreshDerivedDataBatchTest(DerivedDataTaskTestBase):
         group = self.create_unprocessed_groups(1)[0]
         process_group_log(group.id)
         group.update(status=GroupStatus.IGNORED)
+        self.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
         GroupDerivedData.objects.filter(group_id=group.id).update(data={"status": "open"})
 
         with patch("sentry.issues.derived.check.record_status_consistency") as mock_record_status:

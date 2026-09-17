@@ -15,11 +15,11 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0005_increase_flag_max_length
 
-hybridcloud: 0038_cellcacheversion_backfill_keyname
+hybridcloud: 0039_cacheversion_keyname_nullable
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0007_drop_producing_seer_run_fk
+investigations: 0009_drop_producing_seer_run_index
 
 monitors: 0001_squashed_0013_delete_monitor_is_muted_field
 
@@ -33,9 +33,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0034_add_seer_autofix_issue_data
+seer: 0036_disable_autofix_issue_data_fk_constraints
 
-sentry: 1172_rule_add_new_environment_id
+sentry: 1176_remove_dashboardhiddenuser
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
@@ -43,4 +43,4 @@ tempest: 0001_squashed_0003_use_encrypted_char_field
 
 uptime: 0001_squashed_0055_backfill_2xx_status_assertion
 
-workflow_engine: 0119_add_index_for_all_project_detectors
+workflow_engine: 0120_replace_boolean_deescalation_comparisons

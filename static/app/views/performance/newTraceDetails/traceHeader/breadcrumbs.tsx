@@ -94,7 +94,7 @@ function getBreadCrumbTarget(pathname: string, query: Location['query']) {
   return {
     pathname,
     // Remove traceView specific query parameters that are not needed when navigating back.
-    query: {...omit(query, ['node', 'fov', 'timestamp', 'eventId'])},
+    query: {...omit(query, ['node', 'fov', 'timestamp', 'eventId', 'pinnedAttribute'])},
   };
 }
 

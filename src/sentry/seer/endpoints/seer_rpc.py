@@ -147,6 +147,7 @@ from sentry.seer.sentry_data_models import (
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
     OrganizationSlugResponse,
+    ReferencedFixStatementsResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
     SendSeerWebhookErrorResponse,
@@ -163,6 +164,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
+from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
@@ -421,6 +423,21 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
     return OrganizationSlugResponse(slug=org.slug)
+
+
+def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
+    statements = find_fix_statements(text, org_id)
+    return ReferencedFixStatementsResponse(
+        statements=[line for line, _ in statements],
+        short_ids=sorted(
+            {
+                group.qualified_short_id
+                for _, groups in statements
+                for group in groups
+                if group.qualified_short_id
+            }
+        ),
+    )
 
 
 def deliver_investigation_event(
@@ -1031,6 +1048,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     #
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
+    "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
     "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),

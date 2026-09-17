@@ -7,7 +7,14 @@ from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationFeedbackBatchBlockedEvent,
     AiAutofixPrIterationFeedbackBatchCompletedEvent,
 )
-from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
+from sentry.seer.agent.client_models import (
+    AgentFilePatch,
+    FilePatch,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.autofix.pr_iteration.details_store import (
     open_iterations,
     remove_iterations_before,
@@ -34,18 +41,53 @@ from sentry.testutils.helpers.datetime import freeze_time
 RUN_ID = 4242
 
 
-def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
+def _run_state(
+    *,
+    blocks: list[MemoryBlock] | None = None,
+    commit_shas: dict[str, str] | None = None,
+) -> SeerRunState:
     return SeerRunState(
         run_id=RUN_ID,
         blocks=blocks or [],
         status="completed",
         updated_at="2024-01-01T00:00:00Z",
+        repo_pr_states={
+            repo: RepoPRState(repo_name=repo, commit_sha=sha)
+            for repo, sha in (commit_shas or {}).items()
+        },
     )
 
 
-def _iteration_block(iteration_id: int) -> MemoryBlock:
+def _patch(repo_name: str) -> AgentFilePatch:
+    return AgentFilePatch(
+        repo_name=repo_name,
+        patch=FilePatch(path="src/foo.py", type="M", added=1, removed=0),
+    )
+
+
+def _edit_block(
+    block_id: str, *, repos: list[str], pr_commit_shas: dict[str, str] | None = None
+) -> MemoryBlock:
+    """A follow-on block in the iteration that edited files in ``repos``."""
+    return MemoryBlock(
+        id=block_id,
+        pr_commit_shas=pr_commit_shas,
+        merged_file_patches=[_patch(repo) for repo in repos],
+        message=Message(role="assistant", content="edit"),
+        timestamp="2024-01-01T00:00:00Z",
+    )
+
+
+def _iteration_block(
+    iteration_id: int,
+    *,
+    repos: list[str] | None = None,
+    pr_commit_shas: dict[str, str] | None = None,
+) -> MemoryBlock:
     return MemoryBlock(
         id="block-0",
+        pr_commit_shas=pr_commit_shas,
+        merged_file_patches=[_patch(repo) for repo in repos or []],
         message=Message(
             role="assistant",
             content="iteration",
@@ -99,6 +141,7 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
             )
         return iteration_id
 
@@ -107,10 +150,16 @@ class PrIterationDetailsTest(TestCase):
         iteration_id: int,
         *,
         outcome: str = PrIterationOutcome.ALREADY_PUSHED.value,
+        repos: list[str] | None = None,
+        commit_shas: dict[str, str] | None = None,
+        extra_blocks: list[MemoryBlock] | None = None,
     ) -> None:
         complete_pr_iteration_details(
             log_ctx=self.log_ctx,
-            run_state=_run_state(blocks=[_iteration_block(iteration_id)]),
+            run_state=_run_state(
+                blocks=[_iteration_block(iteration_id, repos=repos), *(extra_blocks or [])],
+                commit_shas=commit_shas,
+            ),
             organization_id=self.organization.id,
             outcome=outcome,
         )
@@ -137,6 +186,83 @@ class PrIterationDetailsTest(TestCase):
         assert row.data["queued_count"] == 3
         assert row.data["dropped_count"] == 1
         assert row.data["automated_feedback_count"] == 1
+        assert row.data["feedback_bot_logins"] == ["coderabbitai[bot]"]
+
+    def test_a_pushed_iteration_records_the_commit_it_pushed(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(
+                iteration_id,
+                repos=["owner/repo"],
+                commit_shas={"owner/repo": "sha-new"},
+            )
+
+        assert mock_record.call_args.args[0].head_shas == ["sha-new"]
+
+    def test_the_pushed_commit_wins_over_an_earlier_blocks_commit(self) -> None:
+        """A block records the PR head at the time it was created, so it can be stale."""
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+        stale = _edit_block(
+            "block-1", repos=["owner/repo"], pr_commit_shas={"owner/repo": "sha-old"}
+        )
+        pushed = _edit_block("block-2", repos=["owner/repo"])
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(
+                iteration_id,
+                commit_shas={"owner/repo": "sha-new"},
+                extra_blocks=[stale, pushed],
+            )
+
+        assert mock_record.call_args.args[0].head_shas == ["sha-new"]
+
+    def test_a_multi_repo_iteration_records_every_commit_it_pushed(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(
+                iteration_id,
+                repos=["owner/one", "owner/two"],
+                commit_shas={"owner/one": "sha-b", "owner/two": "sha-a"},
+            )
+
+        assert mock_record.call_args.args[0].head_shas == ["sha-a", "sha-b"]
+
+    def test_a_repo_the_iteration_did_not_touch_is_left_out(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(
+                iteration_id,
+                repos=["owner/one"],
+                commit_shas={"owner/one": "sha-a", "owner/untouched": "sha-z"},
+            )
+
+        assert mock_record.call_args.args[0].head_shas == ["sha-a"]
+
+    def test_an_iteration_that_pushed_nothing_records_no_commit(self) -> None:
+        self._open()
+        iteration_id = self._trigger()
+        assert iteration_id is not None
+
+        with patch("sentry.analytics.record") as mock_record:
+            self._complete(
+                iteration_id,
+                outcome=PrIterationOutcome.NO_CODE_CHANGES.value,
+                repos=["owner/repo"],
+                commit_shas={"owner/repo": "sha-new"},
+            )
+
+        assert mock_record.call_args.args[0].head_shas == []
 
     @freeze_time("2024-01-01 00:00:00")
     def test_the_iteration_it_opened_is_emitted_when_it_completes(self) -> None:
@@ -162,6 +288,8 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
+                head_shas=[],
                 outcome="already_pushed",
             ),
         )
@@ -304,6 +432,8 @@ class PrIterationDetailsTest(TestCase):
                 queued_count=3,
                 dropped_count=1,
                 automated_feedback_count=1,
+                feedback_bot_logins=["coderabbitai[bot]"],
+                head_shas=[],
                 outcome="no_code_changes",
             ),
         )
@@ -343,49 +473,17 @@ class PrIterationDetailsTest(TestCase):
         assert outcome_for_failed_run(state) == "out_of_credits"
 
     def test_a_pause_is_recorded_under_its_reason(self) -> None:
-        assert (
-            outcome_for_pause(self.log_ctx, PauseReason.USER_STOP)
-            == PrIterationOutcome.PAUSED_USER_STOP.value
-        )
-        assert (
-            outcome_for_pause(self.log_ctx, PauseReason.RUN_ERRORED)
-            == PrIterationOutcome.PAUSED_RUN_ERRORED.value
-        )
+        assert outcome_for_pause(PauseReason.USER_STOP) == PrIterationOutcome.PAUSED_USER_STOP
+        assert outcome_for_pause(PauseReason.RUN_ERRORED) == PrIterationOutcome.PAUSED_RUN_ERRORED
+        assert outcome_for_pause(PauseReason.PR_CLOSED) == PrIterationOutcome.PAUSED_PR_CLOSED
 
-    def test_every_pause_reason_has_an_outcome(self) -> None:
-        """The two lists drift apart in ``pause``; this is what notices."""
-        logger = MagicMock()
-        log_ctx = PrIterationLogContext(
-            logger,
-            run_state=_run_state(),
-            iteration=LogCtxIteration.UNTRIGGERED,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-        )
+    def test_every_pause_reason_maps_to_its_own_outcome(self) -> None:
+        """Each reason has a distinct ``PAUSED_`` outcome; none share one."""
+        outcomes = {outcome_for_pause(reason) for reason in PauseReason}
 
-        for reason in PauseReason:
-            assert outcome_for_pause(log_ctx, reason) != PrIterationOutcome.PAUSED.value
-
-        assert not logger.error.called
-
-    def test_a_pause_reason_added_since_is_recorded_as_a_plain_pause(self) -> None:
-        """A batch dropped for a reason with no outcome here is still a batch dropped."""
-        logger = MagicMock()
-        log_ctx = PrIterationLogContext(
-            logger,
-            run_state=_run_state(),
-            iteration=LogCtxIteration.UNTRIGGERED,
-            organization_id=self.organization.id,
-            group_id=self.group.id,
-        )
-
-        assert outcome_for_pause(log_ctx, "out_of_credits") == PrIterationOutcome.PAUSED.value
-        assert logger.error.call_args.args[0] == "autofix.pr_iteration.details.unknown_pause_reason"
-        assert logger.error.call_args.kwargs["extra"]["pause_reason"] == "out_of_credits"
-
-    def test_a_pause_that_names_no_reason_is_still_recorded(self) -> None:
-        """A marker written before reasons existed is still a batch we dropped."""
-        assert outcome_for_pause(self.log_ctx, None) == PrIterationOutcome.PAUSED.value
+        assert len(outcomes) == len(PauseReason)
+        for outcome in outcomes:
+            assert outcome.value.startswith("paused_")
 
 
 class RecordPrIterationBlockedTest(TestCase):
@@ -428,6 +526,7 @@ class RecordPrIterationBlockedTest(TestCase):
             queued_count=3,
             dropped_count=1,
             automated_feedback_count=1,
+            feedback_bot_logins=[],
         )
         return iteration_id
 

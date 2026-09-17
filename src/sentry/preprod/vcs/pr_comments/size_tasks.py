@@ -19,7 +19,7 @@ from sentry.preprod.vcs.status_checks.size.tasks import evaluate_size_and_format
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_size_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ RULES_OPTION_KEY = "sentry:preprod_size_pr_comments_rules"
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_size_pr_comment",
-    namespace=preprod_tasks,
+    namespace=preprod_size_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=5, delay=60 * 5),

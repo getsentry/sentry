@@ -5,12 +5,12 @@ import partition from 'lodash/partition';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';

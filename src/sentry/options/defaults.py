@@ -772,6 +772,10 @@ register("github-console-sdk-app.private-key", flags=FLAG_CREDENTIAL | FLAG_PRIO
 register("github-console-sdk-app.client-id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("github-console-sdk-app.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# Cursor Origin Integration
+register("cursor-origin-app.id", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("cursor-origin-app.private-key", default="", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+
 # Github Enterprise Integration
 register(
     "github-enterprise-app.allowed-hosts-legacy-webhooks",
@@ -1046,28 +1050,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Transaction events
-# True => kill switch to disable ingestion of transaction events for internal project.
-register(
-    "transaction-events.force-disable-internal-project",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Killswitch for sending internal errors to the internal project or
-# `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
-# `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
-#
-# Note: A value that is neither 0 nor 1 is regarded as 0
-register("store.use-relay-dsn-sample-rate", default=1, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# A rate that enables statsd item sending (DDM data) to s4s
-register("store.allow-s4s-ddm-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Sample rate for transaction/span data sent to S4S upstream (1.0 = keep all, 0.05 = keep 5%)
-register("store.s4s-transaction-sample-rate", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 
 # Killswitch to stop storing any reprocessing payloads.
@@ -1397,6 +1379,14 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Fuzzy resolution always runs after an exact email miss so its proposal can be
+# inspected. This controls whether that proposal is used in the delivered prediction.
+register(
+    "seer.smart_assignment.fuzzy_user_matching.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
@@ -1413,10 +1403,10 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "issues.action_log.dedicated_outbox_rollout_rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+    "issues.action_log.use_db_sequence_for_outbox_identifier",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "issues.backfill_group_action_log.killswitch",
@@ -1914,14 +1904,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control sampling percentage of schema validation on the generic metrics pipeline
-# based on namespace.
-register(
-    "sentry-metrics.indexer.generic-metrics.schema-validation-rules",
-    default={},  # empty dict means validate schema for all use cases
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to control sampling percentage of schema validation on the release health metrics
 # pipeline based on namespace.
 register(
@@ -1961,11 +1943,6 @@ register(
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
 register(
-    "sentry-metrics.writes-limiter.limits.performance.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.writes-limiter.limits.transactions.per-org",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -1990,17 +1967,7 @@ register(
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.per-org",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
-register(
-    "sentry-metrics.writes-limiter.limits.performance.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.writes-limiter.limits.transactions.global",
     default=[],
@@ -2023,11 +1990,6 @@ register(
 )
 register(
     "sentry-metrics.writes-limiter.limits.custom.global",
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.writes-limiter.limits.generic-metrics.global",
     default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -2076,13 +2038,6 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.generic-metrics.per-org",
     default=[
         {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
     ],
@@ -2487,11 +2442,8 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Share of organizations whose rules read the project, transaction and recalibration
-# sample rates from the per-org pipeline's caches, keyed on organization id. 1.0 serves
-# every org from them and is the default; 0.0 serves every org from the legacy caches. An
-# org only has per-org cache entries once dynamic-sampling.per_org.rollout-rate selects it
-# too, and a project without a stored per-org rate is sampled in full.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.per_org.serving-rollout-rate",
     type=Float,
@@ -2499,9 +2451,8 @@ register(
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Organizations rule generation serves from the per-org caches, whatever
-# dynamic-sampling.per_org.serving-rollout-rate selects. Names a single org to pilot
-# before a rate group exists.
+# Nothing reads this option any more. It stays registered until the options automator
+# has unset it, since the automator can only unset a registered option.
 register(
     "dynamic-sampling.per_org.serving-org-ids",
     type=Sequence,
@@ -2844,6 +2795,24 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Killswitch for the monitor clock tick hold.
+#
+# The hold stalls the monitor clock tick while the partition clock set is short
+# of the partition list learned from the clock pulse. This is a protection
+# against losing the clock data in Redis, so that partitions arriving after
+# data loss are not automatically treated as "the minimum", and incorrectly
+# bump the clock to beyond the actual minimum partition timestamp.
+#
+# Enable this if you want to un-stall the monitors clock. Be aware
+# that doing so could result in an incorrect fast-forwarded monitor
+# clock time, since the clock will no longer wait to assess the actual minimum
+# time from the full partition set.
+register(
+    "crons.clock_tick.disable_hold_on_missing_partitions",
+    default=True,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -3755,6 +3724,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Kill switch for the scheduled Redis/Postgres uptime config drift sweep.
+register(
+    "uptime.config-drift.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hours one full drift sweep is spread across, i.e. how stale drift may be before it is seen.
+register(
+    "uptime.config-drift.cycle-hours",
+    type=Int,
+    default=24,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Controls whether uptime monitoring automatically detects hostnames from error events.
 register(
     "uptime.automatic-hostname-detection",
@@ -4444,6 +4429,13 @@ register(
 
 register(
     "preprod.snapshots.auto-approve-sibling-diffs.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "preprod.snapshots.objectstore.snapshots-usecase.enabled",
     type=Bool,
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

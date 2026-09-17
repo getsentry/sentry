@@ -257,6 +257,10 @@ function AgentSetupInstructions({
           source: 'prompt',
         }}
         onClick={() => {
+          trackAnalytics('conversations.onboarding.interaction', {
+            organization,
+            action: 'copy_agent_prompt',
+          });
           copy(prompt, {
             successMessage: t('Copied setup prompt to clipboard'),
           });

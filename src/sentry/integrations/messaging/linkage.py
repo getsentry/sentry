@@ -300,11 +300,6 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
         return None
 
     @property
-    def filter_by_user_id(self) -> bool:
-        # TODO: Is it okay to just make this True everywhere?
-        return False
-
-    @property
     def metrics_operation_key(self) -> str:
         return "unlink_identity_view"
 
@@ -312,16 +307,18 @@ class UnlinkIdentityView(IdentityLinkageView, ABC):
         self, idp: IdentityProvider | None, external_id: str, request: HttpRequest
     ) -> HttpResponse | None:
         if isinstance(request.user, AnonymousUser):
-            raise TypeError("Cannot link identity without a logged-in user")
+            raise TypeError("Cannot unlink identity without a logged-in user")
         try:
-            identities = Identity.objects.filter(external_id=external_id)
+            identities = Identity.objects.filter(external_id=external_id, user_id=request.user.id)
             if idp is not None:
                 identities = identities.filter(idp=idp)
-            if self.filter_by_user_id:
-                identities = identities.filter(user_id=request.user.id)
-            if self.no_identity_template and not identities:
-                return render_to_response(self.no_identity_template, request=request, context={})
-            identities.delete()
+            deleted_count, _ = identities.delete()
+            if deleted_count == 0:
+                if self.no_identity_template:
+                    return render_to_response(
+                        self.no_identity_template, request=request, context={}
+                    )
+                raise Http404
         except IntegrityError:
             tag = f"{self.provider_slug}.unlink.integrity-error"
             logger.warning(tag)

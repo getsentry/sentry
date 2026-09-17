@@ -44,6 +44,7 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
     select: selectJsonWithHeaders,
   });
 
+  // oxlint-disable-next-line react/exhaustive-effect-dependencies
   useEffect(() => void refetch(), [refetch, nextCheckIn]);
 
   if (isError) {

@@ -1,3 +1,4 @@
+from dataclasses import field
 from typing import Literal
 
 from sentry import analytics
@@ -48,6 +49,12 @@ class AiAutofixPrIterationFeedbackBatchCompletedEvent(analytics.Event):
     # Outcome, written when the iteration ends. See ``PrIterationOutcome`` for
     # the values Sentry knows about.
     outcome: str
+
+    # Review bots behind the feedback the drain consumed, sorted and deduped.
+    feedback_bot_logins: list[str] = field(default_factory=list)
+
+    # Commit SHAs this iteration pushed. Empty unless the outcome is already_pushed.
+    head_shas: list[str] = field(default_factory=list)
 
 
 @analytics.eventclass("ai.autofix.pr_iteration.feedback_batch.blocked")

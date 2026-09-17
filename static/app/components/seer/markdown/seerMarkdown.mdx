@@ -49,6 +49,8 @@ Embeds are rich widgets rendered inline from [Markdoc-style tag syntax](https://
 
 Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated against a Zod schema before rendering — invalid data renders nothing (with a dev-mode console warning).
 
+Every embed also renders at a third level, **`markdown`**, used when a reply is copied to the clipboard. A link embed emits that same link as markdown, a text embed keeps its formatting, and a widget — a chart, an issue table, a trace waterfall — keeps only its name, since its contents are live data. Each example below shows the result under **Copied as markdown**.
+
 ### timestamp
 
 <EmbedStory name="timestamp" />
@@ -72,10 +74,6 @@ Tag syntax: `{% name %}{"key":"value"}{% /name %}`. The JSON body is validated a
 ### issue
 
 <EmbedStory name="issue" />
-
-### issues
-
-<EmbedStory name="issues" />
 
 ### event
 

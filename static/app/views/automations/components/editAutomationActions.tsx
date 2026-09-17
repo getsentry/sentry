@@ -32,7 +32,7 @@ interface EditAutomationActionsProps {
 export function EditAutomationActions({automation, form}: EditAutomationActionsProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const canEdit = useCanEditAutomation();
+  const canEdit = useCanEditAutomation(automation.id);
   const permissionTooltipText = canEdit ? undefined : getNoAlertWritePermissionTooltip();
   const {mutateAsync: deleteAutomation, isPending: isDeleting} =
     useDeleteAutomationMutation();

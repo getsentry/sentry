@@ -64,6 +64,7 @@ function Row({
 }) {
   const {
     subject,
+    subjectNode,
     subjectIcon,
     subjectDataTestId,
     meta,
@@ -91,7 +92,7 @@ function Row({
 
   return (
     <tr>
-      <td className="key">{subject}</td>
+      <td className="key">{subjectNode ?? subject}</td>
       <td className="val" data-test-id={subjectDataTestId}>
         <TableValue>
           {actionButton ? (
