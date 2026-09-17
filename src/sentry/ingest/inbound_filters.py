@@ -459,12 +459,18 @@ class InboundFilterFeatures:
 
     ``custom_inbound_filters`` gates the other three, and additionally gates the
     legacy ``releases`` and ``errorMessages`` filter settings built by the caller.
+
+    ``legacy_lists`` says whether the newline lists in the project options are still
+    served at all. Once they have been copied into custom inbound filter rows, the
+    rows stand in for them, and serving both would drop the same data twice under
+    two outcome reasons.
     """
 
     custom_inbound_filters: bool = False
     logs: bool = False
     metrics: bool = False
     custom_inbound_filters_v2: bool = False
+    legacy_lists: bool = True
 
 
 def get_generic_filters(
@@ -480,9 +486,9 @@ def get_generic_filters(
     generic_filters: list[GenericFilter] = []
 
     if filter_features.custom_inbound_filters:
-        if filter_features.logs:
+        if filter_features.legacy_lists and filter_features.logs:
             generic_filters += _log_messages_generic_filters(project)
-        if filter_features.metrics:
+        if filter_features.legacy_lists and filter_features.metrics:
             generic_filters += _trace_metric_names_generic_filters(project)
         if filter_features.custom_inbound_filters_v2:
             generic_filters += get_custom_inbound_filter_generic_filters(project)

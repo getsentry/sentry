@@ -138,14 +138,17 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings[filter_id] = settings
 
     organization = project.organization
+    rows_only = options.get("relay.inbound-filters.custom-filter-rows-only")
     filter_features = InboundFilterFeatures(
         custom_inbound_filters=features.has("projects:custom-inbound-filters", project),
         logs=features.has("organizations:ourlogs-ingestion", organization),
         metrics=features.has("organizations:tracemetrics-ingestion", organization),
-        custom_inbound_filters_v2=features.has("organizations:inbound-filters-v2", organization),
+        custom_inbound_filters_v2=rows_only
+        or features.has("organizations:inbound-filters-v2", organization),
+        legacy_lists=not rows_only,
     )
 
-    if filter_features.custom_inbound_filters:
+    if filter_features.custom_inbound_filters and filter_features.legacy_lists:
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}

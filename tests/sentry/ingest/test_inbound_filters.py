@@ -611,6 +611,16 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
             ["log-message", "trace-metric-name", "cif"],
             id="every_feature",
         ),
+        pytest.param(
+            InboundFilterFeatures(True, True, True, True, legacy_lists=False),
+            ["cif"],
+            id="rows_stand_in_for_the_legacy_lists",
+        ),
+        pytest.param(
+            InboundFilterFeatures(True, True, True, False, legacy_lists=False),
+            [],
+            id="legacy_lists_off_without_rows_serves_nothing",
+        ),
     ],
 )
 def test_get_generic_filters_gates_each_source_on_its_feature(

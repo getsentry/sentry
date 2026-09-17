@@ -675,6 +675,18 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Serves the custom inbound filter rows to Relay for every project with the custom
+# inbound filters plan feature, and omits the legacy release, error message, log message
+# and metric name lists from the project config. Turn on once the backfill of those
+# lists into rows has run in the region. Off serves the legacy lists, and the rows only
+# to organizations with the inbound-filters-v2 flag.
+register(
+    "relay.inbound-filters.custom-filter-rows-only",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)

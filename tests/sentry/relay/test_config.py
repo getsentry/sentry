@@ -26,6 +26,7 @@ from sentry.relay.config import ProjectConfig, TransactionNameRule, get_project_
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import InstaSnapshotter, django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.safe import get_path
@@ -262,6 +263,59 @@ def test_project_config_custom_inbound_filters_v2(
         ]
     else:
         assert custom_filters == []
+
+
+@django_db_all
+@cell_silo_test
+@pytest.mark.parametrize("has_custom_filters", [False, True])
+@pytest.mark.parametrize("has_inbound_filters_v2", [False, True])
+def test_project_config_serves_custom_filter_rows_only(
+    default_project, factories, has_custom_filters, has_inbound_filters_v2
+):
+    # Once the legacy lists have been copied into rows, the rows go to every project
+    # with the plan feature, flag or not, and the lists stop going out at all.
+    default_project.update_option("sentry:log_messages", ["some log"])
+    default_project.update_option("sentry:trace_metric_names", ["some metric"])
+    default_project.update_option("sentry:error_messages", ["some_error"])
+    default_project.update_option("sentry:releases", ["1.2.3"])
+    default_project.update_option("sentry:blacklisted_ips", ["112.69.248.54"])
+    default_project.update_option("filters:react-hydration-errors", "0")
+    default_project.update_option("filters:chunk-load-error", "0")
+    default_project.update_option("filters:custom-error", "0")
+    row = factories.create_project_custom_inbound_filter(
+        default_project,
+        name="Releases",
+        data_type="all",
+        conditions=[{"type": "release", "value": ["1.2.3"]}],
+    )
+
+    with (
+        override_options({"relay.inbound-filters.custom-filter-rows-only": True}),
+        Feature(
+            {
+                "projects:custom-inbound-filters": has_custom_filters,
+                "organizations:inbound-filters-v2": has_inbound_filters_v2,
+                "organizations:ourlogs-ingestion": True,
+                "organizations:tracemetrics-ingestion": True,
+            }
+        ),
+    ):
+        project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    filter_settings = get_path(cfg, "config", "filterSettings")
+
+    assert filter_settings.get("releases") is None
+    assert filter_settings.get("errorMessages") is None
+    # The IP list is not part of the migration and keeps going out as before.
+    assert filter_settings["clientIps"] == {"blacklistedIps": ["112.69.248.54"]}
+
+    generic_ids = [f["id"] for f in get_path(filter_settings, "generic", "filters") or []]
+    if has_custom_filters:
+        assert generic_ids == [f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{row.id}"]
+    else:
+        assert generic_ids == []
 
 
 @django_db_all
