@@ -125,28 +125,27 @@ function DropdownMenuCollection({
           if (node.value.children) {
             const submenuConfig = node.value.submenu;
             const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
-            const trigger = (triggerProps: any) => (
-              <DropdownMenuItem
-                renderAs="div"
-                node={node}
-                state={state}
-                closeOnSelect={false}
-                {...omit(triggerProps, [
-                  'onClick',
-                  'onDragStart',
-                  'onKeyDown',
-                  'onKeyUp',
-                  'onMouseDown',
-                  'onPointerDown',
-                  'onPointerUp',
-                ])}
-              />
-            );
             itemToRender = (
               <DropdownMenu
                 isOpen={state.selectionManager.isSelected(node.key)}
                 items={node.value.children}
-                trigger={trigger}
+                trigger={triggerProps => (
+                  <DropdownMenuItem
+                    renderAs="div"
+                    node={node}
+                    state={state}
+                    closeOnSelect={false}
+                    {...omit(triggerProps, [
+                      'onClick',
+                      'onDragStart',
+                      'onKeyDown',
+                      'onKeyUp',
+                      'onMouseDown',
+                      'onPointerDown',
+                      'onPointerUp',
+                    ])}
+                  />
+                )}
                 onClose={onClose}
                 closeOnSelect={closeOnSelect}
                 disableTextSelection={disableTextSelection}
@@ -200,10 +199,7 @@ export function DropdownMenuList({
   ...props
 }: DropdownMenuListProps) {
   const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
-  const state = useTreeState<MenuItemProps>({
-    ...props,
-    selectionMode: 'single',
-  });
+  const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
 
   // Implement focus states, keyboard navigation, aria-label,...

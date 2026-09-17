@@ -540,15 +540,6 @@ function ConfigureIntegration() {
     refetchIntegration();
   };
 
-  // TODO(Steve): Refactor components into separate tabs and use more generic tab logic
-  const action = (
-    <IntegrationAction
-      integration={integration}
-      onUpdateIntegration={onUpdateIntegration}
-      organization={organization}
-      provider={provider}
-    />
-  );
   const mainTab = (
     <IntegrationMainTab
       gcpVerificationError={gcpVerificationError}
@@ -585,7 +576,17 @@ function ConfigureIntegration() {
 
   return (
     <Fragment>
-      <IntegrationNavigationHeader integration={integration} action={action} />
+      <IntegrationNavigationHeader
+        integration={integration}
+        action={
+          <IntegrationAction
+            integration={integration}
+            onUpdateIntegration={onUpdateIntegration}
+            organization={organization}
+            provider={provider}
+          />
+        }
+      />
       {allTabs.length === 0 ? (
         mainTab
       ) : (

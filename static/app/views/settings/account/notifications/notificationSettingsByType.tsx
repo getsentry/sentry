@@ -142,18 +142,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const {data: notificationProviders = [], status: notificationProviderStatus} =
     useApiQuery<NotificationProvidersObject[]>(
       [
-        getApiUrl('/users/$userId/notification-providers/', {
-          path: {userId: 'me'},
-        }),
+        getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
         {query: getQueryParams(notificationType)},
       ],
       {staleTime: 30_000}
     );
   const {data: allIdentities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
     [getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}})],
-    {
-      staleTime: 30_000,
-    }
+    {staleTime: 30_000}
   );
   const identities = allIdentities.filter(identity =>
     ALLOWED_PROVIDERS.has(identity?.identityProvider?.type as SupportedProviders)
@@ -162,9 +158,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
     useApiQuery<Array<OrganizationIntegration | null>>(
       [
-        getApiUrl('/users/$userId/organization-integrations/', {
-          path: {userId: 'me'},
-        }),
+        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
         {query: {provider: [...ALLOWED_PROVIDERS]}},
       ],
       {staleTime: 30_000}
@@ -303,9 +297,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: Omit<NotificationOptionsObject, 'id'>) =>
       fetchMutation<NotificationOptionsObject>({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
         options: {},
         data,
       }),
@@ -325,9 +317,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: NotificationOptionsObject) =>
       fetchMutation<NotificationOptionsObject>({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-options/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
         options: {},
         data,
       }),
