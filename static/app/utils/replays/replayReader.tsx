@@ -141,6 +141,63 @@ const DUPLICATE_NAV_THRESHOLD_MS = 2;
  */
 const EVENT_BEFORE_REPLAY_CLIP_MS = 10 * 1000;
 
+const UNUSABLE_CLIP_WINDOW_MESSAGES = {
+  invalid_timestamps:
+    'replay.clip_window.invalid_timestamps: Clip window is not a real time range, playing the whole replay instead',
+  outside_replay:
+    'replay.clip_window.outside_replay: Clip window does not overlap the replay, playing the whole replay instead',
+} as const;
+
+/**
+ * Clip windows already reported this page load. A `ReplayReader` is built inside
+ * a `useMemo`, so the same bad window is rebuilt on every refetch and on any
+ * re-render that changes the identity of the attachments or errors arrays —
+ * without this the same message goes out over and over for one replay.
+ */
+const reportedClipWindows = new Set<string>();
+
+/**
+ * Report a clip window that could not be applied, so a caller passing a
+ * timestamp that has nothing to do with the replay is visible rather than
+ * silently widened to the whole recording.
+ */
+function reportUnusableClipWindow(
+  reason: keyof typeof UNUSABLE_CLIP_WINDOW_MESSAGES,
+  {
+    clipWindow,
+    eventTimestampMs,
+    replayEnd,
+    replayId,
+    replayStart,
+  }: {
+    clipWindow: ClipWindow;
+    replayEnd: number;
+    replayId: string;
+    replayStart: number;
+    eventTimestampMs?: number;
+  }
+) {
+  const key = `${replayId}:${reason}:${clipWindow.startTimestampMs}:${clipWindow.endTimestampMs}`;
+  if (reportedClipWindows.has(key)) {
+    return;
+  }
+  reportedClipWindows.add(key);
+
+  Sentry.logger.error(UNUSABLE_CLIP_WINDOW_MESSAGES[reason], {
+    replay_id: replayId,
+    event_timestamp_ms: eventTimestampMs,
+    requested_start_timestamp_ms: clipWindow.startTimestampMs,
+    requested_end_timestamp_ms: clipWindow.endTimestampMs,
+    replay_start_timestamp_ms: replayStart,
+    replay_end_timestamp_ms: replayEnd,
+    // How far outside the recording the window fell, to separate a window that
+    // just missed from one pointing at an unrelated time.
+    ms_after_replay_end: clipWindow.startTimestampMs - replayEnd,
+    ms_before_replay_start: replayStart - clipWindow.endTimestampMs,
+    url: window.location.href,
+  });
+}
+
 /**
  * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
  * there is a matching navigation.* span to replace it.
@@ -366,14 +423,28 @@ export class ReplayReader {
     // branch on `getDurationMs() <= 0` and render a static preview instead of
     // the player — so the whole replay is both the honest answer and the useful
     // one. A window that merely overhangs one end still clips to the overlap.
-    const canClip =
-      isEventBeforeReplayStart ||
-      (Number.isFinite(clipWindow.startTimestampMs) &&
-        Number.isFinite(clipWindow.endTimestampMs) &&
-        clipWindow.startTimestampMs < replayEnd &&
-        clipWindow.endTimestampMs > replayStart);
+    const isRealTimeRange =
+      Number.isFinite(clipWindow.startTimestampMs) &&
+      Number.isFinite(clipWindow.endTimestampMs);
+    const overlapsReplay =
+      clipWindow.startTimestampMs < replayEnd && clipWindow.endTimestampMs > replayStart;
 
-    if (!canClip) {
+    if (!isEventBeforeReplayStart && !(isRealTimeRange && overlapsReplay)) {
+      // Only once the replay is loaded: `replayTimestamps()` widens these bounds
+      // as attachments arrive, so a window that misses a half-loaded replay can
+      // still turn out to be clippable.
+      if (!this._fetching) {
+        reportUnusableClipWindow(
+          isRealTimeRange ? 'outside_replay' : 'invalid_timestamps',
+          {
+            clipWindow,
+            eventTimestampMs,
+            replayEnd,
+            replayStart,
+            replayId: this._replayRecord.id,
+          }
+        );
+      }
       return;
     }
 
