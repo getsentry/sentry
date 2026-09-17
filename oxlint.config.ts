@@ -1668,6 +1668,14 @@ const config = defineConfig({
         'import/no-relative-parent-imports': 'off',
       },
     },
+    // Scraps is its own component library rather than ordinary app code, and a
+    // handful of its internal imports are deliberately parent-relative.
+    {
+      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
     {
       files: [
         'static/oxlint/**/*.js',
