@@ -1659,9 +1659,10 @@ def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
 def test_regex_pattern_survives_a_serialization_round_trip(pattern) -> None:
     query = f"message:{REGEX_OPERATOR}{quote_regex_pattern(pattern)}"
 
-    reparsed = parse_search_query(query)
+    term = parse_search_query(query)[0]
 
-    assert reparsed[0].value.raw_value == pattern
+    assert isinstance(term, SearchFilter)
+    assert term.value.raw_value == pattern
 
 
 @pytest.mark.parametrize(
