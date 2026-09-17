@@ -630,11 +630,14 @@ export const subregionCodeToName = {
 export type SubregionCode = keyof typeof subregionCodeToName;
 
 // Values the JS SDK sets on `browser.navigation.type`, describing the kind of
-// navigation a web vital was measured on.
+// navigation a web vital was measured on. Reported exactly as the web-vitals
+// library names them.
 // See https://github.com/getsentry/sentry-conventions/pull/600
 export type BrowserNavigationType =
   | 'navigate'
   | 'reload'
+  | 'back-forward'
+  | 'back-forward-cache'
+  | 'restore'
   | 'prerender'
-  | 'bfcache'
   | 'soft-navigation';
