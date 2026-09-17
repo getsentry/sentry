@@ -165,8 +165,6 @@ describe('ExploreCharts', () => {
     });
 
     it('hides the Layers control when only accepted annotations are present', async () => {
-      // Accepted annotations come back for every bucket with traffic, so reading
-      // them would surface the toggle on charts that dropped nothing.
       renderCharts({
         features: ['explore-data-fidelity-annotations'],
         droppedAnnotations: [],

@@ -13,9 +13,7 @@ export interface AnnotationBucket {
   start: number;
 }
 
-// TODO: severity will become a ratio of dropped volume to the bucket's accepted
-// volume (`meta.acceptedAnnotations`) rather than being relative to the window
-// max, hence leaving mildly untested.
+// TODO: severity logic may change
 function severityForCount(count: number, maxCount: number): number {
   if (count <= 0 || maxCount <= 0) {
     return 0;

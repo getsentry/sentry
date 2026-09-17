@@ -197,9 +197,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
 }
 
 /**
- * One time bucket's volume for a system data-fidelity annotation. Whether an
- * entry describes dropped or accepted volume comes from which `meta` list it is
- * in.
+ * One time bucket's volume for a system data-fidelity annotation.
  */
 export interface Annotation {
   category: string;
@@ -222,16 +220,8 @@ export type EventsTimeSeriesResponse = {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
-    /**
-     * One entry per bucket with accepted volume, emitted independently of
-     * drops. These are share denominators, not drops, so they must not be
-     * concatenated with `droppedAnnotations`.
-     */
     acceptedAnnotations?: Annotation[];
     completeThrough?: number;
-    /**
-     * One entry per `(bucket, outcome, reason)` drop.
-     */
     droppedAnnotations?: Annotation[];
     estimatedIngestionDelaySeconds?: number;
     ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
