@@ -60,6 +60,29 @@ class SetupApiClientTest(TestCase):
 
         assert result == {"target": {"slug": "acme"}}
 
+    @responses.activate
+    def test_delete_installation(self, mock_jwt: mock.MagicMock) -> None:
+        url = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}"
+        responses.add(responses.DELETE, url, status=204, body="")
+
+        CursorOriginSetupApiClient().delete_installation(INSTALLATION_ID)
+
+        assert responses.calls[0].request.method == "DELETE"
+        assert responses.calls[0].request.url == url
+        assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
+
+    @responses.activate
+    def test_delete_installation_surfaces_the_error(self, mock_jwt: mock.MagicMock) -> None:
+        """The caller decides what a failure means; the client does not swallow it."""
+        responses.add(
+            responses.DELETE,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
+            status=500,
+        )
+
+        with pytest.raises(ApiError):
+            CursorOriginSetupApiClient().delete_installation(INSTALLATION_ID)
+
 
 @control_silo_test
 @mock.patch("sentry.integrations.cursor_origin.client.get_jwt", return_value=JWT)

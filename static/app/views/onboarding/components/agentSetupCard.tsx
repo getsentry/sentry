@@ -11,6 +11,7 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
 import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from 'sentry/views/onboarding/consts';
 
@@ -39,6 +40,10 @@ export function AgentSetupCard({
   onSelectSnippet,
   prompt,
 }: AgentSetupCardProps) {
+  const organization = useOrganization();
+  const installCommand = onboardingCode
+    ? `${INSTALL_PLUGIN_COMMAND} ${organization.slug}#${onboardingCode}`
+    : INSTALL_PLUGIN_COMMAND;
   const installCommandRef = useRef<HTMLDivElement>(null);
   const promptRef = useRef<HTMLDivElement>(null);
 
@@ -119,7 +124,7 @@ export function AgentSetupCard({
                 onCopy={() => onCopyCommand('install_command')}
                 wrapMode="wrap"
               >
-                {INSTALL_PLUGIN_COMMAND}
+                {installCommand}
               </CodeBlock>
             </Stack>
             <Flex

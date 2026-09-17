@@ -32,7 +32,7 @@ describe('trace embed', () => {
     // The waterfall is its own embed now, so a trace reference on its own line must not
     // expand into one — nor fetch the trace to try.
     const traceRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-trace/${traceId}/`,
+      url: `/organizations/org-slug/trace/${traceId}/`,
       body: {transactions: [], orphan_errors: []},
     });
 

@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils/defined';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TraceQueryResult} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 
-import {getTraceMetaSpanCount, type TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {isEmptyTrace} from './traceApi/utils';
 import type {TraceTree} from './traceModels/traceTree';
 import {usePerformanceSubscriptionDetails} from './traceTypeWarnings/usePerformanceSubscriptionDetails';
@@ -34,7 +34,7 @@ export function useTraceStateAnalytics({
     isLoading: isLoadingSubscriptionDetails,
   } = usePerformanceSubscriptionDetails({traceItemDataset: 'default'});
   const {timestamp} = useTraceQueryParams();
-  const metaSpanCount = getTraceMetaSpanCount(meta?.data);
+  const metaSpanCount = meta?.data?.spansCount;
 
   useEffect(() => {
     if (trace.status === 'pending' || meta?.status === 'pending') {
