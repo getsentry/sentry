@@ -40,8 +40,10 @@ import {
   sortAttributes,
   tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
+import {usePinnedAttribute} from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -102,6 +104,7 @@ export function AttributesContent({
   organization,
   project,
 }: AttributesProps) {
+  const pin = usePinnedAttribute();
   const [searchQuery, setSearchQuery] = useState('');
   const {selection} = usePageFilters();
   const currentLocation = useLocation();
@@ -247,6 +250,7 @@ export function AttributesContent({
           <AttributesTree
             columnCount={columnCount}
             attributes={sortedAndFilteredAttributes}
+            pinnedAttribute={pin?.enabled && isEAPSpanNode(node) ? pin.attribute : null}
             renderers={customRenderers}
             rendererExtra={{
               theme,
@@ -254,11 +258,23 @@ export function AttributesContent({
               navigate,
               organization,
             }}
-            getCustomActions={getTraceAttributesTreeActions({
-              location,
-              organization,
-              projectIds: getAttributeValue(attributes, 'project_id')?.toString(),
-            })}
+            getCustomActions={content => {
+              const actions = getTraceAttributesTreeActions({
+                location,
+                organization,
+                projectIds: getAttributeValue(attributes, 'project_id')?.toString(),
+              })(content);
+              const name = content.originalAttribute?.original_attribute_key;
+              if (pin?.enabled && isEAPSpanNode(node) && name) {
+                const pinned = pin.attribute === name;
+                actions.push({
+                  key: 'pin-to-waterfall',
+                  label: pinned ? t('Unpin from waterfall') : t('Pin to waterfall'),
+                  onAction: () => pin.setAttribute(pinned ? null : name),
+                });
+              }
+              return actions;
+            }}
           />
         </div>
       ) : (

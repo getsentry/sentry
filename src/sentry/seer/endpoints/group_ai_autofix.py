@@ -96,9 +96,14 @@ from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 from sentry.types.activity import ActivityType
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
+
+# Keep in sync with AUTOFIX_USER_CONTEXT_MAX_LENGTH in
+# static/app/components/events/autofix/types.ts.
+USER_CONTEXT_MAX_LENGTH = 10000
 
 SEER_PERMISSION_DENIED = "You are not authorized to perform this action"
 
@@ -140,6 +145,22 @@ def _parse_autofix_referrer(raw: str | None, request: Request) -> AutofixReferre
     except ValueError:
         logger.warning("group_ai_autofix.unknown_referrer", extra={"referrer": raw})
         return AutofixReferrer.UNKNOWN
+
+
+def _record_user_context_length(request_data: Any) -> None:
+    """Record the length of the user context passed to POST, including rejected requests."""
+    if not isinstance(request_data, dict):
+        return
+
+    user_context = request_data.get("user_context", request_data.get("userContext"))
+    if user_context is None:
+        return
+
+    metrics.distribution(
+        "seer.autofix.user_context.length",
+        len(user_context) if isinstance(user_context, str) else 0,
+        sample_rate=1.0,  # data should be sparse enough
+    )
 
 
 def _check_autofix_setup(organization: Organization, project: Project) -> str | None:
@@ -207,7 +228,7 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
     )
     user_context = serializers.CharField(
         required=False,
-        max_length=1000,
+        max_length=USER_CONTEXT_MAX_LENGTH,
         help_text="Optional user context to append to the step prompt.",
         allow_blank=True,
     )
@@ -301,6 +322,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         The process runs asynchronously, and you can get the state using the GET endpoint.
         """
+        _record_user_context_length(request.data)
         serializer = ExplorerAutofixRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
