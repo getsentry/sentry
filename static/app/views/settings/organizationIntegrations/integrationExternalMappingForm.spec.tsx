@@ -10,10 +10,14 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
 
 describe('IntegrationExternalMappingForm', () => {
-  const membersEndpoint = '/organizations/org-slug/members/';
+  const membersEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+    path: {organizationIdOrSlug: 'org-slug'},
+  });
   const teamsEndpoint = '/organizations/org-slug/teams/';
   const baseProps = {
     integration: GitHubIntegrationFixture(),
