@@ -335,7 +335,7 @@ def _cleanup(
             max_workers=concurrency,
             mp_context=mp_context,
             initializer=_worker_initializer,
-            max_tasks_per_child=100,
+            max_tasks_per_child=250,
         ),
         concurrency * 2,
     )
