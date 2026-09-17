@@ -86,7 +86,13 @@ export function registerApiErrorHandler(handler: ApiErrorHandler) {
   };
 }
 
-export const initApiClientErrorHandling = () =>
+type ApiClientErrorHandlingOptions = {
+  onSsoRequired?: (ssoRequired: {organizationSlug: string}) => boolean;
+};
+
+export const initApiClientErrorHandling = ({
+  onSsoRequired,
+}: ApiClientErrorHandlingOptions = {}) =>
   registerApiErrorHandler((resp: ResponseMeta, options: RequestOptions) => {
     // Ignore error unless it is a 401
     if (resp?.status !== 401) {
@@ -112,8 +118,17 @@ export const initApiClientErrorHandling = () =>
       return false;
     }
 
-    // If user must login via SSO, redirect to org login page
+    // Handle required organization SSO, falling back to the login page.
     if (code === 'sso-required') {
+      if (
+        typeof extra?.organizationSlug === 'string' &&
+        onSsoRequired?.({
+          organizationSlug: extra.organizationSlug,
+        })
+      ) {
+        return true;
+      }
+
       window.location.assign(extra.loginUrl);
       return true;
     }
