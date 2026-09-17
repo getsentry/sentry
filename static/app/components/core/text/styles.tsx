@@ -2,16 +2,9 @@ import type {Theme} from '@emotion/react';
 
 import type {HeadingSize, TextSize} from 'sentry/utils/theme';
 
-import type {HeadingProps, HeadingPropsWithRenderFunction} from './heading';
-import type {TextProps, TextPropsWithRenderFunction} from './text';
+import type {BaseTextProps} from './text';
 
-export function getTextDecoration(
-  p:
-    | TextProps<any>
-    | HeadingProps
-    | TextPropsWithRenderFunction
-    | HeadingPropsWithRenderFunction
-) {
+export function getTextDecoration(p: Pick<BaseTextProps, 'strikethrough' | 'underline'>) {
   const decorations: string[] = [];
   if (p.strikethrough) {
     decorations.push('line-through');

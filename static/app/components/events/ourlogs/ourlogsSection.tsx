@@ -231,6 +231,7 @@ function OurlogsSectionContent({
         }
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.query, freeze, group, event, project, openDrawer, navigate, location]);
   if (!feature) {
     return null;

@@ -62,6 +62,7 @@ function JsonForm({
     });
 
     return () => window.cancelAnimationFrame(animationFrame);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location?.hash]);
 
   const shouldDisplayForm = (fieldList: FieldObject[]): boolean => {

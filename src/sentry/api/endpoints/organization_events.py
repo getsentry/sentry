@@ -104,6 +104,7 @@ class EventsMeta(TypedDict, total=False):
     discoverSplitDecision: Any
     dataScanned: str
     bytesScanned: int
+    routingHint: str
     debug_info: Any
 
 
@@ -202,6 +203,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         The `field` query parameter determines what fields will be selected in the `data` and `meta` keys of the endpoint response.
         - The `data` key contains a list of results row by row that match the `query` made
         - The `meta` key contains information about the response, including the unit or type of the fields requested
+        - EAP table results may include `meta.routingHint`. Pass this opaque value unchanged as
+          `routing_hint` when fetching item details for a row in this response. It identifies how
+          the table query was routed and is omitted when no hint is available.
         """
         if not self.has_feature(organization, request):
             return Response(

@@ -25,6 +25,7 @@ import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {resourceLinkMarkdown} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -47,6 +48,20 @@ export const STEP_LABELS: Record<AutofixExplorerStep, string> = {
   code_changes: t('Code Changes'),
   pr_iteration: t('Pull Request'),
 };
+
+/**
+ * The step's title, which is all that survives as text -- progress, the buttons
+ * and the body are why you would look at the embed instead. A string because it
+ * is composed into a larger line, and there is no icon here for a `ResourceLink`.
+ */
+function autofixStepMarkdown(
+  step: AutofixExplorerStep,
+  id: string,
+  shortId: string
+): string {
+  const issue = resourceLinkMarkdown(`/issues/${id}/`, shortId);
+  return issue ? `${STEP_LABELS[step]}: ${issue}` : STEP_LABELS[step];
+}
 
 const STEP_ICONS: Record<AutofixExplorerStep, ComponentType<SVGIconProps>> = {
   root_cause: IconBug,
@@ -123,12 +138,18 @@ function AutofixStepBody({
 
 export const Autofix = defineSeerEmbed({
   name: 'autofix',
-  render({id, shortId, ...content}: AutofixContentProps) {
-    return (
-      <AutofixBlock id={id} shortId={shortId} step={content.step}>
-        <AutofixStepBody {...content} />
-      </AutofixBlock>
-    );
+  render({id, shortId, ...content}: AutofixContentProps, level) {
+    switch (level) {
+      case 'markdown':
+        return autofixStepMarkdown(content.step, id, shortId);
+      case 'block':
+      case 'inline':
+        return (
+          <AutofixBlock id={id} shortId={shortId} step={content.step}>
+            <AutofixStepBody {...content} />
+          </AutofixBlock>
+        );
+    }
   },
 });
 
@@ -182,6 +203,7 @@ function useRefreshOnStepResult(groupId: string, section: AutofixSection | undef
     if (status === 'completed') {
       refreshAutofixProgressQueries();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [step, status, refreshAutofixProgressQueries]);
 }
 
@@ -454,7 +476,13 @@ function summarizeCodeChanges(patchesByRepo: ReturnType<typeof collectPatches>):
 
 export const AutofixRef = defineSeerEmbed({
   name: 'autofixRef',
-  render(props) {
-    return <AutofixRefContent {...props} />;
+  render(props, level) {
+    switch (level) {
+      case 'markdown':
+        return autofixStepMarkdown(props.step, props.id, props.shortId);
+      case 'block':
+      case 'inline':
+        return <AutofixRefContent {...props} />;
+    }
   },
 });
