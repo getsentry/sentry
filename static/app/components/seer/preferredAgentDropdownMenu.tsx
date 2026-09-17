@@ -1,9 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {t} from 'sentry/locale';
 import {seerAgentIntegrationsSelectQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import type {AutofixAgentSelectOption} from 'sentry/utils/seer/types';

@@ -1,11 +1,11 @@
 import {Fragment, useRef, useState, type ReactNode, type RefObject} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';

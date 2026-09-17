@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {useAutofixCreatePrGate} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

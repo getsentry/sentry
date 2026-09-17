@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {DropdownButton} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import type {
   ExternalIssueAction,
