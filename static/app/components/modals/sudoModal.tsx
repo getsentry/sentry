@@ -99,6 +99,238 @@ function getErrorType(err: RequestError): ErrorCodes {
   }
 }
 
+type SudoForm = ReturnType<typeof useScrapsForm>;
+
+type SudoModalContentProps = Pick<Props, 'Body' | 'Footer' | 'Header'> & {
+  authenticators: Authenticator[];
+  authenticatorsFetching: boolean;
+  authenticatorsLoaded: boolean;
+  bootstrapIsPending: boolean;
+  getAuthLoginPath: () => string;
+  handleWebAuthn: (data: {challenge: string; response: string}) => Promise<void>;
+  hasPasswordAuth: boolean;
+  passwordForm: SudoForm;
+  setErrorType: React.Dispatch<React.SetStateAction<ErrorCodes | undefined>>;
+  setSuperuserStep: React.Dispatch<React.SetStateAction<SuperuserStep>>;
+  ssoExpired: boolean;
+  superuserForm: SudoForm;
+  superuserStep: SuperuserStep;
+  closeButton?: boolean;
+  isSuperuser?: boolean;
+  resolvedErrorType?: ErrorCodes;
+};
+
+function SudoModalContent({
+  authenticators,
+  authenticatorsFetching,
+  authenticatorsLoaded,
+  bootstrapIsPending,
+  closeButton,
+  getAuthLoginPath,
+  handleWebAuthn,
+  hasPasswordAuth,
+  isSuperuser,
+  passwordForm,
+  resolvedErrorType,
+  setErrorType,
+  setSuperuserStep,
+  ssoExpired,
+  superuserForm,
+  superuserStep,
+  Body,
+  Footer,
+  Header,
+}: SudoModalContentProps) {
+  const isSelfHosted = ConfigStore.get('isSelfHosted');
+  const validateSUForm = ConfigStore.get('validateSUForm');
+  const header = (
+    <Header closeButton={closeButton}>
+      <Heading as="h4">{t('Confirm Password to Continue')}</Heading>
+    </Header>
+  );
+
+  if (ssoExpired) {
+    return (
+      <Fragment>
+        {header}
+        <Body />
+      </Fragment>
+    );
+  }
+
+  if (authenticatorsFetching || !authenticatorsLoaded || bootstrapIsPending) {
+    return (
+      <Fragment>
+        {header}
+        <Body>
+          <LoadingIndicator />
+        </Body>
+      </Fragment>
+    );
+  }
+
+  const errorAlert = resolvedErrorType ? (
+    <Alert variant="danger">{resolvedErrorType}</Alert>
+  ) : null;
+
+  if (
+    (!hasPasswordAuth && authenticators.length === 0) ||
+    (isSuperuser && !isSelfHosted && validateSUForm)
+  ) {
+    const introText = isSuperuser
+      ? t(
+          'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+        )
+      : t('You will need to reauthenticate to continue');
+
+    if (!isSuperuser) {
+      return (
+        <Fragment>
+          {header}
+          <Body>
+            <Stack gap="xl">
+              <Text as="p">{introText}</Text>
+              {errorAlert}
+            </Stack>
+          </Body>
+          <Footer>
+            <LinkButton variant="primary" href={getAuthLoginPath()}>
+              {t('Continue')}
+            </LinkButton>
+          </Footer>
+        </Fragment>
+      );
+    }
+
+    const isAccessStep = superuserStep.step === 'access';
+
+    return (
+      <superuserForm.AppForm form={superuserForm}>
+        {header}
+        <Body>
+          <Stack gap="xl">
+            <Text as="p">{introText}</Text>
+            {errorAlert}
+            {!isSelfHosted && isAccessStep && (
+              <Fragment>
+                <superuserForm.AppField name="superuserAccessCategory">
+                  {(field: any) => (
+                    <field.Radio.Group
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    >
+                      <field.Layout.Stack
+                        label={t('Categories of Superuser Access')}
+                        required
+                      >
+                        <Override
+                          name="component:superuser-access-category"
+                          RadioItem={field.Radio.Item}
+                        />
+                      </field.Layout.Stack>
+                    </field.Radio.Group>
+                  )}
+                </superuserForm.AppField>
+                <superuserForm.AppField name="superuserReason">
+                  {(field: any) => (
+                    <field.Layout.Stack label={t('Reason for Access')} required>
+                      <field.Input
+                        maxLength={128}
+                        minLength={4}
+                        placeholder={t('e.g. disabling SSO enforcement')}
+                        value={field.state.value}
+                        onChange={field.handleChange}
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </superuserForm.AppField>
+              </Fragment>
+            )}
+            {!isSelfHosted && !isAccessStep && (
+              <WebAuthn
+                mode="sudo"
+                authenticators={authenticators}
+                onWebAuthn={handleWebAuthn}
+              />
+            )}
+          </Stack>
+        </Body>
+        <Footer>
+          {isAccessStep ? (
+            <Flex width="100%" justify="between" align="center" gap="md">
+              <superuserForm.SubmitButton
+                variant="secondary"
+                onClick={() => {
+                  superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
+                  superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
+                }}
+              >
+                {t('COPS/CSM')}
+              </superuserForm.SubmitButton>
+              <superuserForm.SubmitButton>{t('Continue')}</superuserForm.SubmitButton>
+            </Flex>
+          ) : (
+            <Flex width="100%" justify="between" align="center" gap="md">
+              <Button
+                variant="transparent"
+                onClick={() => {
+                  superuserForm.reset();
+                  setErrorType(undefined);
+                  setSuperuserStep({step: 'access'});
+                }}
+              >
+                {t('Change reason')}
+              </Button>
+              <superuserForm.SubmitButton>
+                {t('Re-authenticate')}
+              </superuserForm.SubmitButton>
+            </Flex>
+          )}
+        </Footer>
+      </superuserForm.AppForm>
+    );
+  }
+
+  return (
+    <passwordForm.AppForm form={passwordForm}>
+      {header}
+      <Body>
+        <Stack gap="xl">
+          <Text as="p">
+            {isSuperuser
+              ? t(
+                  'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
+                )
+              : t('Help us keep your account safe by confirming your identity.')}
+          </Text>
+          {errorAlert}
+          {hasPasswordAuth && (
+            <passwordForm.AppField name="password">
+              {(field: any) => (
+                <field.Layout.Stack label={t('Password')}>
+                  <field.Password
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    autoFocus
+                  />
+                </field.Layout.Stack>
+              )}
+            </passwordForm.AppField>
+          )}
+          <WebAuthn
+            mode="sudo"
+            authenticators={authenticators}
+            onWebAuthn={handleWebAuthn}
+          />
+        </Stack>
+      </Body>
+      <Footer>
+        <passwordForm.SubmitButton>{t('Confirm Password')}</passwordForm.SubmitButton>
+      </Footer>
+    </passwordForm.AppForm>
+  );
+}
+
 function SudoModal({
   closeModal,
   isSuperuser,
@@ -278,198 +510,29 @@ function SudoModal({
     }
   }, [api, ssoExpired]);
 
-  const modalContent = (() => {
-    const isSelfHosted = ConfigStore.get('isSelfHosted');
-    const validateSUForm = ConfigStore.get('validateSUForm');
-    const header = (
-      <Header closeButton={closeButton}>
-        <Heading as="h4">{t('Confirm Password to Continue')}</Heading>
-      </Header>
-    );
-
-    if (ssoExpired) {
-      return (
-        <Fragment>
-          {header}
-          <Body />
-        </Fragment>
-      );
-    }
-
-    if (authenticatorsFetching || !authenticatorsLoaded || bootstrapIsPending) {
-      return (
-        <Fragment>
-          {header}
-          <Body>
-            <LoadingIndicator />
-          </Body>
-        </Fragment>
-      );
-    }
-
-    const errorAlert = resolvedErrorType ? (
-      <Alert variant="danger">{resolvedErrorType}</Alert>
-    ) : null;
-
-    if (
-      (!user.hasPasswordAuth && authenticators.length === 0) ||
-      (isSuperuser && !isSelfHosted && validateSUForm)
-    ) {
-      const introText = isSuperuser
-        ? t(
-            'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
-          )
-        : t('You will need to reauthenticate to continue');
-
-      if (!isSuperuser) {
-        return (
-          <Fragment>
-            {header}
-            <Body>
-              <Stack gap="xl">
-                <Text as="p">{introText}</Text>
-                {errorAlert}
-              </Stack>
-            </Body>
-            <Footer>
-              <LinkButton variant="primary" href={getAuthLoginPath()}>
-                {t('Continue')}
-              </LinkButton>
-            </Footer>
-          </Fragment>
-        );
-      }
-
-      const isAccessStep = superuserStep.step === 'access';
-
-      return (
-        <superuserForm.AppForm form={superuserForm}>
-          {header}
-          <Body>
-            <Stack gap="xl">
-              <Text as="p">{introText}</Text>
-              {errorAlert}
-              {!isSelfHosted && isAccessStep && (
-                <Fragment>
-                  <superuserForm.AppField name="superuserAccessCategory">
-                    {field => (
-                      <field.Radio.Group
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                      >
-                        <field.Layout.Stack
-                          label={t('Categories of Superuser Access')}
-                          required
-                        >
-                          <Override
-                            name="component:superuser-access-category"
-                            RadioItem={field.Radio.Item}
-                          />
-                        </field.Layout.Stack>
-                      </field.Radio.Group>
-                    )}
-                  </superuserForm.AppField>
-                  <superuserForm.AppField name="superuserReason">
-                    {field => (
-                      <field.Layout.Stack label={t('Reason for Access')} required>
-                        <field.Input
-                          maxLength={128}
-                          minLength={4}
-                          placeholder={t('e.g. disabling SSO enforcement')}
-                          value={field.state.value}
-                          onChange={field.handleChange}
-                        />
-                      </field.Layout.Stack>
-                    )}
-                  </superuserForm.AppField>
-                </Fragment>
-              )}
-              {!isSelfHosted && !isAccessStep && (
-                <WebAuthn
-                  mode="sudo"
-                  authenticators={authenticators}
-                  onWebAuthn={handleWebAuthn}
-                />
-              )}
-            </Stack>
-          </Body>
-          <Footer>
-            {isAccessStep ? (
-              <Flex width="100%" justify="between" align="center" gap="md">
-                <superuserForm.SubmitButton
-                  variant="secondary"
-                  onClick={() => {
-                    superuserForm.setFieldValue('superuserAccessCategory', 'cops_csm');
-                    superuserForm.setFieldValue('superuserReason', 'COPS and CSM use');
-                  }}
-                >
-                  {t('COPS/CSM')}
-                </superuserForm.SubmitButton>
-                <superuserForm.SubmitButton>{t('Continue')}</superuserForm.SubmitButton>
-              </Flex>
-            ) : (
-              <Flex width="100%" justify="between" align="center" gap="md">
-                <Button
-                  variant="transparent"
-                  onClick={() => {
-                    superuserForm.reset();
-                    setErrorType(undefined);
-                    setSuperuserStep({step: 'access'});
-                  }}
-                >
-                  {t('Change reason')}
-                </Button>
-                <superuserForm.SubmitButton>
-                  {t('Re-authenticate')}
-                </superuserForm.SubmitButton>
-              </Flex>
-            )}
-          </Footer>
-        </superuserForm.AppForm>
-      );
-    }
-
-    return (
-      <passwordForm.AppForm form={passwordForm}>
-        {header}
-        <Body>
-          <Stack gap="xl">
-            <Text as="p">
-              {isSuperuser
-                ? t(
-                    'You are attempting to access a resource that requires superuser access, please re-authenticate as a superuser.'
-                  )
-                : t('Help us keep your account safe by confirming your identity.')}
-            </Text>
-            {errorAlert}
-            {user.hasPasswordAuth && (
-              <passwordForm.AppField name="password">
-                {field => (
-                  <field.Layout.Stack label={t('Password')}>
-                    <field.Password
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                      autoFocus
-                    />
-                  </field.Layout.Stack>
-                )}
-              </passwordForm.AppField>
-            )}
-            <WebAuthn
-              mode="sudo"
-              authenticators={authenticators}
-              onWebAuthn={handleWebAuthn}
-            />
-          </Stack>
-        </Body>
-        <Footer>
-          <passwordForm.SubmitButton>{t('Confirm Password')}</passwordForm.SubmitButton>
-        </Footer>
-      </passwordForm.AppForm>
-    );
-  })();
-
-  return modalContent;
+  return (
+    <SudoModalContent
+      authenticators={authenticators}
+      authenticatorsFetching={authenticatorsFetching}
+      authenticatorsLoaded={authenticatorsLoaded}
+      bootstrapIsPending={bootstrapIsPending}
+      closeButton={closeButton}
+      getAuthLoginPath={getAuthLoginPath}
+      handleWebAuthn={handleWebAuthn}
+      hasPasswordAuth={user.hasPasswordAuth}
+      isSuperuser={isSuperuser}
+      passwordForm={passwordForm as unknown as SudoForm}
+      resolvedErrorType={resolvedErrorType}
+      setErrorType={setErrorType}
+      setSuperuserStep={setSuperuserStep}
+      ssoExpired={ssoExpired}
+      superuserForm={superuserForm as unknown as SudoForm}
+      superuserStep={superuserStep}
+      Body={Body}
+      Footer={Footer}
+      Header={Header}
+    />
+  );
 }
 
 export default SudoModal;

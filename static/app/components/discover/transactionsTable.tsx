@@ -51,6 +51,134 @@ type Props = {
   titles?: string[];
 };
 
+type TransactionsTableResultsProps = Pick<
+  Props,
+  | 'columnOrder'
+  | 'eventView'
+  | 'generateLink'
+  | 'handleCellAction'
+  | 'isLoading'
+  | 'location'
+  | 'organization'
+  | 'referrer'
+  | 'tableData'
+  | 'titles'
+  | 'useAggregateAlias'
+>;
+
+function TransactionsTableResults({
+  eventView,
+  tableData,
+  columnOrder,
+  organization,
+  location,
+  generateLink,
+  handleCellAction,
+  useAggregateAlias,
+  isLoading,
+  referrer,
+  titles,
+}: TransactionsTableResultsProps) {
+  const navigate = useNavigate();
+  const theme = useTheme();
+
+  if (isLoading) {
+    return null;
+  }
+
+  const tableMeta = tableData?.meta;
+  const data = tableData?.data;
+  if (!tableMeta || !data) {
+    return null;
+  }
+
+  const rows: React.ReactNode[] = [];
+  const fields = eventView.getFields();
+  let colOrder = columnOrder;
+
+  if (titles?.length) {
+    // Slice to match length of given titles
+    colOrder = colOrder.slice(0, titles.length);
+  }
+
+  data.forEach((row, rowIndex: number) => {
+    const tableRow = row as TableDataRow;
+
+    const resultsRow = colOrder.map((column, index) => {
+      const field = String(column.key);
+      // TODO add a better abstraction for this in fieldRenderers.
+      const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
+      const fieldType = tableMeta[fieldName];
+
+      const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
+      let rendered = fieldRenderer(tableRow, {
+        navigate,
+        organization,
+        location,
+        theme,
+      });
+
+      const target = generateLink?.[field]?.(organization, tableRow, location);
+      const isEmptyTarget =
+        typeof target === 'object' && target !== null && isEmptyObject(target);
+
+      if (fields[index] === 'profile.id') {
+        rendered = (
+          <LinkButton
+            data-test-id={`view-${fields[index]}`}
+            disabled={!target || isEmptyTarget}
+            to={target || {}}
+            onClick={getProfileAnalyticsHandler(organization, referrer)}
+            size="xs"
+          >
+            <IconProfiling size="xs" />
+          </LinkButton>
+        );
+      } else if (target && !isEmptyTarget) {
+        if (fields[index] === 'replayId') {
+          rendered = (
+            <ViewReplayLink replayId={tableRow.replayId!} to={target}>
+              {rendered}
+            </ViewReplayLink>
+          );
+        } else {
+          rendered = (
+            <Link data-test-id={`view-${fields[index]}`} to={target}>
+              {rendered}
+            </Link>
+          );
+        }
+      }
+
+      const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
+      const key = `${rowIndex}:${column.key}:${index}`;
+      rendered = isNumeric ? (
+        <GridCellNumber data-test-id="grid-cell">{rendered}</GridCellNumber>
+      ) : (
+        <GridCell data-test-id="grid-cell">{rendered}</GridCell>
+      );
+
+      if (handleCellAction) {
+        rendered = (
+          <CellAction
+            column={column}
+            dataRow={tableRow}
+            handleCellAction={handleCellAction(column)}
+          >
+            {rendered}
+          </CellAction>
+        );
+      }
+
+      return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
+    });
+
+    rows.push(<SimpleTable.Row key={rowIndex}>{resultsRow}</SimpleTable.Row>);
+  });
+
+  return <Fragment>{rows}</Fragment>;
+}
+
 export function TransactionsTable(props: Props) {
   const {
     eventView,
@@ -65,9 +193,6 @@ export function TransactionsTable(props: Props) {
     isLoading,
     referrer,
   } = props;
-  const navigate = useNavigate();
-  const theme = useTheme();
-
   const getTitles = () => {
     return titles ?? eventView.getFields();
   };
@@ -121,97 +246,6 @@ export function TransactionsTable(props: Props) {
     return headers;
   };
 
-  const renderResults = () => {
-    const rows: React.ReactNode[] = [];
-
-    if (isLoading) {
-      return rows;
-    }
-    const tableMeta = tableData?.meta;
-    const data = tableData?.data;
-    if (!tableMeta || !data) {
-      return rows;
-    }
-
-    data.forEach((row, rowIndex: number) => {
-      const tableRow = row as TableDataRow;
-      const fields = eventView.getFields();
-      let colOrder = columnOrder;
-
-      if (titles?.length) {
-        // Slice to match length of given titles
-        colOrder = colOrder.slice(0, titles.length);
-      }
-
-      const resultsRow = colOrder.map((column, index) => {
-        const field = String(column.key);
-        // TODO add a better abstraction for this in fieldRenderers.
-        const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
-        const fieldType = tableMeta[fieldName];
-
-        const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-        let rendered = fieldRenderer(tableRow, {navigate, organization, location, theme});
-
-        const target = generateLink?.[field]?.(organization, tableRow, location);
-        const isEmptyTarget =
-          typeof target === 'object' && target !== null && isEmptyObject(target);
-
-        if (fields[index] === 'profile.id') {
-          rendered = (
-            <LinkButton
-              data-test-id={`view-${fields[index]}`}
-              disabled={!target || isEmptyTarget}
-              to={target || {}}
-              onClick={getProfileAnalyticsHandler(organization, referrer)}
-              size="xs"
-            >
-              <IconProfiling size="xs" />
-            </LinkButton>
-          );
-        } else if (target && !isEmptyTarget) {
-          if (fields[index] === 'replayId') {
-            rendered = (
-              <ViewReplayLink replayId={tableRow.replayId!} to={target}>
-                {rendered}
-              </ViewReplayLink>
-            );
-          } else {
-            rendered = (
-              <Link data-test-id={`view-${fields[index]}`} to={target}>
-                {rendered}
-              </Link>
-            );
-          }
-        }
-
-        const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
-        const key = `${rowIndex}:${column.key}:${index}`;
-        rendered = isNumeric ? (
-          <GridCellNumber data-test-id="grid-cell">{rendered}</GridCellNumber>
-        ) : (
-          <GridCell data-test-id="grid-cell">{rendered}</GridCell>
-        );
-
-        if (handleCellAction) {
-          rendered = (
-            <CellAction
-              column={column}
-              dataRow={tableRow}
-              handleCellAction={handleCellAction(column)}
-            >
-              {rendered}
-            </CellAction>
-          );
-        }
-
-        return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
-      });
-
-      rows.push(<SimpleTable.Row key={rowIndex}>{resultsRow}</SimpleTable.Row>);
-    });
-    return rows;
-  };
-
   const hasResults = tableData?.meta && tableData.data?.length > 0;
 
   // Custom set the height so we don't have layout shift when results are loaded.
@@ -236,7 +270,19 @@ export function TransactionsTable(props: Props) {
               : t('No transactions found.')}
           </SimpleTable.Empty>
         )}
-        {renderResults()}
+        <TransactionsTableResults
+          columnOrder={columnOrder}
+          eventView={eventView}
+          generateLink={generateLink}
+          handleCellAction={handleCellAction}
+          isLoading={isLoading}
+          location={location}
+          organization={organization}
+          referrer={referrer}
+          tableData={tableData}
+          titles={titles}
+          useAggregateAlias={useAggregateAlias}
+        />
       </SimpleTable>
     </VisuallyCompleteWithData>
   );

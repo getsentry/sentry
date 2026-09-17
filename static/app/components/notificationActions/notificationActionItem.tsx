@@ -72,6 +72,200 @@ type NotificationActionItemProps = {
   recipientRoles?: string[];
 };
 
+type NotificationActionDescriptionProps = {
+  action: Partial<NotificationAction>;
+  recipientRoles?: string[];
+};
+
+function NotificationActionDescription({
+  action,
+  recipientRoles,
+}: NotificationActionDescriptionProps) {
+  switch (action.serviceType) {
+    case NotificationActionService.SENTRY_NOTIFICATION:
+      return (
+        <Fragment>
+          <div>{t('Send an email notification to the following roles')}</div>
+          {recipientRoles?.map(role => (
+            <NotificationRecipientBadge variant="muted" key={role}>
+              {role}
+            </NotificationRecipientBadge>
+          ))}
+        </Fragment>
+      );
+    case NotificationActionService.SLACK:
+      return (
+        <Fragment>
+          <div>{t('Send a notification to the')}</div>
+          <NotificationRecipientBadge variant="muted">
+            {action.targetDisplay}
+          </NotificationRecipientBadge>
+          <div>{t('channel')}</div>
+        </Fragment>
+      );
+    case NotificationActionService.PAGERDUTY:
+      return (
+        <Fragment>
+          <div>{t('Send a notification to the')}</div>
+          <NotificationRecipientBadge variant="muted">
+            {action.targetDisplay}
+          </NotificationRecipientBadge>
+          <div>{t('service')}</div>
+        </Fragment>
+      );
+    case NotificationActionService.OPSGENIE:
+      return (
+        <Fragment>
+          <div>{t('Send a notification to the')}</div>
+          <NotificationRecipientBadge variant="muted">
+            {action.targetDisplay}
+          </NotificationRecipientBadge>
+          <div>{t('team')}</div>
+        </Fragment>
+      );
+    default:
+      // TODO(enterprise): descriptions for email, msteams, sentry_app
+      return null;
+  }
+}
+
+type NotificationActionEditButtonProps = {
+  disabled: boolean;
+  onDelete: () => Promise<void>;
+  onEdit: () => void;
+  serviceType: string | undefined;
+};
+
+function NotificationActionEditButton({
+  disabled,
+  onDelete,
+  onEdit,
+  serviceType,
+}: NotificationActionEditButtonProps) {
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'notificationaction-delete',
+      label: t('Delete'),
+      priority: 'danger',
+      onAction: () => {
+        openConfirmModal({
+          message: t('Are you sure you want to delete this notification action?'),
+          onConfirm: onDelete,
+        });
+      },
+    },
+  ];
+
+  // No edit mode for Sentry notifications
+  if (serviceType !== NotificationActionService.SENTRY_NOTIFICATION) {
+    menuItems.unshift({
+      key: 'notificationaction-edit',
+      label: t('Edit'),
+      onAction: onEdit,
+    });
+  }
+
+  return (
+    <Tooltip
+      disabled={!disabled}
+      title={t('You do not have permission to edit notification actions.')}
+    >
+      <DropdownMenu
+        items={menuItems}
+        trigger={triggerProps => (
+          <Button
+            {...triggerProps}
+            aria-label={t('Actions')}
+            size="xs"
+            icon={<IconEllipsis direction="down" size="sm" />}
+            data-test-id="edit-dropdown"
+          />
+        )}
+        isDisabled={disabled}
+      />
+    </Tooltip>
+  );
+}
+
+type NotificationActionFormProps = {
+  action: Partial<NotificationAction>;
+  availableActions: AvailableNotificationAction[];
+  description: React.ReactNode;
+  onCallServiceChange: (names: string[], values: any[]) => void;
+  onCancel: () => void;
+  onChange: (name: string, value: any) => void;
+  onSave: () => void;
+  opsgenieIntegrations: Record<number, AvailableNotificationAction[]>;
+  pagerdutyIntegrations: Record<number, AvailableNotificationAction[]>;
+  serviceType: string | undefined;
+};
+
+function NotificationActionForm({
+  action,
+  availableActions,
+  description,
+  onCallServiceChange,
+  onCancel,
+  onChange,
+  onSave,
+  opsgenieIntegrations,
+  pagerdutyIntegrations,
+  serviceType,
+}: NotificationActionFormProps) {
+  switch (serviceType) {
+    case NotificationActionService.SENTRY_NOTIFICATION:
+      return (
+        <Flex justify="between" width="100%">
+          <Flex align="center" wrap="wrap" gap="xs">
+            {description}
+          </Flex>
+          <Grid flow="column" align="center" gap="xs">
+            <Button onClick={onCancel} size="xs">
+              {t('Cancel')}
+            </Button>
+            <Button variant="primary" size="xs" onClick={onSave}>
+              {t('Save')}
+            </Button>
+          </Grid>
+        </Flex>
+      );
+    case NotificationActionService.SLACK:
+      return (
+        <SlackForm
+          action={action}
+          onChange={onChange}
+          onSave={onSave}
+          onCancel={onCancel}
+          availableActions={availableActions}
+        />
+      );
+    case NotificationActionService.PAGERDUTY:
+      return (
+        <OnCallServiceForm
+          action={action}
+          onChange={onCallServiceChange}
+          onSave={onSave}
+          onCancel={onCancel}
+          Integrations={pagerdutyIntegrations}
+          onCallService="pagerduty"
+        />
+      );
+    case NotificationActionService.OPSGENIE:
+      return (
+        <OnCallServiceForm
+          action={action}
+          onChange={onCallServiceChange}
+          onSave={onSave}
+          onCancel={onCancel}
+          Integrations={opsgenieIntegrations}
+          onCallService="opsgenie"
+        />
+      );
+    default:
+      return null;
+  }
+}
+
 export function NotificationActionItem({
   action,
   index,
@@ -99,54 +293,9 @@ export function NotificationActionItem({
       <PluginIcon pluginId={serviceType ?? 'placeholder'} size={16} />
     );
 
-  const description = (() => {
-    switch (serviceType) {
-      case NotificationActionService.SENTRY_NOTIFICATION:
-        return (
-          <Fragment>
-            <div>{t('Send an email notification to the following roles')}</div>
-            {recipientRoles?.map(role => (
-              <NotificationRecipientBadge variant="muted" key={role}>
-                {role}
-              </NotificationRecipientBadge>
-            ))}
-          </Fragment>
-        );
-      case NotificationActionService.SLACK:
-        return (
-          <Fragment>
-            <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge variant="muted">
-              {action.targetDisplay}
-            </NotificationRecipientBadge>
-            <div>{t('channel')}</div>
-          </Fragment>
-        );
-      case NotificationActionService.PAGERDUTY:
-        return (
-          <Fragment>
-            <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge variant="muted">
-              {action.targetDisplay}
-            </NotificationRecipientBadge>
-            <div>{t('service')}</div>
-          </Fragment>
-        );
-      case NotificationActionService.OPSGENIE:
-        return (
-          <Fragment>
-            <div>{t('Send a notification to the')}</div>
-            <NotificationRecipientBadge variant="muted">
-              {action.targetDisplay}
-            </NotificationRecipientBadge>
-            <div>{t('team')}</div>
-          </Fragment>
-        );
-      default:
-        // TODO(enterprise): descriptions for email, msteams, sentry_app
-        return null;
-    }
-  })();
+  const description = (
+    <NotificationActionDescription action={action} recipientRoles={recipientRoles} />
+  );
 
   const handleDelete = async () => {
     const endpoint = `/organizations/${organization.slug}/notifications/actions/${action.id}/`;
@@ -213,51 +362,14 @@ export function NotificationActionItem({
   };
 
   // Edit button is located outside of the form
-  const editButton = (() => {
-    const menuItems: MenuItemProps[] = [
-      {
-        key: 'notificationaction-delete',
-        label: t('Delete'),
-        priority: 'danger',
-        onAction: () => {
-          openConfirmModal({
-            message: t('Are you sure you want to delete this notification action?'),
-            onConfirm: handleDelete,
-          });
-        },
-      },
-    ];
-
-    // No edit mode for Sentry notifications
-    if (serviceType !== NotificationActionService.SENTRY_NOTIFICATION) {
-      menuItems.unshift({
-        key: 'notificationaction-edit',
-        label: t('Edit'),
-        onAction: () => setIsEditing(true),
-      });
-    }
-
-    return (
-      <Tooltip
-        disabled={!disabled}
-        title={t('You do not have permission to edit notification actions.')}
-      >
-        <DropdownMenu
-          items={menuItems}
-          trigger={triggerProps => (
-            <Button
-              {...triggerProps}
-              aria-label={t('Actions')}
-              size="xs"
-              icon={<IconEllipsis direction="down" size="sm" />}
-              data-test-id="edit-dropdown"
-            />
-          )}
-          isDisabled={disabled}
-        />
-      </Tooltip>
-    );
-  })();
+  const editButton = (
+    <NotificationActionEditButton
+      disabled={disabled}
+      onDelete={handleDelete}
+      onEdit={() => setIsEditing(true)}
+      serviceType={serviceType}
+    />
+  );
 
   const getFormData = () => {
     if (editedAction.id) {
@@ -276,62 +388,22 @@ export function NotificationActionItem({
     };
   };
 
-  const notificationActionForm = (() => {
-    switch (serviceType) {
-      case NotificationActionService.SENTRY_NOTIFICATION:
-        return (
-          <Flex justify="between" width="100%">
-            <Flex align="center" wrap="wrap" gap="xs">
-              {description}
-            </Flex>
-            <Grid flow="column" align="center" gap="xs">
-              <Button onClick={handleCancel} size="xs">
-                {t('Cancel')}
-              </Button>
-              <Button variant="primary" size="xs" onClick={handleSave}>
-                {t('Save')}
-              </Button>
-            </Grid>
-          </Flex>
-        );
-      case NotificationActionService.SLACK:
-        return (
-          <SlackForm
-            action={editedAction}
-            onChange={(name: string, value: any) =>
-              setEditedAction({...editedAction, [name]: value})
-            }
-            onSave={handleSave}
-            onCancel={handleCancel}
-            availableActions={availableActions}
-          />
-        );
-      case NotificationActionService.PAGERDUTY:
-        return (
-          <OnCallServiceForm
-            action={editedAction}
-            onChange={handleChange}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            Integrations={pagerdutyIntegrations}
-            onCallService="pagerduty"
-          />
-        );
-      case NotificationActionService.OPSGENIE:
-        return (
-          <OnCallServiceForm
-            action={editedAction}
-            onChange={handleChange}
-            onSave={handleSave}
-            onCancel={handleCancel}
-            Integrations={opsgenieIntegrations}
-            onCallService="opsgenie"
-          />
-        );
-      default:
-        return null;
-    }
-  })();
+  const notificationActionForm = (
+    <NotificationActionForm
+      action={editedAction}
+      availableActions={availableActions}
+      description={description}
+      onCallServiceChange={handleChange}
+      onCancel={handleCancel}
+      onChange={(name: string, value: any) =>
+        setEditedAction({...editedAction, [name]: value})
+      }
+      onSave={handleSave}
+      opsgenieIntegrations={opsgenieIntegrations}
+      pagerdutyIntegrations={pagerdutyIntegrations}
+      serviceType={serviceType}
+    />
+  );
 
   return (
     <StyledCard isEditing={isEditing} data-test-id="notification-action">

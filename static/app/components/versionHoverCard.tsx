@@ -18,6 +18,7 @@ import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {Deploy, Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {deploysApiOptions} from 'sentry/utils/deploysApiOptions';
@@ -30,6 +31,87 @@ interface BodyProps {
   organization: Organization;
   projectSlug: string;
   releaseVersion: string;
+}
+
+function VersionHoverCardDetails({
+  authors,
+  deploys,
+  release,
+  releaseVersion,
+}: {
+  authors: Array<Actor | User> | undefined;
+  deploys: Deploy[] | undefined;
+  release: Release | undefined;
+  releaseVersion: string;
+}) {
+  if (release === undefined || !defined(deploys)) {
+    return null;
+  }
+
+  const parsedVersion = parseVersion(releaseVersion);
+  const recentDeploysByEnvironment = deploys
+    .toSorted(
+      // Sorted by most recent deploy first
+      (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
+    )
+    .slice(0, 3);
+
+  return (
+    <Stack gap="xl">
+      <Flex gap="xl" justify="between">
+        <div>
+          <h6>{t('New Issues')}</h6>
+          <CountSince>{release.newGroups}</CountSince>
+        </div>
+        <div>
+          <h6 style={{textAlign: 'right'}}>{t('Date Created')}</h6>
+          <DateTime date={release.dateCreated} />
+        </div>
+      </Flex>
+      {parsedVersion?.package && (
+        <Stack gap="xl" justify="between">
+          {parsedVersion.package && (
+            <div>
+              <h6>{t('Package')}</h6>
+              <div>{parsedVersion.package}</div>
+            </div>
+          )}
+          {release.commitCount > 0 ? (
+            <div>
+              <h6>
+                {release.commitCount}{' '}
+                {release.commitCount === 1 ? t('commit ') : t('commits ')} {t('by ')}{' '}
+                {release.authors.length}{' '}
+                {release.authors.length === 1 ? t('author') : t('authors')}{' '}
+              </h6>
+              <Flex paddingLeft="xs">
+                <AvatarList
+                  users={authors}
+                  avatarSize={25}
+                  tooltipOptions={{container: 'body'} as any}
+                  typeAvatars="authors"
+                />
+              </Flex>
+            </div>
+          ) : null}
+        </Stack>
+      )}
+      {release.lastCommit && <LastCommit commit={release.lastCommit} />}
+      {deploys.length > 0 && (
+        <Stack gap="xs">
+          <h6>{t('Deploys')}</h6>
+          {recentDeploysByEnvironment.map(deploy => {
+            return (
+              <Flex key={deploy.id} align="center" gap="md" justify="between">
+                <Tag variant="info">{deploy.environment}</Tag>
+                {deploy.dateFinished && <StyledTimeSince date={deploy.dateFinished} />}
+              </Flex>
+            );
+          })}
+        </Stack>
+      )}
+    </Stack>
+  );
 }
 
 function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyProps) {
@@ -87,77 +169,6 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     [release?.authors]
   );
 
-  const body = (() => {
-    if (release === undefined || !defined(deploys)) {
-      return null;
-    }
-
-    const parsedVersion = parseVersion(releaseVersion);
-    const recentDeploysByEnvironment = deploys
-      .toSorted(
-        // Sorted by most recent deploy first
-        (a, b) => new Date(b.dateFinished).getTime() - new Date(a.dateFinished).getTime()
-      )
-      .slice(0, 3);
-
-    return (
-      <Stack gap="xl">
-        <Flex gap="xl" justify="between">
-          <div>
-            <h6>{t('New Issues')}</h6>
-            <CountSince>{release.newGroups}</CountSince>
-          </div>
-          <div>
-            <h6 style={{textAlign: 'right'}}>{t('Date Created')}</h6>
-            <DateTime date={release.dateCreated} />
-          </div>
-        </Flex>
-        {parsedVersion?.package && (
-          <Stack gap="xl" justify="between">
-            {parsedVersion.package && (
-              <div>
-                <h6>{t('Package')}</h6>
-                <div>{parsedVersion.package}</div>
-              </div>
-            )}
-            {release.commitCount > 0 ? (
-              <div>
-                <h6>
-                  {release.commitCount}{' '}
-                  {release.commitCount === 1 ? t('commit ') : t('commits ')} {t('by ')}{' '}
-                  {release.authors.length}{' '}
-                  {release.authors.length === 1 ? t('author') : t('authors')}{' '}
-                </h6>
-                <Flex paddingLeft="xs">
-                  <AvatarList
-                    users={authors}
-                    avatarSize={25}
-                    tooltipOptions={{container: 'body'} as any}
-                    typeAvatars="authors"
-                  />
-                </Flex>
-              </div>
-            ) : null}
-          </Stack>
-        )}
-        {release.lastCommit && <LastCommit commit={release.lastCommit} />}
-        {deploys.length > 0 && (
-          <Stack gap="xs">
-            <h6>{t('Deploys')}</h6>
-            {recentDeploysByEnvironment.map(deploy => {
-              return (
-                <Flex key={deploy.id} align="center" gap="md" justify="between">
-                  <Tag variant="info">{deploy.environment}</Tag>
-                  {deploy.dateFinished && <StyledTimeSince date={deploy.dateFinished} />}
-                </Flex>
-              );
-            })}
-          </Stack>
-        )}
-      </Stack>
-    );
-  })();
-
   const loading = isDeploysLoading || isReleaseLoading || isRepositoriesLoading;
   const error = isDeploysError ?? isReleaseError ?? isRepositoriesError;
   const hasRepos = repositories && repositories.length > 0;
@@ -173,7 +184,16 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     return <LoadingError />;
   }
 
-  return hasRepos && release ? body : repoLink;
+  return hasRepos && release ? (
+    <VersionHoverCardDetails
+      authors={authors}
+      deploys={deploys}
+      release={release}
+      releaseVersion={releaseVersion}
+    />
+  ) : (
+    repoLink
+  );
 }
 
 interface Props extends React.ComponentProps<typeof Hovercard>, BodyProps {}

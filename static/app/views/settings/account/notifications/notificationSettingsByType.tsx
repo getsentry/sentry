@@ -1,5 +1,10 @@
 import {Fragment, useEffect} from 'react';
-import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
+import {
+  mutationOptions,
+  type UseMutationOptions,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
@@ -60,7 +65,9 @@ const getQueryParams = (notificationType: string) => {
 
 const notificationOptionsQueryKey = (notificationType: string) =>
   [
-    getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
+    getApiUrl('/users/$userId/notification-options/', {
+      path: {userId: 'me'},
+    }),
     {query: getQueryParams(notificationType)},
   ] as const;
 
@@ -71,6 +78,47 @@ function choicesToOptions(
   choices: ReadonlyArray<readonly [string, string]>
 ): Array<{label: string; value: string}> {
   return choices.map(([value, label]) => ({value, label}));
+}
+
+function DefaultNotificationField({
+  choices,
+  help,
+  initialValue,
+  label,
+  mutationOptions: fieldMutationOptions,
+  name,
+}: {
+  choices: ReadonlyArray<readonly [string, string]>;
+  help: string;
+  initialValue: string;
+  label: string;
+  mutationOptions: UseMutationOptions<
+    NotificationOptionsObject,
+    Error,
+    Record<string, string>
+  >;
+  name: string;
+}) {
+  const schema = z.object({[name]: z.string()});
+
+  return (
+    <AutoSaveForm
+      name={name}
+      schema={schema}
+      initialValue={initialValue}
+      mutationOptions={fieldMutationOptions}
+    >
+      {field => (
+        <field.Layout.Row label={label} hintText={help}>
+          <field.Select
+            value={field.state.value}
+            onChange={field.handleChange}
+            options={choicesToOptions(choices)}
+          />
+        </field.Layout.Row>
+      )}
+    </AutoSaveForm>
+  );
 }
 
 export function NotificationSettingsByType({notificationType}: Props) {
@@ -84,14 +132,18 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const {data: notificationProviders = [], status: notificationProviderStatus} =
     useApiQuery<NotificationProvidersObject[]>(
       [
-        getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+        getApiUrl('/users/$userId/notification-providers/', {
+          path: {userId: 'me'},
+        }),
         {query: getQueryParams(notificationType)},
       ],
       {staleTime: 30_000}
     );
   const {data: allIdentities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
     [getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}})],
-    {staleTime: 30_000}
+    {
+      staleTime: 30_000,
+    }
   );
   const identities = allIdentities.filter(identity =>
     ALLOWED_PROVIDERS.has(identity?.identityProvider?.type as SupportedProviders)
@@ -100,7 +152,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
   const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
     useApiQuery<Array<OrganizationIntegration | null>>(
       [
-        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
+        getApiUrl('/users/$userId/organization-integrations/', {
+          path: {userId: 'me'},
+        }),
         {query: {provider: [...ALLOWED_PROVIDERS]}},
       ],
       {staleTime: 30_000}
@@ -369,7 +423,9 @@ export function NotificationSettingsByType({notificationType}: Props) {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: [
-          getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
+          getApiUrl('/users/$userId/notification-providers/', {
+            path: {userId: 'me'},
+          }),
           {query: getQueryParams(notificationType)},
         ],
       });
@@ -401,39 +457,24 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const defaultField = (() => {
-    const fieldDef =
-      NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
-    if (!fieldDef?.choices) {
-      return null;
-    }
-    const help =
-      notificationType === 'spikeProtection'
-        ? t('This is the default for all projects under all organizations.')
-        : isGroupedByProject(notificationType)
-          ? t('This is the default for all projects.')
-          : t('This is the default for all organizations.');
-
-    const schema = z.object({[notificationType]: z.string()});
-    return (
-      <AutoSaveForm
-        name={notificationType}
-        schema={schema}
-        initialValue={initialTopOptionData[notificationType] ?? 'always'}
-        mutationOptions={optionMutationOptions(notificationType)}
-      >
-        {field => (
-          <field.Layout.Row label={fieldDef.label} hintText={help}>
-            <field.Select
-              value={field.state.value}
-              onChange={field.handleChange}
-              options={choicesToOptions(fieldDef.choices)}
-            />
-          </field.Layout.Row>
-        )}
-      </AutoSaveForm>
-    );
-  })();
+  const fieldDef =
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
+  const defaultField = fieldDef?.choices ? (
+    <DefaultNotificationField
+      choices={fieldDef.choices}
+      help={
+        notificationType === 'spikeProtection'
+          ? t('This is the default for all projects under all organizations.')
+          : isGroupedByProject(notificationType)
+            ? t('This is the default for all projects.')
+            : t('This is the default for all organizations.')
+      }
+      initialValue={initialTopOptionData[notificationType] ?? 'always'}
+      label={fieldDef.label}
+      mutationOptions={optionMutationOptions(notificationType)}
+      name={notificationType}
+    />
+  ) : null;
 
   return (
     <Fragment>

@@ -39,6 +39,28 @@ interface EditAccessSelectorProps {
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
 }
 
+function CollapsedAvatarTooltipContent({teams}: {teams: Team[]}) {
+  const theme = useTheme();
+
+  return (
+    <CollapsedAvatarTooltip>
+      {teams.map((team, index) => (
+        <Flex
+          align="center"
+          gap="md"
+          key={team.id}
+          style={{
+            marginBottom: index === teams.length - 1 ? 0 : theme.space.md,
+          }}
+        >
+          <TeamAvatar team={team} size={18} />
+          <div>#{team.name}</div>
+        </Flex>
+      ))}
+    </CollapsedAvatarTooltip>
+  );
+}
+
 /**
  * Dropdown multiselect button to enable selective Dashboard editing access to
  * specific users and teams
@@ -49,7 +71,6 @@ export function EditAccessSelector({
   listOnly = false,
   disabled = false,
 }: EditAccessSelectorProps) {
-  const theme = useTheme();
   const currentUser = useUser();
   const dashboardCreator = dashboard.createdBy;
 
@@ -135,29 +156,10 @@ export function EditAccessSelector({
   }
 
   // Creates tooltip for the + bubble in avatar list
-  const collapsedAvatarTooltip = (() => {
-    const permissions = getDashboardPermissions();
-    if (permissions.teamsWithEditAccess.length > 1) {
-      return (
-        <CollapsedAvatarTooltip>
-          {allSelectedTeams.map((team, index) => (
-            <Flex
-              align="center"
-              gap="md"
-              key={team.id}
-              style={{
-                marginBottom: index === allSelectedTeams.length - 1 ? 0 : theme.space.md,
-              }}
-            >
-              <TeamAvatar team={team} size={18} />
-              <div>#{team.name}</div>
-            </Flex>
-          ))}
-        </CollapsedAvatarTooltip>
-      );
-    }
-    return null;
-  })();
+  const collapsedAvatarTooltip =
+    getDashboardPermissions().teamsWithEditAccess.length > 1 ? (
+      <CollapsedAvatarTooltipContent teams={allSelectedTeams} />
+    ) : null;
 
   const renderCollapsedAvatars = (_avatarSize: number, numCollapsedAvatars: number) => {
     return (
@@ -367,7 +369,9 @@ export function EditAccessSelector({
   );
 
   const tooltipTitle = disabled
-    ? tct('[label] dashboards cannot be edited', {label: PREBUILT_DASHBOARD_LABEL})
+    ? tct('[label] dashboards cannot be edited', {
+        label: PREBUILT_DASHBOARD_LABEL,
+      })
     : t('Only the creator of this dashboard can manage editor access');
 
   return (

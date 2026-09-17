@@ -49,6 +49,167 @@ function SetupReleasesPrompt() {
   );
 }
 
+interface ResolveDropdownMenuProps {
+  confirmLabel: string;
+  hasRelease: boolean;
+  hasSemverReleaseFeature: boolean;
+  onCurrentReleaseResolution: (args: {isLatestSemverRelease: boolean}) => void;
+  onNextReleaseResolution: () => void;
+  onOpenCustomCommitModal: () => void;
+  onOpenCustomReleaseModal: () => void;
+  size: 'xs' | 'sm';
+  confirmMessage?: React.ReactNode;
+  disableDropdown?: boolean;
+  disabled?: boolean;
+  latestRelease?: Project['latestRelease'];
+  latestSemverRelease?: {version: string};
+  multipleProjectsSelected?: boolean;
+  priority?: 'primary';
+  projectSlug?: string;
+  shouldConfirm?: boolean;
+}
+
+function ResolveDropdownMenu({
+  size,
+  confirmLabel,
+  confirmMessage,
+  projectSlug,
+  hasRelease,
+  latestRelease,
+  shouldConfirm,
+  disabled,
+  disableDropdown,
+  priority,
+  multipleProjectsSelected,
+  hasSemverReleaseFeature,
+  latestSemverRelease,
+  onCurrentReleaseResolution,
+  onNextReleaseResolution,
+  onOpenCustomCommitModal,
+  onOpenCustomReleaseModal,
+}: ResolveDropdownMenuProps) {
+  const shouldDisplayCta = !hasRelease && !multipleProjectsSelected;
+  const actionTitle = shouldDisplayCta
+    ? t('Set up release tracking in order to use this feature.')
+    : '';
+
+  const onActionOrConfirm = (onAction: () => void) => {
+    openConfirmModal({
+      bypass: !shouldConfirm,
+      onConfirm: onAction,
+      message: confirmMessage,
+      confirmText: confirmLabel,
+    });
+  };
+
+  const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
+  const items: MenuItemProps[] = [
+    {
+      key: 'next-release',
+      label: t('The next release'),
+      details: actionTitle ? actionTitle : t('The next release after the current one'),
+      onAction: () => onActionOrConfirm(onNextReleaseResolution),
+    },
+    ...(hasSemverReleaseFeature && latestSemverRelease?.version
+      ? [
+          {
+            key: 'semver-release',
+            label: t('The current semver release'),
+            details: (
+              <Flex align="center" gap="2xs">
+                {actionTitle ? (
+                  actionTitle
+                ) : (
+                  <Fragment>
+                    <div>
+                      <MaxReleaseWidthWrapper>
+                        {formatVersion(latestSemverRelease.version)}
+                      </MaxReleaseWidthWrapper>
+                    </div>{' '}
+                  </Fragment>
+                )}
+              </Flex>
+            ),
+            onAction: () =>
+              onActionOrConfirm(() =>
+                onCurrentReleaseResolution({isLatestSemverRelease: true})
+              ),
+          },
+        ]
+      : [
+          {
+            key: 'current-release',
+            label: t('The current release'),
+            details: (
+              <Flex align="center" gap="2xs">
+                {actionTitle ? (
+                  actionTitle
+                ) : latestRelease ? (
+                  <Fragment>
+                    <div>
+                      <MaxReleaseWidthWrapper>
+                        {formatVersion(latestRelease.version)}
+                      </MaxReleaseWidthWrapper>
+                    </div>{' '}
+                    ({isSemver ? t('semver') : t('non-semver')})
+                  </Fragment>
+                ) : null}
+              </Flex>
+            ),
+            onAction: () =>
+              onActionOrConfirm(() =>
+                onCurrentReleaseResolution({isLatestSemverRelease: false})
+              ),
+          },
+        ]),
+    {
+      key: 'another-release',
+      label: t('Another existing release\u2026'),
+      onAction: onOpenCustomReleaseModal,
+    },
+    {
+      key: 'a-commit',
+      label: t('A commit\u2026'),
+      onAction: onOpenCustomCommitModal,
+    },
+  ];
+
+  const isDisabled = projectSlug ? disableDropdown : disabled;
+
+  return (
+    <StyledDropdownMenu
+      itemsHidden={shouldDisplayCta}
+      items={items}
+      trigger={(triggerProps, isOpen) => (
+        <Button
+          {...triggerProps}
+          size={size}
+          variant={priority}
+          aria-label={t('More resolve options')}
+          icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+          disabled={isDisabled}
+        />
+      )}
+      disabledKeys={
+        multipleProjectsSelected
+          ? ['next-release', 'current-release', 'another-release', 'a-commit']
+          : disabled || !hasRelease
+            ? [
+                'next-release',
+
+                ...(hasSemverReleaseFeature && latestSemverRelease?.version
+                  ? ['semver-release']
+                  : ['current-release']),
+                'another-release',
+              ]
+            : []
+      }
+      menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
+      isDisabled={isDisabled}
+    />
+  );
+}
+
 interface ResolveActionsProps {
   hasRelease: boolean;
   hasSemverReleaseFeature: boolean;
@@ -161,129 +322,6 @@ export function ResolveActions({
     });
   }
 
-  const dropdownMenu = (() => {
-    const shouldDisplayCta = !hasRelease && !multipleProjectsSelected;
-    const actionTitle = shouldDisplayCta
-      ? t('Set up release tracking in order to use this feature.')
-      : '';
-
-    const onActionOrConfirm = (onAction: () => void) => {
-      openConfirmModal({
-        bypass: !shouldConfirm,
-        onConfirm: onAction,
-        message: confirmMessage,
-        confirmText: confirmLabel,
-      });
-    };
-
-    const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
-    const items: MenuItemProps[] = [
-      {
-        key: 'next-release',
-        label: t('The next release'),
-        details: actionTitle ? actionTitle : t('The next release after the current one'),
-        onAction: () => onActionOrConfirm(handleNextReleaseResolution),
-      },
-      ...(hasSemverReleaseFeature && latestSemverRelease?.version
-        ? [
-            {
-              key: 'semver-release',
-              label: t('The current semver release'),
-              details: (
-                <Flex align="center" gap="2xs">
-                  {actionTitle ? (
-                    actionTitle
-                  ) : (
-                    <Fragment>
-                      <div>
-                        <MaxReleaseWidthWrapper>
-                          {formatVersion(latestSemverRelease.version)}
-                        </MaxReleaseWidthWrapper>
-                      </div>{' '}
-                    </Fragment>
-                  )}
-                </Flex>
-              ),
-              onAction: () =>
-                onActionOrConfirm(() =>
-                  handleCurrentReleaseResolution({isLatestSemverRelease: true})
-                ),
-            },
-          ]
-        : [
-            {
-              key: 'current-release',
-              label: t('The current release'),
-              details: (
-                <Flex align="center" gap="2xs">
-                  {actionTitle ? (
-                    actionTitle
-                  ) : latestRelease ? (
-                    <Fragment>
-                      <div>
-                        <MaxReleaseWidthWrapper>
-                          {formatVersion(latestRelease.version)}
-                        </MaxReleaseWidthWrapper>
-                      </div>{' '}
-                      ({isSemver ? t('semver') : t('non-semver')})
-                    </Fragment>
-                  ) : null}
-                </Flex>
-              ),
-              onAction: () =>
-                onActionOrConfirm(() =>
-                  handleCurrentReleaseResolution({isLatestSemverRelease: false})
-                ),
-            },
-          ]),
-      {
-        key: 'another-release',
-        label: t('Another existing release\u2026'),
-        onAction: () => openCustomReleaseModal(),
-      },
-      {
-        key: 'a-commit',
-        label: t('A commit\u2026'),
-        onAction: () => openCustomCommitModal(),
-      },
-    ];
-
-    const isDisabled = projectSlug ? disableDropdown : disabled;
-
-    return (
-      <StyledDropdownMenu
-        itemsHidden={shouldDisplayCta}
-        items={items}
-        trigger={(triggerProps, isOpen) => (
-          <Button
-            {...triggerProps}
-            size={size}
-            variant={priority}
-            aria-label={t('More resolve options')}
-            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-            disabled={isDisabled}
-          />
-        )}
-        disabledKeys={
-          multipleProjectsSelected
-            ? ['next-release', 'current-release', 'another-release', 'a-commit']
-            : disabled || !hasRelease
-              ? [
-                  'next-release',
-
-                  ...(hasSemverReleaseFeature && latestSemverRelease?.version
-                    ? ['semver-release']
-                    : ['current-release']),
-                  'another-release',
-                ]
-              : []
-        }
-        menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
-        isDisabled={isDisabled}
-      />
-    );
-  })();
-
   function openCustomCommitModal() {
     openModal(deps => (
       <CustomCommitsResolutionModal
@@ -337,7 +375,27 @@ export function ResolveActions({
         >
           {t('Resolve')}
         </Button>
-        {!disableResolveInRelease && dropdownMenu}
+        {!disableResolveInRelease && (
+          <ResolveDropdownMenu
+            size={size}
+            confirmLabel={confirmLabel}
+            confirmMessage={confirmMessage}
+            projectSlug={projectSlug}
+            hasRelease={hasRelease}
+            latestRelease={latestRelease}
+            shouldConfirm={shouldConfirm}
+            disabled={disabled}
+            disableDropdown={disableDropdown}
+            priority={priority}
+            multipleProjectsSelected={multipleProjectsSelected}
+            hasSemverReleaseFeature={hasSemverReleaseFeature}
+            latestSemverRelease={latestSemverRelease}
+            onCurrentReleaseResolution={handleCurrentReleaseResolution}
+            onNextReleaseResolution={handleNextReleaseResolution}
+            onOpenCustomCommitModal={openCustomCommitModal}
+            onOpenCustomReleaseModal={openCustomReleaseModal}
+          />
+        )}
       </ButtonBar>
     </Tooltip>
   );

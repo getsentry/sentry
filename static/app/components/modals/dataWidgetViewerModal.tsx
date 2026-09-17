@@ -186,6 +186,88 @@ async function fetchDiscoverTotal(
   }
 }
 
+type WidgetViewerTableProps = {
+  cursor: string | undefined;
+  dashboardFilters: DashboardFilters | undefined;
+  modalSelection: PageFilters;
+  renderIssuesTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
+  renderTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
+  tableWidget: Widget;
+  widget: Widget;
+  widgetInterval: string | undefined;
+};
+
+function WidgetViewerTable({
+  cursor,
+  dashboardFilters,
+  modalSelection,
+  renderIssuesTable,
+  renderTable,
+  tableWidget,
+  widget,
+  widgetInterval,
+}: WidgetViewerTableProps) {
+  if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
+    return (
+      <AgentsTracesTableWidgetVisualization
+        limit={FULL_TABLE_ITEM_LIMIT}
+        tableWidths={widget.tableWidths}
+      />
+    );
+  }
+
+  const limit =
+    widget.displayType === DisplayType.TABLE ||
+    widget.displayType === DisplayType.CATEGORICAL_BAR
+      ? FULL_TABLE_ITEM_LIMIT
+      : HALF_TABLE_ITEM_LIMIT;
+
+  switch (widget.widgetType) {
+    case WidgetType.ISSUE:
+      return (
+        <IssueWidgetQueries
+          widget={tableWidget}
+          selection={modalSelection}
+          limit={limit}
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          widgetInterval={widgetInterval}
+        >
+          {renderIssuesTable}
+        </IssueWidgetQueries>
+      );
+    case WidgetType.RELEASE:
+      return (
+        <ReleaseWidgetQueries
+          widget={tableWidget}
+          selection={modalSelection}
+          limit={limit}
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          widgetInterval={widgetInterval}
+        >
+          {renderTable}
+        </ReleaseWidgetQueries>
+      );
+    case WidgetType.DISCOVER:
+    default:
+      return (
+        <WidgetQueries
+          widget={tableWidget}
+          selection={modalSelection}
+          limit={limit}
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          widgetInterval={widgetInterval}
+        >
+          {({tableResults, loading, pageLinks}) =>
+            renderTable({tableResults, loading, pageLinks})
+          }
+        </WidgetQueries>
+      );
+  }
+}
+
 function DataWidgetViewerModal(props: Props) {
   const {
     organization,
@@ -465,24 +547,26 @@ function DataWidgetViewerModal(props: Props) {
   }
 
   function renderTable({tableResults, loading, pageLinks}: GenericWidgetQueriesResult) {
-    return ViewerTableV2({
-      tableResults,
-      loading,
-      pageLinks,
-      fields,
-      widget,
-      tableWidget,
-      dashboardFilters,
-      modalSelection,
-      widths,
-      location,
-      organization,
-      navigate,
-      eventView,
-      theme,
-      projects,
-      selectedQueryIndex,
-    });
+    return (
+      <ViewerTableV2
+        tableResults={tableResults}
+        loading={loading}
+        pageLinks={pageLinks}
+        fields={fields}
+        widget={widget}
+        tableWidget={tableWidget}
+        dashboardFilters={dashboardFilters}
+        modalSelection={modalSelection}
+        widths={widths}
+        location={location}
+        organization={organization}
+        navigate={navigate}
+        eventView={eventView}
+        theme={theme}
+        projects={projects}
+        selectedQueryIndex={selectedQueryIndex}
+      />
+    );
   }
 
   const renderIssuesTable = ({
@@ -494,24 +578,26 @@ function DataWidgetViewerModal(props: Props) {
     if (totalResults === undefined && totalCount) {
       setTotalResults(totalCount);
     }
-    return ViewerTableV2({
-      tableResults,
-      loading,
-      pageLinks,
-      fields,
-      widget,
-      tableWidget,
-      dashboardFilters,
-      modalSelection,
-      widths,
-      location,
-      organization,
-      navigate,
-      eventView,
-      theme,
-      projects,
-      selectedQueryIndex,
-    });
+    return (
+      <ViewerTableV2
+        tableResults={tableResults}
+        loading={loading}
+        pageLinks={pageLinks}
+        fields={fields}
+        widget={widget}
+        tableWidget={tableWidget}
+        dashboardFilters={dashboardFilters}
+        modalSelection={modalSelection}
+        widths={widths}
+        location={location}
+        organization={organization}
+        navigate={navigate}
+        eventView={eventView}
+        theme={theme}
+        projects={projects}
+        selectedQueryIndex={selectedQueryIndex}
+      />
+    );
   };
 
   const onZoom = (_evt: any, chart: any) => {
@@ -542,76 +628,6 @@ function DataWidgetViewerModal(props: Props) {
       display_type: widget.displayType,
     });
   };
-
-  const widgetViewerTable = (() => {
-    if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
-      return (
-        <AgentsTracesTableWidgetVisualization
-          limit={FULL_TABLE_ITEM_LIMIT}
-          tableWidths={widget.tableWidths}
-        />
-      );
-    }
-    switch (widget.widgetType) {
-      case WidgetType.ISSUE:
-        return (
-          <IssueWidgetQueries
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE ||
-              widget.displayType === DisplayType.CATEGORICAL_BAR
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            cursor={cursor}
-            dashboardFilters={dashboardFilters}
-            widgetInterval={widgetInterval}
-          >
-            {renderIssuesTable}
-          </IssueWidgetQueries>
-        );
-      case WidgetType.RELEASE:
-        return (
-          <ReleaseWidgetQueries
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE ||
-              widget.displayType === DisplayType.CATEGORICAL_BAR
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            cursor={cursor}
-            dashboardFilters={dashboardFilters}
-            widgetInterval={widgetInterval}
-          >
-            {renderTable}
-          </ReleaseWidgetQueries>
-        );
-      case WidgetType.DISCOVER:
-      default:
-        return (
-          <WidgetQueries
-            widget={tableWidget}
-            selection={modalSelection}
-            limit={
-              widget.displayType === DisplayType.TABLE ||
-              widget.displayType === DisplayType.CATEGORICAL_BAR
-                ? FULL_TABLE_ITEM_LIMIT
-                : HALF_TABLE_ITEM_LIMIT
-            }
-            cursor={cursor}
-            dashboardFilters={dashboardFilters}
-            widgetInterval={widgetInterval}
-          >
-            {({tableResults, loading, pageLinks}) => {
-              return renderTable({tableResults, loading, pageLinks});
-            }}
-          </WidgetQueries>
-        );
-    }
-  })();
 
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
@@ -783,7 +799,18 @@ function DataWidgetViewerModal(props: Props) {
           )}
         </Container>
       )}
-      {shouldRenderTable && widgetViewerTable}
+      {shouldRenderTable && (
+        <WidgetViewerTable
+          cursor={cursor}
+          dashboardFilters={dashboardFilters}
+          modalSelection={modalSelection}
+          renderIssuesTable={renderIssuesTable}
+          renderTable={renderTable}
+          tableWidget={tableWidget}
+          widget={widget}
+          widgetInterval={widgetInterval}
+        />
+      )}
     </Fragment>
   );
 

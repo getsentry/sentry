@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {useState} from 'react';
 import {DragOverlay, useDraggable} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -41,6 +41,66 @@ const GROUP_TYPE_OPTIONS: Array<SelectOption<UptimeOpType.AND | UptimeOpType.OR>
   {value: UptimeOpType.AND, label: t('Assert All')},
   {value: UptimeOpType.OR, label: t('Assert Any')},
 ];
+
+interface AssertionOperationProps {
+  onChange: (op: UptimeOp) => void;
+  onRemove: () => void;
+  op: UptimeOp;
+  disableDropping?: boolean;
+  erroredOp?: UptimeOp;
+}
+
+function AssertionOperation({
+  op,
+  erroredOp,
+  onChange,
+  onRemove,
+  disableDropping,
+}: AssertionOperationProps) {
+  switch (op.op) {
+    case UptimeOpType.STATUS_CODE_CHECK:
+      return (
+        <AssertionOpStatusCode
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+        />
+      );
+    case UptimeOpType.JSON_PATH:
+      return (
+        <AssertionOpJsonPath
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+        />
+      );
+    case UptimeOpType.HEADER_CHECK:
+      return (
+        <AssertionOpHeader
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+        />
+      );
+    case UptimeOpType.AND:
+    case UptimeOpType.OR:
+    case UptimeOpType.NOT:
+      return (
+        <AssertionOpGroup
+          value={op}
+          erroredOp={erroredOp}
+          onChange={onChange}
+          onRemove={onRemove}
+          disableDropping={disableDropping}
+        />
+      );
+    default:
+      return null;
+  }
+}
 
 export function AssertionOpGroup({
   value,
@@ -126,63 +186,17 @@ export function AssertionOpGroup({
       idIndex: index,
       op: child,
     };
-    let renderedOp: ReactNode;
-    switch (child.op) {
-      case UptimeOpType.STATUS_CODE_CHECK:
-        renderedOp = (
-          <AssertionOpStatusCode
-            key={child.id}
-            value={child}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-        break;
-      case UptimeOpType.JSON_PATH:
-        renderedOp = (
-          <AssertionOpJsonPath
-            key={child.id}
-            value={child}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-        break;
-      case UptimeOpType.HEADER_CHECK:
-        renderedOp = (
-          <AssertionOpHeader
-            key={child.id}
-            value={child}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-        break;
-      case UptimeOpType.AND:
-      case UptimeOpType.OR:
-      case UptimeOpType.NOT:
-        renderedOp = (
-          <AssertionOpGroup
-            key={child.id}
-            value={child}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-            disableDropping={innerDroppableDisabled}
-          />
-        );
-        break;
-      default:
-        renderedOp = null;
-    }
 
     return (
       <Container position="relative" key={child.id}>
         <DroppableHitbox {...dropProps} position="before" />
-        {renderedOp}
+        <AssertionOperation
+          op={child}
+          erroredOp={erroredOp}
+          onChange={updatedOp => handleUpdateChild(index, updatedOp)}
+          onRemove={() => handleRemoveChild(index)}
+          disableDropping={innerDroppableDisabled}
+        />
         <DroppableHitbox {...dropProps} position="after" />
       </Container>
     );

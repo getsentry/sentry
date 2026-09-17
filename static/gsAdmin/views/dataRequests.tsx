@@ -30,6 +30,86 @@ const schema = z.object({
   email: z.email('Enter a valid email address'),
 });
 
+function DataRequestsResults({
+  orgSlug,
+  results,
+}: {
+  orgSlug: string;
+  results: Result[] | null;
+}) {
+  if (!results) {
+    return null;
+  }
+
+  if (results.length === 0) {
+    return (
+      <EmptyState
+        title="No Results"
+        description="There are no results within Sentry data matching this email address."
+      />
+    );
+  }
+
+  return (
+    <Stack gap="md">
+      <Heading as="h2">Results</Heading>
+      <Text as="p">
+        {results.length} {results.length === 1 ? 'match' : 'matches'} found
+      </Text>
+      <Stack as="ul" gap="sm" padding="0" style={{listStyle: 'none'}}>
+        {results.map(result => {
+          switch (result.type) {
+            case 'user':
+              // eslint-disable-next-line no-case-declarations
+              const user = result.data;
+              return (
+                <Stack
+                  as="li"
+                  key={`user-${user.id}`}
+                  gap="2xs"
+                  padding="md"
+                  border="primary"
+                  radius="md"
+                  background="primary"
+                >
+                  <Link to={`/_admin/users/${user.id}/`}>{user.name}</Link>
+                  <Text size="sm" variant="muted">
+                    {user.email}
+                  </Text>
+                </Stack>
+              );
+            case 'event':
+              // eslint-disable-next-line no-case-declarations
+              const event = result.data;
+              return (
+                <Stack
+                  as="li"
+                  key={`event-${event.id}`}
+                  gap="2xs"
+                  padding="md"
+                  border="primary"
+                  radius="md"
+                  background="primary"
+                >
+                  <ExternalLink
+                    href={`/organizations/${orgSlug}/issues/${event.groupID}/`}
+                  >
+                    {event.id} - {event.title.substring(0, 128)}
+                  </ExternalLink>
+                  <Text size="sm" variant="muted">
+                    Event
+                  </Text>
+                </Stack>
+              );
+            default:
+              throw new Error('Unknown result type');
+          }
+        })}
+      </Stack>
+    </Stack>
+  );
+}
+
 export function DataRequests() {
   const [{orgSlug, email}, setSearchParams] = useQueryStates({
     orgSlug: parseAsString.withDefault(''),
@@ -70,80 +150,6 @@ export function DataRequests() {
       setSearchParams(schema.parse(value), {history: 'push'});
     },
   });
-
-  const resultsContent = (() => {
-    if (!results) {
-      return null;
-    }
-
-    if (results.length === 0) {
-      return (
-        <EmptyState
-          title="No Results"
-          description="There are no results within Sentry data matching this email address."
-        />
-      );
-    }
-
-    return (
-      <Stack gap="md">
-        <Heading as="h2">Results</Heading>
-        <Text as="p">
-          {results.length} {results.length === 1 ? 'match' : 'matches'} found
-        </Text>
-        <Stack as="ul" gap="sm" padding="0" style={{listStyle: 'none'}}>
-          {results.map(result => {
-            switch (result.type) {
-              case 'user':
-                // eslint-disable-next-line no-case-declarations
-                const user = result.data;
-                return (
-                  <Stack
-                    as="li"
-                    key={`user-${user.id}`}
-                    gap="2xs"
-                    padding="md"
-                    border="primary"
-                    radius="md"
-                    background="primary"
-                  >
-                    <Link to={`/_admin/users/${user.id}/`}>{user.name}</Link>
-                    <Text size="sm" variant="muted">
-                      {user.email}
-                    </Text>
-                  </Stack>
-                );
-              case 'event':
-                // eslint-disable-next-line no-case-declarations
-                const event = result.data;
-                return (
-                  <Stack
-                    as="li"
-                    key={`event-${event.id}`}
-                    gap="2xs"
-                    padding="md"
-                    border="primary"
-                    radius="md"
-                    background="primary"
-                  >
-                    <ExternalLink
-                      href={`/organizations/${orgSlug}/issues/${event.groupID}/`}
-                    >
-                      {event.id} - {event.title.substring(0, 128)}
-                    </ExternalLink>
-                    <Text size="sm" variant="muted">
-                      Event
-                    </Text>
-                  </Stack>
-                );
-              default:
-                throw new Error('Unknown result type');
-            }
-          })}
-        </Stack>
-      </Stack>
-    );
-  })();
 
   return (
     <Fragment>
@@ -208,7 +214,11 @@ export function DataRequests() {
         </Panel>
       </form.AppForm>
 
-      {isLoading ? <LoadingIndicator>Searching...</LoadingIndicator> : resultsContent}
+      {isLoading ? (
+        <LoadingIndicator>Searching...</LoadingIndicator>
+      ) : (
+        <DataRequestsResults orgSlug={orgSlug} results={results} />
+      )}
     </Fragment>
   );
 }

@@ -27,6 +27,8 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
 
+import {defined} from '../../app/utils/defined';
+
 type Props = {
   activePlan: Plan | null;
   formModel: FormModel;
@@ -128,20 +130,15 @@ export function PlanList({
                   ? `${titleCategory} (GB)`
                   : titleCategory;
                 const fieldValue = formModel.getValue(reservedKey);
-                const reservedValue = (
-                  subscription.categories as
-                    | Record<string, {reserved?: number}>
-                    | undefined
-                )?.[category]?.reserved;
-                const currentValueDisplay =
-                  reservedValue === undefined ? (
-                    <CurrentValueText>Current: None</CurrentValueText>
-                  ) : (
-                    <CurrentValueText>
-                      Current: {reservedValue.toLocaleString()}{' '}
-                      {isByteCategory(category) ? 'GB' : ''}
-                    </CurrentValueText>
-                  );
+                const reservedValue = subscription.categories?.[category]?.reserved;
+                const currentValueDisplay = defined(reservedValue) ? (
+                  <CurrentValueText>
+                    Current: {reservedValue.toLocaleString()}{' '}
+                    {isByteCategory(category) ? 'GB' : ''}
+                  </CurrentValueText>
+                ) : (
+                  <CurrentValueText>Current: None</CurrentValueText>
+                );
                 return (
                   <Container position="relative" key={`test-${category}`}>
                     <SelectField

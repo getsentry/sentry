@@ -86,7 +86,11 @@ function Filter({name, queryKey, options, path, value}: FilterProps) {
       onChange={opt =>
         navigate({
           pathname: path || location.pathname,
-          query: {...location.query, [queryKey]: opt.value || undefined, cursor: ''},
+          query: {
+            ...location.query,
+            [queryKey]: opt.value || undefined,
+            cursor: '',
+          },
         })
       }
       options={allOptions}
@@ -400,6 +404,87 @@ type RegionProbe = {
   regionMatches: Cell[];
 };
 
+type RegionHintProps = {
+  allRegions: boolean;
+  cell: Cell | undefined;
+  onChangeCell: (localityUrl: string | undefined) => void;
+  probe: RegionProbe;
+  probeAcrossRegions: boolean;
+  probeAllRegions: boolean;
+  results: Results;
+  probeAllRegionsHint?: string;
+};
+
+function RegionHint({
+  allRegions,
+  cell,
+  onChangeCell,
+  probe,
+  probeAcrossRegions,
+  probeAllRegions,
+  probeAllRegionsHint,
+  results,
+}: RegionHintProps) {
+  // The all-regions mode already shows every region's results.
+  if (allRegions) {
+    return null;
+  }
+
+  if ((!probeAcrossRegions && !probeAllRegions) || results.loading || results.error) {
+    return null;
+  }
+
+  // The search-driven hint only surfaces when the active region lacked an
+  // exact match. The always-on `probeAllRegions` hint has no such gate.
+  if (!probeAllRegions && !probe.missingExactMatch) {
+    return null;
+  }
+
+  if (probe.probingRegions || probe.regionMatches.length === 0) {
+    return null;
+  }
+
+  const regionButtons = probe.regionMatches.map(matchedCell => (
+    <Button
+      key={matchedCell.locality_url}
+      size="xs"
+      onClick={() => onChangeCell(matchedCell.locality_url)}
+    >
+      {`View in ${matchedCell.name}`}
+    </Button>
+  ));
+
+  if (probeAllRegions) {
+    const lead =
+      probeAllRegionsHint ?? 'Also found in other data regions — look there too:';
+    return (
+      <RegionHintAlert variant="info" showIcon>
+        <Flex align="center" gap="md" wrap="wrap">
+          <span>{lead}</span>
+          {regionButtons}
+        </Flex>
+      </RegionHintAlert>
+    );
+  }
+
+  const currentName = cell?.name ?? 'this region';
+  // The active region returned similar (but not exact) matches — make it
+  // clear the exact record was not found here, rather than implying no
+  // results at all.
+  const leadText = results.rows.length > 0 ? 'No exact match in' : 'No results in';
+
+  return (
+    <RegionHintAlert variant="info" showIcon>
+      <Flex align="center" gap="md" wrap="wrap">
+        <span>
+          {leadText} <strong>{currentName}</strong>. Found results in another data region:
+        </span>
+        {regionButtons}
+      </Flex>
+    </RegionHintAlert>
+  );
+}
+
 const IDLE_PROBE: RegionProbe = {
   regionMatches: [],
   probingRegions: false,
@@ -469,7 +554,10 @@ export function ResultGrid({
       ? cells.find(c => c.locality_url === regionUrl)
       : undefined;
     const allRegions = allowAllRegions && !requestedCell;
-    return {allRegions, cell: allRegions ? undefined : (requestedCell ?? cells[0])};
+    return {
+      allRegions,
+      cell: allRegions ? undefined : (requestedCell ?? cells[0]),
+    };
   });
   const {allRegions, cell} = region;
 
@@ -540,7 +628,11 @@ export function ResultGrid({
         return;
       }
       matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
+      setProbe(prev => ({
+        ...prev,
+        probingRegions: false,
+        regionMatches: matches,
+      }));
     };
 
     otherCells.forEach(probedCell => {
@@ -799,7 +891,13 @@ export function ResultGrid({
             : isEmpty)
         );
 
-        setResults({...IDLE_REGIONS, loading: false, error: false, rows, pageLinks});
+        setResults({
+          ...IDLE_REGIONS,
+          loading: false,
+          error: false,
+          rows,
+          pageLinks,
+        });
         setProbe({...IDLE_PROBE, missingExactMatch});
         onLoad?.();
 
@@ -847,7 +945,10 @@ export function ResultGrid({
   const stripRegionUrl = useEffectEvent(() => {
     if (needsRegion && location.query.regionUrl) {
       navigate(
-        {pathname: location.pathname, query: {...location.query, regionUrl: undefined}},
+        {
+          pathname: location.pathname,
+          query: {...location.query, regionUrl: undefined},
+        },
         {replace: true}
       );
     }
@@ -858,13 +959,14 @@ export function ResultGrid({
   }, []);
 
   const onChangeCell = (localityUrl: string | undefined) => {
-    const nextRegion: RegionSelection | undefined =
-      localityUrl === ALL_REGIONS
-        ? {allRegions: true, cell: undefined}
-        : (() => {
-            const nextCell = getCells().find(c => c.locality_url === localityUrl);
-            return nextCell ? {allRegions: false, cell: nextCell} : undefined;
-          })();
+    let nextRegion: RegionSelection | undefined;
+    if (localityUrl === ALL_REGIONS) {
+      nextRegion = {allRegions: true, cell: undefined};
+    } else {
+      const nextCell = getCells().find(c => c.locality_url === localityUrl);
+      nextRegion = nextCell ? {allRegions: false, cell: nextCell} : undefined;
+    }
+
     if (nextRegion === undefined) {
       return;
     }
@@ -972,7 +1074,9 @@ export function ResultGrid({
         if (!isValidElement(gridCell)) {
           return gridCell;
         }
-        const extraProps: Record<string, unknown> = {'data-label': columnLabels[j] ?? ''};
+        const extraProps: Record<string, unknown> = {
+          'data-label': columnLabels[j] ?? '',
+        };
         if (j === firstPrimaryIndex) {
           extraProps['data-mobile-primary'] = 'true';
         }
@@ -1016,67 +1120,18 @@ export function ResultGrid({
     return renderResults();
   }
 
-  const regionHint = (() => {
-    // The all-regions mode already shows every region's results.
-    if (allRegions) {
-      return null;
-    }
-
-    if ((!probeAcrossRegions && !probeAllRegions) || results.loading || results.error) {
-      return null;
-    }
-
-    // The search-driven hint only surfaces when the active region lacked an
-    // exact match. The always-on `probeAllRegions` hint has no such gate.
-    if (!probeAllRegions && !probe.missingExactMatch) {
-      return null;
-    }
-
-    if (probe.probingRegions || probe.regionMatches.length === 0) {
-      return null;
-    }
-
-    const regionButtons = probe.regionMatches.map(matchedCell => (
-      <Button
-        key={matchedCell.locality_url}
-        size="xs"
-        onClick={() => onChangeCell(matchedCell.locality_url)}
-      >
-        {`View in ${matchedCell.name}`}
-      </Button>
-    ));
-
-    if (probeAllRegions) {
-      const lead =
-        probeAllRegionsHint ?? 'Also found in other data regions — look there too:';
-      return (
-        <RegionHintAlert variant="info" showIcon>
-          <Flex align="center" gap="md" wrap="wrap">
-            <span>{lead}</span>
-            {regionButtons}
-          </Flex>
-        </RegionHintAlert>
-      );
-    }
-
-    const currentName = cell?.name ?? 'this region';
-    // The active region returned similar (but not exact) matches — make it
-    // clear the exact record was not found here, rather than implying no
-    // results at all.
-    const leadText = results.rows.length > 0 ? 'No exact match in' : 'No results in';
-
-    return (
-      <RegionHintAlert variant="info" showIcon>
-        <Flex align="center" gap="md" wrap="wrap">
-          <span>
-            {leadText} <strong>{currentName}</strong>. Found results in another data
-            region:
-          </span>
-          {regionButtons}
-        </Flex>
-      </RegionHintAlert>
-    );
-  })();
+  const regionHint = (
+    <RegionHint
+      allRegions={allRegions}
+      cell={cell}
+      onChangeCell={onChangeCell}
+      probe={probe}
+      probeAcrossRegions={probeAcrossRegions}
+      probeAllRegions={probeAllRegions}
+      probeAllRegionsHint={probeAllRegionsHint}
+      results={results}
+    />
+  );
 
   const resultTable = (
     <TableScrollWrapper>
