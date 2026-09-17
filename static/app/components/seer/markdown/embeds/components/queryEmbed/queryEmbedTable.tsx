@@ -4,16 +4,38 @@ import {Text} from '@sentry/scraps/text';
 
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {formatNumber} from 'sentry/utils/number/formatNumber';
+import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import {aggregateOutputType, getAggregateAlias} from 'sentry/utils/discover/fields';
+import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 
-function formatCellValue(value: unknown): string {
+/**
+ * Field types whose values are numbers, and so want the tabular figures and
+ * the type-aware formatting below. Everything else is text.
+ */
+const NUMERIC_FIELD_TYPES = new Set([
+  'currency',
+  'duration',
+  'integer',
+  'number',
+  'percentage',
+  'rate',
+  'score',
+  'size',
+]);
+
+/**
+ * A raw `1234` is not a duration a reader can scan — `1.23s` is. The events
+ * API reports a type and a unit per field, and `formatTooltipValue` already
+ * dispatches on exactly that pair, so a cell borrows the formatting its own
+ * chart would use rather than growing a second dialect of it.
+ */
+function formatCellValue(value: unknown, type: string, unit: string | undefined): string {
   if (value === undefined || value === null || value === '') {
     return '—';
   }
 
   if (typeof value === 'number') {
-    return String(formatNumber(value));
+    return formatTooltipValue(value, type, unit);
   }
 
   if (typeof value === 'string') {
@@ -25,6 +47,20 @@ function formatCellValue(value: unknown): string {
   }
 
   return JSON.stringify(value) ?? '—';
+}
+
+/**
+ * The type and unit the API reported for a field, under whichever of the two
+ * spellings the response used — `meta` keys a function by the same alias its
+ * rows do. Absent meta, an aggregate still names its own output type.
+ */
+function fieldFormat(field: string, meta: EventsMetaType | undefined) {
+  const alias = getAggregateAlias(field);
+
+  return {
+    type: meta?.fields?.[field] ?? meta?.fields?.[alias] ?? aggregateOutputType(field),
+    unit: meta?.units?.[field] ?? meta?.units?.[alias] ?? undefined,
+  };
 }
 
 export interface QueryEmbedColumn<Row> {
@@ -51,14 +87,22 @@ export interface QueryEmbedColumn<Row> {
  * named `count_unique(user)` read the `count_unique_user` key the API returns.
  */
 export function eventColumns<Row extends Record<string, unknown>>(
-  fields: string[]
+  fields: string[],
+  meta?: EventsMetaType
 ): Array<QueryEmbedColumn<Row>> {
-  return fields.map(field => ({
-    key: field,
-    render: (row: Row) => (
-      <Text ellipsis>{formatCellValue(row[field] ?? row[getAggregateAlias(field)])}</Text>
-    ),
-  }));
+  return fields.map(field => {
+    const alias = getAggregateAlias(field);
+    const {type, unit} = fieldFormat(field, meta);
+
+    return {
+      key: field,
+      render: (row: Row) => (
+        <Text ellipsis tabular={NUMERIC_FIELD_TYPES.has(type)}>
+          {formatCellValue(row[field] ?? row[alias], type, unit)}
+        </Text>
+      ),
+    };
+  });
 }
 
 /** Rows from `/events/` carry an `id`; fall back to position for aggregates. */
