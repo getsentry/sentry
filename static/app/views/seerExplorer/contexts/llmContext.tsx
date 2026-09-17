@@ -291,6 +291,16 @@ export function LLMContextProvider({children}: LLMContextProviderProps) {
 }
 
 /**
+ * How many table rows a list page may sample into its context node.
+ *
+ * List nodes report a bounded sample, never the whole page: the registry exists
+ * to keep the prompt small, and a full table would put the token cost back.
+ * Report the total result count alongside the sample so the reader can tell
+ * "15 results" from "the first 15 of 400" and fall back to a tool call.
+ */
+export const LLM_CONTEXT_MAX_ROWS = 15;
+
+/**
  * useLLMContext — write overload
  *
  * Call inside a registerLLMContext-wrapped component (or any descendant)

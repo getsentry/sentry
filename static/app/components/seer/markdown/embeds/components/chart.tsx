@@ -166,19 +166,26 @@ export function ChartContent({
 
 export const Chart = defineSeerEmbed({
   name: 'chart',
-  render(data) {
-    return (
-      <Container
-        as="section"
-        background="primary"
-        border="primary"
-        data-test-id="seer-chart-embed"
-        margin="lg 0"
-        padding="lg xl md"
-        radius="md"
-      >
-        <ChartContent data={data} />
-      </Container>
-    );
+  render(data, level) {
+    switch (level) {
+      case 'markdown':
+        // A plot has no text form; the heading names the data being cited.
+        return data.subtitle ? `${data.title}: ${data.subtitle}` : data.title;
+      case 'block':
+      case 'inline':
+        return (
+          <Container
+            as="section"
+            background="primary"
+            border="primary"
+            data-test-id="seer-chart-embed"
+            margin="lg 0"
+            padding="lg xl md"
+            radius="md"
+          >
+            <ChartContent data={data} />
+          </Container>
+        );
+    }
   },
 });

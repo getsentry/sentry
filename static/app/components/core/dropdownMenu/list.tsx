@@ -15,7 +15,7 @@ import omit from 'lodash/omit';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import type {useOverlay} from 'sentry/utils/useOverlay';
 
-import {DropdownMenu} from './index';
+import {DropdownMenu} from './dropdownMenu';
 import type {MenuItemProps} from './item';
 import {DropdownMenuItem} from './item';
 import {DropdownMenuSection} from './section';
