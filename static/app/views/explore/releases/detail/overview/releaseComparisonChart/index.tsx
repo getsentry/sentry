@@ -69,7 +69,7 @@ function ChartDiff({
   diffColor,
   diffDirection,
 }: Pick<ReleaseComparisonRow, 'diff' | 'diffColor' | 'diffDirection'>) {
-  return diff ? (
+  return (
     <Change color={defined(diffColor) ? diffColor : undefined}>
       {diff}{' '}
       {defined(diffDirection) ? (
@@ -78,7 +78,7 @@ function ChartDiff({
         <StyledNotAvailable />
       )}
     </Change>
-  ) : null;
+  );
 }
 
 type Props = {
