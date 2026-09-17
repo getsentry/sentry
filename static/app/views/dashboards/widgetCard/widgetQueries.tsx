@@ -96,9 +96,7 @@ export function WidgetQueries({
   widgetInterval,
 }: Props) {
   // Errors and Transactions datasets are the only datasets processed in this component.
-  const config = getDatasetConfig(
-    widget.widgetType as WidgetType.ERRORS | WidgetType.TRANSACTIONS
-  );
+  const config = getDatasetConfig(widget.widgetType);
   const context = useDashboardsMEPContext();
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();
