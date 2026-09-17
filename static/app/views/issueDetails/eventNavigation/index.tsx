@@ -26,6 +26,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
@@ -76,7 +77,13 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     onResize: () => setSmallNav(checkNavIsSmall),
   });
 
+  const showAutofixTab =
+    hasAutofixPage(organization) &&
+    organization.features.includes('gen-ai-features') &&
+    !organization.hideAiFeatures;
+
   const hideDropdownButton =
+    !showAutofixTab &&
     !issueTypeConfig.pages.attachments.enabled &&
     !issueTypeConfig.pages.userFeedback.enabled &&
     !issueTypeConfig.pages.replays.enabled;
@@ -109,6 +116,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     [Tab.REPLAYS]: t('Replays'),
     [Tab.ATTACHMENTS]: t('Attachments'),
     [Tab.USER_FEEDBACK]: t('Feedback'),
+    [Tab.AUTOFIX]: t('Autofix'),
   };
 
   const isListView = LIST_VIEW_TABS.has(currentTab);
@@ -204,6 +212,21 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 hash: undefined,
               },
               hidden: !issueTypeConfig.pages.attachments.enabled,
+            },
+            {
+              key: Tab.AUTOFIX,
+              label: (
+                <DropdownCountWrapper isCurrentTab={currentTab === Tab.AUTOFIX}>
+                  {TabName[Tab.AUTOFIX]}
+                </DropdownCountWrapper>
+              ),
+              textValue: TabName[Tab.AUTOFIX],
+              to: {
+                ...location,
+                pathname: `${baseUrl}${TabPaths[Tab.AUTOFIX]}`,
+                hash: undefined,
+              },
+              hidden: !showAutofixTab,
             },
             {
               key: Tab.USER_FEEDBACK,

@@ -23,7 +23,7 @@ import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface SeerDrawerHeaderProps {
+interface SeerPanelHeaderProps {
   autofixState?: ExplorerAutofixState | null;
   enableBashTools?: boolean;
   onCopyMarkdown?: () => void;
@@ -33,7 +33,11 @@ interface SeerDrawerHeaderProps {
   referrer?: string;
 }
 
-export function SeerDrawerHeader({
+/**
+ * The title and toolbar, without the surrounding chrome: the drawer supplies a
+ * `DrawerHeader`, the autofix page supplies its own band.
+ */
+export function SeerPanelHeader({
   autofixState,
   enableBashTools,
   onCopyMarkdown,
@@ -41,7 +45,7 @@ export function SeerDrawerHeader({
   onOpenSeerAgent,
   onReset,
   referrer,
-}: SeerDrawerHeaderProps) {
+}: SeerPanelHeaderProps) {
   const organization = useOrganization();
   const hasDebugFlag = organization.features.includes('autofix-seer-agent-debug');
   const isSentryEmployee = useIsSentryEmployee();
@@ -51,56 +55,62 @@ export function SeerDrawerHeader({
   }, [referrer]);
 
   return (
-    <DrawerHeader hideBar hideCloseButtonText>
-      <Flex justify="between" width="100%">
-        <Flex align="center" gap="xs">
-          <Text>{t('Seer Autofix')}</Text>
-          {tooltip && <InfoTip title={tooltip} size="xs" />}
-        </Flex>
-        <Flex align="center" gap="xs">
-          {isSentryEmployee && <AutofixDebugMenu autofixState={autofixState} />}
-          <Button
-            size="xs"
-            icon={<IconRefresh />}
-            onClick={onReset}
-            disabled={!onReset}
-            tooltipProps={{title: t('Start a new analysis from scratch')}}
-            aria-label={t('Start a new analysis from scratch')}
-            variant="transparent"
-          />
-          <Button
-            size="xs"
-            icon={<IconCopy />}
-            onClick={onCopyMarkdown}
-            disabled={!onCopyMarkdown}
-            tooltipProps={{title: t('Copy analysis as Markdown')}}
-            aria-label={t('Copy analysis as Markdown')}
-            variant="transparent"
-          />
-          {isSentryEmployee && onEnableBashToolsChange && (
-            <Tooltip title={t('Force bash mode on for the autofix analysis')} skipWrapper>
-              <Flex align="center" gap="xs">
-                <Text size="xs">{t('Bash')}</Text>
-                <Switch
-                  checked={enableBashTools ?? false}
-                  onChange={() => onEnableBashToolsChange(!enableBashTools)}
-                  aria-label={t('Enable bash tools')}
-                />
-              </Flex>
-            </Tooltip>
-          )}
-          {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
-            <Button
-              size="xs"
-              icon={<IconBot />}
-              onClick={onOpenSeerAgent}
-              tooltipProps={{title: t('Open in Seer Agent (debug)')}}
-              aria-label={t('Open in Seer Agent (debug)')}
-              variant="transparent"
-            />
-          )}
-        </Flex>
+    <Flex justify="between" width="100%">
+      <Flex align="center" gap="xs">
+        <Text>{t('Seer Autofix')}</Text>
+        {tooltip && <InfoTip title={tooltip} size="xs" />}
       </Flex>
+      <Flex align="center" gap="xs">
+        {isSentryEmployee && <AutofixDebugMenu autofixState={autofixState} />}
+        <Button
+          size="xs"
+          icon={<IconRefresh />}
+          onClick={onReset}
+          disabled={!onReset}
+          tooltipProps={{title: t('Start a new analysis from scratch')}}
+          aria-label={t('Start a new analysis from scratch')}
+          variant="transparent"
+        />
+        <Button
+          size="xs"
+          icon={<IconCopy />}
+          onClick={onCopyMarkdown}
+          disabled={!onCopyMarkdown}
+          tooltipProps={{title: t('Copy analysis as Markdown')}}
+          aria-label={t('Copy analysis as Markdown')}
+          variant="transparent"
+        />
+        {isSentryEmployee && onEnableBashToolsChange && (
+          <Tooltip title={t('Force bash mode on for the autofix analysis')} skipWrapper>
+            <Flex align="center" gap="xs">
+              <Text size="xs">{t('Bash')}</Text>
+              <Switch
+                checked={enableBashTools ?? false}
+                onChange={() => onEnableBashToolsChange(!enableBashTools)}
+                aria-label={t('Enable bash tools')}
+              />
+            </Flex>
+          </Tooltip>
+        )}
+        {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
+          <Button
+            size="xs"
+            icon={<IconBot />}
+            onClick={onOpenSeerAgent}
+            tooltipProps={{title: t('Open in Seer Agent (debug)')}}
+            aria-label={t('Open in Seer Agent (debug)')}
+            variant="transparent"
+          />
+        )}
+      </Flex>
+    </Flex>
+  );
+}
+
+export function SeerDrawerHeader(props: SeerPanelHeaderProps) {
+  return (
+    <DrawerHeader hideBar hideCloseButtonText>
+      <SeerPanelHeader {...props} />
     </DrawerHeader>
   );
 }
