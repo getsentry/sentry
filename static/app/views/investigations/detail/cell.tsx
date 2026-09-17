@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useEffect, useId, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
@@ -18,8 +18,8 @@ import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/ch
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {
   IconArrow,
-  IconChevron,
   IconClose,
+  IconCompass,
   IconEllipsis,
   IconReturn,
   IconSeer,
@@ -272,7 +272,10 @@ function QueryResult({
   progressState: CellProgressState;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const [showQuery, setShowQuery] = useState(false);
+  const queryDetailsId = useId();
   const output = getQueryOutput(block.output);
+  const queries = output?.queries ?? [];
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
   const title = block.title || chart?.title || t('Untitled query');
@@ -283,77 +286,116 @@ function QueryResult({
     getChartMetadata(chart);
 
   return (
-    <CellHoverSurface width="100%" gap="sm">
-      <Flex
+    <CellHoverSurface width="100%">
+      <Disclosure
         width="100%"
-        align="center"
-        gap="xs"
-        border={expanded ? undefined : 'primary'}
+        border="primary"
         radius="md"
-        background={expanded ? undefined : 'secondary'}
-        paddingRight={expanded ? undefined : 'xs'}
-        data-test-id="query-cell-toolbar"
+        background="secondary"
+        overflow="hidden"
+        expanded={expanded}
+        onExpandedChange={setExpanded}
+        data-test-id="query-cell"
       >
-        <QueryDisclosureButton
-          size="sm"
-          variant="transparent"
-          icon={<IconChevron direction={expanded ? 'down' : 'right'} size="xs" />}
-          aria-label={t('Toggle %s', title)}
-          aria-expanded={expanded}
-          onClick={() => setExpanded(value => !value)}
-        >
-          <Text data-test-id="query-cell-title" size="sm" tabular>
-            {title}
-          </Text>
-        </QueryDisclosureButton>
-        {actions}
-      </Flex>
-      {expanded ? (
-        <Stack
-          width="100%"
-          flex={1}
-          minWidth={0}
-          gap="0"
-          overflow="hidden"
-          border="primary"
-          radius="md"
-          data-test-id="query-cell-result"
-          data-cell-variant="bordered"
-        >
-          <Flex
-            align="start"
-            justify="between"
-            gap="md"
-            padding="md lg"
-            background="secondary"
-            borderBottom="primary"
-            data-test-id="query-cell-header"
+        <QueryToolbar width="100%" padding="md lg" data-test-id="query-cell-toolbar">
+          <QueryDisclosureTitle
+            aria-label={t('Toggle %s', title)}
+            trailingItems={
+              <Flex align="center" gap="md">
+                {expanded ? (
+                  <Button
+                    size="xs"
+                    variant="link"
+                    icon={<IconCompass size="xs" />}
+                    disabled={queries.length === 0}
+                    tooltipProps={{
+                      title:
+                        queries.length === 0
+                          ? t('Query details are not available for this result.')
+                          : undefined,
+                    }}
+                    aria-expanded={showQuery}
+                    aria-controls={queryDetailsId}
+                    onClick={() => setShowQuery(value => !value)}
+                  >
+                    {showQuery ? t('Hide query') : t('Show query')}
+                  </Button>
+                ) : null}
+                {actions}
+              </Flex>
+            }
           >
-            <Stack gap="2xs" minWidth={0} flex={1}>
-              <Heading as="h3" size="md">
-                {chartHeaderTitle || title}
-              </Heading>
-              {chartHeaderMetadata ? (
-                <Text size="sm" variant="muted">
-                  {chartHeaderMetadata}
-                </Text>
+            <Text
+              data-test-id="query-cell-title"
+              size="md"
+              density="compressed"
+              align="center"
+              wrap="normal"
+              bold
+              tabular
+            >
+              {title}
+            </Text>
+          </QueryDisclosureTitle>
+        </QueryToolbar>
+        <QueryDisclosureContent>
+          {expanded ? (
+            <Stack
+              width="100%"
+              background="primary"
+              borderTop="primary"
+              padding="lg"
+              gap="lg"
+              data-test-id="query-cell-result"
+            >
+              {showQuery ? (
+                <Stack id={queryDetailsId} gap="md">
+                  {queries.map(query => (
+                    <Flex key={query} align="center" gap="md">
+                      <Text variant="muted">{t('Query:')}</Text>
+                      <Container
+                        border="primary"
+                        radius="md"
+                        padding="xs sm"
+                        minWidth={0}
+                      >
+                        <Text wordBreak="break-word">{query}</Text>
+                      </Container>
+                    </Flex>
+                  ))}
+                </Stack>
               ) : null}
-            </Stack>
-          </Flex>
-          <Container width="100%" overflow="hidden" padding={chart ? 'md lg' : '0'}>
-            <CellExecutionAlert block={block} />
-            {chart ? (
-              <ChartContent data={chart} showHeader={false} />
-            ) : output?.tableMarkdown ? (
-              <SeerMarkdown raw={output.tableMarkdown} components={{Table: FlushTable}} />
-            ) : (
-              <Container padding="md lg">
-                <CellProgress state={progressState} />
+              {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
+                <Stack gap="2xs" data-test-id="query-cell-header">
+                  {chartHeaderTitle && chartHeaderTitle !== title ? (
+                    <Heading as="h3" size="md">
+                      {chartHeaderTitle}
+                    </Heading>
+                  ) : null}
+                  {chartHeaderMetadata ? (
+                    <Text size="sm" variant="muted">
+                      {chartHeaderMetadata}
+                    </Text>
+                  ) : null}
+                </Stack>
+              ) : null}
+              <Container width="100%" overflow="hidden">
+                <CellExecutionAlert block={block} />
+                {chart ? (
+                  <ChartContent data={chart} showHeader={false} />
+                ) : output?.tableMarkdown ? (
+                  <SeerMarkdown
+                    raw={output.tableMarkdown}
+                    components={{Table: FlushTable}}
+                  />
+                ) : (
+                  <CellProgress state={progressState} />
+                )}
               </Container>
-            )}
-          </Container>
-        </Stack>
-      ) : null}
+            </Stack>
+          ) : null}
+        </QueryDisclosureContent>
+      </Disclosure>
     </CellHoverSurface>
   );
 }
@@ -1069,7 +1111,7 @@ function getTextOutput(output: unknown): string | null {
 type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
   'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
->;
+> & {queries: string[]};
 
 function getQueryOutput(output: unknown): RenderableQueryOutput | null {
   if (
@@ -1088,6 +1130,20 @@ function getQueryOutput(output: unknown): RenderableQueryOutput | null {
       : null;
   return {
     chart,
+    queries: [
+      ...new Set(
+        'queryLinks' in output && Array.isArray(output.queryLinks)
+          ? output.queryLinks.flatMap(link =>
+              isRecord(link) &&
+              isRecord(link.params) &&
+              typeof link.params.query === 'string' &&
+              link.params.query.trim()
+                ? [link.params.query.trim()]
+                : []
+            )
+          : []
+      ),
+    ],
     isEmpty: 'isEmpty' in output && output.isEmpty === true,
     preferredView: output.preferredView,
     tableMarkdown: output.tableMarkdown,
@@ -1153,11 +1209,35 @@ function getSeriesName(series: {label: string} | {name: string}) {
   return 'label' in series ? series.label : series.name;
 }
 
-const QueryDisclosureButton = styled(Button)`
-  flex: 1;
-  justify-content: flex-start;
-  padding-inline: ${p => p.theme.space.xs};
-  text-align: left;
+const QueryToolbar = styled(Container)`
+  &:hover {
+    background: ${p => p.theme.tokens.background.tertiary};
+  }
+
+  && > div {
+    padding: 0;
+    background: transparent;
+  }
+`;
+
+const QueryDisclosureTitle = styled(Disclosure.Title)`
+  && {
+    height: auto;
+    min-height: 0;
+    padding: 0;
+    gap: ${p => p.theme.space.xs};
+  }
+
+  > span > [aria-hidden] {
+    order: 1;
+    margin: 0;
+  }
+`;
+
+const QueryDisclosureContent = styled(Disclosure.Content)`
+  && {
+    padding: 0;
+  }
 `;
 
 const CellActions = styled(Flex)`
