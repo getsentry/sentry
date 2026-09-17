@@ -1,6 +1,5 @@
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
@@ -55,34 +54,44 @@ export function AddIntegrationButton({
   });
 
   return (
-    <Tooltip
-      disabled={provider.canAdd}
-      title={`Integration cannot be added on Sentry. Enable this integration via the ${provider.name} instance.`}
-    >
-      <Button
-        disabled={!provider.canAdd}
-        aria-label={t('Add integration')}
-        {...buttonProps}
-        onClick={() => {
-          if (label === t('Reinstall')) {
-            trackAnalytics('integrations.integration_reinstall_clicked', {
-              organization,
-              provider: provider.metadata.noun,
-            });
-          }
-          startFlow({
-            provider,
+    // aria-disabled rather than disabled so the button stays focusable and the
+    // tooltip that says why it cannot be added opens on keyboard focus.
+    <Button
+      aria-disabled={!provider.canAdd}
+      tooltipProps={
+        provider.canAdd
+          ? undefined
+          : {
+              title: t(
+                'Integration cannot be added on Sentry. Enable this integration via the %s instance.',
+                provider.name
+              ),
+            }
+      }
+      aria-label={t('Add integration')}
+      {...buttonProps}
+      onClick={() => {
+        if (!provider.canAdd) {
+          return;
+        }
+        if (label === t('Reinstall')) {
+          trackAnalytics('integrations.integration_reinstall_clicked', {
             organization,
-            onInstall: onAddIntegration,
-            analyticsParams,
-            suppressSuccessMessage,
-            onCancel,
-            onError,
+            provider: provider.metadata.noun,
           });
-        }}
-      >
-        {label}
-      </Button>
-    </Tooltip>
+        }
+        startFlow({
+          provider,
+          organization,
+          onInstall: onAddIntegration,
+          analyticsParams,
+          suppressSuccessMessage,
+          onCancel,
+          onError,
+        });
+      }}
+    >
+      {label}
+    </Button>
   );
 }
