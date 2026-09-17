@@ -32,6 +32,7 @@ import {
   IconOpen,
   IconSliders,
 } from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct, tn} from 'sentry/locale';
 import type {IntegrationProvider, Repository} from 'sentry/types/integrations';
 import {highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
@@ -202,7 +203,7 @@ function SingleInstallTableContent({
     <Panel role="region" aria-label={provider.name}>
       <TableHeader>
         <Flex align="center" gap="sm">
-          {getIntegrationIcon(provider.key, 'sm')}
+          {getScmIntegrationIcon(provider.key)}
           <Text bold>{provider.name}</Text>
           <Text variant="muted">/</Text>
           <IntegrationSummary installation={merged} />
@@ -235,7 +236,7 @@ function MultiInstallTable({
     <Panel role="region" aria-label={provider.name}>
       <TableHeader>
         <Flex align="center" gap="sm">
-          {getIntegrationIcon(provider.key, 'sm')}
+          {getScmIntegrationIcon(provider.key)}
           <Text bold>{provider.name}</Text>
         </Flex>
       </TableHeader>
@@ -385,10 +386,18 @@ function IntegrationSummary({installation}: {installation: ScmInstallation}) {
   const {integration} = installation;
   return (
     <Fragment>
-      {getIntegrationIcon(integration.provider.key, 'sm')}
+      {getScmIntegrationIcon(integration.provider.key)}
       <Text bold>{integration.name}</Text>
       {integration.status === 'disabled' && <Tag variant="warning">{t('Disabled')}</Tag>}
     </Fragment>
+  );
+}
+
+function getScmIntegrationIcon(providerKey: string) {
+  return providerKey === 'cursor_origin' ? (
+    <PluginIcon pluginId={providerKey} size={16} />
+  ) : (
+    getIntegrationIcon(providerKey, 'sm')
   );
 }
 

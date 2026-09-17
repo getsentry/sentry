@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {IconSeer} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationProvider, IntegrationWithConfig} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
@@ -42,7 +43,12 @@ export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
         provider.name
       ),
       textValue: provider.name,
-      leadingItems: getIntegrationIcon(provider.key, 'sm'),
+      leadingItems:
+        provider.key === 'cursor_origin' ? (
+          <PluginIcon pluginId={provider.key} size={16} />
+        ) : (
+          getIntegrationIcon(provider.key, 'sm')
+        ),
       disabled: !provider.canAdd,
       onAction: () =>
         startFlow({
