@@ -73,7 +73,13 @@ describe('ScmFeatureSelectionCards', () => {
     const errorMonitoringCard = screen.getByRole('checkbox', {
       name: /Error monitoring/,
     });
-    expect(errorMonitoringCard).toBeDisabled();
+    expect(errorMonitoringCard).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.tab();
+    expect(errorMonitoringCard).toHaveFocus();
+    expect(
+      await screen.findByText('Error monitoring is always enabled')
+    ).toBeInTheDocument();
 
     await userEvent.click(errorMonitoringCard);
     expect(onToggleFeature).not.toHaveBeenCalled();
@@ -119,9 +125,17 @@ describe('ScmFeatureSelectionCards', () => {
       />
     );
 
-    expect(screen.getByRole('checkbox', {name: /Session replay/})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: /Profiling/})).toBeDisabled();
-    expect(screen.getByRole('checkbox', {name: /Tracing/})).toBeEnabled();
+    expect(screen.getByRole('checkbox', {name: /Session replay/})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('checkbox', {name: /Profiling/})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('checkbox', {name: /Tracing/})).not.toHaveAttribute(
+      'aria-disabled'
+    );
   });
 
   it('error monitoring checkbox is always checked', () => {
