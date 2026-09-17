@@ -249,6 +249,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^extensions/jira-server/search/[^/]+/[^/]+/$'),
   new RegExp('^extensions/slack/link-identity/[^/]+/$'),
   new RegExp('^extensions/slack/unlink-identity/[^/]+/$'),
+  new RegExp('^extensions/cursor_origin/webhook/$'),
   new RegExp('^extensions/github/installation/[^/]+/$'),
   new RegExp('^extensions/github/search/[^/]+/[^/]+/$'),
   new RegExp('^extensions/gitlab/search/[^/]+/[^/]+/$'),

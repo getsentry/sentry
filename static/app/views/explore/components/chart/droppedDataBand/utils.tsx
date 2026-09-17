@@ -13,9 +13,7 @@ export interface AnnotationBucket {
   start: number;
 }
 
-// TODO: the way we paint + calculate severity will change once
-// https://github.com/getsentry/sentry/pull/124298 is merged, hence leaving
-// mildly untested.
+// TODO: severity logic may change
 function severityForCount(count: number, maxCount: number): number {
   if (count <= 0 || maxCount <= 0) {
     return 0;
@@ -28,7 +26,7 @@ function severityForCount(count: number, maxCount: number): number {
 }
 
 /**
- * Group annotations by their `(start, end)` time bucket, summing `droppedCount`
+ * Group annotations by their `(start, end)` time bucket, summing `eventCount`
  * into each bucket's `droppedTotal`, then assign every bucket a window-relative
  * `severity`.
  */
@@ -38,12 +36,12 @@ export function groupIntoBuckets(annotations: Annotation[]): AnnotationBucket[] 
     const key = `${annotation.start}-${annotation.end}`;
     const existing = byBucket.get(key);
     if (existing) {
-      existing.droppedTotal += annotation.droppedCount;
+      existing.droppedTotal += annotation.eventCount;
     } else {
       byBucket.set(key, {
         start: annotation.start,
         end: annotation.end,
-        droppedTotal: annotation.droppedCount,
+        droppedTotal: annotation.eventCount,
         severity: 0,
       });
     }

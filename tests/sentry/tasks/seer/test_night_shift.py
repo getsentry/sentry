@@ -119,7 +119,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["source"] == "cron"
         assert resolved["max_candidates"] == 8
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_org_overrides_apply_over_defaults(self) -> None:
         with self.options(
@@ -132,7 +133,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["max_candidates"] == 15
         # Unset org fields fall through to the global default.
-        assert resolved["intelligence_level"] == "high"
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_project_tweaks_override_org_overrides(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -1314,8 +1316,8 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             "source": "manual",
             "max_candidates": 3,
             "dry_run": True,
-            "intelligence_level": "high",
-            "reasoning_effort": "high",
+            "intelligence_level": "medium",
+            "reasoning_effort": "medium",
             "extra_triage_instructions": "",
         }
         assert kwargs["project_ids"] == [project.id]
@@ -1357,8 +1359,8 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
                 "source": "manual",
                 "max_candidates": 5,
                 "dry_run": True,
-                "intelligence_level": "high",
-                "reasoning_effort": "high",
+                "intelligence_level": "medium",
+                "reasoning_effort": "medium",
                 "extra_triage_instructions": "",
             },
             "target_project_ids": [project.id],

@@ -29,16 +29,15 @@ export const blockTagExtension: TokenizerExtension = {
   level: 'block',
   start(src: string): number | undefined {
     const idx = findTagStart(src);
-    if (idx === undefined) {
-      return undefined;
-    }
-    const lineStart = src.lastIndexOf('\n', idx) + 1;
-    if (/\S/.test(src.slice(lineStart, idx))) {
+    if (idx === undefined || !isAloneOnItsLine(src, idx)) {
       return undefined;
     }
     return idx;
   },
   tokenizer(src: string): Tokens.Generic | undefined {
+    if (!isAloneOnItsLine(src, 0)) {
+      return undefined;
+    }
     return tokenize(src, 'block');
   },
 };
@@ -73,6 +72,38 @@ function parseBody(body: string): unknown {
   } catch {
     return undefined;
   }
+}
+
+/**
+ * Whether the tag at `idx` is the only thing on its line.
+ *
+ * A tag alone on its line is a block; a tag sharing a line with prose belongs to that
+ * prose. Leading text was always disqualifying -- trailing text has to be too, or a
+ * sentence that merely *opens* with a reference ("{% issue %} is the urgent one") has its
+ * subject torn out into a full-width card, leaving the rest of the clause stranded
+ * underneath.
+ *
+ * List items are the case that made this matter, and they need no handling of their own:
+ * marked strips the `-` or `1.` marker before lexing an item's content, so a bullet that
+ * leads with a tag reaches here looking exactly like a paragraph that does, and gets the
+ * same answer.
+ */
+function isAloneOnItsLine(src: string, idx: number): boolean {
+  const lineStart = src.lastIndexOf('\n', idx) + 1;
+  if (/\S/.test(src.slice(lineStart, idx))) {
+    return false;
+  }
+
+  const rest = src.slice(idx);
+  const raw = (BLOCK_RE.exec(rest) ?? SELF_CLOSING_RE.exec(rest))?.[0];
+  if (raw === undefined) {
+    return false;
+  }
+
+  // A block tag's body may span lines; what matters is the line its closing tag ends on.
+  const after = src.slice(idx + raw.length);
+  const lineEnd = after.indexOf('\n');
+  return !/\S/.test(lineEnd === -1 ? after : after.slice(0, lineEnd));
 }
 
 function findTagStart(src: string): number | undefined {
