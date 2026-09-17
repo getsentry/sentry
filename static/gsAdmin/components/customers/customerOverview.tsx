@@ -689,12 +689,17 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
       DataCategory.SEER_SCANNER,
     ].includes(category);
 
-  const getTrialManagementActions = (
-    category: DataCategory,
-    apiName: string,
-    trialName: string,
-    isAdminOnly = false
-  ) => {
+  function TrialManagementActions({
+    category,
+    apiName,
+    trialName,
+    isAdminOnly = false,
+  }: {
+    apiName: string;
+    category: DataCategory;
+    trialName: string;
+    isAdminOnly?: boolean;
+  }) {
     const formattedApiName = upperFirst(apiName);
     const formattedTrialName = toTitleCase(trialName, {allowInnerUpperCase: true});
     const activeProductTrial = getActiveProductTrial(
@@ -820,7 +825,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         </Stack>
       </DetailLabel>
     );
-  };
+  }
 
   return (
     <DetailsContainer>
@@ -1034,22 +1039,30 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
                   category: categoryInfo.plural,
                   title: true,
                 });
-                return getTrialManagementActions(
-                  categoryInfo.plural,
-                  categoryInfo.plural,
-                  categoryName,
-                  !!categoryInfo.adminOnlyProductTrialFeature
+                return (
+                  <TrialManagementActions
+                    key={categoryInfo.plural}
+                    category={categoryInfo.plural}
+                    apiName={categoryInfo.plural}
+                    trialName={categoryName}
+                    isAdminOnly={!!categoryInfo.adminOnlyProductTrialFeature}
+                  />
                 );
               })}
               {productTrialAddOns.map(addOn => {
                 const category = getBilledCategory(customer, addOn.apiName);
                 if (category) {
-                  return getTrialManagementActions(
-                    category,
-                    addOn.apiName,
-                    addOn.apiName === AddOnCategory.LEGACY_SEER
-                      ? addOn.productName + ' (Legacy)'
-                      : addOn.productName
+                  return (
+                    <TrialManagementActions
+                      key={addOn.apiName}
+                      category={category}
+                      apiName={addOn.apiName}
+                      trialName={
+                        addOn.apiName === AddOnCategory.LEGACY_SEER
+                          ? addOn.productName + ' (Legacy)'
+                          : addOn.productName
+                      }
+                    />
                   );
                 }
                 return null;
