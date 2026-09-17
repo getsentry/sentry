@@ -76,7 +76,7 @@ describe('InvestigationHypotheses', () => {
         name: 'Database or cache degradation delayed the response',
       })
     ).toBeInTheDocument();
-    expect(screen.getByText('Supported · 86% Confidence')).toBeInTheDocument();
+    expect(screen.getByText('Supported')).toBeInTheDocument();
   });
 
   it('updates the completed check count as verification progresses', async () => {
@@ -334,9 +334,7 @@ describe('InvestigationHypotheses', () => {
     // A response that does carry the decision lands without a refetch. The
     // server only does that once Seer has applied the command; see the settled
     // run below for what happens in between.
-    expect(
-      await screen.findByText('Accepted by you · 86% Confidence')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
   });
 
   it('keeps re-reading a settled run until Seer applies an accepted command', async () => {
