@@ -179,7 +179,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         return
 
     prefetch_mode: SmartAssignmentPrefetchMode = (
-        "seer"
+        "prefetch"
         if in_rollout_group(
             "seer.smart_assignment.prefetch_rollout_rate",
             f"smart-assignment-prefetch:{group.id}",

@@ -77,9 +77,9 @@ class RecordPredictionScoringTest(ScoringTestBase):
         assert run.extras["hit_rank"] == 1
 
     @patch(METRICS_PATH)
-    def test_scoring_tags_seer_prefetch_cohort(self, mock_metrics: MagicMock) -> None:
+    def test_scoring_tags_prefetch_cohort(self, mock_metrics: MagicMock) -> None:
         user = self.create_user()
-        run = self._run(actual_assignee_user_id=user.id, prefetch_cohort="seer")
+        run = self._run(actual_assignee_user_id=user.id, prefetch_cohort="prefetch")
 
         record_prediction(run, [user.id], user.id)
 
@@ -87,7 +87,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
             mock_metrics,
             SmartAssignmentScore.EXACT,
             hit_rank=1,
-            prefetch_cohort="seer",
+            prefetch_cohort="prefetch",
         )
 
     @patch(METRICS_PATH)

@@ -24,7 +24,7 @@ from sentry.types.activity import ActivityType
 
 # SeerAgentRun.source, the key we dedup/look up runs by.
 SEER_FEATURE_ID = "smart_assignment"
-SmartAssignmentPrefetchMode = Literal["control", "seer"]
+SmartAssignmentPrefetchMode = Literal["control", "prefetch"]
 
 
 # Resolutions we treat as ground truth: a human resolving an issue is a signal for

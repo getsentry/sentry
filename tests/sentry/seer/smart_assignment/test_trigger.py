@@ -131,7 +131,7 @@ class TriggerSmartAssignmentTest(TestCase):
 
     @patch(CLIENT_PATH)
     @patch(ROLLOUT_PATH, return_value=True)
-    def test_dispatch_selects_seer_prefetch_cohort(
+    def test_dispatch_selects_prefetch_cohort(
         self,
         mock_rollout: MagicMock,
         mock_client_cls: MagicMock,
@@ -153,9 +153,9 @@ class TriggerSmartAssignmentTest(TestCase):
             f"smart-assignment-prefetch:{self.group.id}",
         )
         run_kwargs = mock_client_cls.return_value.start_feature_run.call_args.kwargs
-        assert run_kwargs["payload"]["prefetch_mode"] == "seer"
+        assert run_kwargs["payload"]["prefetch_mode"] == "prefetch"
         assert run_kwargs["flush"] is False
-        assert self._mirrors()[0].extras["prefetch_cohort"] == "seer"
+        assert self._mirrors()[0].extras["prefetch_cohort"] == "prefetch"
 
     @patch(CLIENT_PATH)
     @patch(ROLLOUT_PATH, return_value=False)

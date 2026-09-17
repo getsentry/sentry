@@ -112,7 +112,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
     @patch(METRICS_PATH)
     def test_records_run_duration_and_candidate_counts(self, mock_metrics: MagicMock) -> None:
         self.seer_run.update(last_triggered_at=timezone.now() - timedelta(seconds=30))
-        self.mirror.update(extras={**self.mirror.extras, "prefetch_cohort": "seer"})
+        self.mirror.update(extras={**self.mirror.extras, "prefetch_cohort": "prefetch"})
         alice = self.create_user(username="alice")
         self.create_member(user=alice, organization=self.organization)
 
@@ -128,20 +128,20 @@ class DeliverSmartAssignmentResultTest(TestCase):
         mock_metrics.distribution.assert_any_call(
             "smart_assignment.run.duration",
             ANY,
-            tags={"status": "completed", "prefetch_cohort": "seer"},
+            tags={"status": "completed", "prefetch_cohort": "prefetch"},
             unit="second",
             sample_rate=1.0,
         )
         mock_metrics.distribution.assert_any_call(
             "smart_assignment.prediction.candidates",
             2,
-            tags={"outcome": "resolved", "prefetch_cohort": "seer"},
+            tags={"outcome": "resolved", "prefetch_cohort": "prefetch"},
             sample_rate=1.0,
         )
         mock_metrics.distribution.assert_any_call(
             "smart_assignment.prediction.resolved_candidates",
             1,
-            tags={"outcome": "resolved", "prefetch_cohort": "seer"},
+            tags={"outcome": "resolved", "prefetch_cohort": "prefetch"},
             sample_rate=1.0,
         )
 
