@@ -104,10 +104,6 @@ Use the right AGENTS.md for the area you're working in:
 
 Workflow steering (commit, pre-commit, hybrid cloud, etc.) lives in **skills** (`.agents/skills/`). Attach or read the area `AGENTS.md` when working in that tree. Add or update guidance in the appropriate AGENTS.md or skill—do not duplicate long guidance in editor-specific rule files.
 
-## Viewer/Organization Context
-
-- Viewer identity is wired through the app via the `ViewerContext` contextvar; use `sentry.viewer_context.get_viewer_context()` instead of explicitly threading org/user identity when the current viewer is in scope.
-
 ## Agent Skills
 
 Skills under `.agents/skills/` should follow the same current-practice conventions as the rest of the repo:
@@ -119,12 +115,6 @@ Skills under `.agents/skills/` should follow the same current-practice conventio
 ## Feature Flags (FlagPole)
 
 New features should be gated behind a flag: register in `src/sentry/features/temporary.py`, check with `features.has(...)` (Python) or `organization.features.includes(...)` (frontend). For the full workflow (registration, `api_expose`, tests, rollout) → use the **`feature-flags`** skill, or see https://develop.sentry.dev/feature-flags/. Deleting a finished flag or option requires a fixed PR order across sentry and sentry-options-automator → use the **`remove-option-or-flag`** skill.
-
-## Redis TTLs
-
-**Every new Redis key sets a TTL, or is registered with Infrastructure Engineering as accepted durable data.** `CommonRedisCache.set` and `RedisKVStorage.set` raise `MissingTTL` rather than write a key with no expiry. There is no opt-out argument: the exemption is granted by Infrastructure Engineering, not at the callsite.
-
-Two things a "does this write set an expiry?" review will miss. A bare `SET`, `GETSET` or `SETEX` over an existing key clears the TTL it already had, while `SADD`, `ZADD`, `HSET`, `HINCRBY` and `INCR` leave it alone. And a TTL refreshed on every write is not a bound — shard by time window and give each shard a fixed TTL instead. Full rules: https://develop.sentry.dev/backend/application-domains/redis/.
 
 ## Customer Information
 
