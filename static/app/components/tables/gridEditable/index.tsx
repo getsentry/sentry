@@ -128,7 +128,7 @@ export function GridEditable<
     });
   };
 
-  function renderGridHead() {
+  const gridHead = (() => {
     const prependColumns = grid.renderPrependColumns
       ? grid.renderPrependColumns(true)
       : [];
@@ -163,7 +163,7 @@ export function GridEditable<
         })}
       </DataTable.Row>
     );
-  }
+  })();
 
   const renderGridBody = () => {
     if (error) {
@@ -255,7 +255,7 @@ export function GridEditable<
             prependColumnWidths={grid.prependColumnWidths}
             scrollable={scrollable}
           >
-            <DataTable.Head sticky={stickyHeader}>{renderGridHead()}</DataTable.Head>
+            <DataTable.Head sticky={stickyHeader}>{gridHead}</DataTable.Head>
             <Table.Body>{renderGridBody()}</Table.Body>
           </DataTable.Grid>
         </DataTable.Frame>

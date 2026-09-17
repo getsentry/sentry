@@ -523,7 +523,7 @@ export function StreamGroup({
     };
   };
 
-  const renderReprocessingColumns = () => {
+  const reprocessingColumns = (() => {
     const {statusDetails, count} = group as GroupReprocessing;
     const {info, pendingEvents} = statusDetails;
 
@@ -579,7 +579,7 @@ export function StreamGroup({
         </Container>
       </Fragment>
     );
-  };
+  })();
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
@@ -785,7 +785,7 @@ export function StreamGroup({
         </Container>
       )}
       {displayReprocessingLayout ? (
-        renderReprocessingColumns()
+        reprocessingColumns
       ) : (
         <Fragment>
           {withColumns.includes('event') && (

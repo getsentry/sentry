@@ -278,7 +278,7 @@ function SudoModal({
     }
   }, [api, ssoExpired]);
 
-  const renderModalContent = () => {
+  const modalContent = (() => {
     const isSelfHosted = ConfigStore.get('isSelfHosted');
     const validateSUForm = ConfigStore.get('validateSUForm');
     const header = (
@@ -467,9 +467,9 @@ function SudoModal({
         </Footer>
       </passwordForm.AppForm>
     );
-  };
+  })();
 
-  return renderModalContent();
+  return modalContent;
 }
 
 export default SudoModal;

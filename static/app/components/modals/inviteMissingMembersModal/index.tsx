@@ -104,7 +104,7 @@ export function InviteMissingMembersModal({
     return null;
   }
 
-  const renderStatusMessage = () => {
+  const statusMessage = (() => {
     if (sendingInvites) {
       return (
         <Flex gap="md" align="center">
@@ -138,7 +138,7 @@ export function InviteMissingMembersModal({
     }
 
     return null;
-  };
+  })();
 
   const sendMemberInvite = async (invite: MissingMemberInvite) => {
     const data = {
@@ -303,7 +303,7 @@ export function InviteMissingMembersModal({
         })}
       </StyledSimpleTable>
       <Flex justify="between">
-        <div>{renderStatusMessage()}</div>
+        <div>{statusMessage}</div>
         <Grid flow="column" align="center" gap="md">
           <Button
             size="sm"

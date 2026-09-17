@@ -71,7 +71,7 @@ export function DataRequests() {
     },
   });
 
-  const renderResults = () => {
+  const resultsContent = (() => {
     if (!results) {
       return null;
     }
@@ -143,7 +143,7 @@ export function DataRequests() {
         </Stack>
       </Stack>
     );
-  };
+  })();
 
   return (
     <Fragment>
@@ -208,7 +208,7 @@ export function DataRequests() {
         </Panel>
       </form.AppForm>
 
-      {isLoading ? <LoadingIndicator>Searching...</LoadingIndicator> : renderResults()}
+      {isLoading ? <LoadingIndicator>Searching...</LoadingIndicator> : resultsContent}
     </Fragment>
   );
 }

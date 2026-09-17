@@ -91,18 +91,15 @@ export function NotificationActionItem({
   const api = useApi();
   const organization = useOrganization();
 
-  const renderIcon = () => {
-    switch (serviceType) {
-      // Currently email and Sentry notification use the same icon
-      case NotificationActionService.EMAIL:
-      case NotificationActionService.SENTRY_NOTIFICATION:
-        return <IconMail size="sm" />;
-      default:
-        return <PluginIcon pluginId={serviceType ?? 'placeholder'} size={16} />;
-    }
-  };
+  const icon =
+    serviceType === NotificationActionService.EMAIL ||
+    serviceType === NotificationActionService.SENTRY_NOTIFICATION ? (
+      <IconMail size="sm" />
+    ) : (
+      <PluginIcon pluginId={serviceType ?? 'placeholder'} size={16} />
+    );
 
-  const renderDescription = () => {
+  const description = (() => {
     switch (serviceType) {
       case NotificationActionService.SENTRY_NOTIFICATION:
         return (
@@ -149,7 +146,7 @@ export function NotificationActionItem({
         // TODO(enterprise): descriptions for email, msteams, sentry_app
         return null;
     }
-  };
+  })();
 
   const handleDelete = async () => {
     const endpoint = `/organizations/${organization.slug}/notifications/actions/${action.id}/`;
@@ -216,7 +213,7 @@ export function NotificationActionItem({
   };
 
   // Edit button is located outside of the form
-  const renderEditButton = () => {
+  const editButton = (() => {
     const menuItems: MenuItemProps[] = [
       {
         key: 'notificationaction-delete',
@@ -260,7 +257,7 @@ export function NotificationActionItem({
         />
       </Tooltip>
     );
-  };
+  })();
 
   const getFormData = () => {
     if (editedAction.id) {
@@ -279,13 +276,13 @@ export function NotificationActionItem({
     };
   };
 
-  const renderNotificationActionForm = () => {
+  const notificationActionForm = (() => {
     switch (serviceType) {
       case NotificationActionService.SENTRY_NOTIFICATION:
         return (
           <Flex justify="between" width="100%">
             <Flex align="center" wrap="wrap" gap="xs">
-              {renderDescription()}
+              {description}
             </Flex>
             <Grid flow="column" align="center" gap="xs">
               <Button onClick={handleCancel} size="xs">
@@ -334,28 +331,28 @@ export function NotificationActionItem({
       default:
         return null;
     }
-  };
+  })();
 
   return (
     <StyledCard isEditing={isEditing} data-test-id="notification-action">
       {isEditing ? (
         <Flex align="center" width="100%" data-test-id={`${serviceType}-form`}>
           <Flex align="center" marginRight="md">
-            {renderIcon()}
+            {icon}
           </Flex>
-          {renderNotificationActionForm()}
+          {notificationActionForm}
         </Flex>
       ) : (
         <Fragment>
           <Flex align="center" width="100%" data-test-id={`${serviceType}-action`}>
             <Flex align="center" marginRight="md">
-              {renderIcon()}
+              {icon}
             </Flex>
             <Flex align="center" wrap="wrap" gap="xs">
-              {renderDescription()}
+              {description}
             </Flex>
           </Flex>
-          {renderEditButton()}
+          {editButton}
         </Fragment>
       )}
     </StyledCard>

@@ -15,7 +15,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
@@ -121,103 +121,93 @@ export function TransactionsTable(props: Props) {
     return headers;
   };
 
-  const renderRow = (
-    row: TableDataRow,
-    rowIndex: number,
-    colOrder: Array<TableColumn<string | number>>,
-    tableMeta: MetaType
-  ): React.ReactNode => {
-    const fields = eventView.getFields();
-
-    if (titles?.length) {
-      // Slice to match length of given titles
-      colOrder = colOrder.slice(0, titles.length);
-    }
-
-    const resultsRow = colOrder.map((column, index) => {
-      const field = String(column.key);
-      // TODO add a better abstraction for this in fieldRenderers.
-      const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
-      const fieldType = tableMeta[fieldName];
-
-      const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {navigate, organization, location, theme});
-
-      const target = generateLink?.[field]?.(organization, row, location);
-      const isEmptyTarget =
-        typeof target === 'object' && target !== null && isEmptyObject(target);
-
-      if (fields[index] === 'profile.id') {
-        rendered = (
-          <LinkButton
-            data-test-id={`view-${fields[index]}`}
-            disabled={!target || isEmptyTarget}
-            to={target || {}}
-            onClick={getProfileAnalyticsHandler(organization, referrer)}
-            size="xs"
-          >
-            <IconProfiling size="xs" />
-          </LinkButton>
-        );
-      } else if (target && !isEmptyTarget) {
-        if (fields[index] === 'replayId') {
-          rendered = (
-            <ViewReplayLink replayId={row.replayId!} to={target}>
-              {rendered}
-            </ViewReplayLink>
-          );
-        } else {
-          rendered = (
-            <Link data-test-id={`view-${fields[index]}`} to={target}>
-              {rendered}
-            </Link>
-          );
-        }
-      }
-
-      const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
-      const key = `${rowIndex}:${column.key}:${index}`;
-      rendered = isNumeric ? (
-        <GridCellNumber data-test-id="grid-cell">{rendered}</GridCellNumber>
-      ) : (
-        <GridCell data-test-id="grid-cell">{rendered}</GridCell>
-      );
-
-      if (handleCellAction) {
-        rendered = (
-          <CellAction
-            column={column}
-            dataRow={row}
-            handleCellAction={handleCellAction(column)}
-          >
-            {rendered}
-          </CellAction>
-        );
-      }
-
-      return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
-    });
-
-    return <SimpleTable.Row key={rowIndex}>{resultsRow}</SimpleTable.Row>;
-  };
-
   const renderResults = () => {
     const rows: React.ReactNode[] = [];
 
     if (isLoading) {
       return rows;
     }
-    if (!tableData?.meta || !tableData.data) {
+    const tableMeta = tableData?.meta;
+    const data = tableData?.data;
+    if (!tableMeta || !data) {
       return rows;
     }
 
-    tableData.data.forEach((row, i: number) => {
-      // Another check to appease tsc
-      if (!tableData.meta) {
-        return;
+    data.forEach((row, rowIndex: number) => {
+      const tableRow = row as TableDataRow;
+      const fields = eventView.getFields();
+      let colOrder = columnOrder;
+
+      if (titles?.length) {
+        // Slice to match length of given titles
+        colOrder = colOrder.slice(0, titles.length);
       }
-      // @ts-expect-error TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
-      rows.push(renderRow(row, i, columnOrder, tableData.meta, theme));
+
+      const resultsRow = colOrder.map((column, index) => {
+        const field = String(column.key);
+        // TODO add a better abstraction for this in fieldRenderers.
+        const fieldName = useAggregateAlias ? getAggregateAlias(field) : field;
+        const fieldType = tableMeta[fieldName];
+
+        const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
+        let rendered = fieldRenderer(tableRow, {navigate, organization, location, theme});
+
+        const target = generateLink?.[field]?.(organization, tableRow, location);
+        const isEmptyTarget =
+          typeof target === 'object' && target !== null && isEmptyObject(target);
+
+        if (fields[index] === 'profile.id') {
+          rendered = (
+            <LinkButton
+              data-test-id={`view-${fields[index]}`}
+              disabled={!target || isEmptyTarget}
+              to={target || {}}
+              onClick={getProfileAnalyticsHandler(organization, referrer)}
+              size="xs"
+            >
+              <IconProfiling size="xs" />
+            </LinkButton>
+          );
+        } else if (target && !isEmptyTarget) {
+          if (fields[index] === 'replayId') {
+            rendered = (
+              <ViewReplayLink replayId={tableRow.replayId!} to={target}>
+                {rendered}
+              </ViewReplayLink>
+            );
+          } else {
+            rendered = (
+              <Link data-test-id={`view-${fields[index]}`} to={target}>
+                {rendered}
+              </Link>
+            );
+          }
+        }
+
+        const isNumeric = ['integer', 'number', 'duration'].includes(fieldType);
+        const key = `${rowIndex}:${column.key}:${index}`;
+        rendered = isNumeric ? (
+          <GridCellNumber data-test-id="grid-cell">{rendered}</GridCellNumber>
+        ) : (
+          <GridCell data-test-id="grid-cell">{rendered}</GridCell>
+        );
+
+        if (handleCellAction) {
+          rendered = (
+            <CellAction
+              column={column}
+              dataRow={tableRow}
+              handleCellAction={handleCellAction(column)}
+            >
+              {rendered}
+            </CellAction>
+          );
+        }
+
+        return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
+      });
+
+      rows.push(<SimpleTable.Row key={rowIndex}>{resultsRow}</SimpleTable.Row>);
     });
     return rows;
   };

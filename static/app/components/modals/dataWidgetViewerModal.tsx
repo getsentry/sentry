@@ -543,7 +543,7 @@ function DataWidgetViewerModal(props: Props) {
     });
   };
 
-  function renderWidgetViewerTable() {
+  const widgetViewerTable = (() => {
     if (widget.displayType === DisplayType.AGENTS_TRACES_TABLE) {
       return (
         <AgentsTracesTableWidgetVisualization
@@ -611,7 +611,7 @@ function DataWidgetViewerModal(props: Props) {
           </WidgetQueries>
         );
     }
-  }
+  })();
 
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
@@ -634,160 +634,158 @@ function DataWidgetViewerModal(props: Props) {
     widget.displayType !== DisplayType.RAGE_AND_DEAD_CLICKS &&
     widget.displayType !== DisplayType.SERVER_TREE;
 
-  function renderWidgetViewer() {
-    return (
-      <Fragment>
-        {hasSessionDuration && SESSION_DURATION_ALERT}
-        {shouldRenderChartVisualization && (
-          <ChartContainer
-            height={
-              widget.displayType === DisplayType.BIG_NUMBER
-                ? BIG_NUMBER_HEIGHT
-                : HALF_CONTAINER_HEIGHT
-            }
-          >
-            {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
-              <VisualizationWidget
-                selection={modalSelection}
-                dashboardFilters={dashboardFilters}
-                widget={primaryWidget}
-                tableItemLimit={widget.limit ?? undefined}
-                onZoom={onZoom}
-                isFullScreen
-                showConfidenceWarning={
-                  widget.widgetType === WidgetType.SPANS ||
-                  widget.widgetType === WidgetType.TRACEMETRICS ||
-                  widget.widgetType === WidgetType.LOGS
-                }
-                widgetInterval={widgetInterval}
-              />
-            ) : (
-              <MemoizedWidgetCardChartContainer
-                api={api}
-                selection={modalSelection}
-                dashboardFilters={dashboardFilters}
-                // Top N charts rely on the orderby of the table
-                widget={primaryWidget}
-                tableItemLimit={widget.limit ?? undefined}
-                onZoom={onZoom}
-                onLegendSelectChanged={onLegendSelectChanged}
-                legendOptions={{
-                  selected: widgetLegendState.getWidgetSelectionState(widget),
-                }}
-                noPadding
-                widgetLegendState={widgetLegendState}
-                showConfidenceWarning={
-                  widget.widgetType === WidgetType.SPANS ||
-                  widget.widgetType === WidgetType.TRACEMETRICS ||
-                  widget.widgetType === WidgetType.LOGS
-                }
-                widgetInterval={widgetInterval}
-              />
-            )}
-          </ChartContainer>
-        )}
-        {widget.queries.length > 1 && (
-          <Alert.Container>
-            <Alert variant="info">
-              {t(
-                'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
-              )}
-            </Alert>
-          </Alert.Container>
-        )}
-        {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
-          <Container marginBottom="xl" position="relative">
-            <Select
-              value={selectedQueryIndex}
-              options={queryOptions}
-              onChange={(option: SelectValue<number>) => {
-                navigate(
-                  {
-                    pathname: location.pathname,
-                    query: {
-                      ...location.query,
-                      [WidgetViewerQueryField.QUERY]: option.value,
-                      [WidgetViewerQueryField.PAGE]: undefined,
-                      [WidgetViewerQueryField.CURSOR]: undefined,
-                    },
-                  },
-                  {replace: true}
-                );
-
-                trackAnalytics('dashboards_views.widget_viewer.select_query', {
-                  organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
-                  display_type: widget.displayType,
-                });
-              }}
-              components={{
-                // Replaces the displayed selected value
-                SingleValue: (containerProps: any) => {
-                  return (
-                    <components.SingleValue
-                      {...containerProps}
-                      // Overwrites some of the default styling that interferes with highlighted query text
-                      getStyles={() => ({
-                        wordBreak: 'break-word',
-                        flex: 1,
-                        display: 'flex',
-                        padding: `0 ${theme.space.xs}`,
-                      })}
-                    >
-                      {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
-                        display: 'block',
-                      }) ??
-                        (queryOptions[selectedQueryIndex]!.label || (
-                          <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                        ))}
-                    </components.SingleValue>
-                  );
-                },
-                // Replaces the dropdown options
-                Option: (containerProps: any) => {
-                  const highlightedQuery = containerProps.data.getHighlightedQuery({
-                    display: 'flex',
-                  });
-                  return (
-                    <SelectOption
-                      {...(highlightedQuery
-                        ? {
-                            ...containerProps,
-                            label: highlightedQuery,
-                          }
-                        : containerProps.label
-                          ? containerProps
-                          : {
-                              ...containerProps,
-                              label: (
-                                <EmptyQueryContainer>
-                                  {EMPTY_QUERY_NAME}
-                                </EmptyQueryContainer>
-                              ),
-                            })}
-                    />
-                  );
-                },
-                // Hide the dropdown indicator if there is only one option
-                ...(widget.queries.length < 2
-                  ? {IndicatorsContainer: (_: any) => null}
-                  : {}),
-              }}
-              isSearchable={false}
-              isDisabled={widget.queries.length < 2}
+  const widgetViewer = (
+    <Fragment>
+      {hasSessionDuration && SESSION_DURATION_ALERT}
+      {shouldRenderChartVisualization && (
+        <ChartContainer
+          height={
+            widget.displayType === DisplayType.BIG_NUMBER
+              ? BIG_NUMBER_HEIGHT
+              : HALF_CONTAINER_HEIGHT
+          }
+        >
+          {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+            <VisualizationWidget
+              selection={modalSelection}
+              dashboardFilters={dashboardFilters}
+              widget={primaryWidget}
+              tableItemLimit={widget.limit ?? undefined}
+              onZoom={onZoom}
+              isFullScreen
+              showConfidenceWarning={
+                widget.widgetType === WidgetType.SPANS ||
+                widget.widgetType === WidgetType.TRACEMETRICS ||
+                widget.widgetType === WidgetType.LOGS
+              }
+              widgetInterval={widgetInterval}
             />
-            {widget.queries.length === 1 && (
-              <StyledQuestionTooltip
-                title={t('To edit this query, you must edit the widget.')}
-                size="sm"
-              />
+          ) : (
+            <MemoizedWidgetCardChartContainer
+              api={api}
+              selection={modalSelection}
+              dashboardFilters={dashboardFilters}
+              // Top N charts rely on the orderby of the table
+              widget={primaryWidget}
+              tableItemLimit={widget.limit ?? undefined}
+              onZoom={onZoom}
+              onLegendSelectChanged={onLegendSelectChanged}
+              legendOptions={{
+                selected: widgetLegendState.getWidgetSelectionState(widget),
+              }}
+              noPadding
+              widgetLegendState={widgetLegendState}
+              showConfidenceWarning={
+                widget.widgetType === WidgetType.SPANS ||
+                widget.widgetType === WidgetType.TRACEMETRICS ||
+                widget.widgetType === WidgetType.LOGS
+              }
+              widgetInterval={widgetInterval}
+            />
+          )}
+        </ChartContainer>
+      )}
+      {widget.queries.length > 1 && (
+        <Alert.Container>
+          <Alert variant="info">
+            {t(
+              'This widget was built with multiple queries. Table data can only be displayed for one query at a time. To edit any of the queries, edit the widget.'
             )}
-          </Container>
-        )}
-        {shouldRenderTable && renderWidgetViewerTable()}
-      </Fragment>
-    );
-  }
+          </Alert>
+        </Alert.Container>
+      )}
+      {(widget.queries.length > 1 || widget.queries[0]!.conditions) && (
+        <Container marginBottom="xl" position="relative">
+          <Select
+            value={selectedQueryIndex}
+            options={queryOptions}
+            onChange={(option: SelectValue<number>) => {
+              navigate(
+                {
+                  pathname: location.pathname,
+                  query: {
+                    ...location.query,
+                    [WidgetViewerQueryField.QUERY]: option.value,
+                    [WidgetViewerQueryField.PAGE]: undefined,
+                    [WidgetViewerQueryField.CURSOR]: undefined,
+                  },
+                },
+                {replace: true}
+              );
+
+              trackAnalytics('dashboards_views.widget_viewer.select_query', {
+                organization,
+                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                display_type: widget.displayType,
+              });
+            }}
+            components={{
+              // Replaces the displayed selected value
+              SingleValue: (containerProps: any) => {
+                return (
+                  <components.SingleValue
+                    {...containerProps}
+                    // Overwrites some of the default styling that interferes with highlighted query text
+                    getStyles={() => ({
+                      wordBreak: 'break-word',
+                      flex: 1,
+                      display: 'flex',
+                      padding: `0 ${theme.space.xs}`,
+                    })}
+                  >
+                    {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
+                      display: 'block',
+                    }) ??
+                      (queryOptions[selectedQueryIndex]!.label || (
+                        <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
+                      ))}
+                  </components.SingleValue>
+                );
+              },
+              // Replaces the dropdown options
+              Option: (containerProps: any) => {
+                const highlightedQuery = containerProps.data.getHighlightedQuery({
+                  display: 'flex',
+                });
+                return (
+                  <SelectOption
+                    {...(highlightedQuery
+                      ? {
+                          ...containerProps,
+                          label: highlightedQuery,
+                        }
+                      : containerProps.label
+                        ? containerProps
+                        : {
+                            ...containerProps,
+                            label: (
+                              <EmptyQueryContainer>
+                                {EMPTY_QUERY_NAME}
+                              </EmptyQueryContainer>
+                            ),
+                          })}
+                  />
+                );
+              },
+              // Hide the dropdown indicator if there is only one option
+              ...(widget.queries.length < 2
+                ? {IndicatorsContainer: (_: any) => null}
+                : {}),
+            }}
+            isSearchable={false}
+            isDisabled={widget.queries.length < 2}
+          />
+          {widget.queries.length === 1 && (
+            <StyledQuestionTooltip
+              title={t('To edit this query, you must edit the widget.')}
+              size="sm"
+            />
+          )}
+        </Container>
+      )}
+      {shouldRenderTable && widgetViewerTable}
+    </Fragment>
+  );
 
   return (
     <Fragment>
@@ -816,7 +814,7 @@ function DataWidgetViewerModal(props: Props) {
                     )}
                   </Stack>
                 </Header>
-                <Body>{renderWidgetViewer()}</Body>
+                <Body>{widgetViewer}</Body>
                 <Footer>
                   <Flex align="center" justify="between" gap="md" flex="1">
                     {renderTotalResults(totalResults, widget.widgetType)}

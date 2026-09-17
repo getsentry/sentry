@@ -322,7 +322,7 @@ function ConfigureIntegration() {
     refetchIntegration();
   };
 
-  const getAction = () => {
+  const action = (() => {
     if (provider.key === 'pagerduty') {
       return (
         <PagerdutyAddServicesButton
@@ -346,10 +346,10 @@ function ConfigureIntegration() {
     }
 
     return null;
-  };
+  })();
 
   // TODO(Steve): Refactor components into separate tabs and use more generic tab logic
-  function renderMainTab() {
+  const mainTab = (() => {
     if (!provider || !integration) {
       return null;
     }
@@ -499,7 +499,7 @@ function ConfigureIntegration() {
         )}
       </Fragment>
     );
-  }
+  })();
 
   function renderTabContent() {
     if (!integration) {
@@ -509,20 +509,20 @@ function ConfigureIntegration() {
       case 'codeMappings':
         return <IntegrationCodeMappings integration={integration} />;
       case 'settings':
-        return renderMainTab();
+        return mainTab;
       case 'userMappings':
         return <IntegrationExternalUserMappings integration={integration} />;
       case 'teamMappings':
         return <IntegrationExternalTeamMappings integration={integration} />;
       default:
         unreachable(tab);
-        return renderMainTab();
+        return mainTab;
     }
   }
 
   function renderMainContent() {
     if (allTabs.length === 0) {
-      return renderMainTab();
+      return mainTab;
     }
 
     return (
@@ -543,7 +543,7 @@ function ConfigureIntegration() {
 
   return (
     <Fragment>
-      <IntegrationNavigationHeader integration={integration} action={getAction()} />
+      <IntegrationNavigationHeader integration={integration} action={action} />
       {renderMainContent()}
     </Fragment>
   );

@@ -5,7 +5,7 @@ import uniqBy from 'lodash/uniqBy';
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import type {CodeOwner, RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import type {CodeOwner} from 'sentry/types/integrations';
 
 type CodeOwnerErrorKeys = keyof CodeOwner['errors'];
 
@@ -86,67 +86,6 @@ export function CodeOwnerErrors({
     return uniqBy(owners, codeowner => JSON.stringify(codeowner.errors));
   }, [codeowners]);
 
-  const errMessage = (
-    codeMapping: RepositoryProjectPathConfig,
-    type: CodeOwnerErrorKeys,
-    values: string[]
-  ) => {
-    switch (type) {
-      case 'missing_external_teams':
-        return (
-          <ErrorMessage
-            message="There’s a problem linking teams and members from an integration"
-            values={values}
-            link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`}
-            linkValue="Configure Team Mappings"
-          />
-        );
-
-      case 'missing_external_users':
-        return (
-          <ErrorMessage
-            message={`The following usernames do not have an association in the organization: ${orgSlug}`}
-            values={values}
-            link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=userMappings`}
-            linkValue="Configure User Mappings"
-          />
-        );
-      case 'missing_user_emails':
-        return (
-          <ErrorMessage
-            message={`The following emails do not have an Sentry user in the organization: ${orgSlug}`}
-            values={values}
-            link={`/settings/${orgSlug}/members/`}
-            linkValue="Invite Users"
-          />
-        );
-
-      case 'teams_without_access':
-        return (
-          <ErrorMessageList
-            message={`The following teams do not have access to the project: ${projectSlug}`}
-            values={values}
-            linkFunction={value =>
-              `/settings/${orgSlug}/teams/${value.slice(1)}/projects/`
-            }
-            linkValueFunction={value => `Configure ${value} Permissions`}
-          />
-        );
-
-      case 'users_without_access':
-        return (
-          <ErrorMessageList
-            message={`The following users are not on a team that has access to the project: ${projectSlug}`}
-            values={values}
-            linkFunction={email => `/settings/${orgSlug}/members/?query=${email}`}
-            linkValueFunction={() => 'Configure Member Settings'}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <Fragment>
       {filteredCodeowners.map(({id, codeMapping, errors}) => {
@@ -164,11 +103,70 @@ export function CodeOwnerErrors({
               variant="danger"
               expand={
                 <AlertContentContainer key="container">
-                  {errorPairs.map(([type, values]) => (
-                    <ErrorContainer key={`${id}-${type}`}>
-                      {errMessage(codeMapping!, type, values)}
-                    </ErrorContainer>
-                  ))}
+                  {errorPairs.map(([type, values]) => {
+                    const errorMessage = (() => {
+                      switch (type) {
+                        case 'missing_external_teams':
+                          return (
+                            <ErrorMessage
+                              message="There’s a problem linking teams and members from an integration"
+                              values={values}
+                              link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`}
+                              linkValue="Configure Team Mappings"
+                            />
+                          );
+                        case 'missing_external_users':
+                          return (
+                            <ErrorMessage
+                              message={`The following usernames do not have an association in the organization: ${orgSlug}`}
+                              values={values}
+                              link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=userMappings`}
+                              linkValue="Configure User Mappings"
+                            />
+                          );
+                        case 'missing_user_emails':
+                          return (
+                            <ErrorMessage
+                              message={`The following emails do not have an Sentry user in the organization: ${orgSlug}`}
+                              values={values}
+                              link={`/settings/${orgSlug}/members/`}
+                              linkValue="Invite Users"
+                            />
+                          );
+                        case 'teams_without_access':
+                          return (
+                            <ErrorMessageList
+                              message={`The following teams do not have access to the project: ${projectSlug}`}
+                              values={values}
+                              linkFunction={value =>
+                                `/settings/${orgSlug}/teams/${value.slice(1)}/projects/`
+                              }
+                              linkValueFunction={value =>
+                                `Configure ${value} Permissions`
+                              }
+                            />
+                          );
+                        case 'users_without_access':
+                          return (
+                            <ErrorMessageList
+                              message={`The following users are not on a team that has access to the project: ${projectSlug}`}
+                              values={values}
+                              linkFunction={email =>
+                                `/settings/${orgSlug}/members/?query=${email}`
+                              }
+                              linkValueFunction={() => 'Configure Member Settings'}
+                            />
+                          );
+                        default:
+                          return null;
+                      }
+                    })();
+                    return (
+                      <ErrorContainer key={`${id}-${type}`}>
+                        {errorMessage}
+                      </ErrorContainer>
+                    );
+                  })}
                 </AlertContentContainer>
               }
             >

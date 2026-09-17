@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import {DragOverlay, useDraggable} from '@dnd-kit/core';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -119,56 +119,6 @@ export function AssertionOpGroup({
 
   const innerDroppableDisabled = !root && (isDragging || !!disableDropping);
 
-  const renderOp = (op: UptimeOp, index: number) => {
-    switch (op.op) {
-      case UptimeOpType.STATUS_CODE_CHECK:
-        return (
-          <AssertionOpStatusCode
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-      case UptimeOpType.JSON_PATH:
-        return (
-          <AssertionOpJsonPath
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-      case UptimeOpType.HEADER_CHECK:
-        return (
-          <AssertionOpHeader
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-          />
-        );
-      case UptimeOpType.AND:
-      case UptimeOpType.OR:
-      case UptimeOpType.NOT:
-        return (
-          <AssertionOpGroup
-            key={op.id}
-            value={op}
-            erroredOp={erroredOp}
-            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
-            onRemove={() => handleRemoveChild(index)}
-            disableDropping={innerDroppableDisabled}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   const opList = groupOp.children.map((child, index) => {
     const dropProps = {
       disabled: innerDroppableDisabled,
@@ -176,11 +126,63 @@ export function AssertionOpGroup({
       idIndex: index,
       op: child,
     };
+    let renderedOp: ReactNode;
+    switch (child.op) {
+      case UptimeOpType.STATUS_CODE_CHECK:
+        renderedOp = (
+          <AssertionOpStatusCode
+            key={child.id}
+            value={child}
+            erroredOp={erroredOp}
+            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
+            onRemove={() => handleRemoveChild(index)}
+          />
+        );
+        break;
+      case UptimeOpType.JSON_PATH:
+        renderedOp = (
+          <AssertionOpJsonPath
+            key={child.id}
+            value={child}
+            erroredOp={erroredOp}
+            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
+            onRemove={() => handleRemoveChild(index)}
+          />
+        );
+        break;
+      case UptimeOpType.HEADER_CHECK:
+        renderedOp = (
+          <AssertionOpHeader
+            key={child.id}
+            value={child}
+            erroredOp={erroredOp}
+            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
+            onRemove={() => handleRemoveChild(index)}
+          />
+        );
+        break;
+      case UptimeOpType.AND:
+      case UptimeOpType.OR:
+      case UptimeOpType.NOT:
+        renderedOp = (
+          <AssertionOpGroup
+            key={child.id}
+            value={child}
+            erroredOp={erroredOp}
+            onChange={updatedOp => handleUpdateChild(index, updatedOp)}
+            onRemove={() => handleRemoveChild(index)}
+            disableDropping={innerDroppableDisabled}
+          />
+        );
+        break;
+      default:
+        renderedOp = null;
+    }
 
     return (
       <Container position="relative" key={child.id}>
         <DroppableHitbox {...dropProps} position="before" />
-        {renderOp(child, index)}
+        {renderedOp}
         <DroppableHitbox {...dropProps} position="after" />
       </Container>
     );

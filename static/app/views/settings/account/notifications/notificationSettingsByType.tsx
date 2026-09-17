@@ -401,7 +401,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     });
   };
 
-  const renderDefaultField = () => {
+  const defaultField = (() => {
     const fieldDef =
       NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType];
     if (!fieldDef?.choices) {
@@ -433,7 +433,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
         )}
       </AutoSaveForm>
     );
-  };
+  })();
 
   return (
     <Fragment>
@@ -448,7 +448,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
               : t('All Organizations')
           }
         >
-          {notificationType === 'quota' ? renderQuotaFields() : renderDefaultField()}
+          {notificationType === 'quota' ? renderQuotaFields() : defaultField}
         </FieldGroup>
       )}
       {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (

@@ -144,41 +144,27 @@ export default function DataDownload() {
     }
   };
 
-  const renderDate = (date: string | undefined): React.ReactNode => {
-    if (!date) {
-      return null;
-    }
-    const d = new Date(date);
-    return (
-      <strong>
-        <DateTime date={d} />
-      </strong>
-    );
-  };
+  const early = (
+    <Fragment>
+      <Header>
+        <h3>
+          {t('What are')}
+          <i>{t(' you ')}</i>
+          {t('doing here?')}
+        </h3>
+      </Header>
+      <Body>
+        <p>
+          {t(
+            "Not that its any of our business, but were you invited to this page? It's just that we don't exactly remember emailing you about it."
+          )}
+        </p>
+        <p>{t("Close this window and we'll email you when your download is ready.")}</p>
+      </Body>
+    </Fragment>
+  );
 
-  const renderEarly = (): React.ReactNode => {
-    return (
-      <Fragment>
-        <Header>
-          <h3>
-            {t('What are')}
-            <i>{t(' you ')}</i>
-            {t('doing here?')}
-          </h3>
-        </Header>
-        <Body>
-          <p>
-            {t(
-              "Not that its any of our business, but were you invited to this page? It's just that we don't exactly remember emailing you about it."
-            )}
-          </p>
-          <p>{t("Close this window and we'll email you when your download is ready.")}</p>
-        </Body>
-      </Fragment>
-    );
-  };
-
-  const renderExpired = (): React.ReactNode => {
+  const expired = (() => {
     const {query} = download;
     let actionLink: string;
 
@@ -213,7 +199,7 @@ export default function DataDownload() {
         </Body>
       </Fragment>
     );
-  };
+  })();
 
   const openInDiscover = () => {
     const {
@@ -300,7 +286,7 @@ export default function DataDownload() {
     navigate(normalizeUrl(to));
   };
 
-  const renderOpenInButton = () => {
+  const openInButton = (() => {
     const {query} = download;
 
     // default to IssuesByTag because we don't want to
@@ -327,9 +313,9 @@ export default function DataDownload() {
         <br />
       </Fragment>
     ) : null;
-  };
+  })();
 
-  const renderValid = (): React.ReactNode => {
+  const valid = (() => {
     const {dateExpired, checksum, export_format} = download;
     const exportFormatLabel = export_format?.toUpperCase() ?? 'CSV';
 
@@ -350,9 +336,13 @@ export default function DataDownload() {
           <p>
             {t("That link won't last forever — it expires:")}
             <br />
-            {renderDate(dateExpired)}
+            {dateExpired ? (
+              <strong>
+                <DateTime date={new Date(dateExpired)} />
+              </strong>
+            ) : null}
           </p>
-          {renderOpenInButton()}
+          {openInButton}
           <p>
             <small>
               <strong>SHA1:{checksum}</strong>
@@ -373,23 +363,19 @@ export default function DataDownload() {
         </Body>
       </Fragment>
     );
-  };
+  })();
 
-  const renderContent = () => {
-    switch (download.status) {
-      case DownloadStatus.EARLY:
-        return renderEarly();
-      case DownloadStatus.EXPIRED:
-        return renderExpired();
-      default:
-        return renderValid();
-    }
-  };
+  const content =
+    download.status === DownloadStatus.EARLY
+      ? early
+      : download.status === DownloadStatus.EXPIRED
+        ? expired
+        : valid;
 
   return (
     <SentryDocumentTitle title={t('Download Center')}>
       <Layout>
-        <main>{renderContent()}</main>
+        <main>{content}</main>
       </Layout>
     </SentryDocumentTitle>
   );

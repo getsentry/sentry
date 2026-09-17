@@ -161,7 +161,7 @@ export function ResolveActions({
     });
   }
 
-  function renderDropdownMenu() {
+  const dropdownMenu = (() => {
     const shouldDisplayCta = !hasRelease && !multipleProjectsSelected;
     const actionTitle = shouldDisplayCta
       ? t('Set up release tracking in order to use this feature.')
@@ -282,7 +282,7 @@ export function ResolveActions({
         isDisabled={isDisabled}
       />
     );
-  }
+  })();
 
   function openCustomCommitModal() {
     openModal(deps => (
@@ -337,7 +337,7 @@ export function ResolveActions({
         >
           {t('Resolve')}
         </Button>
-        {!disableResolveInRelease && renderDropdownMenu()}
+        {!disableResolveInRelease && dropdownMenu}
       </ButtonBar>
     </Tooltip>
   );

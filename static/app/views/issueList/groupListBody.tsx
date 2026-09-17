@@ -198,34 +198,32 @@ function GroupList({
     [groupIds, supergroupLookup, hasTopIssuesUI]
   );
 
-  const renderStreamGroup = (id: string, columns: GroupListColumn[]) => {
-    const group = GroupStore.get(id) as Group | undefined;
-    if (!group) {
-      return null;
-    }
-    return (
-      <StreamGroup
-        key={id}
-        group={group}
-        statsPeriod={groupStatsPeriod}
-        query={query}
-        hasGuideAnchor={id === topIssue}
-        memberList={group.project ? memberList?.get(group.project.slug) : undefined}
-        displayReprocessingLayout={displayReprocessingLayout}
-        useFilteredStats
-        canSelect={!selectDisabled}
-        onPriorityChange={priority => onActionTaken([id], {priority})}
-        withColumns={columns}
-        progressState={showProgress ? (group.derivedData?.progress ?? null) : undefined}
-      />
-    );
-  };
-
   return (
     <PanelBody>
       {renderItems.map(item => {
         if (item.type === 'issue') {
-          return renderStreamGroup(item.id, withColumns);
+          const group = GroupStore.get(item.id) as Group | undefined;
+          if (!group) {
+            return null;
+          }
+          return (
+            <StreamGroup
+              key={item.id}
+              group={group}
+              statsPeriod={groupStatsPeriod}
+              query={query}
+              hasGuideAnchor={item.id === topIssue}
+              memberList={group.project ? memberList?.get(group.project.slug) : undefined}
+              displayReprocessingLayout={displayReprocessingLayout}
+              useFilteredStats
+              canSelect={!selectDisabled}
+              onPriorityChange={priority => onActionTaken([item.id], {priority})}
+              withColumns={withColumns}
+              progressState={
+                showProgress ? (group.derivedData?.progress ?? null) : undefined
+              }
+            />
+          );
         }
 
         const {supergroup, matchingIds} = item;

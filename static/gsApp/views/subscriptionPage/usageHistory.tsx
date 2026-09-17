@@ -135,11 +135,12 @@ function UsageHistoryRow({history}: RowProps) {
   const [expanded, setExpanded] = useState(history.isCurrent);
   const {projects, onSearch: onProjectSearch} = useProjects();
 
-  function renderOnDemandUsage({
-    sortedCategories,
-  }: {
-    sortedCategories: BillingMetricHistory[];
-  }) {
+  const {categories} = history;
+
+  // Only display categories with billing metric history
+  const sortedCategories = sortCategories(categories);
+
+  const onDemandUsage = (() => {
     if (!history.onDemandMaxSpend) {
       return null;
     }
@@ -208,12 +209,7 @@ function UsageHistoryRow({history}: RowProps) {
         </tbody>
       </HistoryTable>
     );
-  }
-
-  const {categories} = history;
-
-  // Only display categories with billing metric history
-  const sortedCategories = sortCategories(categories);
+  })();
 
   const hasGifts = Object.values(DataCategory).some(c => {
     return !!categories[c]?.free;
@@ -346,7 +342,7 @@ function UsageHistoryRow({history}: RowProps) {
                 ))}
             </tbody>
           </HistoryTable>
-          {renderOnDemandUsage({sortedCategories})}
+          {onDemandUsage}
         </Container>
       )}
     </StyledPanelItem>

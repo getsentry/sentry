@@ -60,22 +60,19 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     })
   );
 
-  function getRepoLink() {
-    const orgSlug = organization.slug;
-    return (
-      <ConnectRepo>
-        <h5>{t('Releases are better with commit data!')}</h5>
-        <p>
-          {t(
-            'Connect a repository to see commit info, files changed, and authors involved in future releases.'
-          )}
-        </p>
-        <LinkButton to={`/settings/${orgSlug}/repos/`} variant="primary">
-          {t('Connect a repository')}
-        </LinkButton>
-      </ConnectRepo>
-    );
-  }
+  const repoLink = (
+    <ConnectRepo>
+      <h5>{t('Releases are better with commit data!')}</h5>
+      <p>
+        {t(
+          'Connect a repository to see commit info, files changed, and authors involved in future releases.'
+        )}
+      </p>
+      <LinkButton to={`/settings/${organization.slug}/repos/`} variant="primary">
+        {t('Connect a repository')}
+      </LinkButton>
+    </ConnectRepo>
+  );
 
   const authors = useMemo(
     () =>
@@ -90,7 +87,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     [release?.authors]
   );
 
-  function getBody() {
+  const body = (() => {
     if (release === undefined || !defined(deploys)) {
       return null;
     }
@@ -159,7 +156,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
         )}
       </Stack>
     );
-  }
+  })();
 
   const loading = isDeploysLoading || isReleaseLoading || isRepositoriesLoading;
   const error = isDeploysError ?? isReleaseError ?? isRepositoriesError;
@@ -176,7 +173,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     return <LoadingError />;
   }
 
-  return hasRepos && release ? getBody() : getRepoLink();
+  return hasRepos && release ? body : repoLink;
 }
 
 interface Props extends React.ComponentProps<typeof Hovercard>, BodyProps {}

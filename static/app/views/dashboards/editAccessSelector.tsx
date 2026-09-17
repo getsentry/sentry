@@ -135,7 +135,7 @@ export function EditAccessSelector({
   }
 
   // Creates tooltip for the + bubble in avatar list
-  const renderCollapsedAvatarTooltip = () => {
+  const collapsedAvatarTooltip = (() => {
     const permissions = getDashboardPermissions();
     if (permissions.teamsWithEditAccess.length > 1) {
       return (
@@ -157,12 +157,12 @@ export function EditAccessSelector({
       );
     }
     return null;
-  };
+  })();
 
   const renderCollapsedAvatars = (_avatarSize: number, numCollapsedAvatars: number) => {
     return (
       <Tooltip
-        title={renderCollapsedAvatarTooltip()}
+        title={collapsedAvatarTooltip}
         overlayStyle={{
           pointerEvents: 'auto',
           zIndex: 1000,

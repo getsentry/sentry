@@ -64,25 +64,22 @@ export function Version({
     releaseDetailProjectId = projectId;
   }
 
-  const renderVersion = () => {
-    if (anchor && organization?.slug) {
-      const to = makeReleaseDrawerPathname({
-        location,
-        release: version,
-        projectId: releaseDetailProjectId,
-        source: 'release-version-link',
-      });
-
-      return (
-        <Link to={to} className={className}>
-          <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
-            {versionToDisplay}
-          </VersionText>
-        </Link>
-      );
-    }
-
-    return (
+  const versionContent =
+    anchor && organization?.slug ? (
+      <Link
+        to={makeReleaseDrawerPathname({
+          location,
+          release: version,
+          projectId: releaseDetailProjectId,
+          source: 'release-version-link',
+        })}
+        className={className}
+      >
+        <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
+          {versionToDisplay}
+        </VersionText>
+      </Link>
+    ) : (
       <VersionText
         className={className}
         truncate={truncate}
@@ -91,9 +88,8 @@ export function Version({
         {versionToDisplay}
       </VersionText>
     );
-  };
 
-  const renderTooltipContent = () => (
+  const tooltipContent = (
     <Flex as="span" align="center">
       <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
       <CopyToClipboardButton
@@ -107,12 +103,12 @@ export function Version({
 
   return (
     <Tooltip
-      title={renderTooltipContent()}
+      title={tooltipContent}
       disabled={!tooltipRawVersion}
       containerDisplayMode={truncate ? 'block' : 'inline-block'}
       maxWidth={isHashVersion ? undefined : 400}
     >
-      {renderVersion()}
+      {versionContent}
     </Tooltip>
   );
 }

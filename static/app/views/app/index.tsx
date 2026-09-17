@@ -164,51 +164,31 @@ export function App() {
   const beaconConsentPrompt =
     user?.isSuperuser && config.isSelfHosted && config.shouldShowBeaconConsentPrompt;
 
-  function renderBody() {
-    if (displayInstallWizard) {
-      return (
-        <Suspense fallback={null}>
-          <InstallWizard onConfigured={clearUpgrade} />
-        </Suspense>
-      );
-    }
-
-    if (beaconConsentPrompt) {
-      return (
-        <Suspense fallback={null}>
-          <BeaconConsent onSubmitSuccess={clearBeaconConsentPrompt} />
-        </Suspense>
-      );
-    }
-
-    if (partnershipAgreementPrompt) {
-      return (
-        <Suspense fallback={null}>
-          <Override
-            name="component:partnership-agreement"
-            partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
-            agreements={partnershipAgreementPrompt.agreements}
-            onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)}
-            organizationSlug={config.customerDomain?.subdomain}
-          />
-        </Suspense>
-      );
-    }
-
-    if (newsletterConsentPrompt) {
-      return (
-        <Suspense fallback={null}>
-          <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
-        </Suspense>
-      );
-    }
-
-    if (!isOrgSlugValid) {
-      return null;
-    }
-
-    return <Outlet />;
-  }
+  const body = displayInstallWizard ? (
+    <Suspense fallback={null}>
+      <InstallWizard onConfigured={clearUpgrade} />
+    </Suspense>
+  ) : beaconConsentPrompt ? (
+    <Suspense fallback={null}>
+      <BeaconConsent onSubmitSuccess={clearBeaconConsentPrompt} />
+    </Suspense>
+  ) : partnershipAgreementPrompt ? (
+    <Suspense fallback={null}>
+      <Override
+        name="component:partnership-agreement"
+        partnerDisplayName={partnershipAgreementPrompt.partnerDisplayName}
+        agreements={partnershipAgreementPrompt.agreements}
+        onSubmitSuccess={() => ConfigStore.set('partnershipAgreementPrompt', null)}
+        organizationSlug={config.customerDomain?.subdomain}
+      />
+    </Suspense>
+  ) : newsletterConsentPrompt ? (
+    <Suspense fallback={null}>
+      <NewsletterConsent onSubmitSuccess={clearNewsletterConsent} />
+    </Suspense>
+  ) : isOrgSlugValid ? (
+    <Outlet />
+  ) : null;
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
@@ -217,7 +197,7 @@ export function App() {
           <AppAlerts />
           <GlobalModal />
           <Override name="component:replay-init" />
-          <ErrorBoundary>{renderBody()}</ErrorBoundary>
+          <ErrorBoundary>{body}</ErrorBoundary>
         </MainContainer>
       </AppProviders>
     </Profiler>

@@ -11,7 +11,6 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import type {FormModel} from 'sentry/components/forms/model';
 import type {Data, OnSubmitCallback} from 'sentry/components/forms/types';
-import type {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {ANNUAL} from 'getsentry/constants';
@@ -51,30 +50,6 @@ export function PlanList({
   tierPlans,
   onPlanChange,
 }: Props) {
-  /**
-   * Helper to get current value display for a category
-   */
-  const getCurrentValueDisplay = (category: DataCategory) => {
-    // Check if categories exist
-    if (subscription.categories) {
-      // Get the category data using type assertion to allow string indexing
-      const categories = subscription.categories as Record<string, {reserved?: number}>;
-
-      if (categories[category]?.reserved !== undefined) {
-        const reservedValue = categories[category].reserved;
-
-        return (
-          <CurrentValueText>
-            Current: {reservedValue.toLocaleString()}{' '}
-            {isByteCategory(category) ? 'GB' : ''}
-          </CurrentValueText>
-        );
-      }
-    }
-
-    return <CurrentValueText>Current: None</CurrentValueText>;
-  };
-
   const availableAddOns = useMemo(
     () =>
       Object.values(activePlan?.addOnCategories || {})
@@ -153,7 +128,20 @@ export function PlanList({
                   ? `${titleCategory} (GB)`
                   : titleCategory;
                 const fieldValue = formModel.getValue(reservedKey);
-                const currentValueDisplay = getCurrentValueDisplay(category);
+                const reservedValue = (
+                  subscription.categories as
+                    | Record<string, {reserved?: number}>
+                    | undefined
+                )?.[category]?.reserved;
+                const currentValueDisplay =
+                  reservedValue === undefined ? (
+                    <CurrentValueText>Current: None</CurrentValueText>
+                  ) : (
+                    <CurrentValueText>
+                      Current: {reservedValue.toLocaleString()}{' '}
+                      {isByteCategory(category) ? 'GB' : ''}
+                    </CurrentValueText>
+                  );
                 return (
                   <Container position="relative" key={`test-${category}`}>
                     <SelectField

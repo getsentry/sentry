@@ -511,7 +511,7 @@ export function EventsChart(props: EventsChartProps) {
 
   const intervalVal = showDaily ? '1d' : interval || getInterval(props, 'high');
 
-  let chartImplementation = ({
+  function ChartImplementation({
     zoomRenderProps,
     releaseSeries,
     errored,
@@ -523,7 +523,7 @@ export function EventsChart(props: EventsChartProps) {
     timeframe,
     tableData,
     timeseriesResultsTypes,
-  }: ChartDataProps) => {
+  }: ChartDataProps) {
     if (errored) {
       return (
         <ErrorPanel>
@@ -575,11 +575,10 @@ export function EventsChart(props: EventsChartProps) {
         />
       </TransitionChart>
     );
-  };
+  }
 
-  if (!disableReleases) {
-    const previousChart = chartImplementation;
-    chartImplementation = chartProps => (
+  function ChartWithReleases(chartProps: ChartDataProps) {
+    return (
       <ReleaseSeries
         utc={utc}
         period={period}
@@ -591,10 +590,14 @@ export function EventsChart(props: EventsChartProps) {
         preserveQueryParams={preserveReleaseQueryParams}
         queryExtra={releaseQueryExtra}
       >
-        {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
+        {({releaseSeries}) => (
+          <ChartImplementation {...chartProps} releaseSeries={releaseSeries} />
+        )}
       </ReleaseSeries>
     );
   }
+
+  const EventChart = disableReleases ? ChartImplementation : ChartWithReleases;
 
   return (
     <ChartZoom
@@ -629,12 +632,7 @@ export function EventsChart(props: EventsChartProps) {
             partial
             dataset={dataset}
           >
-            {eventData => {
-              return chartImplementation({
-                ...eventData,
-                zoomRenderProps,
-              });
-            }}
+            {eventData => <EventChart {...eventData} zoomRenderProps={zoomRenderProps} />}
           </EventsRequest>
         );
       }}

@@ -917,37 +917,31 @@ export function ResultGrid({
       )
     : columns;
 
-  function renderLoading() {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
-        </td>
-      </tr>
-    );
-  }
+  const loading = (
+    <tr>
+      <td colSpan={effectiveColumns.length}>
+        <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+      </td>
+    </tr>
+  );
 
-  function renderError() {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <ErrorAlert variant="danger" showIcon>
-            Something bad happened :/
-          </ErrorAlert>
-        </td>
-      </tr>
-    );
-  }
+  const error = (
+    <tr>
+      <td colSpan={effectiveColumns.length}>
+        <ErrorAlert variant="danger" showIcon>
+          Something bad happened :/
+        </ErrorAlert>
+      </td>
+    </tr>
+  );
 
-  function renderNoResults() {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <EmptyMessage>No results</EmptyMessage>
-        </td>
-      </tr>
-    );
-  }
+  const noResults = (
+    <tr>
+      <td colSpan={effectiveColumns.length}>
+        <EmptyMessage>No results</EmptyMessage>
+      </td>
+    </tr>
+  );
 
   function renderResults() {
     const regionIndex = allRegions ? clampedRegionIndex : -1;
@@ -999,7 +993,7 @@ export function ResultGrid({
 
   function renderBody() {
     if (results.error) {
-      return renderError();
+      return error;
     }
     // Rows render as regions respond. The "still updating" signal lives outside
     // the body, so rows never shift while regions trickle in, and "No results"
@@ -1009,20 +1003,20 @@ export function ResultGrid({
         return renderResults();
       }
       if (results.loading || results.pendingRegions.length > 0) {
-        return renderLoading();
+        return loading;
       }
-      return renderNoResults();
+      return noResults;
     }
     if (results.loading) {
-      return renderLoading();
+      return loading;
     }
     if (results.rows.length === 0) {
-      return renderNoResults();
+      return noResults;
     }
     return renderResults();
   }
 
-  function renderRegionHint() {
+  const regionHint = (() => {
     // The all-regions mode already shows every region's results.
     if (allRegions) {
       return null;
@@ -1082,7 +1076,7 @@ export function ResultGrid({
         </Flex>
       </RegionHintAlert>
     );
-  }
+  })();
 
   const resultTable = (
     <TableScrollWrapper>
@@ -1227,7 +1221,7 @@ export function ResultGrid({
         )}
         {statusNote}
       </SortSearchForm>
-      {renderRegionHint()}
+      {regionHint}
       {table}
       {hasPagination && results.pageLinks && (
         <StyledPagination

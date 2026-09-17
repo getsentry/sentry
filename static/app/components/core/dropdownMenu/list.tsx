@@ -147,64 +147,6 @@ export function DropdownMenuList({
     [menuProps, hasFocus]
   );
 
-  // Render a single menu item
-  const renderItem = (node: Node<MenuItemProps>) => {
-    return (
-      <DropdownMenuItem
-        node={node}
-        state={state}
-        onClose={onClose}
-        closeOnSelect={closeOnSelect}
-      />
-    );
-  };
-
-  // Render a submenu whose trigger button is a menu item
-  const renderItemWithSubmenu = (node: Node<MenuItemProps>) => {
-    if (!node.value?.children) {
-      return null;
-    }
-
-    const submenuConfig = node.value.submenu;
-    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
-
-    const trigger = (triggerProps: any) => (
-      <DropdownMenuItem
-        renderAs="div"
-        node={node}
-        state={state}
-        closeOnSelect={false}
-        {...omit(triggerProps, [
-          'onClick',
-          'onDragStart',
-          'onKeyDown',
-          'onKeyUp',
-          'onMouseDown',
-          'onPointerDown',
-          'onPointerUp',
-        ])}
-      />
-    );
-
-    return (
-      <DropdownMenu
-        isOpen={state.selectionManager.isSelected(node.key)}
-        items={node.value.children}
-        trigger={trigger}
-        onClose={onClose}
-        closeOnSelect={closeOnSelect}
-        disableTextSelection={disableTextSelection}
-        menuTitle={submenuOptions.title}
-        shouldCloseOnBlur={false}
-        preventOverflowOptions={{boundary: document.body, altAxis: true}}
-        renderWrapAs="li"
-        position={submenuOptions.position ?? 'right-start'}
-        offset={-4}
-        size={size}
-      />
-    );
-  };
-
   // Render a collection of menu items
   const renderCollection = (collection: Array<Node<MenuItemProps>>) =>
     collection.map((node, i) => {
@@ -220,10 +162,56 @@ export function DropdownMenuList({
             {renderCollection([...node.childNodes])}
           </DropdownMenuSection>
         );
+      } else if (node.value?.submenu) {
+        if (node.value.children) {
+          const submenuConfig = node.value.submenu;
+          const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
+          const trigger = (triggerProps: any) => (
+            <DropdownMenuItem
+              renderAs="div"
+              node={node}
+              state={state}
+              closeOnSelect={false}
+              {...omit(triggerProps, [
+                'onClick',
+                'onDragStart',
+                'onKeyDown',
+                'onKeyUp',
+                'onMouseDown',
+                'onPointerDown',
+                'onPointerUp',
+              ])}
+            />
+          );
+          itemToRender = (
+            <DropdownMenu
+              isOpen={state.selectionManager.isSelected(node.key)}
+              items={node.value.children}
+              trigger={trigger}
+              onClose={onClose}
+              closeOnSelect={closeOnSelect}
+              disableTextSelection={disableTextSelection}
+              menuTitle={submenuOptions.title}
+              shouldCloseOnBlur={false}
+              preventOverflowOptions={{boundary: document.body, altAxis: true}}
+              renderWrapAs="li"
+              position={submenuOptions.position ?? 'right-start'}
+              offset={-4}
+              size={size}
+            />
+          );
+        } else {
+          itemToRender = null;
+        }
       } else {
-        itemToRender = node.value?.submenu
-          ? renderItemWithSubmenu(node)
-          : renderItem(node);
+        itemToRender = (
+          <DropdownMenuItem
+            node={node}
+            state={state}
+            onClose={onClose}
+            closeOnSelect={closeOnSelect}
+          />
+        );
       }
 
       return (
