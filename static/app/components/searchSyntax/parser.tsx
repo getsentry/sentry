@@ -78,6 +78,7 @@ export enum TermOperator {
   LESS_THAN = '<',
   EQUAL = '=',
   NOT_EQUAL = '!=',
+
   // NOTE: These wildcard operators are internal implementation details and
   // should not be included in product docs. Users should use `*` instead.
   CONTAINS = '\uF00DContains\uF00D',
@@ -86,6 +87,9 @@ export enum TermOperator {
   DOES_NOT_START_WITH = '\uF00DDoesNotStartWith\uF00D',
   ENDS_WITH = '\uF00DEndsWith\uF00D',
   DOES_NOT_END_WITH = '\uF00DDoesNotEndWith\uF00D',
+
+  MATCHES = '\uF00DMatches\uF00D',
+  DOES_NOT_MATCH = '\uF00DDoesNotMatch\uF00D',
 }
 
 /**
@@ -133,6 +137,7 @@ export enum WildcardOperators {
   CONTAINS = '\uF00DContains\uF00D',
   STARTS_WITH = '\uF00DStartsWith\uF00D',
   ENDS_WITH = '\uF00DEndsWith\uF00D',
+  MATCHES = '\uF00DMatches\uF00D',
 }
 
 const basicOperators = [TermOperator.DEFAULT, TermOperator.NOT_EQUAL] as const;
@@ -156,11 +161,21 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
+// Kept out of `wildcardOperators` because everything in that list is treated as
+// wildcard matching, which rewrites or escapes the value.
+export const regexOperators = [
+  TermOperator.MATCHES,
+  TermOperator.DOES_NOT_MATCH,
+] as const;
+
+export type RegexOperator = (typeof regexOperators)[number];
+
 export const negationOperators: readonly TermOperator[] = [
   TermOperator.NOT_EQUAL,
   TermOperator.DOES_NOT_CONTAIN,
   TermOperator.DOES_NOT_START_WITH,
   TermOperator.DOES_NOT_END_WITH,
+  TermOperator.DOES_NOT_MATCH,
 ];
 
 /**
@@ -202,13 +217,13 @@ const arrayIncludesKeys = [Token.KEY_ARRAY_INCLUDES] as const;
 export const filterTypeConfig = {
   [FilterType.TEXT]: {
     validKeys: textKeys,
-    validOps: [...basicOperators, ...wildcardOperators],
+    validOps: [...basicOperators, ...wildcardOperators, ...regexOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
   [FilterType.TEXT_IN]: {
     validKeys: textKeys,
-    validOps: [...basicOperators, ...wildcardOperators],
+    validOps: [...basicOperators, ...wildcardOperators, ...regexOperators],
     validValues: [Token.VALUE_TEXT_LIST],
     canNegate: true,
   },

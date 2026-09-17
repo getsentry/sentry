@@ -101,9 +101,11 @@ export function getOperatorInfo({
   filterToken,
   fieldDefinition,
   disallowNegation,
+  allowRegexOperators,
 }: {
   fieldDefinition: FieldDefinition | null;
   filterToken: TokenResult<Token.FILTER>;
+  allowRegexOperators?: boolean;
   disallowNegation?: boolean;
 }): {
   label: ReactNode;
@@ -247,7 +249,11 @@ export function getOperatorInfo({
 
   const keyLabel = filterToken.key.text;
 
-  const validOps = getValidOpsForFilter({filterToken, fieldDefinition});
+  const validOps = getValidOpsForFilter({
+    filterToken,
+    fieldDefinition,
+    allowRegexOperators,
+  });
 
   return {
     operator,
@@ -270,8 +276,14 @@ export function getOperatorInfo({
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
   const {dispatch, query, focusOverride} = useSearchQueryBuilderState();
-  const {searchSource, recentSearches, disabled, disallowNegation, getFieldDefinition} =
-    useSearchQueryBuilderConfig();
+  const {
+    allowRegexOperators,
+    searchSource,
+    recentSearches,
+    disabled,
+    disallowNegation,
+    getFieldDefinition,
+  } = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
   const {focusWithinProps} = useFocusWithin({});
 
@@ -281,8 +293,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
         filterToken: token,
         fieldDefinition: getFieldDefinition(token.key.text),
         disallowNegation,
+        allowRegexOperators,
       }),
-    [token, getFieldDefinition, disallowNegation]
+    [token, getFieldDefinition, disallowNegation, allowRegexOperators]
   );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;

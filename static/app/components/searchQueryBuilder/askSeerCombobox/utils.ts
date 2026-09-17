@@ -403,6 +403,11 @@ const FILTER_PHRASES: ReadonlyArray<{
     phrase: 'does not end with',
     esq: (k, v) => `!${k}:${WildcardOperators.ENDS_WITH}${v}`,
   },
+  {
+    phrase: 'does not match regex',
+    esq: (k, v) => `!${k}:${WildcardOperators.MATCHES}${v}`,
+  },
+  {phrase: 'matches regex', esq: (k, v) => `${k}:${WildcardOperators.MATCHES}${v}`},
   {phrase: 'contains', esq: (k, v) => `${k}:${WildcardOperators.CONTAINS}${v}`},
   {phrase: 'starts with', esq: (k, v) => `${k}:${WildcardOperators.STARTS_WITH}${v}`},
   {phrase: 'ends with', esq: (k, v) => `${k}:${WildcardOperators.ENDS_WITH}${v}`},

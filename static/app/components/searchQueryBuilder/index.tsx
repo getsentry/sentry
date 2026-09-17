@@ -71,6 +71,12 @@ export interface SearchQueryBuilderProps {
    */
   searchSource: string;
   /**
+   * When true, the regex operators ("matches regex", "does not match regex") are
+   * offered for string filters, and their values are treated as patterns rather
+   * than literals.
+   */
+  allowRegexOperators?: boolean;
+  /**
    * Query key used to scope async filter key metadata. When omitted, metadata is
    * scoped to this query builder instance.
    */

@@ -237,6 +237,8 @@ function parseToFlatTokens(query: string): Token[] {
           wildcard = WildcardOperators.STARTS_WITH;
         } else if (t.operator === TermOperator.ENDS_WITH) {
           wildcard = WildcardOperators.ENDS_WITH;
+        } else if (t.operator === TermOperator.MATCHES) {
+          wildcard = WildcardOperators.MATCHES;
         }
 
         tokens.push({

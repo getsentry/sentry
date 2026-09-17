@@ -8341,6 +8341,108 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('regex operators', () => {
+    it('does not offer the regex operators when allowRegexOperators is not set', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+
+      expect(screen.getByRole('option', {name: 'contains'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'matches regex'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: 'does not match regex'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('applies the matches regex operator when it is selected', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+
+      const editOpBtn = screen.getByRole('button', {
+        name: 'Edit operator for filter: browser.name',
+      });
+
+      expect(
+        screen.getByRole('row', {
+          name: `browser.name:${WildcardOperators.MATCHES}firefox`,
+        })
+      ).toBeInTheDocument();
+      expect(within(editOpBtn).getByText('matches regex')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          `browser.name:${WildcardOperators.MATCHES}firefox`,
+          expect.anything()
+        );
+      });
+    });
+
+    it('applies the does not match regex operator as a negated filter', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'does not match regex'}));
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          `!browser.name:${WildcardOperators.MATCHES}firefox`,
+          expect.anything()
+        );
+      });
+    });
+
+    it('commits a typed pattern without escaping asterisks or splitting on commas', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery={`browser.name:${WildcardOperators.MATCHES}firefox`}
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.keyboard('{Control>}a{/Control}.*foo{{1,2}{enter}');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          `browser.name:${WildcardOperators.MATCHES}".*foo{1,2}"`,
+          expect.anything()
+        );
+      });
+    });
+  });
+
   describe('async filter keys (getTagKeys)', () => {
     const asyncTags = [
       {key: 'async_tag_one', name: 'Async Tag One', kind: FieldKind.TAG},
