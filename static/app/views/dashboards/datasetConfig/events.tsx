@@ -4,15 +4,9 @@ import {Link} from '@sentry/scraps/link';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
@@ -23,10 +17,9 @@ import type {
   RenderFunctionBaggage,
 } from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {
   eventsAggregateFunctionOutputType,
-  getAggregateAlias,
   isEquation,
   isLegalYAxisType,
   parseFunction,
@@ -259,26 +252,6 @@ export function filterYAxisOptions(displayType: DisplayType) {
 
     return option.value.kind === FieldValueKind.FUNCTION;
   };
-}
-
-// Get the series result type from the EventsStats meta
-export function getSeriesResultType(
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
-  widgetQuery: WidgetQuery
-): Record<string, AggregationOutputType> {
-  const field = widgetQuery.aggregates[0]!;
-  const resultTypes = {};
-  // Need to use getAggregateAlias since events-stats still uses aggregate alias format
-  if (isMultiSeriesStats(data)) {
-    Object.keys(data).forEach(
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      key => (resultTypes[key] = data[key]!.meta?.fields[getAggregateAlias(key)])
-    );
-  } else {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    resultTypes[field] = data.meta?.fields[getAggregateAlias(field)];
-  }
-  return resultTypes;
 }
 
 export function renderEventIdAsLinkable(
