@@ -1,5 +1,6 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
@@ -9,8 +10,66 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
+
+
+@django_db_all
+@pytest.mark.parametrize("finalized_order", [False, True], ids=["flag-off", "flag-on"])
+@pytest.mark.parametrize(
+    "activity_data, expected_data",
+    [
+        pytest.param(None, {"version": "next"}, id="null-data"),
+        pytest.param(
+            {"version": "", "current_release_version": "anchor"},
+            {"version": "next", "current_release_version": "anchor"},
+            id="existing-metadata",
+        ),
+    ],
+)
+def test_activity_preserves_resolution_metadata(
+    factories: Factories,
+    default_group: Group,
+    finalized_order: bool,
+    activity_data: dict[str, str] | None,
+    expected_data: dict[str, str],
+) -> None:
+    now = timezone.now()
+    project = default_group.project
+    anchor = factories.create_release(
+        project=project, version="anchor", date_added=now - timedelta(days=3)
+    )
+    resolution = factories.create_group_resolution(
+        group=default_group,
+        release=anchor,
+        current_release_version=anchor.version,
+        type=GroupResolution.Type.in_next_release,
+        status=GroupResolution.Status.pending,
+    )
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        activity = Activity.objects.create_group_activity(
+            default_group,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+            ident=resolution.id,
+            data={"version": ""},
+        )
+    # Existing activity rows can have null data.
+    activity.update(data=activity_data)
+    next_release = factories.create_release(
+        project=project, version="next", date_added=now - timedelta(days=1)
+    )
+
+    with Feature({"organizations:release-resolution-finalized-order": finalized_order}):
+        clear_expired_resolutions(next_release.id)
+
+    activity.refresh_from_db()
+    assert activity.data == expected_data
+    resolution.refresh_from_db()
+    assert resolution.release_id == next_release.id
+    assert resolution.type == GroupResolution.Type.in_release
+    assert resolution.status == GroupResolution.Status.resolved
 
 
 class ClearExpiredResolutionsTest(TestCase):
@@ -217,19 +276,3 @@ class FinalizedResolutionTaskTest(TestCase):
         clear_expired_resolutions(next_release.id)
         self.resolution.refresh_from_db()
         assert self.resolution.release_id == next_release.id
-
-    def test_activity_preserves_resolution_metadata(self) -> None:
-        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
-            activity = Activity.objects.create_group_activity(
-                self.group,
-                ActivityType.SET_RESOLVED_IN_RELEASE,
-                ident=self.resolution.id,
-                data={"version": "", "current_release_version": self.anchor.version},
-            )
-        next_release = self.create_release(version="next", date_added=self.now - timedelta(days=1))
-        clear_expired_resolutions(next_release.id)
-        activity.refresh_from_db()
-        assert activity.data == {
-            "version": next_release.version,
-            "current_release_version": self.anchor.version,
-        }

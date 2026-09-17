@@ -119,4 +119,4 @@ def _update_resolution_activities(resolutions: Sequence[GroupResolution], releas
             continue
 
         # TODO: Do we need to write a `GroupHistory` row here?
-        activity.update(data={**activity.data, "version": release.version})
+        activity.update(data={**(activity.data or {}), "version": release.version})
