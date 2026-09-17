@@ -105,7 +105,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       usedWidth += children[i]!.getBoundingClientRect().width;
 
       const remainingItems = children.length - i - 1;
-      const reservedSpace = remainingItems > 0 ? triggerWidth + outerGap : 0;
+      const reservedSpace = outerGap + (remainingItems > 0 ? triggerWidth : 0);
 
       if (usedWidth > wrapperWidth - reservedSpace) {
         newOverflowIndex = i;
@@ -160,7 +160,10 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       align="center"
       gap={OUTER_GAP}
       wrap="nowrap"
-      style={{height: theme.form.xs.height}}
+      // Without inline-size containment, the legend's contents can widen
+      // ancestors, so each overflow result changes the measured width and the
+      // legend oscillates between overflowing and clipping its last item.
+      style={{height: theme.form.xs.height, contain: 'inline-size'}}
     >
       <Flex
         ref={containerRef}
