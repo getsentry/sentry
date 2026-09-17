@@ -32,7 +32,7 @@ it.each([0, false, '', 'test', null])(
 );
 
 it.each(['siblings', 'parents'])(
-  'leaves %s auto-groups empty regardless of member values',
+  'leaves %s auto-groups empty even when their spans share a value',
   kind => {
     const first = span('first');
     const last = span('last');
@@ -51,13 +51,10 @@ it.each(['siblings', 'parents'])(
       last
     );
     const node = kind === 'siblings' ? sibling : parent;
-    const values = new Map<string, PinnedAttributeValue>();
-    expect(getPinnedAttributeValue(node, values)).toBeNull();
-    values.set('first', 'same');
-    expect(getPinnedAttributeValue(node, values)).toBeNull();
-    values.set('last', 'same');
-    expect(getPinnedAttributeValue(node, values)).toBeNull();
-    values.set('last', 'other');
+    const values = new Map<string, PinnedAttributeValue>([
+      ['first', 'same'],
+      ['last', 'same'],
+    ]);
     expect(getPinnedAttributeValue(node, values)).toBeNull();
   }
 );

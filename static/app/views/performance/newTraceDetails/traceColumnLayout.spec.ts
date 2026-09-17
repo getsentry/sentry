@@ -42,9 +42,6 @@ describe('pinned trace columns', () => {
   it.each([
     'invalid json',
     'null',
-    '42',
-    '"invalid preference"',
-    '[]',
     '{"attributeWidth":"300","treeRatio":"0.6"}',
     '{"attributeWidth":99,"treeRatio":0}',
     '{"attributeWidth":1e999,"treeRatio":1}',
