@@ -4,8 +4,10 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Tagged} from 'type-fest';
 
-// eslint-disable-next-line @sentry/no-relative-import-paths
-import {baseAvatarStyles, type BaseAvatarStyleProps} from '../avatarComponentStyles';
+import {
+  baseAvatarStyles,
+  type BaseAvatarStyleProps,
+} from '@sentry/scraps/avatar/avatarComponentStyles';
 
 export interface LetterAvatarProps
   extends React.HTMLAttributes<SVGSVGElement>, BaseAvatarStyleProps {
