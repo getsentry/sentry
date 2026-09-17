@@ -335,4 +335,5 @@ class ExploreSavedQuerySerializer(serializers.Serializer):
             "project_ids": data["projects"],
             "query": query,
             "dataset": ExploreSavedQueryDataset.get_id_for_type_name(data["dataset"]),
+            "starred": data["starred"],
         }

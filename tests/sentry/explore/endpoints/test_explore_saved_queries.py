@@ -870,13 +870,13 @@ class ExploreSavedQueriesTest(APITestCase):
             )
 
         assert response.status_code == 201, response.content
-        assert response.data["starred"] is True
         assert ExploreSavedQueryStarred.objects.filter(
             organization=self.org,
             user_id=self.user.id,
             explore_saved_query_id=response.data["id"],
             starred=True,
         ).exists()
+        assert response.data["starred"] is True
 
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):

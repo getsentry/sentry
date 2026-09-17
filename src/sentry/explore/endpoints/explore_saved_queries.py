@@ -577,4 +577,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
-        return Response(serialize(model, serializer=ExploreSavedQueryModelSerializer()), status=201)
+        return Response(
+            serialize(model, request.user, serializer=ExploreSavedQueryModelSerializer()),
+            status=201,
+        )
