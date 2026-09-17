@@ -89,11 +89,7 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        <Tag variant="muted">
-          {data.mode === 'aggregate' ? t('Aggregate') : t('Logs')}
-        </Tag>
-      }
+      badge={data.mode === 'aggregate' ? null : <Tag variant="muted">{t('Logs')}</Tag>}
       href={getLogsQueryHref(data, organization)}
       icon={IconList}
       linkLabel={t('View Logs')}

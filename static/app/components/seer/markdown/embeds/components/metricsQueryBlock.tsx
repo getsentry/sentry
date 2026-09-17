@@ -86,11 +86,7 @@ export default function MetricsQueryBlock({data}: {data: MetricsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        <Tag variant="muted">
-          {data.mode === 'aggregate' ? t('Aggregate') : t('Samples')}
-        </Tag>
-      }
+      badge={data.mode === 'aggregate' ? null : <Tag variant="muted">{t('Samples')}</Tag>}
       href={getMetricsQueryHref(data, organization)}
       icon={IconGraph}
       linkLabel={t('View Metrics')}

@@ -77,7 +77,7 @@ export default function ErrorsQueryBlock({data}: {data: ErrorsQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={<Tag variant="muted">{isAggregate ? t('Aggregate') : t('Events')}</Tag>}
+      badge={isAggregate ? null : <Tag variant="muted">{t('Events')}</Tag>}
       href={getErrorsQueryHref(eventView, organization)}
       icon={IconSearch}
       linkLabel={t('View Errors')}
