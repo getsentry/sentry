@@ -786,8 +786,7 @@ const config = defineConfig({
     'unicorn/no-negation-in-equality-check': 'error',
     'unicorn/no-new-array': 'error',
     'unicorn/no-new-buffer': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/no-single-promise-in-promise-methods': 'warn',
+    'unicorn/no-single-promise-in-promise-methods': 'error',
     'unicorn/no-typeof-undefined': 'error',
     'unicorn/no-unnecessary-await': 'error',
     'unicorn/no-unreadable-iife': 'error',
