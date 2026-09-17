@@ -64,13 +64,8 @@ function MobileBuildDetectorForm({detector}: {detector?: PreprodDetector}) {
   const initialValues = detector
     ? preprodSavedDetectorToFormData(detector)
     : {...commonValues, ...PREPROD_DEFAULT_FORM_DATA};
-  const onError = (error: unknown): void => {
-    if (error instanceof RequestError) {
-      setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values));
-    }
-  };
-  const submitCreate = useSubmitCreateDetector({onError});
-  const submitEdit = useSubmitEditDetector({onError});
+  const submitCreate = useSubmitCreateDetector();
+  const submitEdit = useSubmitEditDetector();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: initialValues,
@@ -93,14 +88,22 @@ function MobileBuildDetectorForm({detector}: {detector?: PreprodDetector}) {
         return;
       }
       const payload = preprodFormDataToEndpointPayload(value);
+      const onError = (error: unknown) => {
+        if (error instanceof RequestError) {
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+        }
+      };
       return detector
-        ? submitEdit({detectorId: detector.id, ...payload})
-        : submitCreate(payload);
+        ? submitEdit({detectorId: detector.id, ...payload}, {onError})
+        : submitCreate(payload, {onError});
     },
   });
   const projectId = useStore(form.store, state => state.values.projectId);
   const project = useDetectorProject(projectId);
-  const canEdit = useCanEditDetector({projectId, detectorType: 'preprod_size_analysis'});
+  const canEdit = useCanEditDetector({
+    projectId,
+    detectorType: 'preprod_size_analysis',
+  });
   return (
     <EditLayout>
       <form.AppForm form={form}>

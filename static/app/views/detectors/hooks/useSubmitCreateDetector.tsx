@@ -3,10 +3,7 @@ import {useCallback} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
-import type {
-  BaseDetectorUpdatePayload,
-  Detector,
-} from 'sentry/types/workflowEngine/detectors';
+import type {BaseDetectorUpdatePayload} from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -15,18 +12,14 @@ import {getDetectorAnalyticsPayload} from 'sentry/views/detectors/components/for
 import {useCreateDetector} from 'sentry/views/detectors/hooks';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
-export function useSubmitCreateDetector({
-  onError,
-  onSuccess,
-}: {
-  onError?: (error: unknown) => void;
-  onSuccess?: (detector: Detector) => void;
-} = {}) {
+type SubmitOptions = {onError?: (error: unknown) => void};
+
+export function useSubmitCreateDetector() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {mutateAsync: createDetector} = useCreateDetector();
   return useCallback(
-    async (payload: BaseDetectorUpdatePayload) => {
+    async (payload: BaseDetectorUpdatePayload, {onError}: SubmitOptions = {}) => {
       try {
         const detector = await createDetector(payload);
         trackAnalytics('monitor.created', {
@@ -35,11 +28,7 @@ export function useSubmitCreateDetector({
           success: true,
         });
         addSuccessMessage(t('Monitor created'));
-        if (onSuccess) {
-          onSuccess(detector);
-        } else {
-          navigate(makeMonitorDetailsPathname(organization.slug, detector.id));
-        }
+        navigate(makeMonitorDetailsPathname(organization.slug, detector.id));
         return detector;
       } catch (error) {
         trackAnalytics('monitor.created', {
@@ -56,6 +45,6 @@ export function useSubmitCreateDetector({
         return;
       }
     },
-    [createDetector, organization, navigate, onSuccess, onError]
+    [createDetector, organization, navigate]
   );
 }

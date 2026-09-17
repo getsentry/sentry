@@ -3,10 +3,7 @@ import {useCallback} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
-import type {
-  BaseDetectorUpdatePayload,
-  Detector,
-} from 'sentry/types/workflowEngine/detectors';
+import type {BaseDetectorUpdatePayload} from 'sentry/types/workflowEngine/detectors';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -17,26 +14,20 @@ import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 
 type UpdatePayload = {detectorId: string} & Partial<BaseDetectorUpdatePayload>;
 
-interface UseSubmitEditDetectorOptions<TDetector extends Detector> {
-  onError?: (error: unknown) => void;
-  onSuccess?: (detector: TDetector) => void;
-}
+type SubmitOptions = {onError?: (error: unknown) => void};
 
 /**
  * Handles the common submission logic for edit detector forms:
  * submitting the payload, tracking analytics, showing indicators,
  * and navigating to the detector details page.
  */
-export function useSubmitEditDetector<TDetector extends Detector>({
-  onSuccess,
-  onError,
-}: UseSubmitEditDetectorOptions<TDetector> = {}) {
+export function useSubmitEditDetector() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {mutateAsync: updateDetector} = useUpdateDetector();
 
   return useCallback(
-    async (payload: UpdatePayload) => {
+    async (payload: UpdatePayload, {onError}: SubmitOptions = {}) => {
       try {
         const resultDetector = await updateDetector(payload);
 
@@ -47,11 +38,7 @@ export function useSubmitEditDetector<TDetector extends Detector>({
 
         addSuccessMessage(t('Monitor updated'));
 
-        if (onSuccess) {
-          onSuccess(resultDetector as TDetector);
-        } else {
-          navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
-        }
+        navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 
         return resultDetector;
       } catch (error) {
@@ -64,6 +51,6 @@ export function useSubmitEditDetector<TDetector extends Detector>({
         return;
       }
     },
-    [updateDetector, organization, navigate, onSuccess, onError]
+    [updateDetector, organization, navigate]
   );
 }
