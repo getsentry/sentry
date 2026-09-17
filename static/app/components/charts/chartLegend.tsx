@@ -204,7 +204,6 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
         onChange={handleOverflowSelectChange}
         position="bottom-end"
         size="xs"
-        menuWidth={MENU_WIDTH}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
@@ -250,22 +249,6 @@ const OUTER_GAP: SpaceSize = 'xs';
 const INNER_GAP: SpaceSize = 'md';
 
 const MAX_LABEL_WIDTH = 180;
-
-/**
- * Width of the overflow menu, in the same family as `MAX_LABEL_WIDTH` so a
- * series name reads the same in the menu as it does in the row.
- *
- * Sizing the menu to its content is what CW-2052 reported: series names can run
- * to a sentence, and a menu that grows to fit them is wider than the chart it
- * belongs to. Popper anchors it to the trigger's right edge, so the excess
- * hangs off to the left, past the chart, and whatever the chart sits in --
- * a Seer embed card, a dashboard widget -- clips it. Popper's own overflow
- * handling does not save it: the boundary it measures against defaults to the
- * page's `<main>`, which a narrow chart is nowhere near filling. A fixed width
- * keeps the menu inside any chart wide enough to have shown a legend at all,
- * and long names ellipsize instead of stretching the box.
- */
-const MENU_WIDTH = 260;
 
 /**
  * Extra pixels added to the measured trigger width to account for the text
