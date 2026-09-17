@@ -35,6 +35,7 @@ class AccessRequestPermission(OrganizationPermission):
         ],
         "POST": [],
         "PUT": [
+            "org:read",
             "org:write",
             "org:admin",
             "team:write",
@@ -89,14 +90,16 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                 ).select_related("team", "member")
             )
 
-        elif request.access.has_scope("team:write") and request.access.team_ids_with_membership:
-            access_requests = list(
-                OrganizationAccessRequest.objects.filter(
+        elif request.access.team_ids_with_membership:
+            access_requests = [
+                access_request
+                for access_request in OrganizationAccessRequest.objects.filter(
                     member__user_is_active=True,
                     member__user_id__isnull=False,
                     team__id__in=request.access.team_ids_with_membership,
                 ).select_related("team", "member")
-            )
+                if self._can_access(request, access_request)
+            ]
         else:
             # Return empty response if user does not have access
             return Response([])
