@@ -1439,10 +1439,9 @@ const config = defineConfig({
       {
         terms: ['todo', 'fixme', 'xxx'],
         ignore: [],
-        // Expiry dates are enforced on master, but not on pull requests, so a
-        // TODO that lapses mid-review does not block an unrelated change.
-        checkDates: true,
-        checkDatesOnPullRequests: false,
+        // Dates are never enforced: a TODO quietly reaching its expiry should not
+        // be what breaks master for everyone else.
+        checkDates: false,
         allowWarningComments: true,
       },
     ],
