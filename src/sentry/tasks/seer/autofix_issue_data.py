@@ -24,9 +24,6 @@ from sentry.utils import json, metrics
 
 FEATURE_FLAG = "organizations:seer-fixability-training-data"
 MAX_REVIEWS_PER_ORG_PER_DAY = 20
-BOTTOM_SAMPLE_SIZE = 16
-MIDDLE_SAMPLE_SIZE = 2
-TOP_SAMPLE_SIZE = 2
 
 SYSTEM_PROMPT = """Night Shift reviews software issues and may trigger Autofix to investigate
 and open a pull request. Your job is to identify issues where opening a pull request would be
@@ -49,6 +46,7 @@ class JudgeResponse(BaseModel):
 
 
 def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
+    # Randomly sample 20 of the issues from bottom 40% of the fixability score
     rows = (
         SeerAutofixIssueData.objects.filter(
             organization_id=organization_id,
@@ -64,18 +62,7 @@ def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
             )
         )
     )
-    bottom = list(
-        rows.filter(score_percentile__lte=0.1).order_by("group__seer_fixability_score", "id")[
-            :BOTTOM_SAMPLE_SIZE
-        ]
-    )
-    middle = list(
-        rows.filter(score_percentile__gte=0.4, score_percentile__lte=0.6).order_by("?")[
-            :MIDDLE_SAMPLE_SIZE
-        ]
-    )
-    top = list(rows.filter(score_percentile__gte=0.9).order_by("?")[:TOP_SAMPLE_SIZE])
-    return [*bottom, *middle, *top]
+    return list(rows.filter(score_percentile__lte=0.4).order_by("?")[:MAX_REVIEWS_PER_ORG_PER_DAY])
 
 
 @instrumented_task(

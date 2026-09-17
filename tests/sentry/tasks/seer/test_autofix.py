@@ -65,7 +65,7 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):
-    def test_selects_bottom_decile_and_control_samples(self) -> None:
+    def test_selects_bottom_forty_percent(self) -> None:
         for index in range(11):
             group = self.create_group(
                 project=self.project,
@@ -76,9 +76,8 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         candidates = _select_candidates(self.organization.id)
         scores = [candidate.group.seer_fixability_score for candidate in candidates]
 
-        assert len(scores) == 6
-        assert set(scores) >= {0.0, 0.1, 0.9, 1.0}
-        assert len([score for score in scores if score is not None and 0.4 <= score <= 0.6]) == 2
+        assert len(scores) == 5
+        assert all(score is not None and score <= 0.4 for score in scores)
 
     @patch("sentry.tasks.seer.autofix_issue_data.judge_issue_data.apply_async")
     @patch("sentry.tasks.seer.autofix_issue_data.ratelimiter.is_limited")
