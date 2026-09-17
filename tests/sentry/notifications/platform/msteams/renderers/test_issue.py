@@ -8,7 +8,9 @@ from sentry.integrations.messaging.message_builder import build_attachment_title
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
+    Action,
     ActionType,
+    AdaptiveCard,
     ContentAlignment,
     OpenUrlAction,
     TextSize,
@@ -77,7 +79,7 @@ class IssueMSTeamsRendererTest(TestCase):
         group: Group,
         event: Any,
         notification_uuid: str = "test-uuid",
-    ) -> dict[str, Any]:
+    ) -> AdaptiveCard:
         title_text = build_attachment_title(group)
         issue_url = group.get_absolute_url(
             params={"referrer": "msteams", "notification_uuid": notification_uuid}
@@ -123,7 +125,9 @@ class IssueMSTeamsRendererTest(TestCase):
             ),
         )
 
-        actions = [OpenUrlAction(type=ActionType.OPEN_URL, title="View Issue", url=issue_url)]
+        actions: list[Action] = [
+            OpenUrlAction(type=ActionType.OPEN_URL, title="View Issue", url=issue_url)
+        ]
 
         return MSTeamsMessageBuilder().build(title=title, fields=[footer], actions=actions)
 
