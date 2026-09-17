@@ -202,42 +202,76 @@ describe('MetricsTabContent', () => {
     });
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
 
-    let addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
-    expect(addButtons[0]).toBeEnabled();
+    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
+    expect(addButton).toBeEnabled();
 
-    await userEvent.click(addButtons[0]!);
+    await userEvent.click(addButton);
 
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
     });
     toolbars = screen.getAllByTestId('metric-toolbar');
-    // copies the last metric as a starting point
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+  });
 
-    // change the second metric from bar to foo
-    await userEvent.click(within(toolbars[1]!).getByRole('button', {name: 'bar'}));
-    await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
+  it('copies the last edited metric when adding another metric', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              metric: [encodedBarMetric, encodedBarMetric],
+            },
+          },
+        },
+        organization,
+      }
+    );
 
-    const toolbar = await screen.findAllByTestId('metric-toolbar');
+    expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
+    await waitFor(() => {
+      expect(
+        within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+          name: 'bar',
+        })
+      ).toBeInTheDocument();
+    });
 
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+        name: 'bar',
+      })
+    );
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('option', {
+        name: 'foo',
+      })
+    );
     expect(
-      await within(toolbar[1]!).findByRole('button', {
+      await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {
         name: 'foo',
       })
     ).toBeInTheDocument();
 
-    addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
-    expect(addButtons[0]).toBeEnabled();
-
-    await userEvent.click(addButtons[0]!);
+    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
+    expect(addButton).toBeEnabled();
+    await userEvent.click(addButton);
 
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(3);
     });
-    toolbars = screen.getAllByTestId('metric-toolbar');
-    // copies the last metric as a starting point
-    expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+    expect(
+      within(screen.getAllByTestId('metric-toolbar')[2]!).getByRole('button', {
+        name: 'foo',
+      })
+    ).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 

@@ -48,7 +48,10 @@ from sentry.seer.autofix.pr_iteration.emit import (
     complete_pr_iteration_details,
     outcome_for_failed_run,
 )
-from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+from sentry.seer.autofix.pr_iteration.feedback import (
+    latest_iteration_feedback_kind,
+    parse_feedback,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
@@ -180,9 +183,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     Handles:
     - Sending webhooks for completed steps (root_cause_completed, solution_completed, etc.)
     - Continuing the automated pipeline if stopping_point hasn't been reached
-    - No-op'ing when the run did not complete (errors / timeouts), so Seer can
-      invoke this hook with ``call_on_failure=True`` without advancing the pipeline
-    - Recording and pausing a PR iteration that a failed run stopped
+    - Not advancing the pipeline when the run did not complete (errors /
+      timeouts), so Seer can invoke this hook with ``call_on_failure=True``.
+      A failed run is not a full no-op: a PR iteration still gets paused and
+      its outcome recorded, since nothing else will ever end that iteration.
     """
 
     @classmethod
@@ -216,11 +220,25 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
+        group_id, run_referrer = cls._resolve_group_id(organization, run_id, state)
+
+        # this must run before we null check group id else we won't get the analytics required for pr iteration
         if state.status == "error":
             current_step, _ = cls._get_current_step(state)
             if current_step == AutofixStep.PR_ITERATION:
-                cls._fail_pr_iteration(organization, run_id, state)
+                cls._fail_pr_iteration(organization, run_id, state, group_id)
                 return
+
+        if group_id is None:
+            logger.warning(
+                "autofix.on_completion_hook.missing_group_id",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+
+        group = cls._fetch_group(organization, run_id, group_id)
+        if group is None:
+            return
 
         if state.status != "completed":
             logger.info(
@@ -238,29 +256,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        metadata = state.metadata or {}
-        group_id = metadata.get("group_id")
-        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
-        if group_id is None:
-            group_id = mirror_group_id
-        if group_id is None:
-            logger.warning(
-                "autofix.on_completion_hook.missing_group_id",
-                extra={"run_id": run_id, "organization_id": organization.id},
-            )
-            return
-
-        group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
-        if group is None:
-            logger.warning(
-                "autofix.on_completion_hook.group_not_found",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group_id,
-                },
-            )
-            return
         now = timezone.now()
         with transaction.atomic(using=router.db_for_write(Group)):
             group.update(seer_explorer_autofix_last_triggered=now)
@@ -270,12 +265,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             ).update(last_triggered_at=now)
 
         current_step, _ = cls._get_current_step(state)
-        log_ctx = cls._iteration_log_context(organization, group, state)
-        set_pr_iteration_attributes(
-            group_id=group.id,
-            iteration_id=log_ctx.iteration_id,
-        )
         if current_step == AutofixStep.PR_ITERATION:
+            log_ctx = cls._iteration_log_context(organization, group, state)
+            set_pr_iteration_attributes(
+                group_id=group.id,
+                iteration_id=log_ctx.iteration_id,
+            )
             has_changes, is_synced = state.has_code_changes()
             log_ctx.info(
                 "autofix.pr_iteration.completion_hook.received",
@@ -310,6 +305,33 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
+    def _resolve_group_id(
+        cls, organization: Organization, run_id: int, state: SeerRunState
+    ) -> tuple[int | None, AutofixReferrer | None]:
+        """The run's group id, from the run state or the Sentry-side run mirror."""
+        metadata = state.metadata or {}
+        group_id = metadata.get("group_id")
+        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
+        if group_id is None:
+            group_id = mirror_group_id
+        return group_id, run_referrer
+
+    @classmethod
+    def _fetch_group(cls, organization: Organization, run_id: int, group_id: int) -> Group | None:
+        """The run's group, scoped to the organization."""
+        group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
+        if group is None:
+            logger.warning(
+                "autofix.on_completion_hook.group_not_found",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "group_id": group_id,
+                },
+            )
+        return group
+
+    @classmethod
     def _iteration_log_context(
         cls,
         organization: Organization,
@@ -327,13 +349,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         organization: Organization,
         run_id: int,
         state: SeerRunState,
+        group_id: int | None,
     ) -> None:
-        """Pause the failed run. Then record the batch that the run stopped.
-
-        The group is not known here. As a result, the identity comes from the
-        run metadata.
-        """
-        group_id = (state.metadata or {}).get("group_id")
+        """Pause the failed run. Then record the batch that the run stopped."""
         log_ctx = PrIterationLogContext.for_run(
             logger, state, organization.id, group_id, iteration=LogCtxIteration.TRIGGERED
         )
@@ -936,7 +954,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if outcome is None:
                 metrics.incr(
                     "autofix.pr_iteration.step",
-                    tags={"checkpoint": "code_change_completed", "referrer": referrer.value},
+                    tags={
+                        "checkpoint": "code_change_completed",
+                        "referrer": referrer.value,
+                        "feedback_kind": latest_iteration_feedback_kind(state),
+                    },
                     sample_rate=1.0,
                 )
                 # A push was attempted and succeeded. Not terminal yet -- we wait
@@ -952,7 +974,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if outcome == PrIterationOutcome.ALREADY_PUSHED:
                 metrics.incr(
                     "autofix.pr_iteration.step",
-                    tags={"checkpoint": "iteration_completed", "referrer": referrer.value},
+                    tags={
+                        "checkpoint": "iteration_completed",
+                        "referrer": referrer.value,
+                        "feedback_kind": latest_iteration_feedback_kind(state),
+                    },
                     sample_rate=1.0,
                 )
 
@@ -1057,18 +1083,16 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "run_id": run_id,
                 "organization_id": organization.id,
                 "trigger_id": trigger_id,
-                "trigger_source": ConsumeTriggerSource.FEEDBACK,
+                "trigger_source": ConsumeTriggerSource.COMPLETION,
             }
         )
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            # `triggered_by` counts the two producers apart: arrival vs iteration-end.
-            triggered_by="completion_hook",
             outcome="triggered",
             reason="iteration_finished",
             countdown=None,
             trigger_id=trigger_id,
-            trigger_source=ConsumeTriggerSource.FEEDBACK,
+            trigger_source=ConsumeTriggerSource.COMPLETION,
         )
 
     @classmethod
@@ -1217,7 +1241,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="no_changes")
             metrics.incr(
                 "autofix.pr_iteration.step",
-                tags={"checkpoint": "no_code_change", "referrer": referrer.value},
+                tags={
+                    "checkpoint": "no_code_change",
+                    "referrer": referrer.value,
+                    "feedback_kind": latest_iteration_feedback_kind(state),
+                },
                 sample_rate=1.0,
             )
             return PrIterationOutcome.NO_CODE_CHANGES
@@ -1250,7 +1278,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         metrics.incr(
             "autofix.pr_iteration.step",
-            tags={"checkpoint": "code_change_started", "referrer": referrer.value},
+            tags={
+                "checkpoint": "code_change_started",
+                "referrer": referrer.value,
+                "feedback_kind": latest_iteration_feedback_kind(state),
+            },
             sample_rate=1.0,
         )
 

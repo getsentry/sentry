@@ -91,10 +91,9 @@ class OutboxBase(Model):
     @classmethod
     def next_object_identifier(cls) -> int:
         using = router.db_for_write(cls)
-        with transaction.atomic(using=using):
-            with connections[using].cursor() as cursor:
-                cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
-                return cursor.fetchone()[0]
+        with connections[using].cursor() as cursor:
+            cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
+            return cursor.fetchone()[0]
 
     @classmethod
     def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:
@@ -280,7 +279,11 @@ class OutboxBase(Model):
             # causes timeouts with large datasets. Fetch in batches of 50 and
             # Apply the ID condition in python as filtering rows in postgres
             # leads to timeouts.
-            while True:
+            #
+            # When coalesced.id == first_coalesced.id the group has a single
+            # row, so there are no older rows to batch-delete and we can skip
+            # the probing SELECT entirely.
+            while coalesced.id != first_coalesced.id:
                 batch = self.select_coalesced_messages().values_list("id", flat=True)[:50]
                 delete_ids = [item_id for item_id in batch if item_id < coalesced.id]
                 if not len(delete_ids):

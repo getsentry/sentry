@@ -668,6 +668,7 @@ export enum GroupActivityType {
   SEER_CODING_STARTED = 'seer_coding_started',
   SEER_CODING_COMPLETED = 'seer_coding_completed',
   SEER_PR_CREATED = 'seer_pr_created',
+  SEER_PR_READY_FOR_REVIEW = 'seer_pr_ready_for_review',
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
   PULL_REQUEST_CLOSED = 'pull_request_closed',
@@ -687,6 +688,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_PR_CREATED,
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
+  GroupActivityType.SEER_PR_READY_FOR_REVIEW,
   GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
@@ -1089,6 +1091,20 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
   };
   type: GroupActivityType.SEER_PR_CREATED;
 }
+interface GroupActivitySeerPrReadyForReview extends GroupActivityBase {
+  data: {
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_PR_READY_FOR_REVIEW;
+}
 
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
   data: {
@@ -1152,6 +1168,7 @@ export type GroupActivity =
   | GroupActivitySeerCodingStarted
   | GroupActivitySeerCodingCompleted
   | GroupActivitySeerPrCreated
+  | GroupActivitySeerPrReadyForReview
   | GroupActivitySeerIterationStarted
   | GroupActivitySeerIterationCompleted
   | GroupActivityPullRequestClosed

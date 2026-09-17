@@ -43,12 +43,11 @@ import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/tr
 import {TraceOpenInExploreButton} from 'sentry/views/performance/newTraceDetails/traceOpenInExploreButton';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {useDividerResizeSync} from 'sentry/views/performance/newTraceDetails/useDividerResizeSync';
-import {useIsEAPTraceEnabled} from 'sentry/views/performance/newTraceDetails/useIsEAPTraceEnabled';
 import {useTraceSpaceListeners} from 'sentry/views/performance/newTraceDetails/useTraceSpaceListeners';
 import {useTraceWaterfallModels} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallModels';
 import {useTraceWaterfallScroll} from 'sentry/views/performance/newTraceDetails/useTraceWaterfallScroll';
 
-import {getTraceMetaSpanCount, type TraceMetaQueryResults} from './traceApi/useTraceMeta';
+import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
@@ -127,8 +126,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const {projects} = useProjects();
   const organization = useOrganization();
 
-  const isEAP = useIsEAPTraceEnabled();
-
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
 
@@ -175,7 +172,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     const cleanup = props.tree.fetchAdditionalTraces({
-      type: isEAP ? 'eap' : 'non-eap',
       api,
       filters,
       replayTraces: props.replayTraces,
@@ -444,7 +440,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
 
     // TODO Abdullah Khan: Remove this once /trace-meta/ starts responding
     // with the correct spans count for EAP traces.
-    const metaSpanCount = getTraceMetaSpanCount(props.meta.data);
+    const metaSpanCount = props.meta.data?.spansCount;
 
     if (traceNode && props.tree.eap_spans_count !== metaSpanCount) {
       Sentry.logger.warn('EAP spans count from /trace/ and /trace-meta/ are not equal', {
@@ -639,7 +635,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     enabled:
       props.source === 'performance' &&
       !disableUrlSync &&
-      isEAP &&
       organization.features.includes(TRACE_ATTRIBUTE_PINNING_FEATURE),
     traceSlug: props.traceSlug,
     tree: props.tree,
@@ -716,7 +711,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const traceQueryStateSync = useMemo(() => {
     return {search: traceState.search.query};
   }, [traceState.search.query]);
-  useTraceQueryParamStateSync(traceQueryStateSync, {disabled: disableUrlSync});
+  useTraceQueryParamStateSync(traceQueryStateSync, {
+    disabled: disableUrlSync,
+  });
 
   const onAutogroupChange = useCallback(() => {
     const value = !traceState.preferences.autogroup.parent;

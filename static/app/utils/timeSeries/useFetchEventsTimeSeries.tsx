@@ -51,6 +51,10 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   includeAnnotations?: boolean;
   /**
+   * Whether to request measured ingestion delay metadata.
+   */
+  includeMeasuredIngestionDelayMetadata?: boolean;
+  /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
@@ -114,6 +118,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     groupBy,
     extrapolate,
     includeAnnotations,
+    includeMeasuredIngestionDelayMetadata,
     query,
     sampling,
     caseInsensitive,
@@ -176,6 +181,9 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
           includeAnnotations: includeAnnotations ? 1 : undefined,
+          includeMeasuredIngestionDelayMetadata: includeMeasuredIngestionDelayMetadata
+            ? 1
+            : undefined,
         },
         staleTime: Infinity,
       }
@@ -188,7 +196,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
-interface Annotation {
+export interface Annotation {
   category: string;
   droppedCount: number;
   end: number;
@@ -205,5 +213,8 @@ export type EventsTimeSeriesResponse = {
     end: number;
     start: number;
     annotations?: Annotation[];
+    completeThrough?: number;
+    estimatedIngestionDelaySeconds?: number;
+    ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
   };
 };

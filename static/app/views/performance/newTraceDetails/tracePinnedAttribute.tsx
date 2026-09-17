@@ -93,7 +93,7 @@ export function useTracePinnedAttribute({
     [enabled, location, navigate]
   );
 
-  const queryParams = getTraceQueryParams('eap', location.query, selection, {
+  const queryParams = getTraceQueryParams(location.query, selection, {
     limit: 10_000,
   });
   // A timestamp narrows the backend query to a fixed window around that instant.

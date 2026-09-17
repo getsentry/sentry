@@ -106,7 +106,7 @@ describe('conversation embed', () => {
       },
     });
 
-    // The aggregates bar renders its labels while loading too, so the API
+    // The metrics bar renders its labels while loading too, so the API
     // title -- which only arrives with the response -- is the loaded signal.
     // The API title also wins over whatever the model wrote into the tag.
     expect(
@@ -114,10 +114,17 @@ describe('conversation embed', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('Stale title')).not.toBeInTheDocument();
 
-    expect(screen.getByText('LLM Calls')).toBeInTheDocument();
+    // The same fields, in the same order, that the `conversationsQuery` embed
+    // columns -- the two describe the same kind of thing (CW-2008).
+    expect(screen.getByText('Duration')).toBeInTheDocument();
+    expect(screen.getByText('Messages')).toBeInTheDocument();
     expect(screen.getByText('Errors')).toBeInTheDocument();
-    expect(screen.getByText('Tokens')).toBeInTheDocument();
     expect(screen.getByText('Cost')).toBeInTheDocument();
+    expect(screen.queryByText('LLM Calls')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tokens')).not.toBeInTheDocument();
+
+    // Summed generation-span duration: the one span runs 1000 -> 1000.5s.
+    expect(screen.getByText('500.00ms')).toBeInTheDocument();
 
     // The embed renders inside an agent conversation, so it deliberately shows
     // the totals only -- a nested transcript reads as part of the answer.
@@ -166,7 +173,11 @@ describe('conversation embed', () => {
   });
 
   it('shows an error when the conversation cannot be loaded', async () => {
-    MockApiClient.addMockResponse({url: DETAIL_URL, statusCode: 500, body: {}});
+    MockApiClient.addMockResponse({
+      url: DETAIL_URL,
+      statusCode: 500,
+      body: {},
+    });
 
     renderEmbed({name: 'conversation', data: {id: CONVERSATION_ID}});
 

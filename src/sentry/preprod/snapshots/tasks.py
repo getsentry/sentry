@@ -41,6 +41,7 @@ from sentry.preprod.snapshots.manifest import (
     ComparisonManifest,
     ComparisonPlan,
     ComparisonSummary,
+    ImageMetadata,
     SnapshotManifest,
 )
 from sentry.preprod.snapshots.models import (
@@ -157,14 +158,6 @@ def _mark_chunk_done(comparison_id: int, chunk_index: int) -> None:
     )
 
 
-class _DiffCandidate(NamedTuple):
-    name: str
-    head_hash: str
-    base_hash: str
-    pixel_count: int
-    kind: Literal["base", "sibling"] = "base"
-
-
 def _image_name_to_path_stem(name: str) -> str:
     normalized = name.replace("\\", "/").strip("/")
     return normalized.rsplit(".", 1)[0] if "." in normalized else normalized
@@ -196,11 +189,11 @@ def _fetch_batch_images(
 
 
 def _create_pixel_batches(
-    items: list[_DiffCandidate],
+    items: list[ChunkCandidate],
     max_pixels_per_batch: int,
-) -> list[list[_DiffCandidate]]:
-    batches: list[list[_DiffCandidate]] = []
-    current_batch: list[_DiffCandidate] = []
+) -> list[list[ChunkCandidate]]:
+    batches: list[list[ChunkCandidate]] = []
+    current_batch: list[ChunkCandidate] = []
     current_pixels = 0
     for item in items:
         pixels = item.pixel_count
@@ -312,6 +305,7 @@ def _find_approved_sibling(
             # Human approvals only: chaining through auto-approvals would let
             # sub-threshold drift compound across rebuilds.
             preprodcomparisonapproval__extras__auto_approval__isnull=True,
+            # Required: keeps force-approved failed/missing-base builds from seeding auto-approval.
             preprodsnapshotmetrics__snapshot_comparisons_head_metrics__state=PreprodSnapshotComparison.State.SUCCESS,
         )
         .exclude(id=head_artifact.id)
@@ -459,6 +453,27 @@ def _try_auto_approve_snapshot(
     )
 
 
+def _build_chunk_candidate(
+    name: str,
+    head_meta: ImageMetadata,
+    reference_meta: ImageMetadata,
+    diff_threshold: float,
+    kind: Literal["base", "sibling"] = "base",
+) -> ChunkCandidate:
+    comparison_size = get_comparison_size(
+        ImageSize(head_meta.width, head_meta.height),
+        ImageSize(reference_meta.width, reference_meta.height),
+    )
+    return ChunkCandidate(
+        name=name,
+        head_hash=head_meta.content_hash,
+        base_hash=reference_meta.content_hash,
+        pixel_count=comparison_size.pixel_count,
+        diff_threshold=diff_threshold,
+        kind=kind,
+    )
+
+
 def _build_comparison_plan(
     head_manifest: SnapshotManifest,
     base_manifest: SnapshotManifest,
@@ -483,8 +498,7 @@ def _build_comparison_plan(
     skipped = categories.skipped
 
     non_diff_images: dict[str, ComparisonImageResult] = {}
-    eligible: list[_DiffCandidate] = []
-    eligible_thresholds: dict[str, float] = {}
+    eligible: list[ChunkCandidate] = []
 
     for name in sorted(matched):
         head_hash = head_by_name[name]
@@ -498,13 +512,14 @@ def _build_comparison_plan(
             )
             continue
 
-        head_meta = head_meta_by_hash[head_hash]
-        base_meta = base_meta_by_hash[base_hash]
-        head_size = ImageSize(head_meta.width, head_meta.height)
-        base_size = ImageSize(base_meta.width, base_meta.height)
-        pixel_count = get_comparison_size(head_size, base_size).pixel_count
+        candidate = _build_chunk_candidate(
+            name,
+            head_meta_by_hash[head_hash],
+            base_meta_by_hash[base_hash],
+            _effective_diff_threshold(head_manifest, name),
+        )
 
-        if pixel_count > MAX_DIFF_PIXELS:
+        if candidate.pixel_count > MAX_DIFF_PIXELS:
             non_diff_images[name] = ComparisonImageResult(
                 status="errored",
                 head_hash=head_hash,
@@ -513,8 +528,7 @@ def _build_comparison_plan(
             )
             continue
 
-        eligible.append(_DiffCandidate(name, head_hash, base_hash, pixel_count))
-        eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
+        eligible.append(candidate)
 
     for name in sorted(added):
         non_diff_images[name] = ComparisonImageResult(
@@ -565,35 +579,23 @@ def _build_comparison_plan(
             sibling_hash = sibling_image.head_hash
             if not sibling_hash or sibling_hash == head_hash:
                 continue
-            head_meta = head_meta_by_hash[head_hash]
-            head_size = ImageSize(head_meta.width, head_meta.height)
             sibling_meta = sibling_meta_by_hash.get(sibling_hash)
             if sibling_meta is None:
                 continue
-            sibling_size = ImageSize(sibling_meta.width, sibling_meta.height)
-            pixel_count = get_comparison_size(head_size, sibling_size).pixel_count
-            if pixel_count > MAX_DIFF_PIXELS:
+            candidate = _build_chunk_candidate(
+                name,
+                head_meta_by_hash[head_hash],
+                sibling_meta,
+                _effective_diff_threshold(head_manifest, name),
+                kind="sibling",
+            )
+            if candidate.pixel_count > MAX_DIFF_PIXELS:
                 continue
-            eligible.append(_DiffCandidate(name, head_hash, sibling_hash, pixel_count, "sibling"))
-            eligible_thresholds[name] = _effective_diff_threshold(head_manifest, name)
+            eligible.append(candidate)
 
     batches = _create_pixel_batches(eligible, MAX_PIXELS_PER_BATCH)
     chunks = [
-        ChunkAssignment(
-            chunk_index=i,
-            candidates=[
-                ChunkCandidate(
-                    name=candidate.name,
-                    head_hash=candidate.head_hash,
-                    base_hash=candidate.base_hash,
-                    pixel_count=candidate.pixel_count,
-                    diff_threshold=eligible_thresholds[candidate.name],
-                    kind=candidate.kind,
-                )
-                for candidate in batch
-            ],
-        )
-        for i, batch in enumerate(batches)
+        ChunkAssignment(chunk_index=index, candidates=batch) for index, batch in enumerate(batches)
     ]
 
     return ComparisonPlan(

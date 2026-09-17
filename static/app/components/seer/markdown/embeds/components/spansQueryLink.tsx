@@ -1,4 +1,7 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {IconSpan} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,9 +19,19 @@ export function getSpansQueryTitle(data: SpansQueryData): string {
   );
 }
 
-export function SpansQueryLink({data}: {data: SpansQueryData}) {
+export function SpansQueryLink({
+  data,
+  format,
+}: {data: SpansQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
   const href = getSpansQueryHref(data, organization);
 
-  return <ResourceLink icon={IconSpan} href={href} title={getSpansQueryTitle(data)} />;
+  return (
+    <ResourceLink
+      format={format}
+      icon={IconSpan}
+      href={href}
+      title={getSpansQueryTitle(data)}
+    />
+  );
 }
