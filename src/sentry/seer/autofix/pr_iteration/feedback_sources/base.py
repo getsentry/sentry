@@ -38,9 +38,9 @@ ConsumeTask.Later = _ConsumeLater
 
 @dataclass(frozen=True)
 class Decision:
-    """`should_queue` and `should_consume` decisions
+    """A `should_consume` decision
 
-    `ok` decides whether the gate (`should_decision` and `should_queue`) resolves
+    `ok` decides whether the gate resolves
     `reason` is purely for o11y, included as a tag in logs and metrics
     """
 
@@ -112,12 +112,11 @@ class FeedbackSourceBase(BaseModel):
         """
         return {}
 
-    # A source that overrides none of these has nothing to check: its feedback is
-    # queued, consumed, and triggered on arrival. ``no_gate`` says so explicitly,
-    # which is worth distinguishing in a log from a gate that ran and passed.
-    def should_queue(self, run_state: SeerRunState) -> Decision:
-        return Decision(ok=True, reason="no_gate")
-
+    # Feedback is always queued: the gates are at trigger time (whether to
+    # schedule a consume for it) and at consume time (whether the drain hands it
+    # to the agent). A source that overrides neither has nothing to check, and
+    # ``no_gate`` says so explicitly, which is worth distinguishing in a log
+    # from a gate that ran and passed.
     def should_consume(self, run_state: SeerRunState) -> Decision:
         return Decision(ok=True, reason="no_gate")
 

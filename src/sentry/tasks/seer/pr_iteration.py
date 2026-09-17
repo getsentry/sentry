@@ -112,8 +112,8 @@ from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
     clear_queued_autofix_feedback,
     count_queued_autofix_feedback,
+    enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.steps import AutofixStep
@@ -201,7 +201,12 @@ def trigger_consume_pr_iteration_feedback(
     run_state: SeerRunState,
     source: str = ConsumeTriggerSource.FEEDBACK,
     delay: int | None = None,
-) -> None:
+) -> TriggerDecision:
+    """Schedule a consume for the run's queue, or say why not.
+
+    Returns the decision so a caller can act on the reason: no task means
+    nothing will drain what was just queued.
+    """
     bypass = source in _BYPASSES_SHOULD_TRIGGER
     set_pr_iteration_attributes(
         run_id=run_id,
@@ -238,7 +243,7 @@ def trigger_consume_pr_iteration_feedback(
             feedback_id=feedback.feedback_id,
             **feedback.source.log_fields(run_state),
         )
-        return
+        return TriggerDecision(task=None, reason="paused")
 
     # Gate ahead of should_trigger: that can defer an hour behind an incomplete
     # check-run sweep, and the "accept these permissions" comment has to reach
@@ -262,7 +267,7 @@ def trigger_consume_pr_iteration_feedback(
             feedback_id=feedback.feedback_id,
             **feedback.source.log_fields(run_state),
         )
-        return
+        return TriggerDecision(task=None, reason="missing_github_permissions")
 
     if bypass:
         decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
@@ -310,6 +315,7 @@ def trigger_consume_pr_iteration_feedback(
         feedback_id=feedback.feedback_id,
         **feedback.source.log_fields(run_state),
     )
+    return decision
 
 
 def _dropped_feedback(feedback: Feedback, reason: str) -> dict[str, Any]:
@@ -1351,7 +1357,7 @@ def _trigger_pr_iteration_from_comment(
         organization_id=organization_id,
         group_id=group_id,
     )
-    try_enqueue_autofix_feedback(
+    enqueue_autofix_feedback(
         log_ctx=log_ctx,
         run_id=agent_state.run_id,
         organization_id=organization_id,
@@ -1833,7 +1839,7 @@ def _trigger_pr_iteration_from_review(
         group_id=group_id,
     )
     for feedback_obj in feedback_items:
-        try_enqueue_autofix_feedback(
+        enqueue_autofix_feedback(
             log_ctx=log_ctx,
             run_id=agent_state.run_id,
             organization_id=organization_id,

@@ -150,28 +150,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             "run_pr_commit_sha": pr_state.commit_sha if pr_state else None,
         }
 
-    def should_queue(self, run_state: SeerRunState) -> Decision:
-        from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
-
-        try:
-            autofix_run = self.autofix_run
-        except MissingCheckSuiteAutofixRun:
-            return Decision(ok=False, reason="no_autofix_run")
-
-        # Only automated iteration answers to the project setting; feedback a
-        # person sends goes through sources that never read it.
-        if not pr_iteration_enabled_for_group(autofix_run.group_id):
-            return Decision(ok=False, reason="project_disabled")
-
-        if not check_suite_head_match(self.event, run_state).matched:
-            return Decision(ok=False, reason="stale_head")
-
-        # Hard cap also blocks enqueue so failed suites don't pile up in Redis
-        # with no check-suite consume path to drain them.
-        if automated_iteration_cap_reached(run_state):
-            return Decision(ok=False, reason="hard_cap_reached")
-        return Decision(ok=True, reason="head_matches")
-
     def _live_head(self, run_state: SeerRunState) -> LivePullRequestHead:
         try:
             return compare_live_pull_request_head(
@@ -226,18 +204,32 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 
+        try:
+            autofix_run = self.autofix_run
+        except MissingCheckSuiteAutofixRun:
+            return TriggerDecision(task=None, reason="no_autofix_run")
+
+        # Only automated iteration answers to the project setting; feedback a
+        # person sends goes through sources that never read it.
+        if not pr_iteration_enabled_for_group(autofix_run.group_id):
+            return TriggerDecision(task=None, reason="project_disabled")
+
         if automated_iteration_cap_reached(run_state):
             return TriggerDecision(task=None, reason="hard_cap_reached")
+
+        # A suite for a superseded commit says nothing about the current head.
+        # It stays queued (the next drain drops it via ``should_consume``) but
+        # schedules nothing, and the reason lands on the waiting iteration's
+        # row so the sweep can say why it never ran.
+        if not check_suite_head_match(self.event, run_state).matched:
+            return TriggerDecision(task=None, reason="stale_head")
 
         # Otherwise queue a consume task for this run: immediately once every check
         # run has completed, or after a delay while some are still pending (they
         # can get stuck, so we trigger anyway rather than wait forever).
         head_sha = self.event.check_suite.head_sha
-        if not head_sha:
-            return TriggerDecision(task=ConsumeTask.Now, reason="missing_head_sha")
-
-        organization_id = self.autofix_run.repository.organization_id
-        repo_id = self.autofix_run.repository.id
+        organization_id = autofix_run.repository.organization_id
+        repo_id = autofix_run.repository.id
 
         # Importing the SCM factory while feedback models are initialized pulls
         # in integration handlers before Django finishes registering apps.
