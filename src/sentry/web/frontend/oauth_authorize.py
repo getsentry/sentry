@@ -14,6 +14,8 @@ from django.http.response import HttpResponseBase
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
+from sentry import analytics
+from sentry.analytics.events.oauth_consent import OAuthConsentEvent
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
@@ -368,6 +370,14 @@ class OAuthAuthorizeView(AuthLoginView):
         # the auto-approve and missing-org-options paths above return without
         # ever POSTing back, so writing the entry there would just leak it.
         request.session[session_key] = payload
+        analytics.record(
+            OAuthConsentEvent(
+                user_id=request.user.id,
+                application_id=application.id,
+                response_type=response_type,
+                outcome="viewed",
+            )
+        )
         return self.respond("sentry/oauth-authorize.html", context)
 
     def _logged_out_post(
@@ -458,6 +468,14 @@ class OAuthAuthorizeView(AuthLoginView):
 
         op = request.POST.get("op")
         if op == "approve":
+            analytics.record(
+                OAuthConsentEvent(
+                    user_id=request.user.id,
+                    application_id=application.id,
+                    response_type=response_type,
+                    outcome="approved",
+                )
+            )
             return self.approve(
                 request=request,
                 user=request.user,
@@ -471,6 +489,14 @@ class OAuthAuthorizeView(AuthLoginView):
             )
 
         elif op == "deny":
+            analytics.record(
+                OAuthConsentEvent(
+                    user_id=request.user.id,
+                    application_id=application.id,
+                    response_type=response_type,
+                    outcome="denied",
+                )
+            )
             return self.error(
                 request=request,
                 client_id=payload["cid"],

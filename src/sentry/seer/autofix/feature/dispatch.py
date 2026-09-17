@@ -22,6 +22,7 @@ from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     AutofixFeaturePayload,
     RCAStepArgs,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
@@ -160,6 +161,7 @@ def trigger_autofix_feature(
     logger.info(
         "autofix_feature.dispatch.started",
         extra={
+            "step": args.step.value,
             "group_id": group.id,
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
