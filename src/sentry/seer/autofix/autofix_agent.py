@@ -47,6 +47,7 @@ from sentry.seer.autofix.feature.models import (
     RCAStepArgs,
     RepoPin,
     RepoPins,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.pr_iteration.constants import (
     MANUAL_FLAG,
@@ -263,6 +264,11 @@ def _handle_step_started_events(
                 if actor_user_id is not None:
                     activity_attribution["actor_user_id"] = actor_user_id
                 task_kwargs["activity_attribution"] = activity_attribution
+            elif step == AutofixStep.CODE_CHANGES and actor_user_id is not None:
+                activity_attribution = {
+                    "referrer": referrer,
+                    "actor_user_id": actor_user_id,
+                }
             record_seer_activity(
                 group=group,
                 event_type=sentry_app_event_type,
@@ -393,6 +399,7 @@ def get_autofix_agent_client(
         intelligence_level=intelligence_level,
         reasoning_effort=reasoning_effort,
         on_completion_hook=AutofixOnCompletionHook,
+        hook_call_on_failure=True,
         enable_coding=enable_coding,
         code_review_enabled=code_review_enabled,
         enable_bash_tools=enable_bash_tools,
@@ -539,19 +546,31 @@ def trigger_autofix_agent(
         and features.has("organizations:autofix-should-run-repo-checks", group.organization)
     )
 
-    use_seer_rca_feature = features.has(
-        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    use_seer_feature = (
+        step == AutofixStep.ROOT_CAUSE
+        and features.has("organizations:autofix-rca-in-seer", group.organization, actor=user)
+    ) or (
+        step == AutofixStep.SOLUTION
+        and features.has("organizations:autofix-solution-in-seer", group.organization, actor=user)
     )
-    if step == AutofixStep.ROOT_CAUSE and use_seer_rca_feature:
+    if use_seer_feature:
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
+
+        step_args: RCAStepArgs | SolutionStepArgs
+        if step == AutofixStep.ROOT_CAUSE:
+            step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
+        elif step == AutofixStep.SOLUTION:
+            step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_tools)
+        else:
+            raise ValueError(f"invalid step: {step}")
 
         args = AutofixFeatureArgs(
             step=step,
             referrer=referrer,
             existing_run_id=run_id,
             insert_index=insert_index,
-            step_args=RCAStepArgs(repo_pins=_build_repo_pins(group, referrer)),
+            step_args=step_args,
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
@@ -960,13 +979,14 @@ def trigger_push_changes(
     repo_name: str | None = None,
     verify_content: bool = False,
     author: SeerCommitAuthor | None = None,
+    user: User | RpcUser | AnonymousUser | None = None,
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    client = get_autofix_agent_client(group)
+    client = get_autofix_agent_client(group, user=user)
 
     if state is None:
         state = _get_group_run_state(client, group, run_id)

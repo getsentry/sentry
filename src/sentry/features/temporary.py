@@ -240,6 +240,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:profiling-global-suspect-functions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable function trends widgets in profiling
     manager.add("organizations:profiling-function-trends", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Prefer finalized release dates for issue regression and next-release resolution.
+    manager.add("organizations:release-resolution-finalized-order", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable replay AI summaries for mobile replays
     manager.add("organizations:replay-ai-summaries-mobile", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable replay AI summaries for web replays
@@ -405,6 +407,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-inbox-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # General use issue inbox flag
     manager.add("organizations:issue-inbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Serve Autofix on its own /issues/<id>/autofix/ page instead of the issue details drawer
+    manager.add("organizations:autofix-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables auto-conversion of number operators for search query builder
     manager.add("organizations:search-query-builder-number-operator-conversion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Organizations on the new seat-based Seer plan
@@ -482,6 +486,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-stats-bytes-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics showing pii scrubbing
     manager.add("organizations:tracemetrics-pii-scrubbing-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable trace waterfall attribute pinning
+    manager.add("organizations:trace-waterfall-attribute-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace waterfall time compression
     manager.add("organizations:trace-waterfall-time-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the informational message re: moving the trace waterfall data source from transaction events to EAP spans

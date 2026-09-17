@@ -21,7 +21,9 @@ export const Row = styled('div', {
      max-width 100%, so even a few pixels of leading free text wrap onto
      their own row. Last-child still grows to fill leftover space.
      Mid-expression empty gaps keep a small hit target so deleting an
-     operator does not leave an unclickable seam between tokens. */
+     operator does not leave an unclickable seam between tokens.
+     Leading stays width 0 for layout, but overhangs into the grid padding
+     so the start of an equation remains clickable. */
   ${p =>
     p.collapsed &&
     css`
@@ -31,6 +33,11 @@ export const Row = styled('div', {
       flex-shrink: 0;
       flex-basis: 0;
       overflow: visible;
+
+      &:first-child {
+        padding-left: 9px;
+        margin-left: -9px;
+      }
 
       &:not(:first-child):not(:last-child) {
         width: 9px;

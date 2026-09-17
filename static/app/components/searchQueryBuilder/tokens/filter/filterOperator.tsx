@@ -300,6 +300,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
       initialOpSettingRef.current = true;
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [dispatch, focusOverride, item.key, onOpenChange]);
 
   return (

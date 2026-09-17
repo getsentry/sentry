@@ -167,6 +167,7 @@ export function useCollapsedNavigation() {
     isCollapsed,
     navigationParentRef,
     setView,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     shouldNavigationStayOpen,
     tryCloseNavigation,
   ]);

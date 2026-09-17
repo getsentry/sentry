@@ -45,6 +45,43 @@ enum ReceiptStatus {
   AWAITING_PAYMENT = 'awaiting_payment',
 }
 
+function ReceiptStatusTag({payment}: {payment: InvoiceBase}) {
+  const status = payment.amountRefunded
+    ? ReceiptStatus.REFUNDED
+    : payment.isPaid
+      ? ReceiptStatus.PAID
+      : payment.isClosed
+        ? ReceiptStatus.CLOSED
+        : ReceiptStatus.AWAITING_PAYMENT;
+  let icon = <IconWarning />;
+  let tagType: TagProps['variant'] = 'warning';
+
+  switch (status) {
+    case ReceiptStatus.PAID:
+      icon = <IconCheckmark />;
+      tagType = 'success';
+      break;
+    case ReceiptStatus.CLOSED:
+      icon = <IconClose />;
+      tagType = 'danger';
+      break;
+    case ReceiptStatus.REFUNDED:
+      icon = <IconTimer />;
+      tagType = 'promotion';
+      break;
+    default:
+      icon = <IconWarning />;
+      tagType = 'warning';
+      break;
+  }
+
+  return (
+    <Tag icon={icon} variant={tagType}>
+      {capitalize(status.replace('_', ' '))}
+    </Tag>
+  );
+}
+
 /**
  * Invoice/Payment list view.
  */
@@ -97,43 +134,6 @@ function ReceiptGrid({
   const isXSmallContainer = useResponsivePropValue({zero: true, sm: false});
   const isSmallContainer = useResponsivePropValue({zero: true, xl: false});
 
-  const getTag = (payment: InvoiceBase) => {
-    const status = payment.amountRefunded
-      ? ReceiptStatus.REFUNDED
-      : payment.isPaid
-        ? ReceiptStatus.PAID
-        : payment.isClosed
-          ? ReceiptStatus.CLOSED
-          : ReceiptStatus.AWAITING_PAYMENT;
-    let icon = <IconWarning />;
-    let tagType: TagProps['variant'] = 'warning';
-
-    switch (status) {
-      case ReceiptStatus.PAID:
-        icon = <IconCheckmark />;
-        tagType = 'success';
-        break;
-      case ReceiptStatus.CLOSED:
-        icon = <IconClose />;
-        tagType = 'danger';
-        break;
-      case ReceiptStatus.REFUNDED:
-        icon = <IconTimer />;
-        tagType = 'promotion';
-        break;
-      default:
-        icon = <IconWarning />;
-        tagType = 'warning';
-        break;
-    }
-
-    return (
-      <Tag icon={icon} variant={tagType}>
-        {capitalize(status.replace('_', ' '))}
-      </Tag>
-    );
-  };
-
   return (
     <Fragment>
       <Stack
@@ -178,7 +178,9 @@ function ReceiptGrid({
                   </Text>
                 )}
               </Container>
-              <Container>{getTag(payment)}</Container>
+              <Container>
+                <ReceiptStatusTag payment={payment} />
+              </Container>
               {!isXSmallContainer && (
                 <Text monospace ellipsis>
                   {payment.id}

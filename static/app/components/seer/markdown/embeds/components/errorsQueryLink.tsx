@@ -1,4 +1,7 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -20,10 +23,20 @@ export function getErrorsQueryTitle(data: ErrorsQueryData): string {
   );
 }
 
-export function ErrorsQueryLink({data}: {data: ErrorsQueryData}) {
+export function ErrorsQueryLink({
+  data,
+  format,
+}: {data: ErrorsQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
   const eventView = buildErrorsEventView(data);
   const href = getErrorsQueryHref(eventView, organization);
 
-  return <ResourceLink icon={IconSearch} href={href} title={getErrorsQueryTitle(data)} />;
+  return (
+    <ResourceLink
+      format={format}
+      icon={IconSearch}
+      href={href}
+      title={getErrorsQueryTitle(data)}
+    />
+  );
 }

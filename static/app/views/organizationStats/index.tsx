@@ -75,7 +75,12 @@ export class OrganizationStatsInner extends Component<OrganizationStatsProps> {
     const dataCategoryPlural = this.props.location?.query?.dataCategory;
 
     const categories = Object.values(DATA_CATEGORY_INFO);
-    const info = categories.find(c => c.plural === dataCategoryPlural);
+    // Only consider categories that are shown in the usage chart (showExternalStats).
+    // Categories that don't have showExternalStats (e.g. monitorSeats) are not
+    // present in CHART_OPTIONS_DATACATEGORY and would cause a crash in UsageChart.
+    const info = categories.find(
+      c => c.plural === dataCategoryPlural && c.statsInfo.showExternalStats
+    );
 
     // Default to errors
     return info ?? DATA_CATEGORY_INFO.error;

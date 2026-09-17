@@ -1,8 +1,10 @@
 import {useMemo, useState} from 'react';
+import {AnnotationFixture} from 'sentry-fixture/annotation';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
@@ -107,6 +109,74 @@ describe('ExploreCharts', () => {
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
       expect(screen.queryByLabelText('Expand chart')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('dropped data layer', () => {
+    function renderCharts({
+      features = [],
+      annotations,
+    }: {
+      annotations?: Annotation[];
+      features?: string[];
+    }) {
+      return render(
+        <SpansQueryParamsProvider>
+          <ChartSelectionProvider>
+            <ExploreCharts
+              extrapolate
+              query=""
+              timeseriesResult={timeseriesResultFixture({
+                meta: annotations
+                  ? ({annotations} as SortedTimeSeries['meta'])
+                  : undefined,
+              })}
+              visualizes={defaultVisualizes()}
+              setVisualizes={() => {}}
+              rawSpanCounts={{
+                total: {count: 0, isLoading: false},
+                normal: {count: 0, isLoading: false},
+              }}
+            />
+          </ChartSelectionProvider>
+        </SpansQueryParamsProvider>,
+        {organization: OrganizationFixture({features})}
+      );
+    }
+
+    it('hides the Layers control without the feature flag', async () => {
+      renderCharts({features: [], annotations: [AnnotationFixture()]});
+
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
+    it('hides the Layers control when there are no annotations', async () => {
+      renderCharts({
+        features: ['explore-data-fidelity-annotations'],
+        annotations: [],
+      });
+
+      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
+
+    it('shows the Layers control and toggles the dropped-data layer', async () => {
+      renderCharts({
+        features: ['explore-data-fidelity-annotations'],
+        annotations: [AnnotationFixture()],
+      });
+
+      await userEvent.click(await screen.findByLabelText('Chart layers'));
+
+      const option = await screen.findByRole('option', {name: 'Dropped Data'});
+      expect(option).toHaveAttribute('aria-selected', 'true');
+
+      await userEvent.click(option);
+      expect(await screen.findByRole('option', {name: 'Dropped Data'})).toHaveAttribute(
+        'aria-selected',
+        'false'
+      );
     });
   });
 
