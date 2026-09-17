@@ -1,13 +1,44 @@
-import {bulkUpdate, mergeGroups, paramsToQueryArgs} from 'sentry/actionCreators/group';
+import {
+  bulkDelete,
+  bulkUpdate,
+  mergeGroups,
+  paramsToQueryArgs,
+} from 'sentry/actionCreators/group';
 import {GroupStore} from 'sentry/stores/groupStore';
 
 describe('group', () => {
+  it('completes bulk actions without a request when itemIds is empty', async () => {
+    const api = new MockApiClient();
+    const updateRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'DELETE',
+    });
+    const params = {orgId: 'org-slug', itemIds: [], query: 'is:unresolved'};
+    const callbacks = {success: jest.fn(), complete: jest.fn()};
+
+    await bulkUpdate(api, {...params, data: {status: 'resolved'}}, callbacks);
+    await bulkDelete(api, params, callbacks);
+    await mergeGroups(api, params, callbacks);
+
+    expect(updateRequest).not.toHaveBeenCalled();
+    expect(deleteRequest).not.toHaveBeenCalled();
+    expect(callbacks.success).toHaveBeenCalledTimes(3);
+    expect(callbacks.complete).toHaveBeenCalledTimes(3);
+  });
+
   describe('paramsToQueryArgs()', () => {
     it('should convert itemIds properties to id array', () => {
       expect(
         paramsToQueryArgs({
           itemIds: ['1', '2', '3'],
           query: 'is:unresolved', // itemIds takes precedence
+          environment: ['production'],
+          period: '24h',
+          sort: 'freq',
         })
       ).toEqual({id: ['1', '2', '3']});
     });
@@ -38,6 +69,43 @@ describe('group', () => {
           environment: 'production',
         })
       ).toEqual({query: 'is:unresolved', environment: 'production'});
+    });
+
+    it('preserves an empty search with environment, relative dates, and sort', () => {
+      expect(
+        paramsToQueryArgs({
+          query: '',
+          project: [1, 2],
+          environment: ['production'],
+          period: '24h',
+          utc: false,
+          sort: 'freq',
+        })
+      ).toEqual({
+        query: '',
+        project: [1, 2],
+        environment: ['production'],
+        statsPeriod: '24h',
+        utc: false,
+        sort: 'freq',
+      });
+    });
+
+    it('preserves absolute dates for an empty search in the issue list format', () => {
+      expect(
+        paramsToQueryArgs({
+          query: '',
+          start: new Date('2026-09-01T10:00:00-07:00'),
+          end: '2026-09-02T10:00:00-07:00',
+          period: null,
+          utc: true,
+        })
+      ).toEqual({
+        query: '',
+        start: '2026-09-01T17:00:00',
+        end: '2026-09-02T17:00:00',
+        utc: true,
+      });
     });
 
     it('should exclude environment when it is null/undefined', () => {

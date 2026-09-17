@@ -27,6 +27,7 @@ import {
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
@@ -47,6 +48,7 @@ type IssueListActionsProps = {
   query: string;
   queryCount: number;
   selection: PageFilters;
+  sort: IssueSortOptions;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
@@ -165,6 +167,7 @@ export function IssueListActions({
   queryCount,
   query,
   selection,
+  sort,
   statsPeriod,
 }: IssueListActionsProps) {
   const api = useApi();
@@ -208,6 +211,7 @@ export function IssueListActions({
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
+          sort,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -229,6 +233,7 @@ export function IssueListActions({
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
+          sort,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
@@ -257,6 +262,7 @@ export function IssueListActions({
         organizationSlug: organization.slug,
         query,
         selection,
+        sort,
         onSuccess: updatedItemIds => {
           onActionTaken?.(updatedItemIds ?? [], data);
           invalidateIssueQueries({
