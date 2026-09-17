@@ -655,6 +655,27 @@ describe('useWidgetBuilderState', () => {
       });
     });
 
+    it('removes the threshold period when switching to a big number', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.ERRORS,
+        displayType: DisplayType.LINE,
+        thresholds:
+          '{"max_values":{"max1":200,"max2":300},"unit":null,"timePeriod":"10m"}',
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.BIG_NUMBER,
+        });
+      });
+
+      expect(result.current.state.thresholds).toEqual({
+        max_values: {max1: 200, max2: 300},
+        unit: null,
+      });
+    });
+
     it('resets thresholds when switching to a display type that does not support thresholds', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.ERRORS,

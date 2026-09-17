@@ -1,5 +1,6 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
@@ -31,22 +32,115 @@ describe('Thresholds', () => {
     });
   });
 
-  it('sets a threshold when applied', async () => {
-    const {router} = render(
+  it('shows new thresholds as fixed values', async () => {
+    render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              displayType: DisplayType.LINE,
+            },
+          },
+        },
+      }
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '100');
     await userEvent.type(screen.getByLabelText('Second Maximum'), '200');
     await userEvent.tab();
 
-    await waitFor(() => {
-      expect(router.location.query.thresholds).toBe(
-        '{"max_values":{"max1":100,"max2":200},"unit":null}'
-      );
-    });
+    expect(screen.getByText('Fixed')).toBeInTheDocument();
+    expect(screen.getByLabelText('Second Minimum')).toHaveValue(100);
+    expect(screen.getByLabelText('Third Minimum')).toHaveValue(200);
+  });
+
+  it('shows saved threshold values and their period without rebasing them', () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="integer" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              displayType: DisplayType.LINE,
+              interval: '1h',
+              thresholds:
+                '{"max_values":{"max1":100,"max2":200},"unit":null,"timePeriod":"10m"}',
+            },
+          },
+        },
+      }
+    );
+
+    expect(screen.getByLabelText('First Maximum')).toHaveValue(100);
+    expect(screen.getByLabelText('Second Maximum')).toHaveValue(200);
+    expect(screen.getByText('10 minutes')).toBeInTheDocument();
+  });
+
+  it('explains how the threshold period affects displayed values', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="integer" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              displayType: DisplayType.LINE,
+              thresholds: '{"max_values":{"max1":100},"unit":null}',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.hover(screen.getByTestId('more-information'));
+
+    expect(
+      await screen.findByText(
+        'Threshold values apply to this time period. With a period set, they scale when the dashboard interval changes.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('changes the threshold period without changing the entered values', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="integer" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              displayType: DisplayType.LINE,
+              thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Period'}));
+    await userEvent.click(screen.getByText('1 hour'));
+
+    expect(screen.getByText('1 hour')).toBeInTheDocument();
+    expect(screen.getByLabelText('First Maximum')).toHaveValue(100);
+    expect(screen.getByLabelText('Second Maximum')).toHaveValue(200);
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Period'}));
+    await userEvent.click(screen.getByText('Fixed'));
+
+    expect(screen.getByText('Fixed')).toBeInTheDocument();
+    expect(screen.getByLabelText('First Maximum')).toHaveValue(100);
+    expect(screen.getByLabelText('Second Maximum')).toHaveValue(200);
   });
 
   it('updates the unit when applied', async () => {

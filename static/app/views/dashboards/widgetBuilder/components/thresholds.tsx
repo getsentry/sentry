@@ -3,6 +3,7 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {
   HighlightedText,
   Thresholds,
@@ -25,6 +26,13 @@ export function ThresholdsSection({
   setError,
 }: ThresholdsSectionProps) {
   const {state, dispatch} = useWidgetBuilderContext();
+  const isTimeSeriesWidget = Boolean(
+    state.displayType && usesTimeSeriesData(state.displayType)
+  );
+  const hasThresholdValues = Boolean(
+    defined(state.thresholds?.max_values.max1) ||
+    defined(state.thresholds?.max_values.max2)
+  );
 
   const prevDataTypeRef = useRef<string | undefined>(undefined);
   useEffect(() => {
@@ -69,6 +77,7 @@ export function ThresholdsSection({
           dispatch({
             type: BuilderStateAction.SET_THRESHOLDS,
             payload: {
+              ...state.thresholds,
               max_values: state.thresholds?.max_values ?? {},
               unit: state.thresholds?.unit ?? null,
               preferredPolarity: polarity,
@@ -114,10 +123,30 @@ export function ThresholdsSection({
           dispatch({
             type: BuilderStateAction.SET_THRESHOLDS,
             payload: {
+              ...state.thresholds,
               max_values: state.thresholds?.max_values ?? {},
               unit,
               preferredPolarity: state.thresholds?.preferredPolarity,
             },
+          });
+        }}
+        showThresholdPeriod={isTimeSeriesWidget}
+        thresholdPeriodDisabled={!hasThresholdValues}
+        onThresholdPeriodChange={timePeriod => {
+          if (!state.thresholds) {
+            return;
+          }
+
+          const nextThresholds = cloneDeep(state.thresholds);
+          if (timePeriod) {
+            nextThresholds.timePeriod = timePeriod;
+          } else {
+            delete nextThresholds.timePeriod;
+          }
+
+          dispatch({
+            type: BuilderStateAction.SET_THRESHOLDS,
+            payload: nextThresholds,
           });
         }}
         dataType={dataType}

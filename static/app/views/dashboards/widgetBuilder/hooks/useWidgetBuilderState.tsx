@@ -682,6 +682,8 @@ export function useWidgetBuilderState(): {
           }
           if (!doesDisplayTypeSupportThresholds(action.payload)) {
             setThresholds(undefined, options);
+          } else if (!usesTimeSeriesData(action.payload) && thresholds?.timePeriod) {
+            setThresholds({...thresholds, timePeriod: undefined}, options);
           }
           if (!usesTimeSeriesData(action.payload)) {
             setAxisRange(undefined, options);
@@ -1258,6 +1260,7 @@ export function useWidgetBuilderState(): {
       legendType,
       linkedDashboards,
       selectedAggregate,
+      thresholds,
     ]
   );
 

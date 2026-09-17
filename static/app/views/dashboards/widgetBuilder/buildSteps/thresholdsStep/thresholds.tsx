@@ -28,7 +28,10 @@ type ThresholdsStepProps = {
   dataUnit?: string;
   errors?: ThresholdErrors;
   onPolarityChange?: (polarity: Polarity) => void;
+  onThresholdPeriodChange?: (timePeriod: string | undefined) => void;
   preferredPolarity?: Polarity;
+  showThresholdPeriod?: boolean;
+  thresholdPeriodDisabled?: boolean;
 };
 
 type ThresholdRowProp = {
@@ -53,9 +56,23 @@ export type ThresholdsConfig = {
   max_values: ThresholdMaxValues;
   unit: string | null;
   preferredPolarity?: Polarity;
+  timePeriod?: string | null;
 };
 
 const WIDGET_INDICATOR_SIZE = 15;
+const FIXED_THRESHOLD_PERIOD = 'fixed';
+const THRESHOLD_PERIOD_OPTIONS = [
+  {value: FIXED_THRESHOLD_PERIOD, label: t('Fixed')},
+  {value: '1m', label: t('1 minute')},
+  {value: '5m', label: t('5 minutes')},
+  {value: '10m', label: t('10 minutes')},
+  {value: '30m', label: t('30 minutes')},
+  {value: '1h', label: t('1 hour')},
+  {value: '3h', label: t('3 hours')},
+  {value: '6h', label: t('6 hours')},
+  {value: '12h', label: t('12 hours')},
+  {value: '1d', label: t('1 day')},
+];
 
 function ThresholdRow({
   color,
@@ -100,12 +117,21 @@ export function Thresholds({
   dataUnit = '',
   preferredPolarity = '-',
   onPolarityChange,
+  onThresholdPeriodChange,
+  showThresholdPeriod = false,
+  thresholdPeriodDisabled = false,
 }: ThresholdsStepProps) {
   const theme = useTheme();
   const maxOneValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_1] ?? '';
   const maxTwoValue = thresholdsConfig?.max_values[ThresholdMaxKeys.MAX_2] ?? '';
   const unit = thresholdsConfig?.unit ?? dataUnit;
   const unitOptions = getThresholdUnitSelectOptions(dataType);
+  const thresholdPeriod = thresholdsConfig?.timePeriod ?? FIXED_THRESHOLD_PERIOD;
+  const thresholdPeriodOptions = THRESHOLD_PERIOD_OPTIONS.some(
+    option => option.value === thresholdPeriod
+  )
+    ? THRESHOLD_PERIOD_OPTIONS
+    : [...THRESHOLD_PERIOD_OPTIONS, {value: thresholdPeriod, label: thresholdPeriod}];
 
   const isHigherBetter = preferredPolarity === '+';
 
@@ -193,6 +219,25 @@ export function Thresholds({
           ['+', t('Higher is better')],
         ]}
       />
+      {showThresholdPeriod && (
+        <StyledThresholdPeriodField
+          name="thresholdPeriod"
+          label={t('Period')}
+          help={t(
+            'Threshold values apply to this time period. With a period set, they scale when the dashboard interval changes.'
+          )}
+          showHelpInTooltip
+          value={thresholdPeriod}
+          disabled={thresholdPeriodDisabled}
+          onChange={value =>
+            onThresholdPeriodChange?.(
+              value === FIXED_THRESHOLD_PERIOD ? undefined : value
+            )
+          }
+          options={thresholdPeriodOptions}
+          inline={false}
+        />
+      )}
       {thresholdRowProps.map((props, index) => (
         <ThresholdRow
           {...props}
@@ -223,6 +268,10 @@ const StyledNumberField = styled(NumberField)`
 
 const StyledSelectField = styled(SelectField)`
   min-width: 150px;
+`;
+
+const StyledThresholdPeriodField = styled(SelectField)`
+  width: 200px;
 `;
 
 export const HighlightedText = styled('span')`
