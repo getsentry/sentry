@@ -48,6 +48,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
+from sentry.seer.night_shift.controls import is_night_shift_enabled
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.seer.workflows.schemas import WorkflowRunSource
 from sentry.tasks.base import instrumented_task
@@ -130,6 +131,7 @@ class NightShiftShardPlan:
 
 class ShardDispatchStatus(StrEnum):
     COMPLETE = "complete"
+    DISABLED = "disabled"
     NO_SEER_ACCESS = "no_seer_access"
     INVALID_SHARD_PLAN = "invalid_shard_plan"
     PARTIAL_FAILURE = "partial_failure"
@@ -282,6 +284,10 @@ def run_night_shift_for_org(
     if organization is None:
         return None
 
+    if not is_night_shift_enabled(organization):
+        logger.info("night_shift.disabled", extra={"organization_id": organization.id})
+        return None
+
     sentry_sdk.set_tags(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
@@ -419,6 +425,11 @@ def run_night_shift_execution(
 
     if run.date_completed is not None:
         logger.info("night_shift.execute_already_complete", extra=log_extra)
+        return None
+
+    if not is_night_shift_enabled(organization):
+        _record_run_error(run, SeerNightShiftRunErrorType.DISABLED, "Night Shift is disabled")
+        logger.info("night_shift.disabled", extra=log_extra)
         return None
 
     start_time = time.monotonic()
@@ -846,6 +857,12 @@ def _dispatch_pending_shards(
             if shard.seer_run_id is not None:
                 dispatched += 1
                 continue
+
+            if not is_night_shift_enabled(organization):
+                _record_run_error(
+                    run, SeerNightShiftRunErrorType.DISABLED, "Night Shift is disabled"
+                )
+                return ShardDispatchStatus.DISABLED
 
             shard_plan = NightShiftShardPlan.from_extras(shard.extras)
             if shard_plan is None:

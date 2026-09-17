@@ -1,6 +1,8 @@
+from contextlib import ExitStack
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+import pytest
 from django.conf import settings
 from taskbroker_client.scheduler.config import crontab
 
@@ -29,6 +31,7 @@ from sentry.tasks.seer.night_shift.cron import (
     _record_run_error,
     _update_run_extras,
     build_run_options,
+    run_night_shift_execution,
     run_night_shift_for_org,
     schedule_night_shift,
 )
@@ -43,8 +46,11 @@ from sentry.tasks.seer.night_shift.simple_triage import (
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cursors import Cursor
@@ -68,6 +74,14 @@ def _dispatched_feature_body(organization):
 class NightShiftFixtures(Fixtures):
     """Shared night-shift test setup. Mixed into the test cases below so the
     project-eligibility and event-seeding logic lives in one place."""
+
+    @pytest.fixture(autouse=True)
+    def enable_night_shift(self):
+        with (
+            override_options({"seer.night_shift.enable": True}),
+            with_feature("organizations:seer-night-shift"),
+        ):
+            yield
 
     def _make_eligible(
         self, project, *, stopping_point=AutofixStoppingPoint.OPEN_PR.value, **tweak_overrides
@@ -582,6 +596,84 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
     reset_snuba_data = False
 
+    def test_global_disable_before_cron_org_task(self) -> None:
+        self._assert_disabled_before_org_task(False, True, "cron")
+
+    def test_org_disable_before_cron_org_task(self) -> None:
+        self._assert_disabled_before_org_task(True, False, "cron")
+
+    def test_global_disable_before_manual_org_task(self) -> None:
+        self._assert_disabled_before_org_task(False, True, "manual")
+
+    def test_org_disable_before_manual_org_task(self) -> None:
+        self._assert_disabled_before_org_task(True, False, "manual")
+
+    def _assert_disabled_before_org_task(self, global_enabled, org_enabled, source) -> None:
+        org = self.create_organization()
+
+        with (
+            self.options({"seer.night_shift.enable": global_enabled}),
+            self.feature({"organizations:seer-night-shift": org_enabled}),
+            patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution") as mock_execute,
+        ):
+            run_id = run_night_shift_for_org(org.id, options={"source": source})
+
+        assert run_id is None
+        assert not SeerWorkflowRun.objects.filter(organization=org).exists()
+        mock_execute.assert_not_called()
+        mock_execute.apply_async.assert_not_called()
+
+    def test_global_disable_after_execution_is_queued(self) -> None:
+        self._assert_disabled_after_execution_is_queued(False, True)
+
+    def test_org_disable_after_execution_is_queued(self) -> None:
+        self._assert_disabled_after_execution_is_queued(True, False)
+
+    def _assert_disabled_after_execution_is_queued(self, global_enabled, org_enabled) -> None:
+        org = self.create_organization()
+        self._make_eligible(self.create_project(organization=org))
+        with patch("sentry.tasks.seer.night_shift.cron.run_night_shift_execution.apply_async"):
+            run_id = run_night_shift_for_org(
+                org.id, options={"source": "manual"}, execute_in_task=True
+            )
+
+        assert run_id is not None
+        with (
+            self.options({"seer.night_shift.enable": global_enabled}),
+            self.feature({"organizations:seer-night-shift": org_enabled}),
+            patch("sentry.tasks.seer.night_shift.cron.fixability_score_strategy") as mock_score,
+        ):
+            run_night_shift_execution(run_id)
+
+        run = SeerWorkflowRun.objects.get(id=run_id)
+        assert run.extras["error_type"] == SeerNightShiftRunErrorType.DISABLED.value
+        assert not run.executions.exists()
+        mock_score.assert_not_called()
+
+    def test_global_disable_before_resuming_shards(self) -> None:
+        self._assert_disabled_before_resuming_shards(False, True)
+
+    def test_org_disable_before_resuming_shards(self) -> None:
+        self._assert_disabled_before_resuming_shards(True, False)
+
+    def _assert_disabled_before_resuming_shards(self, global_enabled, org_enabled) -> None:
+        org = self.create_organization()
+        run = Factories.create_seer_workflow_run(organization=org)
+        shard = Factories.create_seer_workflow_run_execution(run=run)
+
+        with (
+            self.options({"seer.night_shift.enable": global_enabled}),
+            self.feature({"organizations:seer-night-shift": org_enabled}),
+            patch.object(SeerAgentClient, "start_feature_run") as mock_start,
+        ):
+            run_night_shift_execution(run.id)
+
+        run.refresh_from_db()
+        shard.refresh_from_db()
+        assert run.extras["error_type"] == SeerNightShiftRunErrorType.DISABLED.value
+        assert shard.seer_run_id is None
+        mock_start.assert_not_called()
+
     def test_nonexistent_org(self) -> None:
         with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
             run_night_shift_for_org(999999999)
@@ -839,6 +931,39 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
     feature-run endpoint. Seer pushes verdicts back via deliver_feature_result."""
 
     reset_snuba_data = False
+
+    def test_global_disable_during_candidate_selection(self) -> None:
+        self._assert_disabled_during_candidate_selection(False, True)
+
+    def test_org_disable_during_candidate_selection(self) -> None:
+        self._assert_disabled_during_candidate_selection(True, False)
+
+    def _assert_disabled_during_candidate_selection(self, global_enabled, org_enabled) -> None:
+        org = self.create_organization()
+        project = self._make_eligible(self.create_project(organization=org))
+        group = self.create_group(project=project)
+
+        with ExitStack() as stack:
+
+            def select_candidates(*args, **kwargs):
+                stack.enter_context(self.options({"seer.night_shift.enable": global_enabled}))
+                stack.enter_context(self.feature({"organizations:seer-night-shift": org_enabled}))
+                return [ScoredCandidate(group=group, fixability=0.9)]
+
+            with (
+                self.feature("organizations:gen-ai-features"),
+                patch(
+                    "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
+                    side_effect=select_candidates,
+                ),
+                patch.object(SeerAgentClient, "start_feature_run") as mock_start,
+            ):
+                run_id = run_night_shift_for_org(org.id)
+
+        run = SeerWorkflowRun.objects.get(id=run_id)
+        assert run.extras["error_type"] == SeerNightShiftRunErrorType.DISABLED.value
+        assert run.executions.get().seer_run_id is None
+        mock_start.assert_not_called()
 
     def _shard_group_ids(self, shard):
         outbox = CellOutbox.objects.get(
