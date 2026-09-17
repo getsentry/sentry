@@ -9,6 +9,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
@@ -46,6 +47,15 @@ class SentryAppInstallationExternalIssueActionsSerializer(serializers.Serializer
     )
 
 
+class SentryAppIssueLinkOptionsSerializer(serializers.Serializer):
+    expectedExternalIssueUrl = serializers.URLField(
+        required=False,
+        help_text="The exact canonical webUrl of the external issue to link. "
+        "Only supported for action=link. An existing matching association is a no-op; "
+        "a different association or callback URL returns 409 without replacing the link.",
+    )
+
+
 @extend_schema(tags=["Integration"])
 @control_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(
@@ -59,7 +69,10 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
     @extend_schema(
         operation_id="executeSentryAppInstallationExternalIssueAction",
         summary="Create or Link an External Issue Through a Sentry App",
-        parameters=[SentryAppParams.INSTALLATION_UUID],
+        parameters=[
+            SentryAppParams.INSTALLATION_UUID,
+            SentryAppIssueLinkOptionsSerializer,
+        ],
         request=SentryAppInstallationExternalIssueActionsSerializer,
         responses={
             200: inline_sentry_response_serializer(
@@ -69,6 +82,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
     )
     def post(
@@ -82,6 +96,13 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         """
         Invoke the installed app's issue-link callback and store the returned association.
         Submit the app-specific form fields alongside `groupId`, `action`, and `uri`.
+
+        For `action=link`, the optional `expectedExternalIssueUrl` query parameter
+        requires an exact canonical `webUrl` match. An existing matching link is
+        returned with `changed: false` without calling the App; a different link
+        returns 409. The callback must also return this URL before a new link is
+        saved. Callback effects cannot be rolled back if its response conflicts.
+        Omitting the parameter preserves the App's existing replacement behavior.
         """
         data = request.data.copy()
 
@@ -91,6 +112,10 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
 
         if not external_issue_action_serializer.is_valid():
             return Response(as_validation_errors(external_issue_action_serializer), status=400)
+
+        options = SentryAppIssueLinkOptionsSerializer(data=request.query_params)
+        if not options.is_valid():
+            return Response(as_validation_errors(options), status=400)
 
         group_id = data.pop("groupId")
         action = data.pop("action")
@@ -108,6 +133,7 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
             fields=data,
             uri=uri,
             user=rpc_user,
+            expected_external_issue_url=options.validated_data.get("expectedExternalIssueUrl"),
         )
 
         if result.error:
@@ -119,4 +145,6 @@ class SentryAppInstallationExternalIssueActionsEndpoint(
         body: PlatformExternalIssueSerializerResponse = serialize(
             objects=result.external_issue, serializer=PlatformExternalIssueSerializer()
         )
+        if result.changed is not None:
+            body["changed"] = result.changed
         return Response(body)
