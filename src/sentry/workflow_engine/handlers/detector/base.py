@@ -4,7 +4,6 @@ import logging
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from functools import lru_cache
 from typing import Any, Generic, TypeVar, cast
 from uuid import uuid4
 
@@ -178,12 +177,6 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
                 self.condition_group = None
         else:
             self.condition_group = None
-
-        # Memoize _build_evidence_data_sources to avoid re-fetching data sources for every group in a packet
-        # This must be done in-line to ensure the cache is not shared between handler instances
-        self._memoized_build_evidence_data_sources = lru_cache(maxsize=1)(
-            self._build_evidence_data_sources
-        )
 
     def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
@@ -408,7 +401,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             data_packet_source_id=data_packet.source_id,
             conditions=triggered_conditions,
             config=self.detector.config,
-            data_sources=self._memoized_build_evidence_data_sources(data_packet.source_id),
+            data_sources=self._build_evidence_data_sources(data_packet.source_id),
         )
 
     def _build_evidence_data_sources(self, source_id: str) -> list[dict[str, Any]]:
