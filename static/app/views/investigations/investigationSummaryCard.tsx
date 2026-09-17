@@ -23,7 +23,7 @@ export function InvestigationSummaryCard({
       <SummaryTitle as="h2" size="xl" tabular>
         {summary}
       </SummaryTitle>
-      <Text size="md" density="comfortable" tabular wrap="pre-line">
+      <Text size="md" density="comfortable" tabular>
         {summaryDescription}
       </Text>
     </Stack>
