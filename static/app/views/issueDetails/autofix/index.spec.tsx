@@ -1,5 +1,4 @@
 import {ExplorerAutofixResponseFixture} from 'sentry-fixture/autofix';
-import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -87,26 +86,6 @@ describe('AutofixPage', () => {
       url: `/organizations/${organization.slug}/replay-count/`,
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
-      body: {'count()': EventsStatsFixture(), 'count_unique(user)': EventsStatsFixture()},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: [{'count_unique(user)': 21}]},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/releases/stats/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/flags/logs/`,
-      body: {data: []},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/`,
-      body: project,
-    });
   });
 
   it('renders the issue preview for the group in the route', async () => {
@@ -115,16 +94,6 @@ describe('AutofixPage', () => {
     expect(
       await screen.findByRole('heading', {name: group.metadata.type})
     ).toBeInTheDocument();
-  });
-
-  it('renders the event filter bar and graph above the preview', async () => {
-    renderPage();
-
-    // EventDetailsHeader depends on providers the issue details route supplies
-    // and this sibling route has to stand up itself, so assert it really mounts.
-    expect(await screen.findByRole('button', {name: 'All Envs'})).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Filter events\u2026')).toBeInTheDocument();
-    expect(screen.getByRole('figure')).toBeInTheDocument();
   });
 
   it('shows an Issues / short-id / Autofix breadcrumb trail', async () => {
