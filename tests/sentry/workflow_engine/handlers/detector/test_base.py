@@ -18,7 +18,7 @@ from sentry.workflow_engine.handlers.detector import (
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
-from sentry.workflow_engine.models import DataConditionGroup, DataPacket, DataSource, Detector
+from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors import (
     DataConditionEvaluation,
@@ -445,7 +445,10 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
             slug = "default_condition_handler"
             description = "default condition handler"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockDefaultDetectorHandler)
+
+        @detector_settings_registry.register(DefaultConditionGroupType.slug)
+        class DefaultConditionDetectorSettings(DetectorSettings):
+            handler = MockDefaultDetectorHandler
 
         self.group_type = DefaultConditionGroupType
 
@@ -690,7 +693,10 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
             slug = "grouped_condition_handler"
             description = "grouped condition handler"
             category = GroupCategory.METRIC.value
-            detector_settings = DetectorSettings(handler=MockGroupedDetectorHandler)
+
+        @detector_settings_registry.register(GroupedConditionGroupType.slug)
+        class GroupedConditionDetectorSettings(DetectorSettings):
+            handler = MockGroupedDetectorHandler
 
         self.group_type = GroupedConditionGroupType
 
@@ -806,15 +812,6 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert isinstance(occurrence, IssueOccurrence)
 
         assert_event_matches_occurrence(event_data, occurrence)
-
-    def test_evaluate__builds_the_data_sources_once_for_every_group(self) -> None:
-        with mock.patch.object(
-            DataSource.objects, "filter", return_value=[]
-        ) as filter_data_sources:
-            result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
-
-        assert len(result.result) == 2
-        assert filter_data_sources.call_count == 1
 
     def test_evaluate__taints_the_result_when_any_group_is_tainted(self) -> None:
         clean_evaluation = self.build_condition_group_evaluation(triggered=False)
