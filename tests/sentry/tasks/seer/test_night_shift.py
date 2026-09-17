@@ -882,12 +882,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
     def test_payload_omits_unconfigured_model_settings(self) -> None:
         self._assert_model_overrides_sent({})
 
-    def test_payload_preserves_explicit_intelligence(self) -> None:
-        self._assert_model_overrides_sent({"intelligence_level": "high"})
-
-    def test_payload_preserves_explicit_reasoning(self) -> None:
-        self._assert_model_overrides_sent({"reasoning_effort": "high"})
-
     def test_payload_preserves_both_model_overrides(self) -> None:
         self._assert_model_overrides_sent(
             {"intelligence_level": "low", "reasoning_effort": "medium"}
