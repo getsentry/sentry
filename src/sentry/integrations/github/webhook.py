@@ -20,6 +20,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from sentry_sdk import traces
 
 from sentry import analytics, options
 from sentry.analytics.events.pr_iteration_events import (
@@ -109,7 +110,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_tag, start_span
 
 from .integration import GitHubIntegrationProvider
 from .repository import GitHubRepositoryProvider
@@ -1503,11 +1503,16 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github.webhook.{github_event.value}"
-        with start_span(
-            op="webhook", name=transaction_name, source="component", transaction=True
-        ) as span:
-            set_span_tag(span, "github_event", github_event.value)
-
+        traces.new_trace()
+        with traces.start_span(
+            name=transaction_name,
+            attributes={
+                "sentry.op": "webhook",
+                "sentry.span.source": "component",
+                "github_event": github_event.value,
+            },
+            parent_span=None,
+        ):
             github_delivery_id = request.META.get("HTTP_X_GITHUB_DELIVERY")
             if github_delivery_id is not None:
                 github_delivery_id = str(github_delivery_id)
