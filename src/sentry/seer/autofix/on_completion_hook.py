@@ -10,6 +10,7 @@ from django.db import router, transaction
 from django.utils import timezone
 from pydantic import ValidationError
 from scm.manager import SourceCodeManager
+from sentry_sdk import traces
 
 from sentry import analytics, features
 from sentry.analytics.events.autofix_events import (
@@ -96,7 +97,6 @@ from sentry.tasks.seer.pr_iteration import (
     consume_queued_autofix_feedback,
 )
 from sentry.utils import metrics
-from sentry.utils.tracing import start_span, trace
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
@@ -198,12 +198,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             organization: The organization context
             run_id: The ID of the completed run
         """
+        traces.new_trace()
         with (
             sentry_sdk.isolation_scope(),
-            start_span(
+            traces.start_span(
                 name="autofix.on_completion_hook",
-                op="function",
-                transaction=True,
+                attributes={"sentry.op": "function"},
+                parent_span=None,
             ),
         ):
             cls._execute(organization, run_id)
@@ -443,7 +444,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return None
 
     @classmethod
-    @trace
+    @traces.trace
     def _maybe_react_to_completed_iteration(
         cls,
         organization: Organization,
@@ -1059,7 +1060,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def _consume_queued_feedback(
         cls,
         log_ctx: PrIterationLogContext,
@@ -1211,7 +1212,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return bool(iteration_repos(iterations[-1]))
 
     @classmethod
-    @trace
+    @traces.trace
     def _pr_iteration_push_outcome(
         cls,
         log_ctx: PrIterationLogContext,
@@ -1296,7 +1297,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         return None if pushed else PrIterationOutcome.PUSH_FAILED
 
     @classmethod
-    @trace
+    @traces.trace
     def _push_iteration_changes(
         cls,
         log_ctx: PrIterationLogContext,
