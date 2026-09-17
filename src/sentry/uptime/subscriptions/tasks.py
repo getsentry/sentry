@@ -293,21 +293,20 @@ def check_missing_configs(subscription_id_prefix: str, **kwargs):
     subscription_id prefix, count the (subscription, store) pairs whose config is absent.
     """
     for store in get_config_stores():
-        count = find_missing_configs(store, subscription_id_prefix)
+        result = find_missing_configs(store, subscription_id_prefix)
+        missing = len(result.drifted_ids)
         tags = {"cluster": store.cluster, "direction": "missing"}
         metrics.incr(
-            "uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0
+            "uptime.config_drift.checked", amount=result.checked, tags=tags, sample_rate=1.0
         )
-        metrics.incr(
-            "uptime.config_drift.missing", amount=count.drifted, tags=tags, sample_rate=1.0
-        )
-        if count.drifted:
+        metrics.incr("uptime.config_drift.missing", amount=missing, tags=tags, sample_rate=1.0)
+        if missing:
             logger.warning(
                 "uptime.config_drift.missing",
                 extra={
                     "subscription_id_prefix": subscription_id_prefix,
                     "cluster": store.cluster,
-                    "count": count.drifted,
+                    "count": missing,
                 },
             )
 
@@ -333,12 +332,13 @@ def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwar
         )
         return
 
-    count = find_orphaned_configs(store, partition)
+    result = find_orphaned_configs(store, partition)
+    orphaned = len(result.drifted_ids)
     tags = {"cluster": store.cluster, "direction": "orphaned"}
-    metrics.incr("uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0)
-    metrics.incr("uptime.config_drift.orphaned", amount=count.drifted, tags=tags, sample_rate=1.0)
-    if count.drifted:
+    metrics.incr("uptime.config_drift.checked", amount=result.checked, tags=tags, sample_rate=1.0)
+    metrics.incr("uptime.config_drift.orphaned", amount=orphaned, tags=tags, sample_rate=1.0)
+    if orphaned:
         logger.warning(
             "uptime.config_drift.orphaned",
-            extra={"partition": partition, "cluster": store.cluster, "count": count.drifted},
+            extra={"partition": partition, "cluster": store.cluster, "count": orphaned},
         )

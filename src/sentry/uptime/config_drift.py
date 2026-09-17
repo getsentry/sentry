@@ -30,9 +30,9 @@ class ConfigStore:
 
 
 @dataclass(frozen=True)
-class DriftCount:
+class DriftResult:
     checked: int
-    drifted: int
+    drifted_ids: frozenset[str]
 
 
 def get_config_stores() -> list[ConfigStore]:
@@ -66,28 +66,31 @@ def _active_region_rows() -> QuerySet[UptimeSubscriptionRegion]:
     )
 
 
-def find_missing_configs(store: ConfigStore, subscription_id_prefix: str) -> DriftCount:
+def find_missing_configs(store: ConfigStore, subscription_id_prefix: str) -> DriftResult:
+    cluster = redis.redis_clusters.get_binary(store.cluster)
+    pipe = cluster.pipeline()
+    subscription_ids: list[str] = []
     # One row per (subscription, region); slugs sharing a store must be checked once.
-    subscription_ids = set(
+    for subscription_id in set(
         _active_region_rows()
         .filter(
             uptime_subscription__subscription_id__startswith=subscription_id_prefix,
             region_slug__in=store.region_slugs,
         )
         .values_list("uptime_subscription__subscription_id", flat=True)
-    )
-    cluster = redis.redis_clusters.get_binary(store.cluster)
-    pipe = cluster.pipeline()
-    for subscription_id in subscription_ids:
+    ):
         assert subscription_id is not None
+        subscription_ids.append(subscription_id)
         partition = get_partition_from_subscription_id(UUID(subscription_id))
         pipe.hexists(get_config_key(store.key_prefix, partition), subscription_id)
     exists = pipe.execute()
-    missing = sum(1 for present in exists if not present)
-    return DriftCount(checked=len(exists), drifted=missing)
+    missing_ids = frozenset(
+        subscription_id for subscription_id, present in zip(subscription_ids, exists) if not present
+    )
+    return DriftResult(checked=len(subscription_ids), drifted_ids=missing_ids)
 
 
-def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftCount:
+def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftResult:
     cluster = redis.redis_clusters.get_binary(store.cluster)
     stored = {
         field.decode() for field in cluster.hkeys(get_config_key(store.key_prefix, partition))
@@ -102,4 +105,4 @@ def find_orphaned_configs(store: ConfigStore, partition: int) -> DriftCount:
             )
             .values_list("uptime_subscription__subscription_id", flat=True)
         )
-    return DriftCount(checked=len(stored), drifted=len(stored - live))
+    return DriftResult(checked=len(stored), drifted_ids=frozenset(stored - live))
