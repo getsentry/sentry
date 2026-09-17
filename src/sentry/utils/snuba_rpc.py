@@ -74,14 +74,21 @@ class MultiRpcResponse:
 
 def log_snuba_info(content: str) -> None:
     if SNUBA_INFO_FILE:
-        with open(SNUBA_INFO_FILE, "a") as file:
-            file.writelines(content)
+        try:
+            with open(SNUBA_INFO_FILE, "a") as file:
+                file.writelines(content)
+        except OSError:
+            logger.exception("Failed to write Snuba info")
     else:
         print(content)  # noqa: S002, T201 -- only prints when an env variable is set
 
 
 class SnubaRPCError(SnubaError):
     pass
+
+
+class SnubaRPCUnavailable(SnubaRPCError):
+    """Snuba RPC is temporarily unavailable."""
 
 
 class SnubaRPCBadRequest(SnubaRPCError):
@@ -208,7 +215,7 @@ def _make_rpc_requests(
                 "trace_item_type": request.meta.trace_item_type,
                 "page_token": table_response.page_token,
                 "meta": table_response.meta,
-                "debug": debug is not False,
+                "debug": isinstance(debug, str) or debug,
             }
             if isinstance(debug, str):
                 logger_extra["debug_msg"] = debug
@@ -232,7 +239,7 @@ def _make_rpc_requests(
                 "organization_id": request.meta.organization_id,
                 "trace_item_type": request.meta.trace_item_type,
                 "meta": timeseries_response.meta,
-                "debug": debug is not False,
+                "debug": isinstance(debug, str) or debug,
             }
             if isinstance(debug, str):
                 logger_extra["debug_msg"] = debug
@@ -255,7 +262,7 @@ def _log_rpc_response(
         "referrer": req.meta.referrer,
         "organization_id": req.meta.organization_id,
         "trace_item_type": req.meta.trace_item_type,
-        "debug": debug is not False,
+        "debug": isinstance(debug, str) or debug,
     }
     if isinstance(debug, str):
         logger_extra["debug_msg"] = debug
@@ -417,11 +424,12 @@ def _make_rpc_request(
         logger_extra: dict[str, object] = {
             "rpc_query": json.loads(MessageToJson(req)),  # type: ignore[arg-type]
             "referrer": referrer,
-            "debug": debug is not False,
+            "debug": isinstance(debug, str) or debug,
         }
-        if isinstance(req, ProtobufMessage) and hasattr(req, "meta"):
-            logger_extra["organization_id"] = req.meta.organization_id
-            logger_extra["trace_item_type"] = req.meta.trace_item_type
+        meta = getattr(req, "meta", None)
+        if isinstance(req, ProtobufMessage) and meta is not None:
+            logger_extra["organization_id"] = meta.organization_id
+            logger_extra["trace_item_type"] = meta.trace_item_type
         if isinstance(debug, str):
             logger_extra["debug_msg"] = debug
         logger.info(
@@ -465,15 +473,23 @@ def _make_rpc_request(
                         metrics.incr("snuba_rpc.read_timeout_error", tags={"referrer": referrer})
                         raise SnubaRPCTimeout(err)
                     raise SnubaRPCError(err)
+
                 set_span_tag(span, "timeout", "False")
                 if http_resp.status != 200 and http_resp.status != 202:
-                    error = _parse_error(http_resp)
+                    try:
+                        error = _parse_error(http_resp)
+                    except SnubaRPCError as parse_error:
+                        if http_resp.status == 503:
+                            raise SnubaRPCUnavailable(*parse_error.args) from parse_error
+                        raise
                     if SNUBA_INFO:
                         log_snuba_info(f"{referrer}.error:\n{error}")
                     if http_resp.status == 404:
                         raise NotFound() from SnubaRPCError(error)
                     if http_resp.status == 429:
                         raise SnubaRPCRateLimitExceeded(error)
+                    if http_resp.status == 503:
+                        raise SnubaRPCUnavailable(error)
                     if "Too many simultaneous queries" in error.message:
                         raise SnubaRPCTooManySimultaneous(error)
                     if http_resp.status == 400:
