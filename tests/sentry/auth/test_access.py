@@ -1,6 +1,7 @@
 from datetime import timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 from django.utils import timezone
@@ -13,19 +14,27 @@ from sentry.auth.scope_declaration import (
     update_permission_scope_declaration,
 )
 from sentry.auth.services.access.service import access_service
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import SUPERUSER_READONLY_SCOPES, SUPERUSER_SCOPES
 from sentry.constants import ObjectStatus
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
+from sentry.testutils.silo import (
+    all_silo_test,
+    assume_test_silo_mode,
+    assume_test_silo_mode_of,
+    no_silo_test,
+)
 from sentry.users.models.user import User
 from sentry.users.models.userrole import UserRole
 
@@ -40,7 +49,7 @@ def silo_from_user(
     rpc_user_org_context = None
     if organization:
         rpc_user_org_context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=user.id
+            id=organization.id, user_id=user.id, include_projects=False, include_teams=False
         )
     return access.from_user_and_rpc_user_org_context(
         user=user,
@@ -55,7 +64,10 @@ def silo_from_request(request, organization: Organization | None = None, scopes=
     rpc_user_org_context = None
     if organization:
         rpc_user_org_context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=request.user.id
+            id=organization.id,
+            user_id=request.user.id,
+            include_projects=False,
+            include_teams=False,
         )
     return access.from_request_org_and_scopes(
         request=request, rpc_user_org_context=rpc_user_org_context, scopes=scopes
@@ -695,6 +707,8 @@ class FromRequestTest(AccessFactoryTestCase):
         assert result.has_team_access(self.team1)
         assert result.project_ids_with_team_membership == frozenset()
         assert result.has_project_access(self.project1)
+        assert result.accessible_team_ids == frozenset({self.team1.id, self.team2.id})
+        assert result.accessible_project_ids == frozenset({self.project1.id, self.project2.id})
 
     def test_staff_with_organization_without_membership(self) -> None:
         request = self.make_request(user=self.staff, is_staff=True)
@@ -854,6 +868,12 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_project_membership(self.project)
         assert not result.has_project_access(self.out_of_scope_project)
         assert not result.permissions
+        assert result.accessible_team_ids == frozenset({self.team.id})
+        full_context = organization_service.get_organization_by_id(id=self.org.id)
+        assert full_context is not None
+        expected_projects = frozenset(p.id for p in full_context.organization.projects)
+        assert result.accessible_project_ids == expected_projects
+        assert result.project_ids_with_team_membership == expected_projects
 
     def test_no_access_due_to_no_app(self) -> None:
         user = self.create_user("integration2@example.com")
@@ -901,6 +921,8 @@ class FromSentryAppTest(AccessFactoryTestCase):
         result = self.from_request(request, self.org)
         assert result.has_project_access(deleted_project) is False
         assert result.has_project_membership(deleted_project) is False
+        assert deleted_project.id not in result.accessible_project_ids
+        assert deleted_project.id not in result.project_ids_with_team_membership
 
     def test_no_deleted_teams(self) -> None:
         deleted_team = self.create_team(organization=self.org, status=TeamStatus.PENDING_DELETION)
@@ -910,6 +932,8 @@ class FromSentryAppTest(AccessFactoryTestCase):
         request = self.make_request(user=self.proxy_user)
         result = self.from_request(request, self.org)
         assert result.has_team_access(deleted_team) is False
+        assert deleted_team.id not in result.accessible_team_ids
+        assert deleted_team.id not in result.team_ids_with_membership
 
     def test_has_app_scopes(self) -> None:
         app_with_scopes = self.create_sentry_app(name="ScopeyTheApp", organization=self.org)
@@ -925,6 +949,102 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:read") is True
         assert result.has_scope("team:write") is True
         assert result.has_scope("team:admin") is False
+
+
+@all_silo_test
+class RpcGlobalAccessTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization()
+        self.team = self.create_team(organization=self.org)
+        self.project = self.create_project(organization=self.org, teams=[])
+        context = organization_service.get_organization_by_id(
+            id=self.org.id, include_projects=False, include_teams=False
+        )
+        assert context is not None
+        self.context = context
+        self.token = AuthenticatedToken(kind="org_auth_token", organization_id=self.org.id)
+
+    def test_org_token_resource_ids(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        other_team = self.create_team(organization=other_org)
+        self.create_project(organization=self.org, status=ObjectStatus.PENDING_DELETION)
+        self.create_project(organization=self.org, status=ObjectStatus.DELETION_IN_PROGRESS)
+        self.create_project(organization=self.org, status=ObjectStatus.DISABLED)
+        self.create_team(organization=self.org, status=TeamStatus.PENDING_DELETION)
+        self.create_team(organization=self.org, status=TeamStatus.DELETION_IN_PROGRESS)
+
+        result = access.from_rpc_auth(self.token, self.context)
+
+        assert result.accessible_project_ids == frozenset({self.project.id})
+        assert result.accessible_team_ids == frozenset({self.team.id})
+        assert result.has_project_access(self.project)
+        assert result.has_team_access(self.team)
+        assert not result.has_project_access(other_project)
+        assert not result.has_team_access(other_team)
+        assert result.project_ids_with_team_membership == frozenset()
+        assert result.team_ids_with_membership == frozenset()
+
+    def test_wrong_org_token_has_no_access(self) -> None:
+        token = AuthenticatedToken(
+            kind="org_auth_token", organization_id=self.create_organization().id
+        )
+
+        result = access.from_rpc_auth(token, self.context)
+
+        assert isinstance(result, NoAccess)
+        assert result.accessible_project_ids == frozenset()
+        assert result.accessible_team_ids == frozenset()
+        assert not result.has_project_access(self.project)
+        assert not result.has_team_access(self.team)
+
+    def test_resource_ids_are_independently_lazy_and_cached(self) -> None:
+        with (
+            patch.object(
+                DatabaseBackedOrganizationService,
+                "get_active_project_ids",
+                autospec=True,
+                side_effect=DatabaseBackedOrganizationService.get_active_project_ids,
+            ) as project_ids,
+            patch.object(
+                DatabaseBackedOrganizationService,
+                "get_active_team_ids",
+                autospec=True,
+                side_effect=DatabaseBackedOrganizationService.get_active_team_ids,
+            ) as team_ids,
+        ):
+            result = access.from_rpc_auth(self.token, self.context)
+            assert result.has_project_access(self.project)
+            assert result.has_team_access(self.team)
+            project_ids.assert_not_called()
+            team_ids.assert_not_called()
+
+            assert result.accessible_project_ids == frozenset({self.project.id})
+            assert result.accessible_project_ids == frozenset({self.project.id})
+            project_ids.assert_called_once_with(ANY, organization_id=self.org.id)
+            team_ids.assert_not_called()
+
+            assert result.accessible_team_ids == frozenset({self.team.id})
+            assert result.accessible_team_ids == frozenset({self.team.id})
+            team_ids.assert_called_once_with(ANY, organization_id=self.org.id)
+
+    def test_resource_ids_are_refreshed_for_new_access_objects(self) -> None:
+        result = access.from_rpc_auth(self.token, self.context)
+        assert result.accessible_project_ids == frozenset({self.project.id})
+        with assume_test_silo_mode_of(Project):
+            self.project.update(status=ObjectStatus.PENDING_DELETION)
+
+        refreshed = access.from_rpc_auth(self.token, self.context)
+        assert refreshed.accessible_project_ids == frozenset()
+
+    def test_resource_lookup_failure_propagates(self) -> None:
+        result = access.from_rpc_auth(self.token, self.context)
+        with (
+            patch.object(organization_service, "get_active_project_ids", side_effect=RuntimeError),
+            pytest.raises(RuntimeError),
+        ):
+            _ = result.accessible_project_ids
 
 
 @no_silo_test
