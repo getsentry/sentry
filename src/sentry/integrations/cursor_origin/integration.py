@@ -154,12 +154,16 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         return unquote(self._split_blob_url(repo, url)[1])
 
     def _split_blob_url(self, repo: Repository, url: str) -> tuple[str, str]:
-        prefix = f"{urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path}/{quote(repo.name)}/blob/"
+        base = urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path
         path = urlparse(url).path
-        if not path.startswith(prefix):
-            return "", ""
-        branch, _, filepath = path[len(prefix) :].partition("/")
-        return branch, filepath
+        # `project_repo_path_parsing` unquotes the path before it gets here, so the
+        # repository name arrives either as we encoded it or decoded.
+        for name in (quote(repo.name), repo.name):
+            prefix = f"{base}/{name}/blob/"
+            if path.startswith(prefix):
+                branch, _, filepath = path[len(prefix) :].partition("/")
+                return branch, filepath
+        return "", ""
 
     def uninstall(self) -> None:
         """Remove the installation on Origin; a failure must not block disconnecting."""

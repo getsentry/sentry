@@ -181,6 +181,17 @@ class CursorOriginIntegrationTest(TestCase):
         assert self.install.extract_branch_from_source_url(repo, url) == "release/test"
         assert self.install.extract_source_path_from_source_url(repo, url) == "src/app.py"
 
+    def test_a_decoded_url_still_extracts(self) -> None:
+        """`project_repo_path_parsing` unquotes the path before extraction."""
+        repo = self._repo(name="acme/my repo")
+
+        assert (
+            self.install.extract_source_path_from_source_url(
+                repo, f"{WEB}/acme/my repo/blob/main/src/app.py"
+            )
+            == "src/app.py"
+        )
+
     def test_a_path_needing_encoding_round_trips(self) -> None:
         repo = self._repo()
         url = self.install.format_source_url(repo, "src/my file.py", "main")
