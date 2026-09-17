@@ -6,7 +6,7 @@ import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from cronsim import CronSim
@@ -58,8 +58,6 @@ from sentry.tasks.seer.night_shift.simple_triage import (
 )
 from sentry.tasks.seer.night_shift.tweaks import (
     DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS,
-    DEFAULT_INTELLIGENCE_LEVEL,
-    DEFAULT_REASONING_EFFORT,
     IntelligenceLevel,
     NightShiftTweaks,
     ReasoningEffort,
@@ -88,14 +86,14 @@ PER_ORG_FEATURE_NAMES = [
 
 
 class SeerNightShiftRunOptions(TypedDict):
-    """Fully-resolved options for a night shift run. Persisted directly onto
-    SeerWorkflowRun.extras["options"]. Construct via build_run_options."""
+    """Resolved options for a night shift run; model settings are explicit overrides.
+    Persisted onto SeerWorkflowRun.extras["options"]. Construct via build_run_options."""
 
     source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
-    intelligence_level: IntelligenceLevel
-    reasoning_effort: ReasoningEffort
+    intelligence_level: NotRequired[IntelligenceLevel]
+    reasoning_effort: NotRequired[ReasoningEffort]
     extra_triage_instructions: str
 
 
@@ -506,16 +504,19 @@ def _run_option_defaults(data: Mapping[str, Any]) -> SeerNightShiftRunOptions:
     normalize both partial caller input and loosely-typed dicts read back from
     run.extras (which may predate later schema additions)."""
     max_candidates = data.get("max_candidates")
-    return SeerNightShiftRunOptions(
+    resolved = SeerNightShiftRunOptions(
         source=data.get("source", "cron"),
         max_candidates=default_max_candidates() if max_candidates is None else max_candidates,
         dry_run=data.get("dry_run", False),
-        intelligence_level=data.get("intelligence_level", DEFAULT_INTELLIGENCE_LEVEL),
-        reasoning_effort=data.get("reasoning_effort", DEFAULT_REASONING_EFFORT),
         extra_triage_instructions=data.get(
             "extra_triage_instructions", DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS
         ),
     )
+    if "intelligence_level" in data:
+        resolved["intelligence_level"] = data["intelligence_level"]
+    if "reasoning_effort" in data:
+        resolved["reasoning_effort"] = data["reasoning_effort"]
+    return resolved
 
 
 # Run-option fields that a NightShiftTweaks layer can override. `enabled` is
@@ -546,7 +547,7 @@ def build_run_options(
     manual_overrides: Mapping[str, Any] | None = None,
     project_id: int | None = None,
 ) -> SeerNightShiftRunOptions:
-    """Resolve a fully-populated set of run options, layering by precedence
+    """Resolve run options, leaving unspecified model settings to Seer. Precedence
     (highest wins):
 
         manual overrides (`manual_overrides`)
@@ -793,11 +794,7 @@ def _build_shard_plans(
                 )
                 for candidate in chunk
             ],
-            tweaks=TriageTweaks(
-                intelligence_level=resolved_options["intelligence_level"],
-                reasoning_effort=resolved_options["reasoning_effort"],
-                extra_triage_instructions=resolved_options["extra_triage_instructions"],
-            ),
+            tweaks=_build_triage_tweaks(resolved_options),
         )
         num_candidates = len(payload.candidates)
         title = ngettext(
@@ -807,9 +804,20 @@ def _build_shard_plans(
         ) % {"count": num_candidates}
         if len(chunks) > 1:
             title += f" — part {shard_index + 1} of {len(chunks)}"
-        shard_plans.append(NightShiftShardPlan(payload=payload.dict(), title=title))
+        shard_plans.append(
+            NightShiftShardPlan(payload=payload.dict(exclude_unset=True), title=title)
+        )
 
     return shard_plans, len(scored)
+
+
+def _build_triage_tweaks(resolved_options: SeerNightShiftRunOptions) -> TriageTweaks:
+    tweaks = TriageTweaks(extra_triage_instructions=resolved_options["extra_triage_instructions"])
+    if "intelligence_level" in resolved_options:
+        tweaks.intelligence_level = resolved_options["intelligence_level"]
+    if "reasoning_effort" in resolved_options:
+        tweaks.reasoning_effort = resolved_options["reasoning_effort"]
+    return tweaks
 
 
 def _maybe_create_shard_plan(
