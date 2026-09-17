@@ -126,21 +126,26 @@ class InstallationUpdatedHandler(InstallationEventHandler):
     ) -> None:
         target = installation.get("target") or {}
         name = target.get("slug")
-        metadata = {
+        changed: dict[str, Any] = {
             "installation_id": installation["id"],
             "target": target,
             "scopes": installation.get("scopes") or [],
             "repo_selection_mode": installation.get("repoSelectionMode"),
         }
         if name:
-            metadata["domain_name"] = f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}"
+            changed["domain_name"] = f"{CURSOR_ORIGIN_WEB_BASE_URL}/{name}"
+
+        # `update_integration` replaces metadata rather than merging it, which would
+        # drop the cached access token and, without a slug, `domain_name`.
+        existing = integration_service.get_integration(integration_id=integration_id)
+        metadata = {**(existing.metadata if existing else {}), **changed}
 
         logger.info(
             "cursor_origin.webhook.updating_integration",
             extra={"delivery_id": delivery_id, "integration_id": integration_id},
         )
         integration_service.update_integration(
-            integration_id=integration_id, name=name, metadata=metadata
+            integration_id=integration_id, name=name or None, metadata=metadata
         )
         _sync_repositories(org_integrations, delivery_id)
 

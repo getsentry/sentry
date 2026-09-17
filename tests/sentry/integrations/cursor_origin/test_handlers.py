@@ -102,6 +102,27 @@ class InstallationEventHandlerTest(TestCase):
         ]
         assert metadata["repo_selection_mode"] == "all"
 
+    def test_an_update_keeps_metadata_it_does_not_carry(self) -> None:
+        """The stored access token must survive an update; metadata is replaced, not merged."""
+        self.integration.metadata["access_token"] = "oit_stored"
+        self.integration.metadata["expires_at"] = "2026-09-16T23:00:00Z"
+        self.integration.save()
+
+        self._handle("installation.updated", _installation(repoSelectionMode="all"))
+
+        metadata = self._integration().metadata
+        assert metadata["access_token"] == "oit_stored"
+        assert metadata["expires_at"] == "2026-09-16T23:00:00Z"
+        assert metadata["repo_selection_mode"] == "all"
+
+    def test_an_update_without_a_slug_keeps_the_domain(self) -> None:
+        """`source_url_matches` reads `domain_name` directly, so it must not be dropped."""
+        self._handle("installation.updated", _installation(target={"id": "ns_01example"}))
+
+        integration = self._integration()
+        assert integration.metadata["domain_name"] == f"{WEB}/acme"
+        assert integration.name == "acme"
+
     def test_a_renamed_codebase_updates_the_name_and_urls(self) -> None:
         """Origin sends this when the owner namespace slug changes."""
         self._handle(
