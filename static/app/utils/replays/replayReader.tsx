@@ -137,10 +137,9 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 const DUPLICATE_NAV_THRESHOLD_MS = 2;
 
 /**
- * How much of the replay to fall back to when the requested clip window lands
- * outside the recording, in either direction.
+ * How much of the replay to show when the event happened before it started.
  */
-const FALLBACK_CLIP_DURATION_MS = 10 * 1000;
+const EVENT_BEFORE_REPLAY_CLIP_MS = 10 * 1000;
 
 /**
  * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
@@ -353,22 +352,37 @@ export class ReplayReader {
     const replayStart = this._replayRecord.started_at.getTime();
     const replayEnd = this._replayRecord.finished_at.getTime();
 
-    // The window is derived from an event timestamp that nothing guarantees to
-    // fall inside this replay — Seer, for one, has the model supply it. An
-    // unusable one has to fall back to the whole replay, otherwise `clamp`
-    // passes the NaN straight through into the duration and every offset.
-    if (
-      !Number.isFinite(clipWindow.startTimestampMs) ||
-      !Number.isFinite(clipWindow.endTimestampMs)
-    ) {
-      clipStartTimestampMs = replayStart;
-      clipEndTimestampMs = replayEnd;
-    } else if (eventTimestampMs && eventTimestampMs < replayStart) {
+    // An event before the replay started still describes a moment in it, so it
+    // keeps its own handling below rather than being treated as out of range.
+    const isEventBeforeReplayStart = Boolean(
+      eventTimestampMs && eventTimestampMs < replayStart
+    );
+
+    // Nothing guarantees the requested window has anything to do with this
+    // replay. Seer has the model supply the event timestamp as free text, and
+    // it has landed minutes past the end of the recording; a window that misses
+    // the replay entirely clamps both edges onto the same instant and leaves a
+    // zero-length clip. Downstream that reads as "nothing to play" — callers
+    // branch on `getDurationMs() <= 0` and render a static preview instead of
+    // the player — so the whole replay is both the honest answer and the useful
+    // one. A window that merely overhangs one end still clips to the overlap.
+    const canClip =
+      isEventBeforeReplayStart ||
+      (Number.isFinite(clipWindow.startTimestampMs) &&
+        Number.isFinite(clipWindow.endTimestampMs) &&
+        clipWindow.startTimestampMs < replayEnd &&
+        clipWindow.endTimestampMs > replayStart);
+
+    if (!canClip) {
+      return;
+    }
+
+    if (isEventBeforeReplayStart) {
       // error event for this clip is before the replay started.
       // use the start of the replay as the start of the clip.
       // set the clip to be at most 10 seconds long.
       clipStartTimestampMs = replayStart;
-      clipEndTimestampMs = Math.min(replayStart + FALLBACK_CLIP_DURATION_MS, replayEnd);
+      clipEndTimestampMs = Math.min(replayStart + EVENT_BEFORE_REPLAY_CLIP_MS, replayEnd);
       this._errorBeforeReplayStart = true;
     } else {
       clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
@@ -379,21 +393,10 @@ export class ReplayReader {
       );
     }
 
-    // The mirror of the case above: an event at or past the end of the replay
-    // clamps both edges to the same instant, which leaves a zero duration. That
-    // reads as "this replay has nothing to play" everywhere downstream — callers
-    // branch on `getDurationMs() <= 0` and render a static, unsized preview
-    // instead of the player. Show the tail of the replay instead, the same way
-    // an event before the start shows the head of it.
-    if (clipEndTimestampMs <= clipStartTimestampMs) {
-      clipStartTimestampMs = Math.max(
-        replayStart,
-        clipEndTimestampMs - FALLBACK_CLIP_DURATION_MS
-      );
-    }
-
     const clipDuration = clipEndTimestampMs - clipStartTimestampMs;
-    this._duration = duration(clipDuration); // this value should not be 0
+    // Non-zero unless the replay itself has no duration, which the window
+    // check above cannot do anything about.
+    this._duration = duration(clipDuration);
 
     // For video replays, we need to bypass setting the global offset (_startOffsetMs)
     // because it messes with the playback time by causing it

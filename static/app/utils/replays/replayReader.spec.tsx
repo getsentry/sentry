@@ -617,8 +617,10 @@ describe('ReplayReader', () => {
       });
     }
 
-    it('plays the tail of the replay when the window starts after it ended', () => {
-      // An event a minute past `finished_at` clamps both edges of the window to
+    const replayDurationMs = replayFinishedAt.getTime() - replayStartedAt.getTime();
+
+    it('plays the whole replay when the window starts after it ended', () => {
+      // A timestamp well past `finished_at` clamps both edges of the window onto
       // the same instant, which used to leave the reader with no duration at all.
       const eventTimestampMs = replayFinishedAt.getTime() + 60_000;
       const replay = readerWithClipWindow({
@@ -626,29 +628,59 @@ describe('ReplayReader', () => {
         endTimestampMs: eventTimestampMs + 5_000,
       });
 
-      expect(replay?.getDurationMs()).toBe(10_000);
-      expect(replay?.getStartTimestampMs()).toBe(replayFinishedAt.getTime() - 10_000);
+      expect(replay?.getDurationMs()).toBe(replayDurationMs);
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+      expect(replay?.getStartOffsetMs()).toBe(0);
     });
 
-    it('clips to the replay when the replay is shorter than the fallback', () => {
-      const shortReplayFinishedAt = new Date(replayStartedAt.getTime() + 4_000);
+    it('plays the whole replay when the window ends before it started', () => {
+      const replay = readerWithClipWindow({
+        startTimestampMs: replayStartedAt.getTime() - 70_000,
+        endTimestampMs: replayStartedAt.getTime() - 60_000,
+      });
+
+      expect(replay?.getDurationMs()).toBe(replayDurationMs);
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+    });
+
+    it('still clips a window that only overhangs the end', () => {
+      // The overlap is real here, so it is a real clip and must not widen to the
+      // whole replay.
+      const replay = readerWithClipWindow({
+        startTimestampMs: replayFinishedAt.getTime() - 3_000,
+        endTimestampMs: replayFinishedAt.getTime() + 60_000,
+      });
+
+      expect(replay?.getDurationMs()).toBe(3_000);
+      expect(replay?.getStartTimestampMs()).toBe(replayFinishedAt.getTime() - 3_000);
+    });
+
+    it('keeps showing the head of the replay for an event before it started', () => {
+      // Pre-existing behaviour: this event does describe a moment in the replay,
+      // so it clips rather than widening to the whole thing.
+      const eventTimestampMs = replayStartedAt.getTime() - 60_000;
       const replay = ReplayReader.factory({
-        attachments: [RRWebFullSnapshotFrameEventFixture({timestamp: replayStartedAt})],
+        attachments: [
+          RRWebFullSnapshotFrameEventFixture({
+            timestamp: new Date('2024-01-01T00:02:30'),
+          }),
+        ],
         errors: [],
         fetching: false,
         replayRecord: ReplayRecordFixture({
           started_at: replayStartedAt,
-          finished_at: shortReplayFinishedAt,
+          finished_at: replayFinishedAt,
         }),
         clipWindow: {
-          startTimestampMs: shortReplayFinishedAt.getTime() + 60_000,
-          endTimestampMs: shortReplayFinishedAt.getTime() + 70_000,
+          startTimestampMs: eventTimestampMs - 5_000,
+          endTimestampMs: eventTimestampMs + 5_000,
         },
+        eventTimestampMs,
       });
 
-      // Never reaches back past the start of the recording.
-      expect(replay?.getDurationMs()).toBe(4_000);
+      expect(replay?.getDurationMs()).toBe(10_000);
       expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+      expect(replay?.getErrorBeforeReplayStart()).toBe(true);
     });
 
     it('falls back to the whole replay when the window is not a real time', () => {
