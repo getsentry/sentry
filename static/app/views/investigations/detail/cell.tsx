@@ -196,7 +196,7 @@ export function InvestigationCell({
     <Stack
       as="section"
       width="100%"
-      padding={block.kind === 'query' ? 'xl 0' : '0'}
+      padding="0"
       borderBottom={block.kind === 'query' ? 'primary' : undefined}
       data-test-id={`investigation-cell-${block.id}`}
       data-has-divider={block.kind === 'query'}
