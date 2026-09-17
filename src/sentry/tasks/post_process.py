@@ -14,6 +14,7 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
+from sentry_sdk import traces
 
 from sentry import features, options, projectoptions
 from sentry.integrations.types import IntegrationProviderSlug
@@ -43,7 +44,6 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
@@ -160,7 +160,7 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags={"platform": platform}, skip_internal=False)
 
 
-@trace
+@traces.trace
 def should_issue_owners_ratelimit(
     project_id: int, group_id: int, organization_id: int | None
 ) -> bool:
@@ -192,7 +192,7 @@ def should_issue_owners_ratelimit(
 
 
 @metrics.wraps("post_process.handle_owner_assignment")
-@trace
+@traces.trace
 def handle_owner_assignment(job: PostProcessJob) -> None:
     """
     The handle_owner_assignment task attempts to find issue owners for a group.
@@ -305,7 +305,7 @@ def handle_owner_assignment(job: PostProcessJob) -> None:
         handle_invalid_group_owners(group)
 
 
-@trace
+@traces.trace
 def handle_invalid_group_owners(group: Group) -> None:
     from sentry.models.groupowner import GroupOwner, GroupOwnerType
 
@@ -321,7 +321,7 @@ def handle_invalid_group_owners(group: Group) -> None:
         )
 
 
-@trace
+@traces.trace
 def handle_group_owners(
     project: Project,
     group: Group,
@@ -347,8 +347,9 @@ def handle_group_owners(
     try:
         logger.info("handle_group_owners.start", extra=logging_params)
         with (
-            start_span(
-                op="post_process.handle_group_owners", name="post_process.handle_group_owners"
+            traces.start_span(
+                name="post_process.handle_group_owners",
+                attributes={"sentry.op": "post_process.handle_group_owners"},
             ),
             lock.acquire(),
         ):
@@ -632,9 +633,9 @@ def post_process_group(
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
-        with start_span(
-            op="tasks.post_process_group.project_get_from_cache",
+        with traces.start_span(
             name="tasks.post_process_group.project_get_from_cache",
+            attributes={"sentry.op": "tasks.post_process_group.project_get_from_cache"},
         ):
             try:
                 event.project = Project.objects.get_from_cache(id=event.project_id)
@@ -752,9 +753,9 @@ def run_post_process_job(job: PostProcessJob) -> None:
                         "is_reprocessed": job["is_reprocessed"],
                     },
                 ),
-                start_span(
-                    op=f"tasks.post_process_group.{pipeline_step.__name__}",
+                traces.start_span(
                     name=f"tasks.post_process_group.{pipeline_step.__name__}",
+                    attributes={"sentry.op": f"tasks.post_process_group.{pipeline_step.__name__}"},
                 ),
                 action_context_scope(ActionSource.SYSTEM),
             ):
@@ -820,9 +821,9 @@ def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:
     # We fetch buffered updates to group aggregates here and populate them on the Group. This
     # helps us avoid problems with processing group ignores and alert rules that rely on these
     # stats.
-    with start_span(
-        op="tasks.post_process_group.fetch_buffered_group_stats",
+    with traces.start_span(
         name="tasks.post_process_group.fetch_buffered_group_stats",
+        attributes={"sentry.op": "tasks.post_process_group.fetch_buffered_group_stats"},
     ):
         fetch_buffered_group_stats(rebound_group)
 
@@ -841,9 +842,9 @@ def process_inbox_adds(job: PostProcessJob) -> None:
     from sentry.models.group import GroupStatus
     from sentry.types.group import GroupSubStatus
 
-    with start_span(
-        op="tasks.post_process_group.add_group_to_inbox",
+    with traces.start_span(
         name="tasks.post_process_group.add_group_to_inbox",
+        attributes={"sentry.op": "tasks.post_process_group.add_group_to_inbox"},
     ):
         event = job["event"]
         is_reprocessed = job["is_reprocessed"]
@@ -1326,8 +1327,9 @@ def process_similarity(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    with start_span(
-        op="tasks.post_process_group.similarity", name="tasks.post_process_group.similarity"
+    with traces.start_span(
+        name="tasks.post_process_group.similarity",
+        attributes={"sentry.op": "tasks.post_process_group.similarity"},
     ):
         safe_execute(similarity.record, event.project, [event])
 
@@ -1378,14 +1380,18 @@ def sdk_crash_monitoring(job: PostProcessJob) -> None:
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    with start_span(
-        op="post_process.build_sdk_crash_config", name="post_process.build_sdk_crash_config"
+    with traces.start_span(
+        name="post_process.build_sdk_crash_config",
+        attributes={"sentry.op": "post_process.build_sdk_crash_config"},
     ):
         configs = build_sdk_crash_detection_configs()
         if not configs or len(configs) == 0:
             return None
 
-    with start_span(op="post_process.detect_sdk_crash", name="post_process.detect_sdk_crash"):
+    with traces.start_span(
+        name="post_process.detect_sdk_crash",
+        attributes={"sentry.op": "post_process.detect_sdk_crash"},
+    ):
         sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
 
 
