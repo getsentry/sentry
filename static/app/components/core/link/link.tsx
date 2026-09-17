@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonVariant} from '@sentry/scraps/button/types';
+import {getTextStyles} from '@sentry/scraps/text/text';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -100,6 +101,8 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
 }
 
 const StyledLink = styled(LinkBase)`
+  ${p => getTextStyles({...p, variant: 'inherit'})}
+  font-family: inherit;
   ${getLinkStyles}
 `;
 
