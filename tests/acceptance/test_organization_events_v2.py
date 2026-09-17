@@ -441,6 +441,12 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             new_name = "Custom queryupdated!"
             self.browser.wait_until(xpath=f'//h1[contains(.,"{new_name}")]')
 
+            # The title updates optimistically, so wait for the rename to reach the
+            # URL — that only happens once the PUT resolves.
+            self.browser.wait_until_script_execution(
+                f'return new URLSearchParams(window.location.search).get("name") === "{new_name}"'
+            )
+
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
 
