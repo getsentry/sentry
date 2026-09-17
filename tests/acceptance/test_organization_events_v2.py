@@ -411,7 +411,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             name="Custom query",
             organization=self.org,
             version=2,
-            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+            dataset=DiscoverSavedQueryTypes.ERROR_EVENTS,
             query={
                 "fields": ["title", "project.id", "count()"],
                 "query": "event.type:error",
