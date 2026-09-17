@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class GetOrganizationAccessRequestTest(APITestCase):
@@ -152,3 +153,137 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         resp = self.client.put(path, data={"isApproved": 1})
 
         assert resp.status_code == 403
+
+
+class TeamAdminUpdateAccessRequestTest(APITestCase):
+    endpoint = "sentry-api-0-organization-access-request-details"
+    method = "put"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(flags=0)
+        self.team = self.create_team(organization=self.organization)
+        self.admin_member = self.create_member(
+            organization=self.organization,
+            user=self.user,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.requesting_member = self.create_member(
+            organization=self.organization, user=self.create_user()
+        )
+        self.access_request = self.create_organization_access_request(
+            team=self.team, member=self.requesting_member
+        )
+
+    @with_feature("organizations:team-roles")
+    def test_approve(self) -> None:
+        self.login_as(self.user)
+        self.get_success_response(
+            self.organization.slug, self.access_request.id, isApproved=True, status_code=204
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=self.requesting_member, team=self.team, is_active=True
+        ).exists()
+        assert not OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_deny(self) -> None:
+        self.login_as(self.user)
+        self.get_success_response(
+            self.organization.slug, self.access_request.id, isApproved=False, status_code=204
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=self.requesting_member, team=self.team
+        ).exists()
+        assert not OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_contributor_cannot_approve(self) -> None:
+        contributor_team = self.create_team(organization=self.organization)
+        self.create_team_membership(
+            team=contributor_team, member=self.admin_member, role="contributor"
+        )
+        access_request = self.create_organization_access_request(
+            team=contributor_team, member=self.requesting_member
+        )
+        self.login_as(self.user)
+        self.get_error_response(
+            self.organization.slug, access_request.id, isApproved=True, status_code=403
+        )
+
+        assert OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=self.requesting_member, team=contributor_team
+        ).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_cannot_deny_for_unrelated_team(self) -> None:
+        unrelated_team = self.create_team(organization=self.organization)
+        access_request = self.create_organization_access_request(
+            team=unrelated_team, member=self.requesting_member
+        )
+        self.login_as(self.user)
+        self.get_error_response(
+            self.organization.slug, access_request.id, isApproved=False, status_code=403
+        )
+
+        assert OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_cannot_approve_request_from_another_organization(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+        self.create_member(
+            organization=other_org, user=self.user, team_roles=[(other_team, "admin")]
+        )
+        access_request = self.create_organization_access_request(
+            team=other_team,
+            member=self.create_member(organization=other_org, user=self.create_user()),
+        )
+        self.login_as(self.user)
+        self.get_error_response(
+            self.organization.slug, access_request.id, isApproved=True, status_code=404
+        )
+
+        assert OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
+
+    def test_team_roles_disabled(self) -> None:
+        self.login_as(self.user)
+        with self.feature({"organizations:team-roles": False}):
+            self.get_error_response(
+                self.organization.slug, self.access_request.id, isApproved=True, status_code=403
+            )
+
+        assert OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_read_only_token_cannot_approve(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+        self.get_error_response(
+            self.organization.slug,
+            self.access_request.id,
+            isApproved=True,
+            status_code=403,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        assert OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
+
+    @with_feature("organizations:team-roles")
+    def test_write_token_can_approve(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read", "team:write"])
+        self.get_success_response(
+            self.organization.slug,
+            self.access_request.id,
+            isApproved=True,
+            status_code=204,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=self.requesting_member, team=self.team, is_active=True
+        ).exists()
+        assert not OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()

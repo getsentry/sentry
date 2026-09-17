@@ -132,6 +132,7 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -630,6 +631,13 @@ class Factories:
         return OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, is_active=True, role=role
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_organization_access_request(
+        team: Team, member: OrganizationMember, **kwargs: Any
+    ) -> OrganizationAccessRequest:
+        return OrganizationAccessRequest.objects.create(team=team, member=member, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

@@ -101,3 +101,56 @@ class SendRequestEmailTest(TestCase):
         assert len(mail.outbox) == 1
         assert "evil.com" not in mail.outbox[0].body
         assert "evil\u2060.com" in mail.outbox[0].body
+
+
+class TeamAdminRequestEmailTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user, flags=0)
+        self.team = self.create_team(organization=self.organization)
+        other_team = self.create_team(organization=self.organization)
+        self.create_team_membership(team=self.team, user=self.user)
+        self.create_team_membership(team=other_team, user=self.user)
+        self.manager = self.create_user()
+        self.create_member(organization=self.organization, user=self.manager, role="manager")
+        self.org_admin = self.create_user()
+        self.create_member(
+            organization=self.organization, user=self.org_admin, role="admin", teams=[self.team]
+        )
+        self.team_admin = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=self.team_admin,
+            role="member",
+            team_roles=[(self.team, "admin")],
+        )
+        self.create_member(
+            organization=self.organization,
+            user=self.create_user(),
+            team_roles=[(self.team, "contributor"), (other_team, "admin")],
+        )
+        inactive_admin = self.create_member(organization=self.organization, user=self.create_user())
+        self.create_team_membership(team=self.team, member=inactive_admin, role="admin").update(
+            is_active=False
+        )
+        self.access_request = self.create_organization_access_request(
+            team=self.team,
+            member=self.create_member(organization=self.organization, user=self.create_user()),
+        )
+
+    @with_feature("organizations:team-roles")
+    def test_emails_only_approvers(self) -> None:
+        with self.tasks():
+            self.access_request.send_request_email()
+
+        assert sorted(message.to[0] for message in mail.outbox) == sorted(
+            [self.user.email, self.manager.email, self.org_admin.email, self.team_admin.email]
+        )
+
+    def test_team_roles_disabled(self) -> None:
+        with self.feature({"organizations:team-roles": False}), self.tasks():
+            self.access_request.send_request_email()
+
+        assert sorted(message.to[0] for message in mail.outbox) == sorted(
+            [self.user.email, self.manager.email, self.org_admin.email]
+        )

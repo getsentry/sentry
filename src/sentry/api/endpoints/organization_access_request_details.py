@@ -35,6 +35,8 @@ class AccessRequestPermission(OrganizationPermission):
         ],
         "POST": [],
         "PUT": [
+            # Team-role permissions are checked against the requested team in _can_access.
+            "org:read",
             "org:write",
             "org:admin",
             "team:write",
@@ -60,7 +62,7 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
     permission_classes = (AccessRequestPermission,)
 
     # TODO(dcramer): this should go onto AccessRequestPermission
-    def _can_access(self, request: Request, access_request):
+    def _can_access(self, request: Request, access_request: OrganizationAccessRequest) -> bool:
         if request.access.has_scope("org:admin"):
             return True
         if request.access.has_scope("org:write"):
@@ -89,9 +91,10 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
                 ).select_related("team", "member")
             )
 
-        elif request.access.has_scope("team:write") and request.access.team_ids_with_membership:
+        elif request.access.team_ids_with_membership:
             access_requests = list(
                 OrganizationAccessRequest.objects.filter(
+                    team__organization=organization,
                     member__user_is_active=True,
                     member__user_id__isnull=False,
                     team__id__in=request.access.team_ids_with_membership,
@@ -107,7 +110,8 @@ class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
         valid_access_requests = [
             access_request
             for access_request in access_requests
-            if access_request.member.user_id is not None
+            if self._can_access(request, access_request)
+            and access_request.member.user_id is not None
             and access_request.team_id not in teams_by_user[access_request.member.user_id]
         ]
 

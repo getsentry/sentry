@@ -2,10 +2,11 @@ from django.conf import settings
 from django.db.models import Q
 from django.urls import reverse
 
-from sentry import roles
+from sentry import features, roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.users.services.user.service import user_service
 
 
@@ -63,13 +64,23 @@ class OrganizationAccessRequest(Model):
             context=context,
         )
 
-        global_roles = [r.id for r in roles.with_scope("org:write") if r.is_global]
-        team_roles = [r.id for r in roles.with_scope("team:write")]
+        global_roles = [
+            r.id for r in roles.organization_roles.with_scope("org:write") if r.is_global
+        ]
+        org_admin_roles = [r.id for r in roles.organization_roles.with_scope("team:write")]
+        team_admin_filter = Q(organizationmember__role__in=org_admin_roles)
+        if features.has("organizations:team-roles", organization):
+            team_admin_filter |= Q(
+                role__in=[r.id for r in roles.team_roles.with_scope("team:write")]
+            )
+        team_admins = OrganizationMemberTeam.objects.filter(
+            team_admin_filter, team=self.team, is_active=True
+        ).values("organizationmember_id")
 
         # find members which are either team scoped or have access to all teams
         member_list = OrganizationMember.objects.filter(
-            Q(role__in=global_roles) | Q(teams=self.team, role__in=team_roles),
-            organization=self.team.organization,
+            Q(role__in=global_roles) | Q(id__in=team_admins),
+            organization=organization,
             user_id__isnull=False,
         ).values_list("user_id", flat=True)
         member_users = user_service.get_many_by_id(
