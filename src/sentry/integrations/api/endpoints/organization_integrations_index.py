@@ -64,8 +64,6 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationIntegrationsPermission,)
-    include_organization_projects = False
-    include_organization_teams = False
 
     @extend_schema(
         operation_id="listOrganizationIntegrations",

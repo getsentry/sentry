@@ -39,6 +39,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
+    organization_service,
 )
 
 FEATURE_FLAG = "organizations:service-accounts"
@@ -124,7 +125,11 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
         if not project_ids:
             return []
         access = self.context["access"]
-        grantable = {project.id for project in self.context["organization"].projects}
+        grantable = set(
+            organization_service.get_active_project_ids(
+                organization_id=self.context["organization"].id
+            )
+        )
         if not access.has_global_access:
             grantable &= access.accessible_project_ids
         ungrantable = set(project_ids) - grantable
