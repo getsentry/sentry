@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
@@ -26,6 +25,13 @@ export const COLUMN_TITLES = [
 ];
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
+
+function wrapQueryInWildcards(query: string) {
+  const prefix = query.startsWith('*') ? '' : '*';
+  const suffix = query.endsWith('*') ? '' : '*';
+
+  return `${prefix}${query}${suffix}`;
+}
 
 export enum PerformanceTerm {
   TPM = 'tpm',
