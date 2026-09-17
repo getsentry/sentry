@@ -266,29 +266,34 @@ def _detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
-    viewer_context = None
-    viewer_context_manager: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
-    if function_pairs:
-        project = function_pairs[0][0]
-        viewer_context = SeerViewerContext(organization_id=project.organization_id)
-        if get_viewer_context() is None:
-            viewer_context_manager = viewer_context_scope(
-                ViewerContext(
-                    organization_id=project.organization_id,
-                    project_id=project.id,
-                    actor_type=ActorType.SYSTEM,
-                )
-            )
+    function_pairs_by_organization: dict[int, list[tuple[Project, int | str]]] = {}
+    for function_pair in function_pairs:
+        function_pairs_by_organization.setdefault(function_pair[0].organization_id, []).append(
+            function_pair
+        )
 
     def detect_regressions_with_viewer_context() -> Generator[BreakpointData]:
-        with viewer_context_manager:
-            yield from FunctionRegressionDetector.detect_regressions(
-                function_pairs,
-                start,
-                "p95()",
-                TIMESERIES_PER_BATCH,
-                viewer_context=viewer_context,
+        for organization_id, organization_function_pairs in function_pairs_by_organization.items():
+            viewer_context = SeerViewerContext(organization_id=organization_id)
+            viewer_context_manager: contextlib.AbstractContextManager[None] = (
+                contextlib.nullcontext()
             )
+            if get_viewer_context() is None:
+                viewer_context_manager = viewer_context_scope(
+                    ViewerContext(
+                        organization_id=organization_id,
+                        actor_type=ActorType.SYSTEM,
+                    )
+                )
+
+            with viewer_context_manager:
+                yield from FunctionRegressionDetector.detect_regressions(
+                    organization_function_pairs,
+                    start,
+                    "p95()",
+                    TIMESERIES_PER_BATCH,
+                    viewer_context=viewer_context,
+                )
 
     regressions = FunctionRegressionDetector.save_regressions_with_versions(
         detect_regressions_with_viewer_context()
