@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -234,7 +235,9 @@ class PaginateTest(TestCase):
             {"repositories": [{"id": "2"}], "nextPageToken": ""},
         ]
         with mock.patch.object(self.origin_client, "get", side_effect=pages) as mock_get:
-            result = self.origin_client._paginate("/installation/repos", "repositories")
+            result: list[dict[str, Any]] = self.origin_client._paginate(
+                "/installation/repos", "repositories"
+            )
 
         assert result == [{"id": "1"}, {"id": "2"}]
         assert mock_get.call_args_list[0].kwargs["params"] == {"pageSize": 100}
@@ -249,7 +252,9 @@ class PaginateTest(TestCase):
             "get",
             return_value={"repositories": [{"id": "1"}], "nextPageToken": ""},
         ) as mock_get:
-            result = self.origin_client._paginate("/installation/repos", "repositories")
+            result: list[dict[str, Any]] = self.origin_client._paginate(
+                "/installation/repos", "repositories"
+            )
 
         assert result == [{"id": "1"}]
         assert mock_get.call_count == 1
