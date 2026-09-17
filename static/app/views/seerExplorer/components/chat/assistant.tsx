@@ -5,6 +5,7 @@ import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/cha
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import type {SeerEmbedScope} from 'sentry/components/seer/markdown/embeds/renderTracking';
+import {useSeerMarkdownText} from 'sentry/components/seer/markdown/markdownText';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -111,30 +112,37 @@ function BlockActionBar({
 }: AssistantBlockProps) {
   const organization = useOrganization();
   const {feedbackSubmitted, trackFeedback} = useBlockFeedback(block, blockIndex, runId);
-  const showCopy = !!block.message.content?.trim();
+  const content = block.message.content ?? '';
+  const showCopy = !!content.trim();
+  // Copying verbatim would hand over Seer's raw embed tags, which mean nothing
+  // outside the conversation.
+  const {node: copyTextNode, text: copyText} = useSeerMarkdownText(content);
 
   if (readOnly || interactionPending) {
     return null;
   }
 
   return (
-    <AssistantActions
-      position="absolute"
-      bottom="2px"
-      right="8px"
-      visibility="hidden"
-      onFeedback={trackFeedback}
-      feedbackDisabled={feedbackSubmitted}
-      copyText={showCopy ? (block.message.content ?? '') : undefined}
-      onCopy={() => {
-        trackAnalytics('seer.explorer.block_copied', {organization});
-      }}
-      css={css`
-        ${BLOCK_WRAPPER_SELECTOR}:hover &,
-        ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
-          visibility: visible;
-        }
-      `}
-    />
+    <Fragment>
+      {copyTextNode}
+      <AssistantActions
+        position="absolute"
+        bottom="2px"
+        right="8px"
+        visibility="hidden"
+        onFeedback={trackFeedback}
+        feedbackDisabled={feedbackSubmitted}
+        copyText={showCopy ? copyText : undefined}
+        onCopy={() => {
+          trackAnalytics('seer.explorer.block_copied', {organization});
+        }}
+        css={css`
+          ${BLOCK_WRAPPER_SELECTOR}:hover &,
+          ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
+            visibility: visible;
+          }
+        `}
+      />
+    </Fragment>
   );
 }

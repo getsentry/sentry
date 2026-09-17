@@ -58,6 +58,9 @@ class AutofixReferrer(enum.StrEnum):
     LINEAR_AGENT = "api.linear_agent"
     MCP = "api.mcp"
     WEB = "api.web"
+    # Unprefixed because Seer Explorer's autofix lib sends this literal, and the value has to
+    # match it or every Explorer-started run records itself as UNKNOWN.
+    SEER_EXPLORER = "seer_explorer"
     GITHUB_PR_COMMENT = "github.pr_comment"
     GITHUB_PR_REVIEW = "github.pr_review"
     GITHUB_CHECK_SUITE = "github.check_suite"

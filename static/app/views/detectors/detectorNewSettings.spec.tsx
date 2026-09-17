@@ -127,6 +127,102 @@ describe('DetectorEdit', () => {
     expect(within(projectSection).getByText(project.slug)).toBeInTheDocument();
   });
 
+  it('allows a team admin to create a monitor for a writable project', async () => {
+    const teamAdminOrganization = OrganizationFixture({
+      ...organization,
+      access: ['org:read', 'alerts:read'],
+    });
+    const readOnlyProject = ProjectFixture({
+      id: '3',
+      slug: 'read-only-project',
+      organization: teamAdminOrganization,
+      access: ['project:read', 'alerts:read'],
+      isMember: true,
+    });
+    const writableProject = ProjectFixture({
+      id: '4',
+      slug: 'writable-project',
+      organization: teamAdminOrganization,
+      access: ['project:read', 'alerts:write'],
+      isMember: true,
+    });
+    const otherWritableProject = ProjectFixture({
+      id: '5',
+      slug: 'other-writable-project',
+      organization: teamAdminOrganization,
+      access: ['project:read', 'alerts:write'],
+      isMember: false,
+    });
+    ProjectsStore.loadInitialData([
+      readOnlyProject,
+      writableProject,
+      otherWritableProject,
+    ]);
+    const mockCreateDetector = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/${writableProject.id}/detectors/`,
+      method: 'POST',
+      body: MetricDetectorFixture({id: '123', projectId: writableProject.id}),
+    });
+
+    render(<DetectorNewSettings />, {
+      organization: teamAdminOrganization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {detectorType: 'metric_issue', project: readOnlyProject.id},
+        },
+      },
+    });
+
+    await screen.findByText('New Monitor');
+    const projectSection = screen
+      .getByText(/Choose the Project and Environment/)
+      .closest('section')!;
+    expect(within(projectSection).getByText(writableProject.slug)).toBeInTheDocument();
+
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Project'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: otherWritableProject.slug})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: readOnlyProject.slug})
+    ).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('spinbutton', {name: 'High threshold'}), '100');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+    await waitFor(() => expect(mockCreateDetector).toHaveBeenCalled());
+  });
+
+  it('shows a permission error when no project is writable', () => {
+    const readOnlyOrganization = OrganizationFixture({
+      ...organization,
+      access: ['org:read', 'alerts:read'],
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({
+        organization: readOnlyOrganization,
+        access: ['project:read', 'alerts:read'],
+      }),
+    ]);
+
+    render(<DetectorNewSettings />, {
+      organization: readOnlyOrganization,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {detectorType: 'metric_issue'},
+        },
+      },
+    });
+
+    expect(
+      screen.getByText(/You do not have permission to create monitors/)
+    ).toBeInTheDocument();
+  });
+
   describe('Metric Detector', () => {
     const metricRouterConfig = {
       ...initialRouterConfig,

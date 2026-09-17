@@ -152,11 +152,22 @@ def create_preprod_snapshot_status_check_task(
     for approval in approval_qs:
         approvals_map[approval.preprod_artifact_id] = approval
 
-    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(
+        all_artifacts, require_snapshot_metrics=True
+    )
 
-    is_solo = not base_artifact_map
+    has_base_artifacts = bool(base_artifact_map)
 
-    if not is_solo:
+    # If the base arrives before this delayed check runs, comparison processing
+    # will publish the final status. Avoid creating a duplicate Check Run here.
+    if is_timeout_check and has_base_artifacts:
+        logger.info(
+            "preprod.snapshot_status_checks.create.skipped_timeout_base_resolved",
+            extra={"preprod_artifact_id": preprod_artifact.id},
+        )
+        return
+
+    if has_base_artifacts:
         changes_map = evaluate_snapshot_changes_by_artifact_id(
             all_artifacts,
             snapshot_metrics_map,
@@ -201,7 +212,7 @@ def create_preprod_snapshot_status_check_task(
     approve_action_identifier: str | None = None
     waiting_for_base = False
 
-    if is_solo:
+    if not has_base_artifacts:
         app_ids = {a.app_id for a in all_artifacts if a.app_id}
         has_previous_snapshots = (
             PreprodSnapshotMetrics.objects.filter(

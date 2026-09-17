@@ -36,6 +36,22 @@ const DisabledMemberTooltip = OverrideOrDefault({
   defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
 });
 
+function MemberRole({member}: {member: Member}) {
+  const {roleName, pending: isPending, expired} = member;
+  if (isMemberDisabledFromLimit(member)) {
+    return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
+  }
+  if (isPending) {
+    return (
+      <InvitedRole>
+        <IconMail size="md" />
+        {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
+      </InvitedRole>
+    );
+  }
+  return <Fragment>{capitalize(member.orgRole)}</Fragment>;
+}
+
 export function OrganizationMemberRow({
   member,
   organization,
@@ -74,22 +90,6 @@ export function OrganizationMemberRow({
       return;
     }
     onSendInvite(member);
-  };
-
-  const renderMemberRole = () => {
-    const {roleName, pending: isPending, expired} = member;
-    if (isMemberDisabledFromLimit(member)) {
-      return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
-    }
-    if (isPending) {
-      return (
-        <InvitedRole>
-          <IconMail size="md" />
-          {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
-        </InvitedRole>
-      );
-    }
-    return <Fragment>{capitalize(member.orgRole)}</Fragment>;
   };
 
   const {id, flags, email, name, pending, user, inviterName} = member;
@@ -132,7 +132,9 @@ export function OrganizationMemberRow({
         </MemberDescription>
       </MemberHeading>
 
-      <div data-test-id="member-role">{renderMemberRole()}</div>
+      <div data-test-id="member-role">
+        <MemberRole member={member} />
+      </div>
 
       <div data-test-id="member-status">
         {showResendButton ? (

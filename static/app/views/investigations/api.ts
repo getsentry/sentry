@@ -268,6 +268,14 @@ function useInvestigationMutation<TData, TVariables>(
   });
 }
 
+/**
+ * Start an empty investigation.
+ *
+ * A `source` with no `templateKey` is what makes the server build an agentic
+ * run rather than a bare notebook, so this is the field that decides whether
+ * the investigation ever has hypotheses. A manual source carries no prompt yet,
+ * so the run opens `awaiting_input` and waits for one.
+ */
 export function useCreateInvestigationMutation(
   organizationSlug: string,
   options?: MutationOptions<InvestigationListItem, void>
@@ -280,7 +288,7 @@ export function useCreateInvestigationMutation(
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
-        data: {title: 'Untitled investigation'},
+        data: {title: 'Untitled investigation', source: {type: 'manual'}},
       }),
     options
   );
@@ -298,11 +306,12 @@ export function useLaunchInvestigationMutation(
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
-        data: {
-          templateKey: 'breached_metric',
-          templateVersion: 1,
-          source,
-        },
+        // No `templateKey`: the metric snapshot is enough for the server to
+        // build an agentic run, which is what gives this investigation
+        // hypotheses instead of a fixed sequence of notebook cells. The
+        // candidates endpoint matches agentic and template lineage keys alike,
+        // so an already-investigated breach still resolves to "View".
+        data: {source},
       }),
     options,
     {invalidateCandidates: true}
@@ -499,8 +508,7 @@ export function useRunInvestigationBlockMutation(
 
 export function useUpdateInvestigationBlockPromptMutation(
   organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlock, UpdateBlockPromptVariables>
+  investigationId: string
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -508,8 +516,7 @@ export function useUpdateInvestigationBlockPromptMutation(
     investigationId
   );
 
-  return useMutation({
-    ...options,
+  return useMutation<InvestigationBlock, Error, UpdateBlockPromptVariables>({
     mutationFn: ({block, investigationVersion, prompt}) =>
       fetchMutation<InvestigationBlock>({
         url: getApiUrl(
@@ -529,7 +536,7 @@ export function useUpdateInvestigationBlockPromptMutation(
           generationPrompt: prompt,
         },
       }),
-    onSuccess: async (updatedBlock, variables, onMutateResult, context) => {
+    onSuccess: (updatedBlock, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -546,11 +553,9 @@ export function useUpdateInvestigationBlockPromptMutation(
             }
           : current
       );
-      await options?.onSuccess?.(updatedBlock, variables, onMutateResult, context);
     },
-    onError: async (error, variables, onMutateResult, context) => {
+    onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

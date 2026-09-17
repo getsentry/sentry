@@ -2,13 +2,13 @@ import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {DrawerHeader} from '@sentry/scraps/drawer';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {getReferrerConfig} from 'sentry/components/events/autofix/autofixReferrer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
