@@ -215,7 +215,7 @@ def _make_rpc_requests(
                 "trace_item_type": request.meta.trace_item_type,
                 "page_token": table_response.page_token,
                 "meta": table_response.meta,
-                "debug": isinstance(debug, str) or debug,
+                "debug": debug is not False,
             }
             if isinstance(debug, str):
                 logger_extra["debug_msg"] = debug
@@ -239,7 +239,7 @@ def _make_rpc_requests(
                 "organization_id": request.meta.organization_id,
                 "trace_item_type": request.meta.trace_item_type,
                 "meta": timeseries_response.meta,
-                "debug": isinstance(debug, str) or debug,
+                "debug": debug is not False,
             }
             if isinstance(debug, str):
                 logger_extra["debug_msg"] = debug
@@ -262,7 +262,7 @@ def _log_rpc_response(
         "referrer": req.meta.referrer,
         "organization_id": req.meta.organization_id,
         "trace_item_type": req.meta.trace_item_type,
-        "debug": isinstance(debug, str) or debug,
+        "debug": debug is not False,
     }
     if isinstance(debug, str):
         logger_extra["debug_msg"] = debug
@@ -424,7 +424,7 @@ def _make_rpc_request(
         logger_extra: dict[str, object] = {
             "rpc_query": json.loads(MessageToJson(req)),  # type: ignore[arg-type]
             "referrer": referrer,
-            "debug": isinstance(debug, str) or debug,
+            "debug": debug is not False,
         }
         meta = getattr(req, "meta", None)
         if isinstance(req, ProtobufMessage) and meta is not None:
