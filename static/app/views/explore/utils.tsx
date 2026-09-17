@@ -15,7 +15,7 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
+import {EventView, encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   isEquation,
@@ -36,12 +36,16 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
+  DiscoverSavedQuery,
   RawGroupBy,
   RawVisualize,
   SavedQuery,
+  TaggedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
+  getSavedQueryDatasetLabel,
   getSavedQueryTraceItemDataset,
+  isExploreSavedQuery,
   isRawVisualize,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {
@@ -509,7 +513,8 @@ export function confirmDeleteSavedQuery({
   savedQuery,
 }: {
   handleDelete: () => void;
-  savedQuery: SavedQuery;
+  // Only the name is used, so this also accepts a Discover saved query.
+  savedQuery: Pick<SavedQuery, 'name'>;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
@@ -703,13 +708,28 @@ export const removeHiddenKeys = (
   return result;
 };
 
+export function getTaggedSavedQueryKey(savedQuery: TaggedSavedQuery) {
+  return `${savedQuery.queryType}:${savedQuery.id}`;
+}
+
+export function getTaggedSavedQueryDatasetLabel(savedQuery: TaggedSavedQuery) {
+  if (isExploreSavedQuery(savedQuery)) {
+    return getSavedQueryDatasetLabel(savedQuery.dataset);
+  }
+  return savedQuery.queryDataset === 'transaction-like' ? t('Transactions') : t('Errors');
+}
+
 export function getSavedQueryTraceItemUrl({
   savedQuery,
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
-}) {
+  savedQuery: TaggedSavedQuery;
+}): string {
+  if (!isExploreSavedQuery(savedQuery)) {
+    return getDiscoverSavedQueryUrl({savedQuery, organization});
+  }
+
   if (savedQuery.dataset === 'ai_conversations') {
     return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
   }
@@ -723,6 +743,22 @@ export function getSavedQueryTraceItemUrl({
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+export function getDiscoverSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: DiscoverSavedQuery;
+}) {
+  const {pathname, query} = EventView.fromSavedQuery(savedQuery).getResultsViewUrlTarget(
+    organization,
+    false,
+    savedQuery.queryDataset
+  );
+  const search = qs.stringify(query);
+  return search ? `${pathname}?${search}` : pathname;
 }
 
 function getConversationsUrlFromSavedQueryUrl({

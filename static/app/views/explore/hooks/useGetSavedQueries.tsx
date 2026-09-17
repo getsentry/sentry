@@ -3,7 +3,10 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import type {
+  Organization,
+  SavedQuery as DiscoverSavedQueryBase,
+} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
@@ -13,6 +16,11 @@ import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSave
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+export enum SavedQueryType {
+  DISCOVER = 'discover',
+  EXPLORE = 'explore',
+}
 
 export type RawGroupBy = {
   groupBy: string;
@@ -121,6 +129,7 @@ export type ReadableSavedQuery = {
   position: number | null;
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
+  queryType: SavedQueryType.EXPLORE;
   starred: boolean;
   agent?: string[];
   caseInsensitive?: CaseInsensitive;
@@ -144,6 +153,7 @@ export class SavedQuery {
   position: number | null;
   projects: number[];
   query: [SavedQueryQuery, ...SavedQueryQuery[]];
+  queryType = SavedQueryType.EXPLORE as const;
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
   agent?: string[];
@@ -183,6 +193,33 @@ export class SavedQuery {
   }
 }
 
+type ExploreSavedQuery = ReadableSavedQuery & {
+  queryType: SavedQueryType.EXPLORE;
+};
+
+export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+  queryType: SavedQueryType.DISCOVER;
+  lastVisited?: string;
+  position?: number | null;
+  starred?: boolean;
+};
+
+/**
+ * Saved Query that is tagged with it's query type
+ */
+export type TaggedSavedQuery = SavedQuery | DiscoverSavedQuery;
+
+export function isExploreSavedQuery(
+  savedQuery: TaggedSavedQuery
+): savedQuery is SavedQuery {
+  return savedQuery.queryType === SavedQueryType.EXPLORE;
+}
+
+export type SavedQueryRef = {
+  id: number | string;
+  queryType: SavedQueryType;
+};
+
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
 }
@@ -207,7 +244,21 @@ export function starredSavedQueriesApiOptions(organization: Organization) {
   });
 }
 
+function combinedSavedQueriesApiOptions<
+  TData = Array<ExploreSavedQuery | DiscoverSavedQuery>,
+>(organization: Organization, query?: Record<string, unknown>) {
+  return apiOptions.as<TData>()(
+    '/organizations/$organizationIdOrSlug/explore/all-queries/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query,
+      staleTime: 0,
+    }
+  );
+}
+
 type Props = {
+  combined?: boolean;
   cursor?: string;
   exclude?: 'owned' | 'shared';
   perPage?: number;
@@ -223,30 +274,59 @@ export function useGetSavedQueries({
   perPage = 5,
   cursor,
   query,
+  combined: wantsCombined = false,
 }: Props) {
   const organization = useOrganization();
+  const migrateDiscoverQueries =
+    wantsCombined && organization.features.includes('discover-queries-in-all-queries');
 
-  const {data, isLoading, isFetched, isError} = useQuery({
-    ...savedQueriesApiOptions(organization, {
-      sortBy,
-      exclude,
-      per_page: perPage,
-      starred: starred ? 1 : undefined,
-      cursor,
-      query,
-    }),
+  const requestQuery = {
+    sortBy,
+    exclude,
+    per_page: perPage,
+    starred: starred ? 1 : undefined,
+    cursor,
+    query,
+  };
+
+  const combined = useQuery({
+    ...combinedSavedQueriesApiOptions(organization, requestQuery),
+    enabled: migrateDiscoverQueries,
     select: selectJsonWithHeaders,
   });
 
+  const explore = useQuery({
+    ...savedQueriesApiOptions(organization, requestQuery),
+    enabled: !migrateDiscoverQueries,
+    select: selectJsonWithHeaders,
+  });
+
+  const {data, isLoading, isFetched, isError} = migrateDiscoverQueries
+    ? combined
+    : explore;
+
   const pageLinks = data?.headers.Link;
 
-  const savedQueries = useMemo(
-    () =>
-      data?.json
-        ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
-        .map(q => new SavedQuery(q)),
-    [data?.json]
-  );
+  const savedQueries: TaggedSavedQuery[] | undefined = useMemo(() => {
+    if (migrateDiscoverQueries) {
+      return combined.data?.json
+        ?.filter(savedQuery =>
+          savedQuery.queryType === SavedQueryType.EXPLORE
+            ? Array.isArray(savedQuery.query) && savedQuery.query.length > 0
+            : true
+        )
+        .map(savedQuery =>
+          savedQuery.queryType === SavedQueryType.EXPLORE
+            ? new SavedQuery(savedQuery)
+            : savedQuery
+        );
+    }
+
+    return explore.data?.json
+      ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
+      .map(q => new SavedQuery(q));
+  }, [migrateDiscoverQueries, combined.data?.json, explore.data?.json]);
+
   return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
 }
 
@@ -255,8 +335,12 @@ export function useInvalidateSavedQueries() {
   const queryClient = useQueryClient();
 
   return useCallback(() => {
-    const baseKey = savedQueriesApiOptions(organization).queryKey;
-    queryClient.invalidateQueries({queryKey: baseKey});
+    queryClient.invalidateQueries({
+      queryKey: savedQueriesApiOptions(organization).queryKey,
+    });
+    queryClient.invalidateQueries({
+      queryKey: combinedSavedQueriesApiOptions(organization).queryKey,
+    });
   }, [queryClient, organization]);
 }
 

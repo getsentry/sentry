@@ -12,6 +12,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  SavedQueryType,
   getSavedQueryTraceItemDataset,
   useGetSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -60,7 +61,7 @@ export function StarSavedQueryButton() {
               });
             }
           }
-          starQuery(parseInt(id, 10), starred);
+          starQuery({id: parseInt(id, 10), queryType: SavedQueryType.EXPLORE}, starred);
           setIsStarred(starred);
         } catch (error) {
           Sentry.captureException(error);

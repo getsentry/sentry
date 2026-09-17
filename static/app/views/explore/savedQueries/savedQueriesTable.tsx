@@ -24,11 +24,11 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
-  getSavedQueryDatasetLabel,
   getSavedQueryTraceItemDataset,
+  isExploreSavedQuery,
   useGetSavedQueries,
-  type SavedQuery,
   type SortOption,
+  type TaggedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
@@ -38,6 +38,8 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getSavedQueryTraceItemUrl,
+  getTaggedSavedQueryDatasetLabel,
+  getTaggedSavedQueryKey,
 } from 'sentry/views/explore/utils';
 
 type Props = {
@@ -62,57 +64,67 @@ export function SavedQueriesTable({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasLogsSavedQueriesEnabled = isLogsEnabled(organization);
+  const showDatasetColumn =
+    isLogsEnabled(organization) ||
+    organization.features.includes('discover-queries-in-all-queries');
   const cursor = decodeScalar(location.query[cursorKey]);
   const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
+    combined: true,
     sortBy: ['starred', sort],
     exclude: mode === 'owned' ? 'shared' : mode === 'shared' ? 'owned' : undefined, // Inverse because this is an exclusion
     perPage,
     cursor,
     query: searchQuery,
   });
-  const filteredData = data?.filter(row => row.query?.length > 0) ?? [];
+
+  const filteredData = data ?? [];
   const {deleteQuery} = useDeleteQuery();
   const {starQuery} = useStarQuery();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
-  const [starredIds, setStarredIds] = useState<number[]>([]);
+  const [starredKeys, setStarredKeys] = useState<string[]>([]);
 
-  // Initialize starredIds state when queries have been fetched
   useEffect(() => {
     if (isFetched) {
       // oxlint-disable-next-line react/set-state-in-effect
-      setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
+      setStarredKeys(data?.filter(row => row.starred).map(getTaggedSavedQueryKey) ?? []);
     }
   }, [isFetched, data]);
 
   const starQueryHandler = useCallback(
-    (id: number, starred: boolean, dataset: TraceItemDataset) => {
+    (query: TaggedSavedQuery, starred: boolean) => {
+      const key = getTaggedSavedQueryKey(query);
       if (starred) {
-        setStarredIds(prev => [...prev, id]);
+        setStarredKeys(prev => [...prev, key]);
       } else {
-        setStarredIds(prev => prev.filter(starredId => starredId !== id));
+        setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
       }
-      if (dataset === TraceItemDataset.SPANS) {
-        trackAnalytics('trace_explorer.star_query', {
-          save_type: starred ? 'star_query' : 'unstar_query',
-          ui_source: 'table',
-          organization,
-        });
-      } else if (dataset === TraceItemDataset.LOGS) {
-        trackAnalytics('logs.star_query', {
-          save_type: starred ? 'star_query' : 'unstar_query',
-          ui_source: 'table',
-          organization,
-        });
+
+      // Discover has no equivalent star analytics event, so only Explore rows report.
+      if (isExploreSavedQuery(query)) {
+        const dataset = getSavedQueryTraceItemDataset(query.dataset);
+        if (dataset === TraceItemDataset.SPANS) {
+          trackAnalytics('trace_explorer.star_query', {
+            save_type: starred ? 'star_query' : 'unstar_query',
+            ui_source: 'table',
+            organization,
+          });
+        } else if (dataset === TraceItemDataset.LOGS) {
+          trackAnalytics('logs.star_query', {
+            save_type: starred ? 'star_query' : 'unstar_query',
+            ui_source: 'table',
+            organization,
+          });
+        }
       }
-      starQuery(id, starred).catch(() => {
-        // If the starQuery call fails, we need to revert the starredIds state
+
+      starQuery({id: query.id, queryType: query.queryType}, starred).catch(() => {
+        // If the starQuery call fails, we need to revert the starredKeys state
         addErrorMessage(t('Unable to star query'));
         if (starred) {
-          setStarredIds(prev => prev.filter(starredId => starredId !== id));
+          setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
         } else {
-          setStarredIds(prev => [...prev, id]);
+          setStarredKeys(prev => [...prev, key]);
         }
       });
     },
@@ -120,22 +132,22 @@ export function SavedQueriesTable({
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
-    (savedQuery: SavedQuery) => {
+    (savedQuery: TaggedSavedQuery) => {
       return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
           name,
-        });
+        } as TaggedSavedQuery);
       };
     },
     [updateQueryFromSavedQuery]
   );
 
-  const duplicateQuery = async (savedQuery: SavedQuery) => {
+  const duplicateQuery = async (savedQuery: TaggedSavedQuery) => {
     await saveQueryFromSavedQuery({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,
-    });
+    } as TaggedSavedQuery);
   };
 
   const handleCursor: CursorHandler = (_cursor, pathname, query) => {
@@ -148,14 +160,14 @@ export function SavedQueriesTable({
   const debouncedOnClick = useMemo(
     () =>
       debounce(
-        (id, starred, dataset) => {
+        (query: TaggedSavedQuery, starred: boolean) => {
           if (starred) {
             addLoadingMessage(t('Unstarring query...'));
-            starQueryHandler(id, false, dataset);
+            starQueryHandler(query, false);
             addSuccessMessage(t('Query unstarred'));
           } else {
             addLoadingMessage(t('Starring query...'));
-            starQueryHandler(id, true, dataset);
+            starQueryHandler(query, true);
             addSuccessMessage(t('Query starred'));
           }
         },
@@ -173,7 +185,7 @@ export function SavedQueriesTable({
     <Container containerType="inline-size">
       <TableHeading>{title}</TableHeading>
       <SavedEntityTable
-        columns={savedQueryColumns(hasLogsSavedQueriesEnabled)}
+        columns={savedQueryColumns(showDatasetColumn)}
         pageSize={perPage}
         isLoading={isLoading}
         header={
@@ -182,7 +194,7 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell columnKey="name" divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
-            {hasLogsSavedQueriesEnabled && (
+            {showDatasetColumn && (
               <SavedEntityTable.HeaderCell columnKey="dataset">
                 {t('Type')}
               </SavedEntityTable.HeaderCell>
@@ -209,157 +221,175 @@ export function SavedQueriesTable({
         isError={isError}
         emptyMessage={t('No saved queries found')}
       >
-        {filteredData.map((query, index) => (
-          <SavedEntityTable.Row
-            key={query.id}
-            isFirst={index === 0}
-            data-test-id={`table-row-${index}`}
-          >
-            <SavedEntityTable.Cell hasButton columnKey="star">
-              <SavedEntityTable.CellStar
-                isStarred={starredIds.includes(query.id)}
-                onClick={() =>
-                  debouncedOnClick(
-                    query.id,
-                    query.starred,
-                    getSavedQueryTraceItemDataset(query.dataset)
+        {filteredData.map((query, index) => {
+          const isExplore = isExploreSavedQuery(query);
+          const isPrebuilt = isExplore && Boolean(query.isPrebuilt);
+
+          return (
+            <SavedEntityTable.Row
+              key={getTaggedSavedQueryKey(query)}
+              isFirst={index === 0}
+              data-test-id={`table-row-${index}`}
+            >
+              <SavedEntityTable.Cell hasButton columnKey="star">
+                {
+                  // For now Discover doesn't support starring
+                  isExplore && (
+                    <SavedEntityTable.CellStar
+                      isStarred={starredKeys.includes(getTaggedSavedQueryKey(query))}
+                      onClick={() => debouncedOnClick(query, Boolean(query.starred))}
+                    />
                   )
                 }
-              />
-            </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="name">
-              <SavedEntityTable.CellName
-                to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
-              >
-                {query.name}
-              </SavedEntityTable.CellName>
-            </SavedEntityTable.Cell>
-            {hasLogsSavedQueriesEnabled && (
-              <SavedEntityTable.Cell columnKey="dataset">
-                {getSavedQueryDatasetLabel(query.dataset)}
               </SavedEntityTable.Cell>
-            )}
-            <SavedEntityTable.Cell columnKey="project">
-              <SavedEntityTable.CellProjects projects={query.projects} />
-            </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="envs">
-              <SavedEntityTable.CellEnvironments environments={query.environment ?? []} />
-            </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="query">
-              <StyledExploreParams
-                query={query.query[0].query}
-                visualizes={query.query[0].visualize}
-                groupBys={query.query[0].groupby}
-                agent={query.agent}
-              />
-            </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="created-by">
-              {query.isPrebuilt ? (
-                <Tooltip title="Sentry">
-                  <ActivityAvatar type="system" size={20} />
-                </Tooltip>
-              ) : query.createdBy ? (
-                <UserAvatar user={query.createdBy} hasTooltip />
-              ) : null}
-            </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="last-visited">
-              <SavedEntityTable.CellTimeSince date={query.lastVisited} />
-            </SavedEntityTable.Cell>
-            <SavedEntityTable.Cell columnKey="actions" hasButton>
-              <SavedEntityTable.CellActions
-                items={[
-                  ...(query.isPrebuilt
-                    ? []
-                    : [
-                        {
-                          key: 'rename',
-                          label: t('Rename'),
-                          onAction: () => {
-                            if (
-                              getSavedQueryTraceItemDataset(query.dataset) ===
-                              TraceItemDataset.SPANS
-                            ) {
-                              trackAnalytics('trace_explorer.save_query_modal', {
-                                action: 'open',
-                                save_type: 'rename_query',
-                                ui_source: 'table',
+              <SavedEntityTable.Cell columnKey="name">
+                <SavedEntityTable.CellName
+                  to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
+                >
+                  {query.name}
+                </SavedEntityTable.CellName>
+              </SavedEntityTable.Cell>
+              {showDatasetColumn && (
+                <SavedEntityTable.Cell columnKey="dataset">
+                  {getTaggedSavedQueryDatasetLabel(query)}
+                </SavedEntityTable.Cell>
+              )}
+              <SavedEntityTable.Cell columnKey="project">
+                <SavedEntityTable.CellProjects projects={[...(query.projects ?? [])]} />
+              </SavedEntityTable.Cell>
+              <SavedEntityTable.Cell columnKey="envs">
+                <SavedEntityTable.CellEnvironments
+                  environments={[...(query.environment ?? [])]}
+                />
+              </SavedEntityTable.Cell>
+              <SavedEntityTable.Cell columnKey="query">
+                {isExplore ? (
+                  <StyledExploreParams
+                    query={query.query[0].query}
+                    visualizes={query.query[0].visualize}
+                    groupBys={query.query[0].groupby}
+                    agent={query.agent}
+                  />
+                ) : (
+                  // Discover has no group bys or agents
+                  <StyledExploreParams
+                    query={query.query ?? ''}
+                    visualizes={query.yAxis?.length ? [{yAxes: query.yAxis}] : []}
+                  />
+                )}
+              </SavedEntityTable.Cell>
+              <SavedEntityTable.Cell columnKey="created-by">
+                {isPrebuilt ? (
+                  <Tooltip title="Sentry">
+                    <ActivityAvatar type="system" size={20} />
+                  </Tooltip>
+                ) : query.createdBy ? (
+                  <UserAvatar user={query.createdBy} hasTooltip />
+                ) : null}
+              </SavedEntityTable.Cell>
+              <SavedEntityTable.Cell columnKey="last-visited">
+                <SavedEntityTable.CellTimeSince date={query.lastVisited ?? ''} />
+              </SavedEntityTable.Cell>
+              <SavedEntityTable.Cell columnKey="actions" hasButton>
+                <SavedEntityTable.CellActions
+                  items={[
+                    // Right now Discover doesn't support rename for now
+                    ...(isPrebuilt || !isExplore
+                      ? []
+                      : [
+                          {
+                            key: 'rename',
+                            label: t('Rename'),
+                            onAction: () => {
+                              if (
+                                getSavedQueryTraceItemDataset(query.dataset) ===
+                                TraceItemDataset.SPANS
+                              ) {
+                                trackAnalytics('trace_explorer.save_query_modal', {
+                                  action: 'open',
+                                  save_type: 'rename_query',
+                                  ui_source: 'table',
+                                  organization,
+                                });
+                              } else if (
+                                getSavedQueryTraceItemDataset(query.dataset) ===
+                                TraceItemDataset.LOGS
+                              ) {
+                                trackAnalytics('logs.save_query_modal', {
+                                  action: 'open',
+                                  save_type: 'rename_query',
+                                  ui_source: 'table',
+                                  organization,
+                                });
+                              }
+                              openSaveQueryModal({
                                 organization,
+                                saveQuery: getHandleUpdateFromSavedQuery(query),
+                                name: query.name,
+                                source: 'table',
+                                traceItemDataset: getSavedQueryTraceItemDataset(
+                                  query.dataset
+                                ),
                               });
-                            } else if (
-                              getSavedQueryTraceItemDataset(query.dataset) ===
-                              TraceItemDataset.LOGS
-                            ) {
-                              trackAnalytics('logs.save_query_modal', {
-                                action: 'open',
-                                save_type: 'rename_query',
-                                ui_source: 'table',
-                                organization,
-                              });
-                            }
-                            openSaveQueryModal({
-                              organization,
-                              saveQuery: getHandleUpdateFromSavedQuery(query),
-                              name: query.name,
-                              source: 'table',
-                              traceItemDataset: getSavedQueryTraceItemDataset(
-                                query.dataset
-                              ),
-                            });
+                            },
                           },
-                        },
-                      ]),
-                  {
-                    key: 'duplicate',
-                    label: t('Duplicate'),
-                    onAction: async () => {
-                      addLoadingMessage(t('Duplicating query...'));
-                      try {
-                        await duplicateQuery(query);
-                        addSuccessMessage(t('Query duplicated'));
-                      } catch (error) {
-                        addErrorMessage(t('Unable to duplicate query'));
-                      }
+                        ]),
+                    {
+                      key: 'duplicate',
+                      label: t('Duplicate'),
+                      onAction: async () => {
+                        addLoadingMessage(t('Duplicating query...'));
+                        try {
+                          await duplicateQuery(query);
+                          addSuccessMessage(t('Query duplicated'));
+                        } catch (error) {
+                          addErrorMessage(t('Unable to duplicate query'));
+                        }
+                      },
                     },
-                  },
-                  ...(query.isPrebuilt
-                    ? []
-                    : [
-                        {
-                          key: 'delete',
-                          label: t('Delete'),
-                          priority: 'danger' as const,
-                          onAction: () => {
-                            confirmDeleteSavedQuery({
-                              handleDelete: async () => {
-                                addLoadingMessage(t('Deleting query...'));
-                                try {
-                                  await deleteQuery(query.id);
-                                  addSuccessMessage(t('Query deleted'));
-                                } catch (error) {
-                                  addErrorMessage(t('Unable to delete query'));
-                                }
-                              },
-                              savedQuery: query,
-                            });
+                    ...(isPrebuilt
+                      ? []
+                      : [
+                          {
+                            key: 'delete',
+                            label: t('Delete'),
+                            priority: 'danger' as const,
+                            onAction: () => {
+                              confirmDeleteSavedQuery({
+                                handleDelete: async () => {
+                                  addLoadingMessage(t('Deleting query...'));
+                                  try {
+                                    await deleteQuery({
+                                      id: query.id,
+                                      queryType: query.queryType,
+                                    });
+                                    addSuccessMessage(t('Query deleted'));
+                                  } catch (error) {
+                                    addErrorMessage(t('Unable to delete query'));
+                                  }
+                                },
+                                savedQuery: query,
+                              });
+                            },
                           },
-                        },
-                      ]),
-                ]}
-              />
-            </SavedEntityTable.Cell>
-          </SavedEntityTable.Row>
-        ))}
+                        ]),
+                  ]}
+                />
+              </SavedEntityTable.Cell>
+            </SavedEntityTable.Row>
+          );
+        })}
       </SavedEntityTable>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Container>
   );
 }
 
-function savedQueryColumns(hasLogsEnabled: boolean): TableColumnConfig[] {
+function savedQueryColumns(showDatasetColumn: boolean): TableColumnConfig[] {
   return [
     {key: 'star', width: '40px'},
     {key: 'name', width: {zero: '30%', xl: '20%'}},
-    {key: 'dataset', visible: hasLogsEnabled && {xl: true}, width: 'min-content'},
+    {key: 'dataset', visible: showDatasetColumn && {xl: true}, width: 'min-content'},
     {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
     {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},
     {key: 'query', width: 'minmax(0, 1fr)'},
