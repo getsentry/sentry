@@ -23,7 +23,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.tasks.seer.night_shift.cron import (
-    SeerNightShiftRunOptionsPartial,
     _complete_run,
     _current_schedule_id,
     _get_eligible_projects,
@@ -120,8 +119,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["source"] == "cron"
         assert resolved["max_candidates"] == 8
-        assert "intelligence_level" not in resolved
-        assert "reasoning_effort" not in resolved
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_org_overrides_apply_over_defaults(self) -> None:
         with self.options(
@@ -134,8 +133,8 @@ class TestBuildRunOptions(TestCase):
 
         assert resolved["max_candidates"] == 15
         # Unset org fields fall through to the global default.
-        assert "intelligence_level" not in resolved
-        assert "reasoning_effort" not in resolved
+        assert resolved["intelligence_level"] == "medium"
+        assert resolved["reasoning_effort"] == "medium"
 
     def test_project_tweaks_override_org_overrides(self) -> None:
         project = self.create_project(organization=self.organization)
@@ -879,37 +878,6 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert outbox.payload is not None
         return [c["group_id"] for c in outbox.payload["body"]["payload"]["candidates"]]
 
-    def test_payload_omits_unconfigured_model_settings(self) -> None:
-        self._assert_model_overrides_sent({})
-
-    def test_payload_preserves_both_model_overrides(self) -> None:
-        self._assert_model_overrides_sent(
-            {"intelligence_level": "low", "reasoning_effort": "medium"}
-        )
-
-    def _assert_model_overrides_sent(
-        self, model_overrides: SeerNightShiftRunOptionsPartial
-    ) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        self._make_eligible(project)
-        group = self.create_group(project=project)
-
-        with (
-            self.feature("organizations:gen-ai-features"),
-            patch(
-                "sentry.tasks.seer.night_shift.cron.fixability_score_strategy",
-                return_value=[ScoredCandidate(group=group, fixability=0.9)],
-            ),
-        ):
-            run_night_shift_for_org(org.id, options=model_overrides)
-
-        _, body = _dispatched_feature_body(org)
-        assert body["payload"]["tweaks"] == {
-            "extra_triage_instructions": "",
-            **model_overrides,
-        }
-
     def test_chunking_preserves_order_across_even_shards(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
@@ -1348,6 +1316,8 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
             "source": "manual",
             "max_candidates": 3,
             "dry_run": True,
+            "intelligence_level": "medium",
+            "reasoning_effort": "medium",
             "extra_triage_instructions": "",
         }
         assert kwargs["project_ids"] == [project.id]
@@ -1389,6 +1359,8 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
                 "source": "manual",
                 "max_candidates": 5,
                 "dry_run": True,
+                "intelligence_level": "medium",
+                "reasoning_effort": "medium",
                 "extra_triage_instructions": "",
             },
             "target_project_ids": [project.id],

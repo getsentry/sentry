@@ -12,11 +12,11 @@ from sentry.models.project import Project
 IntelligenceLevel = Literal["low", "medium", "high"]
 ReasoningEffort = Literal["low", "medium", "high"]
 
-# Display defaults. Keep the
+# Defaults shared by the Tweaks model and SeerNightShiftRunOptions. Keep the
 # frontend constants in `static/gsApp/views/seerAutomation/components/projectDetails/nightShift.tsx`
 # in sync with these.
-DEFAULT_INTELLIGENCE_LEVEL: IntelligenceLevel = "high"
-DEFAULT_REASONING_EFFORT: ReasoningEffort = "high"
+DEFAULT_INTELLIGENCE_LEVEL: IntelligenceLevel = "medium"
+DEFAULT_REASONING_EFFORT: ReasoningEffort = "medium"
 DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS = ""
 
 
@@ -28,7 +28,8 @@ class NightShiftTweaks(pydantic.BaseModel):
     # Global settings — apply to scheduled (cron) runs as well as manual ones.
     enabled: bool = True
     # Manual-run-only settings — read by the manual trigger endpoint and
-    # forwarded into SeerNightShiftRunOptions.
+    # forwarded into SeerNightShiftRunOptions; cron runs use the shared
+    # defaults instead.
     max_candidates: int = pydantic.Field(default_factory=default_max_candidates)
     extra_triage_instructions: str = DEFAULT_EXTRA_TRIAGE_INSTRUCTIONS
     intelligence_level: IntelligenceLevel = DEFAULT_INTELLIGENCE_LEVEL
