@@ -50,7 +50,6 @@ import {useMembers} from 'sentry/utils/members/useMembers';
 import {parseActorString} from 'sentry/utils/parseActorString';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -100,10 +99,6 @@ const ASSIGNMENT_COUNT_QUERY =
   'issue.progress:[fix_proposed,diagnosed,assigned,identified] is:unresolved';
 const ALL_ASSIGNMENT_COUNT_QUERY =
   'issue.progress:[fix_proposed,diagnosed,assigned] is:unresolved';
-interface InboxSectionContext {
-  hasSeer: boolean;
-}
-
 interface InboxSectionConfig {
   analyticsKey: 'num_fix_proposed' | 'num_diagnosed' | 'num_assigned' | 'num_fix_applied';
   emptyMessage: string;
@@ -111,7 +106,6 @@ interface InboxSectionConfig {
   label: string;
   progress: ProgressState;
   query: string | ((assignmentFilter: AssignmentFilter) => string);
-  hidden?: (context: InboxSectionContext) => boolean;
 }
 
 const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
@@ -130,7 +124,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
     query: 'issue.progress:diagnosed is:unresolved',
     emptyMessage: t('No diagnosed issues'),
     progress: ProgressState.DIAGNOSED,
-    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     analyticsKey: 'num_assigned',
@@ -142,7 +135,6 @@ const SECTIONS: [InboxSectionConfig, ...InboxSectionConfig[]] = [
         : 'issue.progress:[assigned,identified] is:unresolved',
     emptyMessage: t('No assigned issues'),
     progress: ProgressState.ASSIGNED,
-    hidden: ({hasSeer}) => !hasSeer,
   },
   {
     analyticsKey: 'num_fix_applied',
@@ -158,7 +150,7 @@ export default function InboxPage() {
   const organization = useOrganization();
   const hasIssueInbox = organization.features.includes('issue-inbox');
 
-  if (!hasIssueInbox || !orgHasSeerAccess(organization)) {
+  if (!hasIssueInbox) {
     return <NotFound />;
   }
 
@@ -326,7 +318,6 @@ function InboxContent() {
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const hasSeer = orgHasSeerAccess(organization);
   const [assignmentFilter, setAssignmentFilter] = useAssignmentFilter();
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
@@ -343,7 +334,6 @@ function InboxContent() {
     []
   );
   const assignmentCounts = useAssignmentCounts();
-  const sections = SECTIONS.filter(section => !section.hidden?.({hasSeer}));
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
   const alternateInbox = getAlternateInbox(assignmentFilter, assignmentCounts);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
@@ -362,7 +352,7 @@ function InboxContent() {
     disabled: !isDesktop || selectedIssueId !== null,
     onSelect: issueId => void setSelectedIssueId(issueId),
     resetKey: assignmentFilter,
-    sections,
+    sections: SECTIONS,
   });
 
   const handleAssignmentFilterChange = (filter: AssignmentFilter) => {
@@ -427,7 +417,7 @@ function InboxContent() {
             />
           </Flex>
           <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {sections.map(section => (
+            {SECTIONS.map(section => (
               <InboxSection
                 key={`${assignmentFilter}:${section.key}`}
                 section={section}
