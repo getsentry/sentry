@@ -215,6 +215,13 @@ FEATURES = [
         """,
         IntegrationFeatures.STACKTRACE_LINK,
     ),
+    FeatureDescription(
+        """
+        Import your Origin CODEOWNERS file and use it alongside your ownership rules to
+        assign Sentry issues.
+        """,
+        IntegrationFeatures.CODEOWNERS,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -238,7 +245,13 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
     # there is no separate OAuth identity to link.
     needs_default_identity = False
 
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
 
     requires_feature_flag = True
 
