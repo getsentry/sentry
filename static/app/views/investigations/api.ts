@@ -508,8 +508,7 @@ export function useRunInvestigationBlockMutation(
 
 export function useUpdateInvestigationBlockPromptMutation(
   organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlock, UpdateBlockPromptVariables>
+  investigationId: string
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -517,8 +516,7 @@ export function useUpdateInvestigationBlockPromptMutation(
     investigationId
   );
 
-  return useMutation({
-    ...options,
+  return useMutation<InvestigationBlock, Error, UpdateBlockPromptVariables>({
     mutationFn: ({block, investigationVersion, prompt}) =>
       fetchMutation<InvestigationBlock>({
         url: getApiUrl(
@@ -538,7 +536,7 @@ export function useUpdateInvestigationBlockPromptMutation(
           generationPrompt: prompt,
         },
       }),
-    onSuccess: async (updatedBlock, variables, onMutateResult, context) => {
+    onSuccess: (updatedBlock, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -555,11 +553,9 @@ export function useUpdateInvestigationBlockPromptMutation(
             }
           : current
       );
-      await options?.onSuccess?.(updatedBlock, variables, onMutateResult, context);
     },
-    onError: async (error, variables, onMutateResult, context) => {
+    onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }
