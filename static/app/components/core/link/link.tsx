@@ -61,9 +61,15 @@ const getLinkStyles = ({
   }
 `;
 
+const getLinkTextStyles = ({theme}: {theme: Theme}) => css`
+  ${getTextStyles({theme, variant: 'inherit'})}
+  font-family: inherit;
+`;
+
 const Anchor = styled('a', {
   shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
 })<{disabled?: LinkProps['disabled']}>`
+  ${getLinkTextStyles}
   ${getLinkStyles}
 `;
 
@@ -101,8 +107,7 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
 }
 
 const StyledLink = styled(LinkBase)`
-  ${p => getTextStyles({theme: p.theme, variant: 'inherit'})}
-  font-family: inherit;
+  ${getLinkTextStyles}
   ${getLinkStyles}
 `;
 
