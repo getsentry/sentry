@@ -1,6 +1,6 @@
 import re
 import uuid
-from unittest.mock import ANY, Mock, patch
+from unittest.mock import ANY, Mock, call, patch
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
@@ -43,6 +43,17 @@ from sentry.types.activity import ActivityType
 # This file focuses on testing the endpoint behavior rather than the implementation details.
 
 pytestmark = [requires_snuba]
+
+
+USER_CONTEXT_MAX_LENGTH = 10000
+
+
+def _user_context_length_calls(mock_distribution: Mock) -> list:
+    return [
+        c
+        for c in mock_distribution.call_args_list
+        if c.args[0] == "seer.autofix.user_context.length"
+    ]
 
 
 @with_feature("organizations:gen-ai-features")
@@ -409,6 +420,75 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_called_once()
 
+    @patch("sentry.seer.endpoints.group_ai_autofix.metrics.distribution")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_user_context_at_limit_is_accepted_and_measured(
+        self, mock_trigger_explorer, mock_distribution
+    ):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause", "user_context": "x" * USER_CONTEXT_MAX_LENGTH},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+        assert _user_context_length_calls(mock_distribution) == [
+            call(
+                "seer.autofix.user_context.length",
+                USER_CONTEXT_MAX_LENGTH,
+                sample_rate=1.0,
+            )
+        ]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.metrics.distribution")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_user_context_over_limit_is_rejected_and_measured(
+        self, mock_trigger_explorer, mock_distribution
+    ):
+        group = self.create_group()
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause", "userContext": "x" * (USER_CONTEXT_MAX_LENGTH + 1)},
+            format="json",
+        )
+
+        assert response.status_code == 400, response.data
+        mock_trigger_explorer.assert_not_called()
+        assert _user_context_length_calls(mock_distribution) == [
+            call(
+                "seer.autofix.user_context.length",
+                USER_CONTEXT_MAX_LENGTH + 1,
+                sample_rate=1.0,
+            )
+        ]
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.metrics.distribution")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_without_user_context_records_no_length(
+        self, mock_trigger_explorer, mock_distribution
+    ):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert _user_context_length_calls(mock_distribution) == []
+
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_kickoff_requires_scm_integration(self, mock_trigger_explorer):
         group = self.create_group()
@@ -650,6 +730,23 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.WEB
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_explorer_referrer_is_recognized(self, mock_trigger_explorer):
+        """Seer Explorer's autofix lib sends this literal, so it must not degrade to UNKNOWN."""
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+
+        self.login_as(user=self.user)
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause", "referrer": "seer_explorer"},
+            format="json",
+        )
+
+        assert response.status_code == 202, response.data
+        assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.SEER_EXPLORER
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_stopping_point(self, mock_trigger_explorer):
         """Stopping point forces the step to be root_cause"""
         group = self.create_group()
@@ -675,6 +772,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=None,
             user=ANY,
             enable_bash_tools=False,
+            actor_user_id=None,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -710,6 +808,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=3,
             user=ANY,
             enable_bash_tools=False,
+            actor_user_id=None,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -767,6 +866,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202, response.data
         mock_trigger_explorer.assert_called_once()
+        assert mock_trigger_explorer.call_args.kwargs["actor_user_id"] == self.user.id
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -1279,6 +1379,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data == {"run_id": 123, "sentry_run_id": None}
         payload = mock_explorer_update_request.call_args[0][0]["payload"]
+        assert mock_explorer_update_request.call_args.kwargs["viewer_context"] == {
+            "organization_id": self.organization.id,
+            "user_id": self.user.id,
+        }
         assert payload["type"] == "create_pr"
         # No repo name and no GitHub-linked acting user, so neither key is sent.
         assert "repo_name" not in payload

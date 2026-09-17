@@ -1,4 +1,7 @@
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,11 +19,15 @@ export function getLogsQueryTitle(data: LogsQueryData): string {
   );
 }
 
-export function LogsQueryLink({data}: {data: LogsQueryData}) {
+export function LogsQueryLink({
+  data,
+  format,
+}: {data: LogsQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
 
   return (
     <ResourceLink
+      format={format}
       icon={IconList}
       href={getLogsQueryHref(data, organization)}
       title={getLogsQueryTitle(data)}

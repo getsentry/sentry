@@ -10,7 +10,13 @@ import {
   DataConditionHandlerFixture,
 } from 'sentry-fixture/workflowEngine';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -737,6 +743,39 @@ describe('AutomationNewSettings', () => {
 
     await waitFor(() => {
       expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
+    });
+  });
+
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the placeholder name as the page title', async () => {
+      render(<AutomationNewSettings />, {organization});
+
+      const alertsCrumb = await screen.findByRole('link', {name: 'Alerts'});
+      expect(alertsCrumb).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/alerts/`
+      );
+
+      expect(
+        screen.getByRole('heading', {name: 'New Alert', level: 1})
+      ).toBeInTheDocument();
+
+      const trail = alertsCrumb.closest('ol')!;
+      expect(within(trail).queryByText('New Alert')).not.toBeInTheDocument();
+    });
+
+    it('names the alert from the page title', async () => {
+      render(<AutomationNewSettings />, {organization});
+
+      await userEvent.click(await screen.findByText('New Alert'));
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Alert Name'}),
+        'My new alert{enter}'
+      );
+
+      expect(
+        screen.getByRole('heading', {name: 'My new alert', level: 1})
+      ).toBeInTheDocument();
     });
   });
 });

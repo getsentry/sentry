@@ -688,11 +688,21 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('welcome');
 
       expect(
-        await screen.findByText('npx @sentry/agent-plugin install')
+        await screen.findByText(/^npx @sentry\/agent-plugin install /)
       ).toBeInTheDocument();
       expect(screen.getByText('Recommended')).toBeInTheDocument();
       expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
-      expect(screen.getByText(/org slug: org-slug/)).toBeInTheDocument();
+      const prompt = screen.getByText(/org slug: org-slug/);
+      const onboardingCode = prompt.textContent?.match(
+        /run code: ([A-Za-z0-9]{10})/
+      )?.[1];
+
+      expect(onboardingCode).toBeDefined();
+      expect(
+        screen.getByText(
+          `npx @sentry/agent-plugin install ${scmOrganization.slug}#${onboardingCode}`
+        )
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
@@ -707,7 +717,9 @@ describe('Onboarding', () => {
     it('selects agent setup snippets on click and tracks their source', async () => {
       renderOnboarding('welcome');
 
-      const installCommand = await screen.findByText('npx @sentry/agent-plugin install');
+      const installCommand = await screen.findByText(
+        /^npx @sentry\/agent-plugin install /
+      );
       await userEvent.click(installCommand);
 
       expect(window.getSelection()?.toString()).toBe(installCommand.textContent);
@@ -742,7 +754,7 @@ describe('Onboarding', () => {
       renderOnboarding('welcome');
 
       expect(
-        await screen.findByText('npx @sentry/agent-plugin install')
+        await screen.findByText(/^npx @sentry\/agent-plugin install /)
       ).toBeInTheDocument();
 
       act(resolveAgenticRunRequest);
@@ -753,7 +765,7 @@ describe('Onboarding', () => {
       ).not.toBeInTheDocument();
       expect(screen.queryByText('or')).not.toBeInTheDocument();
       expect(
-        screen.queryByText('npx @sentry/agent-plugin install')
+        screen.queryByText(/^npx @sentry\/agent-plugin install /)
       ).not.toBeInTheDocument();
     });
 

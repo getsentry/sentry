@@ -1,7 +1,8 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+
 import {useRole} from 'sentry/components/acl/useRole';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';

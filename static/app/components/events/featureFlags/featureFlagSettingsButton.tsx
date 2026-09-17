@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 

@@ -26,7 +26,7 @@ describe('transformEventsResponseToTable', () => {
         units: {
           'p75(measurements.inp)': 'millisecond',
         },
-        dataset: 'metricsEnhanced',
+        dataset: 'discover',
         fields: {
           'p75(measurements.inp)': 'duration',
         },
@@ -41,7 +41,7 @@ describe('transformEventsResponseToTable', () => {
       units: {
         'p75(measurements.inp)': 'millisecond',
       },
-      dataset: 'metricsEnhanced',
+      dataset: 'discover',
       fields: {
         'p75(measurements.inp)': 'duration',
       },

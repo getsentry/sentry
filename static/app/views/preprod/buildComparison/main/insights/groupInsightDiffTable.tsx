@@ -151,6 +151,7 @@ export function GroupInsightItemDiffTable({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [sort.field, sort.kind, groupDiffItems.length]);
 
   const handlePageChange = (newPage: number) => {

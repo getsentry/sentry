@@ -108,6 +108,7 @@ export function WidgetContainer(props: Props) {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setChartSettingState(_chartSetting);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rest.defaultChartSetting, _chartSetting]);
 
   const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];

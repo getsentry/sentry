@@ -77,6 +77,7 @@ function useMetricTimeseriesImpl({
           )),
       topEvents,
       orderby: sortBys.map(formatSort),
+      includeMeasuredIngestionDelayMetadata: true,
       ...queryExtras,
     },
     'api.explore.tracemetrics-timeseries',
