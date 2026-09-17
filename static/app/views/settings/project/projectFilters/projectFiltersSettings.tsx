@@ -658,6 +658,12 @@ export function ProjectFiltersSettings({project, params}: Props) {
 
   const updateProject = useUpdateProject(project);
 
+  // The API and Relay config follow `inbound-filters-v2`. The `-ui` flag rolls the
+  // table out on its own, so it only ever narrows where the table shows.
+  const showCustomFilters =
+    organization.features.includes('inbound-filters-v2') &&
+    organization.features.includes('inbound-filters-v2-ui');
+
   const getProjectBooleanMutationOptions = <TName extends ProjectBooleanFilterId>({
     name,
   }: {
@@ -876,9 +882,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
 
             <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
 
-            {organization.features.includes('inbound-filters-v2') && (
-              <CustomFilters project={project} />
-            )}
+            {showCustomFilters && <CustomFilters project={project} />}
           </Fragment>
         )}
       </Access>

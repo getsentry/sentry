@@ -43,7 +43,7 @@ describe('ProjectFilters', () => {
 
   const inboundFiltersV2Org = OrganizationFixture({
     ...organization,
-    features: ['inbound-filters-v2'],
+    features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
   });
 
   type CustomInboundFilter = {
@@ -448,6 +448,28 @@ describe('ProjectFilters', () => {
     expect(
       legacySaveButton.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  it('hides the custom filters table without the ui flag', async () => {
+    const listMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
+    });
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: ['inbound-filters-v2'],
+      }),
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByRole('textbox', {name: 'IP Addresses'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Add Filter'})).not.toBeInTheDocument();
+    expect(listMock).not.toHaveBeenCalled();
   });
 
   it('falls back to the data filters tab for unknown filter type segments', async () => {
@@ -969,7 +991,12 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+        features: [
+          'inbound-filters-v2',
+          'inbound-filters-v2-ui',
+          'ourlogs-ingestion',
+          'tracemetrics-ingestion',
+        ],
       }),
       outletContext: {project},
       initialRouterConfig,
@@ -991,7 +1018,12 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+        features: [
+          'inbound-filters-v2',
+          'inbound-filters-v2-ui',
+          'ourlogs-ingestion',
+          'tracemetrics-ingestion',
+        ],
       }),
       outletContext: {project},
       initialRouterConfig,
@@ -1024,7 +1056,7 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion'],
+        features: ['inbound-filters-v2', 'inbound-filters-v2-ui', 'ourlogs-ingestion'],
       }),
       outletContext: {project},
       initialRouterConfig,
@@ -1178,7 +1210,12 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+        features: [
+          'inbound-filters-v2',
+          'inbound-filters-v2-ui',
+          'ourlogs-ingestion',
+          'tracemetrics-ingestion',
+        ],
       }),
       outletContext: {project},
       initialRouterConfig,
@@ -1206,7 +1243,7 @@ describe('ProjectFilters', () => {
       organization: OrganizationFixture({
         ...organization,
         access: [],
-        features: ['inbound-filters-v2'],
+        features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
       }),
       outletContext: {project},
       initialRouterConfig,
