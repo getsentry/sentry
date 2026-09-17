@@ -514,11 +514,6 @@ export function ScmPlatformFeaturesCore({
           </Button>
         )}
       </Flex>
-      {hasScmConnected && isDetectionError ? (
-        <Text role="alert" variant="secondary" size="sm">
-          {t("We couldn't detect a platform from your repository. Select one below.")}
-        </Text>
-      ) : null}
       {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
           core Select types `clearable` as a discriminated-union literal (`?: false`
           vs `: true`, which also selects the onChange signature), so a dynamic

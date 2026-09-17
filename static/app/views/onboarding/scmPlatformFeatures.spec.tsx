@@ -267,9 +267,6 @@ describe('ScmPlatformFeatures', () => {
     expect(
       screen.queryByText('Auto-detected from your repository')
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      "We couldn't detect a platform from your repository. Select one below."
-    );
   });
 
   it('renders manual picker when no repository in context', async () => {
