@@ -77,7 +77,9 @@ def test_rpc_raises_unavailable_for_unparseable_503() -> None:
     ):
         snuba_rpc.trace_item_details_rpc(TraceItemDetailsRequest(meta=_meta()))
 
-    assert str(raised.value) == "Snuba RPC returned HTTP 503: no healthy upstream"
+    error = raised.value.args[0]
+    assert isinstance(error, ErrorProto)
+    assert error.message == "Snuba RPC returned HTTP 503: no healthy upstream"
     mock_urlopen.assert_called_once()
 
 

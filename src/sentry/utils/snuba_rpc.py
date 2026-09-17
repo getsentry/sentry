@@ -503,7 +503,7 @@ def _parse_error(http_resp: BaseHTTPResponse) -> ErrorProto:
             body = http_resp.data.decode("utf-8")
         except (UnicodeDecodeError, AttributeError):
             body = "<non-text response body>"
-        raise SnubaRPCError(f"Snuba RPC returned HTTP {http_resp.status}: {body}")
+        error.message = f"Snuba RPC returned HTTP {http_resp.status}: {body}"
     return error
 
 
