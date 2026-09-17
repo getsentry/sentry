@@ -232,6 +232,7 @@ export function EnvironmentPageFilter({
   // Wire up toggleOptionRef after stagedSelect is created to break the circular
   // dependency between options (which need toggleOption) and useStagedCompactSelect
   // (which needs options).
+  // oxlint-disable-next-line react/refs
   toggleOptionRef.current = stagedSelect.toggleOption;
 
   const {dispatch} = stagedSelect;

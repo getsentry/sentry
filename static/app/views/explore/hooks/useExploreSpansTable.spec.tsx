@@ -1,9 +1,9 @@
 import type {ReactNode} from 'react';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
@@ -11,8 +11,6 @@ import {
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -32,8 +30,12 @@ function useTestExploreSpansTable(query: string) {
 
 describe('useExploreSpansTable', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {

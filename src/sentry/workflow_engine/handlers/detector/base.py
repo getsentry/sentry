@@ -86,33 +86,64 @@ class GroupedDetectorEvaluationResult:
     tainted: bool
 
 
-class DetectorHandler(abc.ABC, Generic[DataPacketType]):
+class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
     """
     Abstract base class defining the public interface for detector handlers.
+
+    DataPacketType is what we've embedded within the data packet.
+    DataPacketEvaluationType is the type of the value to be extracted from the data packet and
+    used to evaluate the conditions on the detector.
     """
 
     def __init__(self, detector: Detector):
         self.detector = detector
 
     @abc.abstractmethod
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         pass
 
+    @abc.abstractmethod
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
+        """
+        This method is used to evaluate the data packet's value against the conditions on the detector.
+        """
+        pass
 
-class BaseDetectorHandler(
-    DetectorHandler[DataPacketType],
-    Generic[DataPacketType, DataPacketEvaluationType],
-):
+    @abc.abstractmethod
+    def extract_value(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> DataPacketEvaluationType | dict[DetectorGroupKey, DataPacketEvaluationType]:
+        """
+        Extracts the evaluation value from the data packet to be processed.
+
+        This value is used to determine if the data condition group is in a triggered state.
+        """
+        pass
+
+    @abc.abstractmethod
+    def create_occurrence(
+        self,
+        evaluation: DataConditionGroupEvaluation,
+        data_packet: DataPacket[DataPacketType],
+        priority: DetectorPriorityLevel,
+    ) -> tuple[DetectorOccurrence, EventData]:
+        """
+        This method provides the value that was evaluated against, the data packet that was
+        used to get the data, and the condition(s) that are failing.
+
+        To implement this, you will need to create a new `DetectorOccurrence` object,
+        to represent the issue that was detected. Additionally, you can return any
+        event_data to associate with the occurrence.
+        """
+        pass
+
+
+class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationType]):
     """
     Base implementation class providing shared infrastructure for detector handlers.
-    Includes metrics tracking, condition group loading, and defines abstract methods
-    that concrete handlers must implement.
-
-    DataPacketType is what we've embedded within the data packet.
-    DataPacketEvaluationType is the type of the value to be extracted from the data packet and
-    used to evaluate the conditions on the detector.
+    Includes metrics tracking and condition group loading around the `evaluate` template method.
 
     TODO - Implement a standard DetectorHandler with this base class -- a-la StatefulDetectorHandler
     """
@@ -139,7 +170,7 @@ class BaseDetectorHandler(
         else:
             self.condition_group = None
 
-    def evaluate(
+    def _evaluate(
         self, data_packet: DataPacket[DataPacketType]
     ) -> dict[DetectorGroupKey, DetectorEvaluation]:
         tags = {
@@ -147,7 +178,7 @@ class BaseDetectorHandler(
             "result": "unknown",
         }
         try:
-            value = self.evaluate_impl(data_packet)
+            value = self.evaluate(data_packet)
             tags["result"] = "tainted" if value.tainted else "success"
             metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
             return value.result
@@ -155,52 +186,3 @@ class BaseDetectorHandler(
             tags["result"] = "failure"
             metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
             raise
-
-    @abc.abstractmethod
-    def evaluate_impl(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> GroupedDetectorEvaluationResult:
-        """
-        This method is used to evaluate the data packet's value against the conditions on the detector.
-
-        TODO - rename this to `evaluate` and change current evaluate to `_evaluate`
-        """
-        pass
-
-    @abc.abstractmethod
-    def create_occurrence(
-        self,
-        evaluation: DataConditionGroupEvaluation,
-        data_packet: DataPacket[DataPacketType],
-        priority: DetectorPriorityLevel,
-    ) -> tuple[DetectorOccurrence, EventData]:
-        """
-        This method provides the value that was evaluated against, the data packet that was
-        used to get the data, and the condition(s) that are failing.
-
-        To implement this, you will need to create a new `DetectorOccurrence` object,
-        to represent the issue that was detected. Additionally, you can return any
-        event_data to associate with the occurrence.
-        """
-        pass
-
-    @abc.abstractmethod
-    def extract_value(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> DataPacketEvaluationType | dict[DetectorGroupKey, DataPacketEvaluationType]:
-        """
-        Extracts the evaluation value from the data packet to be processed.
-
-        This value is used to determine if the data condition group is in a triggered state.
-        """
-        pass
-
-    @abc.abstractmethod
-    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
-        """
-        Extracts the de-duplication value from a passed data packet. This duplication
-        value is used to determine if we've already processed data to this point or not.
-
-        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
-        """
-        pass

@@ -72,6 +72,7 @@ export function TraceRowConnectors(props: {
 
   return (
     <Fragment>
+      {/* oxlint-disable-next-line react/capitalized-calls -- Static method on TraceTree, not a component. */}
       {TraceTree.ConnectorsTo(props.node).map((c, i) => {
         return (
           <span
@@ -86,6 +87,7 @@ export function TraceRowConnectors(props: {
         );
       })}
       {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
+      {/* oxlint-disable-next-line react/capitalized-calls -- Static method on TraceTree, not a component. */}
       {TraceTree.IsLastVisibleChild(props.node) ? (
         <span className="TraceVerticalLastChildConnector" />
       ) : null}

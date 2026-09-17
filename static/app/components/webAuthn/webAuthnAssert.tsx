@@ -131,6 +131,7 @@ export function WebAuthnAssert({
 
     // Trigger immedialtey if the browser has focus
     if (document.hasFocus()) {
+      // oxlint-disable-next-line react/set-state-in-effect
       triggerWebAuthn();
       return noop;
     }

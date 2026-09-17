@@ -49,6 +49,7 @@ const PLUGIN_ICONS = {
   aws_lambda: aws,
   claude_code,
   cursor,
+  cursor_origin: cursor,
   datadog,
   datadog_pat: datadog,
   asana,

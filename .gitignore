@@ -66,6 +66,7 @@ yalc.lock
 ngrok.yml
 package-lock.json
 yarn.lock
+stats.rspack.json
 .claude/settings.local.json
 .claude/launch.json
 .claude/plans

@@ -1,14 +1,18 @@
 from unittest import mock
 from unittest.mock import MagicMock
 
+from django.db import router, transaction
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
     SEER_WORKFLOW_ACTIVITIES,
     SUPPORTED_ACTIVITIES,
     activity_handler,
+    schedule_process_workflow_activity,
     seer_activity_handler,
     smart_assignment_completed_handler,
     smart_assignment_trigger_handler,
@@ -16,6 +20,24 @@ from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import 
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.registry import workflow_activity_registry
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+
+
+class ScheduleProcessWorkflowActivityTest(TestCase):
+    @mock.patch(
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+    )
+    def test_schedules_activity_processing_after_commit(
+        self, mock_process_workflow_activity: MagicMock
+    ) -> None:
+        with transaction.atomic(router.db_for_write(Activity)):
+            schedule_process_workflow_activity(activity_id=1, group_id=2, detector_id=3)
+            mock_process_workflow_activity.delay.assert_not_called()
+
+        mock_process_workflow_activity.delay.assert_called_once_with(
+            activity_id=1,
+            group_id=2,
+            detector_id=3,
+        )
 
 
 class WorkflowActivityRegistryTest(TestCase):
@@ -111,53 +133,53 @@ class SeerActivityHandlerTest(TestCase):
         self.detector = Detector.objects.get(project=self.project, type=ErrorGroupType.slug)
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_all_supported_activity_types_dispatch(
-        self, mock_process_workflow_activity: MagicMock
+        self, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         for activity_type in SEER_WORKFLOW_ACTIVITIES:
-            mock_process_workflow_activity.reset_mock()
+            mock_schedule_process_workflow_activity.reset_mock()
             activity = self.create_group_activity(group=self.group, type=activity_type.value)
             seer_activity_handler(self.group, activity, None)
-            assert mock_process_workflow_activity.delay.called, (
+            assert mock_schedule_process_workflow_activity.called, (
                 f"Task not dispatched for {activity_type.value}"
             )
-            mock_process_workflow_activity.delay.assert_called_once_with(
+            mock_schedule_process_workflow_activity.assert_called_once_with(
                 activity_id=activity.id,
                 group_id=self.group.id,
                 detector_id=self.detector.id,
             )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_skips_unsupported_activity_type(
-        self, mock_process_workflow_activity: MagicMock
+        self, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
         seer_activity_handler(self.group, activity, None)
 
-        mock_process_workflow_activity.delay.assert_not_called()
+        mock_schedule_process_workflow_activity.assert_not_called()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.get_preferred_detector",
         side_effect=Detector.DoesNotExist,
     )
     def test_skips_when_no_detector(
-        self, mock_get_detector: MagicMock, mock_process_workflow_activity: MagicMock
+        self, mock_get_detector: MagicMock, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         seer_activity_handler(self.group, self.activity, None)
 
-        mock_process_workflow_activity.delay.assert_not_called()
+        mock_schedule_process_workflow_activity.assert_not_called()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
-    def test_uses_group_detector(self, mock_process_workflow_activity: MagicMock) -> None:
+    def test_uses_group_detector(self, mock_schedule_process_workflow_activity: MagicMock) -> None:
         detector = self.create_detector(
             name="linked_detector", type=MetricIssue.slug, project=self.project
         )
@@ -165,17 +187,17 @@ class SeerActivityHandlerTest(TestCase):
 
         seer_activity_handler(self.group, self.activity, None)
 
-        mock_process_workflow_activity.delay.assert_called_once_with(
+        mock_schedule_process_workflow_activity.assert_called_once_with(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=detector.id,
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_falls_back_to_issue_stream_detector(
-        self, mock_process_workflow_activity: MagicMock
+        self, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         Detector.objects.filter(project=self.project, type=ErrorGroupType.slug).delete()
         issue_stream_detector = Detector.objects.get(
@@ -184,7 +206,7 @@ class SeerActivityHandlerTest(TestCase):
 
         seer_activity_handler(self.group, self.activity, None)
 
-        mock_process_workflow_activity.delay.assert_called_once_with(
+        mock_schedule_process_workflow_activity.assert_called_once_with(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=issue_stream_detector.id,
@@ -206,35 +228,35 @@ class GenericActivityHandlerTest(TestCase):
         mock_metrics.incr.assert_not_called()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_skips_unsupported_activity_type(
-        self, mock_process_workflow_activity: MagicMock
+        self, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         activity = self.create_group_activity(group=self.group, type=ActivityType.NOTE.value)
         activity_handler(self.group, activity, self.detector.id)
 
-        mock_process_workflow_activity.delay.assert_not_called()
+        mock_schedule_process_workflow_activity.assert_not_called()
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_dispatches_with_provided_detector_id(
-        self, mock_process_workflow_activity: MagicMock
+        self, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         activity_handler(self.group, self.activity, self.detector.id)
 
-        mock_process_workflow_activity.delay.assert_called_once_with(
+        mock_schedule_process_workflow_activity.assert_called_once_with(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_resolution_activity_types_dispatch(
-        self, mock_process_workflow_activity: MagicMock
+        self, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         # Enumerate the resolution types explicitly (rather than looping over
         # SUPPORTED_ACTIVITIES) so that removing any of these from the source list makes
@@ -248,43 +270,43 @@ class GenericActivityHandlerTest(TestCase):
         assert set(resolution_activity_types) <= set(SUPPORTED_ACTIVITIES)
 
         for activity_type in resolution_activity_types:
-            mock_process_workflow_activity.reset_mock()
+            mock_schedule_process_workflow_activity.reset_mock()
             activity = self.create_group_activity(group=self.group, type=activity_type.value)
             activity_handler(self.group, activity, self.detector.id)
-            assert mock_process_workflow_activity.delay.called, (
+            assert mock_schedule_process_workflow_activity.called, (
                 f"Task not dispatched for {activity_type.value}"
             )
-            mock_process_workflow_activity.delay.assert_called_once_with(
+            mock_schedule_process_workflow_activity.assert_called_once_with(
                 activity_id=activity.id,
                 group_id=self.group.id,
                 detector_id=self.detector.id,
             )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     def test_falls_back_to_preferred_detector(
-        self, mock_process_workflow_activity: MagicMock
+        self, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         # No detector_id provided (e.g. a non-issue-platform resolve) -> resolve from the group.
         activity_handler(self.group, self.activity, None)
 
-        mock_process_workflow_activity.delay.assert_called_once_with(
+        mock_schedule_process_workflow_activity.assert_called_once_with(
             activity_id=self.activity.id,
             group_id=self.group.id,
             detector_id=self.detector.id,
         )
 
     @mock.patch(
-        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.process_workflow_activity"
+        "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.schedule_process_workflow_activity"
     )
     @mock.patch(
         "sentry.workflow_engine.handlers.workflow.workflow_activity_handlers.get_preferred_detector",
         side_effect=Detector.DoesNotExist,
     )
     def test_skips_when_no_detector(
-        self, mock_get_detector: MagicMock, mock_process_workflow_activity: MagicMock
+        self, mock_get_detector: MagicMock, mock_schedule_process_workflow_activity: MagicMock
     ) -> None:
         activity_handler(self.group, self.activity, None)
 
-        mock_process_workflow_activity.delay.assert_not_called()
+        mock_schedule_process_workflow_activity.assert_not_called()

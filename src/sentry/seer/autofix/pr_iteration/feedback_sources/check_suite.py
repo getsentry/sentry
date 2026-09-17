@@ -25,6 +25,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     TriggerDecision,
 )
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +178,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             )
             return LivePullRequestHead("unexpected_error")
 
+    @trace
     def should_consume(self, run_state: SeerRunState) -> Decision:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
         attempt_key = self.check_suite_attempt_key()
@@ -212,6 +214,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             return Decision(ok=False, reason="live_head_mismatch")
         return Decision(ok=True, reason="head_matches")
 
+    @trace
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
         from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
 

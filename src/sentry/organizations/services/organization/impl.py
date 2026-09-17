@@ -23,6 +23,7 @@ from sentry.models.activity import Activity
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -590,6 +591,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 AlertRuleActivity,
                 Dashboard,
                 DashboardFavoriteUser,
+                DashboardHiddenUser,
                 DashboardLastVisited,
                 DashboardRevision,
                 GroupAssignee,

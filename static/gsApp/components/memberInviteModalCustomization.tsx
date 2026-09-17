@@ -28,6 +28,121 @@ type MemberInviteProps = {
   willInvite: boolean;
 };
 
+type TrialStarterRenderProps = Parameters<
+  React.ComponentProps<typeof TrialStarter>['children']
+>[0];
+
+type TrialHeaderInfoProps = Pick<
+  TrialStarterRenderProps,
+  'trialStarting' | 'trialStarted' | 'trialFailed'
+> & {
+  canTrial: Subscription['canTrial'];
+  isOverMemberLimit: boolean;
+  organization: Organization;
+  subscription: Subscription;
+  totalLicenses: Subscription['totalLicenses'];
+  trialLength: ReturnType<typeof getTrialLength>;
+};
+
+function TrialHeaderInfo({
+  canTrial,
+  isOverMemberLimit,
+  organization,
+  subscription,
+  totalLicenses,
+  trialLength,
+  trialStarting,
+  trialStarted,
+  trialFailed,
+}: TrialHeaderInfoProps) {
+  const allowedToStartTrial = organization.access.includes('org:billing');
+  const isExpired = !canTrial && !isTrial(subscription);
+  const trialStartText = t('Start your %s day Business Plan trial today!', trialLength);
+
+  const upgradeOrTrialButton = (
+    <UpgradeOrTrialButton
+      source="member_invite_modal"
+      subscription={subscription}
+      organization={organization}
+      upgradePriority="secondary"
+    />
+  );
+
+  if (isOverMemberLimit) {
+    return (
+      <TrialInfo status="error">
+        <IconWarning />
+        {tct(
+          'You have reached your [totalLicenses] member limit. Upgrade to invite more members.',
+          {totalLicenses}
+        )}
+        {upgradeOrTrialButton}
+      </TrialInfo>
+    );
+  }
+
+  // hasJustStartedPlanTrial based on isTrial (plan is a trial plan) and isTrialStarted which comes from updating the subscription after a trial, trialStarted comes from the trial starter widget
+  if (hasJustStartedPlanTrial(subscription) || trialStarted) {
+    return (
+      <TrialInfo status="success">
+        <IconCheckmark />
+        {t('Your %s day Business Plan Trial has been activated!', trialLength)}
+      </TrialInfo>
+    );
+  }
+  if (isExpired) {
+    return (
+      <TrialInfo status="error">
+        <IconWarning />
+        {t(
+          'Your %s day Business Plan Trial has expired. Upgrade to invite more members.',
+          trialLength
+        )}
+        {upgradeOrTrialButton}
+      </TrialInfo>
+    );
+  }
+  if (trialStarting) {
+    return (
+      <TrialInfo>
+        <LoadingIndicator mini relative size={16} />
+        {trialStartText}
+      </TrialInfo>
+    );
+  }
+  if (trialFailed) {
+    return (
+      <TrialInfo status="error">
+        <IconWarning />
+        {tct(
+          `There was a problem starting your trial. Check your
+       [settings:subscription settings].`,
+          {settings: <Link to={`/settings/${organization.slug}/billing/`} />}
+        )}
+      </TrialInfo>
+    );
+  }
+  if (!allowedToStartTrial) {
+    return (
+      <TrialInfo status="error">
+        <IconWarning />
+        {t(
+          `You do not have permission to upgrade or start a trial to invite
+       members. Contact your organization owner or billing manager.`
+        )}
+        {upgradeOrTrialButton}
+      </TrialInfo>
+    );
+  }
+  return (
+    <TrialInfo>
+      <IconBusiness size="md" />
+      {trialStartText}
+      {upgradeOrTrialButton}
+    </TrialInfo>
+  );
+}
+
 function MemberInviteModalCustomization({
   organization,
   willInvite,
@@ -52,13 +167,11 @@ function MemberInviteModalCustomization({
     return renderPassthrough();
   }
 
-  type RenderProps = Parameters<React.ComponentProps<typeof TrialStarter>['children']>[0];
-
   const trialStarterRenderer = ({
     trialStarting,
     trialStarted,
     trialFailed,
-  }: RenderProps) => {
+  }: TrialStarterRenderProps) => {
     // maxMembers is null for paid plans
     const hasSeats = !totalLicenses || usedSeats < totalLicenses;
 
@@ -67,98 +180,21 @@ function MemberInviteModalCustomization({
       return renderPassthrough();
     }
 
-    const allowedToStartTrial = organization.access.includes('org:billing');
-    const isExpired = !canTrial && !isTrial(subscription);
     const trialLength = getTrialLength(organization);
-
-    const trialStartText = t('Start your %s day Business Plan trial today!', trialLength);
-
-    const upgradeOrTrialButton = (
-      <UpgradeOrTrialButton
-        source="member_invite_modal"
-        subscription={subscription}
-        organization={organization}
-        upgradePriority="secondary"
-      />
-    );
-
-    function getHeaderInfo() {
-      if (isOverMemberLimit) {
-        return (
-          <TrialInfo status="error">
-            <IconWarning />
-            {tct(
-              'You have reached your [totalLicenses] member limit. Upgrade to invite more members.',
-              {totalLicenses}
-            )}
-            {upgradeOrTrialButton}
-          </TrialInfo>
-        );
-      }
-      // hasJustStartedPlanTrial based on isTrial (plan is a trial plan) and isTrialStarted which comes from updating the subscription after a trial, trialStarted comes from the trial starter widget
-      if (hasJustStartedPlanTrial(subscription) || trialStarted) {
-        return (
-          <TrialInfo status="success">
-            <IconCheckmark />
-            {t('Your %s day Business Plan Trial has been activated!', trialLength)}
-          </TrialInfo>
-        );
-      }
-      if (isExpired) {
-        return (
-          <TrialInfo status="error">
-            <IconWarning />
-            {t(
-              'Your %s day Business Plan Trial has expired. Upgrade to invite more members.',
-              trialLength
-            )}
-            {upgradeOrTrialButton}
-          </TrialInfo>
-        );
-      }
-      if (trialStarting) {
-        return (
-          <TrialInfo>
-            <LoadingIndicator mini relative size={16} />
-            {trialStartText}
-          </TrialInfo>
-        );
-      }
-      if (trialFailed) {
-        return (
-          <TrialInfo status="error">
-            <IconWarning />
-            {tct(
-              `There was a problem starting your trial. Check your
-           [settings:subscription settings].`,
-              {settings: <Link to={`/settings/${organization.slug}/billing/`} />}
-            )}
-          </TrialInfo>
-        );
-      }
-      if (!allowedToStartTrial) {
-        return (
-          <TrialInfo status="error">
-            <IconWarning />
-            {t(
-              `You do not have permission to upgrade or start a trial to invite
-           members. Contact your organization owner or billing manager.`
-            )}
-            {upgradeOrTrialButton}
-          </TrialInfo>
-        );
-      }
-      return (
-        <TrialInfo>
-          <IconBusiness size="md" />
-          {trialStartText}
-          {upgradeOrTrialButton}
-        </TrialInfo>
-      );
-    }
-
     return children({
-      headerInfo: getHeaderInfo(),
+      headerInfo: (
+        <TrialHeaderInfo
+          canTrial={canTrial}
+          isOverMemberLimit={isOverMemberLimit}
+          organization={organization}
+          subscription={subscription}
+          totalLicenses={totalLicenses}
+          trialLength={trialLength}
+          trialStarting={trialStarting}
+          trialStarted={trialStarted}
+          trialFailed={trialFailed}
+        />
+      ),
       canSend: true,
       sendInvites: onSendInvites,
       isOverMemberLimit,

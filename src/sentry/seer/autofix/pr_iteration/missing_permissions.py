@@ -35,6 +35,8 @@ from collections.abc import Iterable
 from typing import Any
 
 from django.utils import timezone
+from scm import actions as scm_actions
+from scm.types import CreatePullRequestCommentProtocol
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -42,15 +44,18 @@ from sentry.analytics.events.pr_iteration_events import (
 )
 from sentry.locks import locks
 from sentry.models.organization import Organization
+from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
     get_missing_permissions_by_repo,
 )
+from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome, record_pr_iteration_blocked
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 MISSING_PERMISSIONS_EXTRA = "missing_permissions"
 
@@ -105,9 +110,29 @@ def repos_missing_permissions(
     return get_missing_permissions_by_repo(organization, repo_names)
 
 
+def _comment_failed(
+    reason: str,
+    scopes_tag: str,
+    log_ctx: PrIterationLogContext,
+    log_fields: dict[str, Any],
+    *,
+    exc_info: bool = True,
+) -> bool:
+    metrics.incr(
+        "autofix.pr_iteration.missing_permissions.comment_failed",
+        tags={"missing_scopes": scopes_tag, "reason": reason},
+    )
+    log_ctx.error(
+        "autofix.pr_iteration.missing_permissions.comment_failed",
+        exc_info=exc_info,
+        reason=reason,
+        **log_fields,
+    )
+    return False
+
+
 def _post_comment(
     organization: Organization,
-    repo_name: str,
     pr_number: int,
     info: MissingGithubPermissions,
     log_ctx: PrIterationLogContext,
@@ -126,16 +151,21 @@ def _post_comment(
             **log_fields,
         )
         return False
+
     try:
-        client = info.integration.get_installation(organization_id=organization.id).get_client()
-        client.create_comment(repo_name, str(pr_number), {"body": _comment_body(url)})
+        scm = make_scm(organization.id, info.repository_id, referrer="seer")
     except Exception:
-        metrics.incr(
-            "autofix.pr_iteration.missing_permissions.comment_failed",
-            tags={"missing_scopes": scopes_tag},
+        return _comment_failed("scm_init_failed", scopes_tag, log_ctx, log_fields)
+
+    if not isinstance(scm, CreatePullRequestCommentProtocol):
+        return _comment_failed(
+            "unsupported_provider", scopes_tag, log_ctx, log_fields, exc_info=False
         )
-        log_ctx.error("autofix.pr_iteration.missing_permissions.comment_failed", **log_fields)
-        return False
+
+    try:
+        scm_actions.create_pull_request_comment(scm, str(pr_number), _comment_body(url))
+    except Exception:
+        return _comment_failed("post_failed", scopes_tag, log_ctx, log_fields)
     return True
 
 
@@ -194,6 +224,7 @@ def _skip(log_ctx: PrIterationLogContext, reason: str, **log_fields: Any) -> Non
     log_ctx.info("autofix.pr_iteration.missing_permissions.skipped", reason=reason, **log_fields)
 
 
+@trace
 def block_iteration_for_missing_permissions(
     *,
     organization: Organization,
@@ -210,6 +241,13 @@ def block_iteration_for_missing_permissions(
     if not missing_by_repo:
         return False
 
+    record_pr_iteration_blocked(
+        log_ctx=log_ctx,
+        run_state=state,
+        run_id=run_id,
+        organization_id=organization.id,
+        outcome=PrIterationOutcome.MISSING_PERMISSIONS.value,
+    )
     _queue_missing_permissions_comments(
         organization=organization,
         run_id=run_id,
@@ -333,7 +371,7 @@ def post_missing_permissions_comment(
             _skip(log_ctx, "raced", **log_fields)
             return
 
-        if not _post_comment(organization, repo_name, pr_number, info, log_ctx, log_fields):
+        if not _post_comment(organization, pr_number, info, log_ctx, log_fields):
             return
 
         record_missing_permissions_marker(

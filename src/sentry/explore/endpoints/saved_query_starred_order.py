@@ -49,8 +49,6 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     Discover and Explore stars share a single ``position``. A payload naming one
     product can permute that product's queries. Thus, send the complete starred list
     to reorder all the queries.
-
-    Currently not exposed in urls.py.
     """
 
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}

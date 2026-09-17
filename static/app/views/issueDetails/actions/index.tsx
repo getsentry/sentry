@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -22,7 +23,6 @@ import {ResolveActions} from 'sentry/components/actions/resolve';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
   IconCheckmark,
@@ -266,7 +266,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         itemIds: [group.id],
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
 
           addSuccessMessage(t('Issue deleted'));
@@ -294,12 +294,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         data,
       },
       {
-        complete: () => {
+        success: () => {
           clearIndicators();
           if (successMessage) {
             addSuccessMessage(successMessage);
           }
           onComplete?.();
+        },
+        complete: () => {
           queryClient.invalidateQueries({
             queryKey: groupQueryKey({
               organizationSlug: organization.slug,

@@ -96,6 +96,7 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.snapshots.details.approve_clicked': {
     build_id: string;
+    forced: boolean;
     organization: Organization;
   };
   'preprod.snapshots.details.diff_mode_changed': {
@@ -108,6 +109,9 @@ export type PreprodBuildEventParameters = {
   };
   'preprod.snapshots.details.image_metadata_copied': {
     diff_status: string | null;
+    organization: Organization;
+  };
+  'preprod.snapshots.details.keyboard_shortcuts_opened': {
     organization: Organization;
   };
   'preprod.snapshots.details.view_mode_changed': {
@@ -169,6 +173,8 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
   'preprod.snapshots.details.image_link_copied': 'Preprod Snapshots: Image Link Copied',
   'preprod.snapshots.details.image_metadata_copied':
     'Preprod Snapshots: Image Metadata Copied',
+  'preprod.snapshots.details.keyboard_shortcuts_opened':
+    'Preprod Snapshots: Keyboard Shortcuts Opened',
   'preprod.snapshots.details.view_mode_changed': 'Preprod Snapshots: View Mode Changed',
   'preprod.snapshots.details.diff_mode_changed': 'Preprod Snapshots: Diff Mode Changed',
   'preprod.settings.status_check_rule_created':

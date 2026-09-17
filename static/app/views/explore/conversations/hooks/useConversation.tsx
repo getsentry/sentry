@@ -19,6 +19,13 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 export interface UseConversationsOptions {
   conversationId: string;
   endTimestamp?: number;
+  /**
+   * Projects to scope the span query to, overriding the page filters. A caller
+   * that is not the conversations route -- an embed rendered into some other
+   * page -- knows the conversation's own project and must not inherit whatever
+   * the host page happens to have selected.
+   */
+  projects?: number[];
   startTimestamp?: number;
 }
 
@@ -53,6 +60,14 @@ interface ConversationApiSpan {
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.tool.output'?: string;
+  'gen_ai.usage.cache_creation.input_tokens'?: number;
+  'gen_ai.usage.cache_read.input_tokens'?: number;
+  'gen_ai.usage.input_tokens'?: number;
+  'gen_ai.usage.input_tokens.cache_write'?: number;
+  'gen_ai.usage.input_tokens.cached'?: number;
+  'gen_ai.usage.output_tokens'?: number;
+  'gen_ai.usage.output_tokens.reasoning'?: number;
+  'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
@@ -142,6 +157,24 @@ function createNodeFromApiSpan(
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
       'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
+      ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
+      }),
+      ...(apiSpan['gen_ai.usage.output_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS]: apiSpan['gen_ai.usage.output_tokens'],
+      }),
+      [SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]:
+        apiSpan['gen_ai.usage.cache_read.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cached'] ??
+        0,
+      'gen_ai.usage.cache_creation.input_tokens':
+        apiSpan['gen_ai.usage.cache_creation.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cache_write'] ??
+        0,
+      [SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]:
+        apiSpan['gen_ai.usage.reasoning.output_tokens'] ??
+        apiSpan['gen_ai.usage.output_tokens.reasoning'] ??
+        0,
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
@@ -297,25 +330,24 @@ export function useConversation(
   const {selection} = usePageFilters();
 
   const ONE_HOUR_MS = 60 * 60 * 1000;
-  const hasConversationTimestamps =
-    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
     selection.datetime.start !== null ||
     (selection.datetime.period !== null && selection.datetime.period !== defaultPeriod);
 
-  const datetimeParams = hasConversationTimestamps
-    ? {
-        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
-        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
-      }
-    : hasExplicitDatetime
-      ? normalizeDateTimeParams(selection.datetime)
-      : {};
+  const datetimeParams =
+    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
+      ? {
+          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
+          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
+        }
+      : hasExplicitDatetime
+        ? normalizeDateTimeParams(selection.datetime)
+        : {};
 
-  const project =
-    selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];
+  const selectedProjects = conversation.projects ?? selection.projects;
+  const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
   const queryParams = {
     project,

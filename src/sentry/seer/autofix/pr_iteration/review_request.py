@@ -48,6 +48,7 @@ from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +128,7 @@ def _record_review_request_skip_marker(
     )
 
 
+@trace
 def request_review_from_context(ctx: GreenCheckSuiteContext) -> None:
     """Request review for an already-confirmed green tip (own lock + marker)."""
     resolved = ctx.resolved
