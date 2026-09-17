@@ -86,8 +86,7 @@ PER_ORG_FEATURE_NAMES = [
 
 
 class SeerNightShiftRunOptions(TypedDict):
-    """Resolved options for a night shift run; model settings are explicit overrides.
-    Persisted onto SeerWorkflowRun.extras["options"]. Construct via build_run_options."""
+    """Built by build_run_options and persisted in SeerWorkflowRun.extras["options"]."""
 
     source: WorkflowRunSource
     max_candidates: int
@@ -779,6 +778,13 @@ def _build_shard_plans(
     chunks = list(chunked(scored, shard_size))
     shard_plans: list[NightShiftShardPlan] = []
     for shard_index, chunk in enumerate(chunks):
+        tweaks = TriageTweaks(
+            extra_triage_instructions=resolved_options["extra_triage_instructions"]
+        )
+        if "intelligence_level" in resolved_options:
+            tweaks.intelligence_level = resolved_options["intelligence_level"]
+        if "reasoning_effort" in resolved_options:
+            tweaks.reasoning_effort = resolved_options["reasoning_effort"]
         payload = NightShiftPayload(
             candidates=[
                 TriageCandidate(
@@ -794,7 +800,7 @@ def _build_shard_plans(
                 )
                 for candidate in chunk
             ],
-            tweaks=_build_triage_tweaks(resolved_options),
+            tweaks=tweaks,
         )
         num_candidates = len(payload.candidates)
         title = ngettext(
@@ -809,15 +815,6 @@ def _build_shard_plans(
         )
 
     return shard_plans, len(scored)
-
-
-def _build_triage_tweaks(resolved_options: SeerNightShiftRunOptions) -> TriageTweaks:
-    tweaks = TriageTweaks(extra_triage_instructions=resolved_options["extra_triage_instructions"])
-    if "intelligence_level" in resolved_options:
-        tweaks.intelligence_level = resolved_options["intelligence_level"]
-    if "reasoning_effort" in resolved_options:
-        tweaks.reasoning_effort = resolved_options["reasoning_effort"]
-    return tweaks
 
 
 def _maybe_create_shard_plan(
