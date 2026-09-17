@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -38,7 +37,7 @@ export type SeerStatusBlockVariant =
 /**
  * Only a state that has stopped and needs attention colours its title. A run
  * that is simply working, or has finished cleanly, leaves the sentence in the
- * ordinary heading colour and lets the chip carry the state — otherwise every
+ * ordinary heading colour and lets the header badge carry the state — otherwise every
  * status block on the page shouts.
  */
 const TITLE_VARIANT = {
@@ -46,16 +45,6 @@ const TITLE_VARIANT = {
   awaitingInput: 'warning',
   failed: 'danger',
   complete: undefined,
-  cancelled: 'muted',
-} as const;
-
-const TAG_VARIANT = {
-  // `info` is the accent-purple pill: `content.accent` on
-  // `background.transparent.accent.muted`, which is what the design names.
-  running: 'info',
-  awaitingInput: 'warning',
-  failed: 'danger',
-  complete: 'success',
   cancelled: 'muted',
 } as const;
 
@@ -81,8 +70,6 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
 }
 
 type SeerStatusBlockProps = {
-  /** The short pill beside the title, e.g. "Running…", "Awaiting input". */
-  statusLabel: string;
   /** The sentence the block leads with, in the agent's voice. */
   title: string;
   variant: SeerStatusBlockVariant;
@@ -113,7 +100,7 @@ type SeerStatusBlockProps = {
  * The status line above an agentic investigation's hypotheses.
  *
  * One component covers the whole run lifecycle because the shape never changes
- * — icon, sentence, chip, elapsed time — only the words and the colour do. That
+ * — icon, sentence, elapsed time — only the words and the colour do. That
  * is deliberate: the block sits in a fixed spot above the hypotheses panel, and a
  * reader who has learned where to look for "what is Seer doing" should not have
  * to relearn it when the run changes state.
@@ -127,7 +114,6 @@ export function SeerStatusBlock({
   description,
   elapsed,
   meta,
-  statusLabel,
   title,
   variant,
 }: SeerStatusBlockProps) {
@@ -153,20 +139,15 @@ export function SeerStatusBlock({
         </Flex>
 
         <Stack gap="xs" flex="1 1 auto" minWidth="0">
-          <Flex align="center" gap="md" wrap="wrap">
+          <Flex justify="between" align="center" gap="md">
             <Text size="md" bold variant={TITLE_VARIANT[variant]}>
               {title}
             </Text>
-            <Flex gap="md" align="center" flex="0 0 auto">
-              <Tag variant={TAG_VARIANT[variant]}>{statusLabel}</Tag>
-              {elapsed ? (
-                // Monospace and tabular so a ticking counter does not shuffle
-                // the chip sideways on every update.
-                <Text size="sm" variant="muted" monospace tabular>
-                  {elapsed}
-                </Text>
-              ) : null}
-            </Flex>
+            {elapsed ? (
+              <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
+                {elapsed}
+              </Text>
+            ) : null}
           </Flex>
 
           {meta ? (

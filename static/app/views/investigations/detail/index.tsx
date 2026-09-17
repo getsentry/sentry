@@ -4,6 +4,7 @@ import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -30,6 +31,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
@@ -46,10 +48,19 @@ import {
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
+import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import type {InvestigationDetail} from 'sentry/views/investigations/types';
 import {RouteError} from 'sentry/views/routeError';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
+
+const STATUS_TAG_VARIANT = {
+  running: 'info',
+  awaitingInput: 'warning',
+  failed: 'danger',
+  complete: 'success',
+  cancelled: 'muted',
+} as const;
 
 function FeatureDisabledPage() {
   return (
@@ -145,6 +156,14 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const {data: orchestration} = useQuery({
+    ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
+    enabled: Boolean(investigation.orchestration),
+  });
+  const runStatus =
+    investigation.orchestration && orchestration
+      ? getSeerStatusBlock(orchestration)
+      : null;
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -343,14 +362,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             margin="0 auto"
           >
             <Stack gap="xs" minWidth={0}>
-              <NotebookTitleInput
-                aria-label={t('Investigation title')}
-                value={displayedTitle}
-                onChange={event => handleTitleChange(event.target.value)}
-                onBlur={handleTitleBlur}
-                maxLength={200}
-                aria-busy={renameMutation.isPending}
-              />
+              <Grid columns="minmax(0, 1fr) auto" align="center" gap="md">
+                <NotebookTitleInput
+                  aria-label={t('Investigation title')}
+                  value={displayedTitle}
+                  onChange={event => handleTitleChange(event.target.value)}
+                  onBlur={handleTitleBlur}
+                  maxLength={200}
+                  aria-busy={renameMutation.isPending}
+                />
+                {runStatus ? (
+                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                    {runStatus.statusLabel}
+                  </Tag>
+                ) : null}
+              </Grid>
               <Flex align="center" gap="sm" wrap="wrap">
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />

@@ -9,42 +9,30 @@ import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSee
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
 
 describe('SeerStatusBlock', () => {
-  it('renders the sentence, the chip, and the elapsed time', () => {
+  it('renders the sentence and the elapsed time', () => {
     render(
       <SeerStatusBlock
         variant="running"
         title="Seer is looking for likely causes"
         description="Possible causes will appear here."
-        statusLabel="Running…"
         elapsed="101.5s"
       />
     );
 
     expect(screen.getByText('Seer is looking for likely causes')).toBeInTheDocument();
     expect(screen.getByText('Possible causes will appear here.')).toBeInTheDocument();
-    expect(screen.getByText('Running…')).toBeInTheDocument();
     expect(screen.getByText('101.5s')).toBeInTheDocument();
   });
 
   it('omits the elapsed time when there is nothing to count from', () => {
-    render(
-      <SeerStatusBlock
-        variant="running"
-        title="Seer is investigating"
-        statusLabel="Running…"
-      />
-    );
+    render(<SeerStatusBlock variant="running" title="Seer is investigating" />);
 
     expect(screen.queryByText(/\ds$/)).not.toBeInTheDocument();
   });
 
   it('renders an action only when one is supplied', () => {
     const {rerender} = render(
-      <SeerStatusBlock
-        variant="complete"
-        title="Your investigation is ready"
-        statusLabel="Complete"
-      />
+      <SeerStatusBlock variant="complete" title="Your investigation is ready" />
     );
 
     expect(screen.queryByTestId('seer-status-block-action')).not.toBeInTheDocument();
@@ -53,7 +41,6 @@ describe('SeerStatusBlock', () => {
       <SeerStatusBlock
         variant="awaitingInput"
         title="Seer needs infrastructure metrics to continue"
-        statusLabel="Awaiting input"
         action={<button type="button">Connect Datadog</button>}
       />
     );

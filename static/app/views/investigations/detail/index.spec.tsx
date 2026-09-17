@@ -26,6 +26,7 @@ import {
   getInvestigationDetailQueryOptions,
   investigationExecutionDetailQueryOptions,
   investigationListQueryOptions,
+  investigationOrchestrationQueryOptions,
 } from 'sentry/views/investigations/api';
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
@@ -1743,7 +1744,7 @@ describe('Investigation detail', () => {
   // `orchestration` being present is the only thing that marks an investigation
   // as agentic, and the orchestration endpoint 404s without a run, so the gate
   // has to hold in both directions.
-  it('renders the hypothesis row for an agentic investigation', async () => {
+  it('renders the live run status beside the investigation title and hypotheses below', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: InvestigationAgenticDetailFixture(),
@@ -1753,7 +1754,7 @@ describe('Investigation detail', () => {
       body: InvestigationOrchestrationFixture(),
     });
 
-    renderView();
+    const {queryClient} = renderView();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
     expect(
@@ -1761,7 +1762,32 @@ describe('Investigation detail', () => {
         name: 'Database or cache degradation delayed the response',
       })
     ).toBeInTheDocument();
-    expect(orchestrationRequest).toHaveBeenCalled();
+    expect(orchestrationRequest).toHaveBeenCalledTimes(1);
+    const header = screen.getByRole('banner');
+    expect(
+      within(header).getByRole('textbox', {name: 'Investigation title'})
+    ).toBeInTheDocument();
+    expect(within(header).getByText('Finalizing…')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('seer-status-block')).queryByText('Finalizing…')
+    ).not.toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({status: 'completed', phase: 'completed'}),
+    });
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          'investigation-1'
+        ).queryKey,
+      })
+    );
+
+    expect(await within(header).findByText('Complete')).toBeInTheDocument();
+    expect(within(header).queryByText('Finalizing…')).not.toBeInTheDocument();
+    expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });
 
   it('does not reach for orchestration on a manual investigation', async () => {
