@@ -2,9 +2,7 @@ import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useState} from 'react';
 import type {Location} from 'history';
 
-import type {Organization} from 'sentry/types/organization';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
-import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -94,39 +92,3 @@ export function isOnDemandMetricWidget(widget: Widget): boolean {
 
   return true;
 }
-
-/**
- * On-demand doesn't include 'release'
- */
-const doesWidgetHaveReleaseConditions = (widget: Widget) =>
-  widget.queries.some(q => q.conditions.includes('release:'));
-
-/**
- * Check the extraction state for any widgets exceeding spec limit / cardinality limit etc.
- */
-const doesWidgetHaveDisabledOnDemand = (widget: Widget) =>
-  widget.queries.some(q => q.onDemand?.some(d => !d.enabled));
-
-export const shouldUseOnDemandMetrics = (
-  organization: Organization,
-  widget: Widget,
-  onDemandControlContext?: OnDemandControlContext
-) => {
-  if (!hasOnDemandMetricWidgetFeature(organization)) {
-    return false;
-  }
-
-  if (onDemandControlContext?.isControlEnabled) {
-    return onDemandControlContext.forceOnDemand;
-  }
-
-  if (doesWidgetHaveReleaseConditions(widget)) {
-    return false;
-  }
-
-  if (doesWidgetHaveDisabledOnDemand(widget)) {
-    return false;
-  }
-
-  return isOnDemandMetricWidget(widget);
-};
