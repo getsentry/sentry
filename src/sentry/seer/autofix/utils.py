@@ -535,6 +535,11 @@ def get_repo_url_path(repo: Repository) -> str:
     URL-safe equivalent is stored in ``repo.config["path"]``
     (``path_with_namespace``, e.g. ``"my-group/my-project"``).
 
+    For Perforce, ``repo.name`` is a depot path (``//depot/stream``). Stripping
+    the leading slashes turns it into the ``owner/name`` shape the caller splits
+    on; without this it splits into empty leading segments and yields an empty
+    owner.
+
     For GitHub and all other providers, ``repo.name`` is already the
     URL-safe ``owner/repo`` string, so we return it unchanged.
 
@@ -550,6 +555,8 @@ def get_repo_url_path(repo: Repository) -> str:
                 f"GitLab repository {repo.id} is missing config['path'] (path_with_namespace)"
             )
         return path
+    if repo.provider == "integrations:perforce":
+        return repo.name.lstrip("/")
     return repo.name
 
 

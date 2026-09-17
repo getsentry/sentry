@@ -4,10 +4,12 @@ import sentry_sdk
 from django.db.models import Q
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
+from scm.providers.perforce.provider import PerforceProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
+from sentry.integrations.perforce.api_client import PerforceApiClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository as RepositoryModel
@@ -32,6 +34,8 @@ def fetch_service_provider(organization_id: int, repository: Repository) -> Prov
         return GitHubProvider(client, organization_id, repository)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
+    elif integration.provider == "perforce":
+        return PerforceProvider(PerforceApiClient(client), organization_id, repository)
     else:
         return None
 
@@ -74,16 +78,18 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
 
     provider_name = repo.provider.removeprefix("integrations:")
     web_base_url: str | None = None
-    if provider_name == "github_enterprise":
+    if provider_name in ("github_enterprise", "perforce"):
         integration = integration_service.get_integration(
             integration_id=repo.integration_id,
             organization_id=organization_id,
         )
-        if integration:
+        if integration and provider_name == "github_enterprise":
             domain_name = integration.metadata.get("domain_name")
             if domain_name:
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
+        elif integration:
+            web_base_url = integration.metadata.get("web_url") or None
 
     return cast(
         Repository,
