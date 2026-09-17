@@ -44,8 +44,7 @@ export function ScmAlertOptionCard({
               `}
             >
               <Flex area="radio" align="center">
-                {/* Visual only: the card button carries the radio role and
-                    state, so the input is hidden from the accessibility tree. */}
+                {/* Decorative: the card button carries the radio role and state. */}
                 <Radio
                   size="xs"
                   readOnly

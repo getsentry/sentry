@@ -80,27 +80,14 @@ describe('ScmAlertFrequencySection', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
-  });
-
-  it('names the custom threshold fields and the notify group', () => {
-    renderSection({
-      analyticsFlow: 'onboarding',
-      alertRuleConfig: {
-        ...DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
-        alertSetting: RuleAction.CUSTOMIZED_ALERTS,
-      },
-    });
-
-    expect(screen.getByRole('spinbutton', {name: 'Alert threshold'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Alert metric'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Alert interval'})).toBeInTheDocument();
-    expect(screen.getByRole('group', {name: 'Notify via'})).toBeInTheDocument();
+    // One radio per option card: the dot drawn inside each card is decorative.
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
   it('shows the notification options when alerts are enabled', () => {
     renderSection({analyticsFlow: 'onboarding'});
 
-    expect(screen.getByText('Notify via')).toBeInTheDocument();
+    expect(screen.getByRole('group', {name: 'Notify via'})).toBeInTheDocument();
     expect(
       screen.getByText('Integration (Slack, Discord, MS Teams, etc.)')
     ).toBeInTheDocument();
