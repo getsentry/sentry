@@ -37,6 +37,12 @@ class DeleteMalformedAnomalyConditionsTest(TestMigrations):
             },
             condition_result=75,
         )
+        self.valid_mixed_condition = DataCondition.objects.create(
+            condition_group_id=valid_anomaly_group.id,
+            type="lte",
+            comparison=0,
+            condition_result=0,
+        )
 
         static_group = DataConditionGroup.objects.create(organization_id=self.organization.id)
         self.valid_static_condition = DataCondition.objects.create(
@@ -63,4 +69,5 @@ class DeleteMalformedAnomalyConditionsTest(TestMigrations):
             "seasonality": "auto",
             "threshold_type": 0,
         }
+        assert DataCondition.objects.filter(id=self.valid_mixed_condition.id).exists()
         assert DataCondition.objects.filter(id=self.valid_static_condition.id).exists()
