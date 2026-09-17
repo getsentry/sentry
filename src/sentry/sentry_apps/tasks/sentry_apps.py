@@ -10,6 +10,7 @@ import sentry_sdk
 from django.urls import reverse
 from requests import HTTPError, Timeout
 from requests.exceptions import ChunkedEncodingError, ConnectionError, RequestException
+from sentry_sdk import traces
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import Retry, retry_task
 
@@ -90,7 +91,6 @@ from sentry.utils.sentry_apps import send_and_save_webhook_request
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.sentry_apps.tasks.sentry_apps")
 
@@ -508,7 +508,7 @@ def _does_project_filter_allow_project(service_hook_id: int, project_id: int) ->
     silo_mode=SiloMode.CELL,
     silenced_exceptions=_SENTRY_APP_WEBHOOK_SILENCED,
 )
-@trace(name="process_resource_change_bound")
+@traces.trace(name="process_resource_change_bound")
 def process_resource_change_bound(
     action: str, sender: str, instance_id: str, **kwargs: Any
 ) -> None:
