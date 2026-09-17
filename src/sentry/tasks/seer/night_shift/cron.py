@@ -6,7 +6,7 @@ import time
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, Literal, TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
 from cronsim import CronSim
@@ -49,6 +49,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
+from sentry.seer.workflows.schemas import WorkflowRunSource
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
@@ -86,14 +87,11 @@ PER_ORG_FEATURE_NAMES = [
 ]
 
 
-NightShiftRunSource = Literal["cron", "manual"]
-
-
 class SeerNightShiftRunOptions(TypedDict):
     """Fully-resolved options for a night shift run. Persisted directly onto
     SeerWorkflowRun.extras["options"]. Construct via build_run_options."""
 
-    source: NightShiftRunSource
+    source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
     intelligence_level: IntelligenceLevel
@@ -105,7 +103,7 @@ class SeerNightShiftRunOptionsPartial(TypedDict, total=False):
     """Caller-facing options dict — every field is optional. Missing fields
     are filled in by build_run_options with shared defaults."""
 
-    source: NightShiftRunSource
+    source: WorkflowRunSource
     max_candidates: int
     dry_run: bool
     intelligence_level: IntelligenceLevel
@@ -663,7 +661,7 @@ class EligibleProject:
 
 def _get_eligible_projects(
     organization: Organization,
-    source: NightShiftRunSource,
+    source: WorkflowRunSource,
     project_ids: list[int] | None = None,
 ) -> list[EligibleProject]:
     """Return active projects that have automation enabled and connected repos,
@@ -739,7 +737,7 @@ def _get_eligible_projects(
     return eligible
 
 
-def _should_use_per_project_quotas(source: NightShiftRunSource, organization_id: int) -> bool:
+def _should_use_per_project_quotas(source: WorkflowRunSource, organization_id: int) -> bool:
     """When allowed_project_slugs (org_tweaks) is set, give each project its
     own quota. Manual runs bypass allowed_project_slugs, so never per-project."""
     if source != "cron":

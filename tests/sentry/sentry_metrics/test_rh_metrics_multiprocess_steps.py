@@ -42,11 +42,13 @@ BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
 
 
 @pytest.fixture(autouse=True)
-def update_sentry_settings(settings):
+def update_sentry_settings(settings: Any) -> None:
     settings.SENTRY_METRICS_INDEXER_RAISE_VALIDATION_ERRORS = True
 
 
-def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Message) -> None:
+def compare_messages_ignoring_mapping_metadata(
+    actual: Message[Any], expected: Message[Any]
+) -> None:
     assert actual.committable == expected.committable
 
     actual_payload = actual.payload
@@ -70,14 +72,16 @@ def compare_messages_ignoring_mapping_metadata(actual: Message, expected: Messag
 
 
 def compare_message_batches_ignoring_metadata(
-    actual: IndexerOutputMessageBatch, expected: Sequence[Message]
+    actual: IndexerOutputMessageBatch, expected: Sequence[Message[Any]]
 ) -> None:
     assert len(actual.data) == len(expected)
     for a, e in zip(actual.data, expected):
         compare_messages_ignoring_mapping_metadata(a, e)
 
 
-def _batch_message_set_up(next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2):
+def _batch_message_set_up(
+    next_step: Mock, max_batch_time: float = 100.0, max_batch_size: int = 2
+) -> tuple[BatchMessages, Message[KafkaPayload], Message[KafkaPayload]]:
     # batch time is in seconds
     batch_messages_step = BatchMessages(
         next_step=next_step, max_batch_time=max_batch_time, max_batch_size=max_batch_size
@@ -111,13 +115,13 @@ def test_batch_messages() -> None:
     # and the messaged added to the batch
     batch_messages_step.submit(message=message1)
 
-    assert len(batch_messages_step._BatchMessages__batch) == 1
+    assert len(batch_messages_step._BatchMessages__batch) == 1  # type: ignore[attr-defined]
 
     # neither batch_size or batch_time as been met so poll shouldn't
     # do anything yet (aka shouldn't flush and call next_step.submit)
     batch_messages_step.poll()
 
-    assert len(batch_messages_step._BatchMessages__batch) == 1
+    assert len(batch_messages_step._BatchMessages__batch) == 1  # type: ignore[attr-defined]
     assert not next_step.submit.called
 
     # submit the second message, message should be added to the batch
@@ -129,7 +133,7 @@ def test_batch_messages() -> None:
         Message(Value([message1, message2], message2.committable)),
     )
 
-    assert batch_messages_step._BatchMessages__batch is None
+    assert batch_messages_step._BatchMessages__batch is None  # type: ignore[attr-defined]
 
 
 def test_batch_messages_rejected_message() -> None:
@@ -274,7 +278,7 @@ set_payload: dict[str, Any] = {
 
 
 def __translated_payload(
-    payload,
+    payload: dict[str, Any],
 ) -> dict[str, str | int | list[int] | MutableMapping[int, int]]:
     """
     Translates strings to ints using the MockIndexer
@@ -390,7 +394,10 @@ invalid_payloads = [
 @pytest.mark.django_db
 @pytest.mark.parametrize("invalid_payload, error_text, format_payload", invalid_payloads)
 def test_process_messages_invalid_messages(
-    invalid_payload, error_text, format_payload, caplog
+    invalid_payload: dict[str, Any] | bytes,
+    error_text: str,
+    format_payload: bool,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """
     Test the following kinds of invalid payloads:
@@ -406,9 +413,12 @@ def test_process_messages_invalid_messages(
     `invalid_payload` has a payload that fits the scenarios outlined above.
 
     """
-    formatted_payload = (
-        json.dumps(invalid_payload).encode("utf-8") if format_payload else invalid_payload
-    )
+    formatted_payload: bytes
+    if format_payload:
+        formatted_payload = json.dumps(invalid_payload).encode("utf-8")
+    else:
+        assert isinstance(invalid_payload, bytes)
+        formatted_payload = invalid_payload
     message_batch = [
         Message(
             BrokerValue(
@@ -461,7 +471,7 @@ def test_process_messages_invalid_messages(
 
 @pytest.mark.django_db
 @override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_process_messages_rate_limited(caplog) -> None:
+def test_process_messages_rate_limited(caplog: pytest.LogCaptureFixture) -> None:
     """
     Test handling of `None`-values coming from the indexer service, which
     happens when postgres writes are being rate-limited.

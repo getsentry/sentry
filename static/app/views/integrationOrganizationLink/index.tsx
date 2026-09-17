@@ -203,6 +203,20 @@ export default function IntegrationOrganizationLink() {
     return {installation_id: installationId};
   }, [integrationSlug, installationId]);
 
+  // Origin marketplace installs arrive here with the signed installation receipt
+  // in the URL query (forwarded from `/extensions/cursor_origin/setup/`). The
+  // pipeline verifies it again before it trusts the installation it names.
+  const cursorOriginParams = useMemo<Record<string, string> | null>(() => {
+    if (integrationSlug !== 'cursor_origin') {
+      return null;
+    }
+    const installationReceipt = location.query.installationReceipt;
+    if (typeof installationReceipt !== 'string') {
+      return null;
+    }
+    return {installationReceipt};
+  }, [integrationSlug, location.query]);
+
   // Discord App Directory installs arrive here with `code` and `guild_id` in
   // the URL query (forwarded from `/extensions/discord/configure/`). The
   // install button uses these as `initialData` for the pipeline modal.
@@ -316,6 +330,7 @@ export default function IntegrationOrganizationLink() {
     // initial data; otherwise the flow starts with no provider-supplied params.
     const urlParams =
       gitHubAppListingParams ??
+      cursorOriginParams ??
       discordAppDirectoryParams ??
       msTeamsParams ??
       jiraParams ??
@@ -329,6 +344,7 @@ export default function IntegrationOrganizationLink() {
     organization,
     isInvalidFlow,
     gitHubAppListingParams,
+    cursorOriginParams,
     discordAppDirectoryParams,
     msTeamsParams,
     jiraParams,

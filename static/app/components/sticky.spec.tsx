@@ -42,6 +42,7 @@ describe('Sticky', () => {
 
     const sticky = screen.getByText('Sticky content');
     expect(observe).toHaveBeenCalledWith(sticky);
+    expect(observerOptions.at(-1)?.root).toBeNull();
     expect(sticky).not.toHaveAttribute('data-stuck');
 
     act(() => {

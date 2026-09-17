@@ -6,7 +6,6 @@ from urllib.parse import parse_qs, urlparse
 
 import orjson
 import responses
-from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
@@ -119,9 +118,6 @@ class ActivityNotificationTest(APITestCase):
                 type=type,
                 value="always",
             )
-        responses.add_passthru(
-            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
-        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 

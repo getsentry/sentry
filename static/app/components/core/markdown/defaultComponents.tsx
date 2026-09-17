@@ -109,7 +109,7 @@ export function DefaultListItem({children}: {children: ReactNode}) {
   // <p>) keep md body size instead of inheriting a smaller parent size.
   return (
     <Text size="md" density="comfortable">
-      {({className}) => <li className={className}>{children}</li>}
+      {textProps => <li {...textProps}>{children}</li>}
     </Text>
   );
 }
