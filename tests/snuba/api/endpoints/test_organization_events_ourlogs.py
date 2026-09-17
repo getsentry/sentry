@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 from django.test import override_settings
+from sentry_protos.snuba.v1.trace_item_pb2 import AnyValue, ArrayValue
 
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import DataCategory
@@ -239,6 +240,45 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
             {
                 "field": ["log.body"],
                 "query": f'tags[release,string]:{REGEX_OPERATOR}"^\\d+\\.\\d+"',
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert [log["log.body"] for log in response.data["data"]] == ["first"]
+
+    def test_regex_filter_on_an_array_attribute(self) -> None:
+        """Snuba applies OP_REGEXP to the string elements of a string array, so the array
+        membership form matches when any element does."""
+        logs = [
+            self.create_ourlog(
+                {"body": "first"},
+                attributes={
+                    "log_tags": {
+                        "array_value": ArrayValue(
+                            values=[
+                                AnyValue(string_value="alpha-01"),
+                                AnyValue(string_value="beta"),
+                            ]
+                        )
+                    }
+                },
+                timestamp=self.ten_mins_ago,
+            ),
+            self.create_ourlog(
+                {"body": "second"},
+                attributes={
+                    "log_tags": {"array_value": ArrayValue(values=[AnyValue(string_value="gamma")])}
+                },
+                timestamp=self.nine_mins_ago,
+            ),
+        ]
+        self.store_eap_items(logs)
+        response = self.do_request(
+            {
+                "field": ["log.body"],
+                "query": f'tags[log_tags,array][*]:{REGEX_OPERATOR}"^alpha-\\d+$"',
                 "project": self.project.id,
                 "dataset": self.dataset,
             }
