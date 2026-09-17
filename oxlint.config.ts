@@ -1440,14 +1440,22 @@ const config = defineConfig({
       {
         terms: ['todo', 'fixme', 'xxx'],
         ignore: [],
-        ignoreDates: false,
-        ignoreDatesOnPullRequests: true,
+        // Dates are never enforced: a TODO quietly reaching its expiry should not
+        // be what breaks master for everyone else.
+        checkDates: false,
         allowWarningComments: true,
       },
     ],
-    'unicorn-js/no-array-push-push': ['error'],
     'unicorn-js/no-unnecessary-polyfills': ['error'],
-    'unicorn-js/prefer-simple-condition-first': ['error'],
+    // The successor to `no-array-push-push`, which unicorn 74 removed. Off for now:
+    // it also covers `unshift` and non-adjacent calls, so it flags 38 sites, and its
+    // fix folds long object literals into one argument list, which reads worse.
+    'unicorn-js/prefer-single-call': 'off',
+    // Off since unicorn 73 started treating `x == null` as a simple condition,
+    // which flags ~600 call sites here. Every one is the rule's "unsafe" variant:
+    // reordering the operands can change what the short-circuit guards against, so
+    // they need to be read individually rather than swept through.
+    'unicorn-js/prefer-simple-condition-first': 'off',
   },
   overrides: [
     {
