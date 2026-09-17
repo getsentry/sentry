@@ -29,7 +29,9 @@ describe('Widget Builder > ThresholdsStep', () => {
     // Component should render with empty max value inputs instead of throwing
     expect(await screen.findByLabelText('First Minimum')).toBeInTheDocument();
     expect(screen.getByLabelText('First Maximum', {selector: 'input'})).toHaveValue(null);
-    expect(screen.getByLabelText('Second Maximum', {selector: 'input'})).toHaveValue(null);
+    expect(screen.getByLabelText('Second Maximum', {selector: 'input'})).toHaveValue(
+      null
+    );
   });
 
   it('renders thresholds step', async () => {
