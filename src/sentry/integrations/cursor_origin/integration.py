@@ -294,6 +294,7 @@ def build_install_url(state: str, redirect_uri: str, scopes: Sequence[str] | Non
             "scope": " ".join(scopes or CURSOR_ORIGIN_SCOPES),
             "redirect_uri": redirect_uri,
             "state": state,
+            "include_granted_scopes": "true",
         },
         quote_via=quote,
     )
