@@ -16,6 +16,13 @@ import {EmbedStory} from './__stories__/embedStory';
 import {EventEmbedStory} from './__stories__/eventEmbedStory';
 import {LogEmbedStory} from './__stories__/logEmbedStory';
 import {MonitorEmbedStory} from './__stories__/monitorEmbedStory';
+import {
+  BaselineBlockDemo,
+  ListBlockPlacementDemo,
+  ListInlinePlacementDemo,
+  ListLeadingTagDemo,
+  TablePlacementDemo,
+} from './__stories__/placementStory';
 import {ProfileEmbedStory} from './__stories__/profileEmbedStory';
 import {ReleaseEmbedStory} from './__stories__/releaseEmbedStory';
 import {ReplayEmbedStory} from './__stories__/replayEmbedStory';
@@ -158,6 +165,58 @@ Every embed also renders at a third level, **`markdown`**, used when a reply is 
 ### conversationsQuery
 
 <EmbedStory name="conversationsQuery" />
+
+## Placement: tables and lists
+
+Every embed's schema says it `MUST NOT appear inside a markdown table or list`. Nothing
+throws if you ignore that, and the markup stays valid -- but **a tag's position decides
+whether it renders inline or as a block**, and in a list that is easy to get wrong by
+accident.
+
+The rule the parser applies: a tag that _starts_ a block is block-level; a tag with text
+before it on the same line stays inline. A table cell is the exception -- markdown gives a
+cell no way to hold block content, so a tag there is always inline.
+
+**In a table, inline embeds behave.** Each one is an anchor and sits in a cell the way a
+link does.
+
+<Storybook.Demo>
+  <TablePlacementDemo />
+</Storybook.Demo>
+
+**In a list, put something before the tag and it stays inline.**
+
+<Storybook.Demo>
+  <ListInlinePlacementDemo />
+</Storybook.Demo>
+
+**Start the list item with the tag and it becomes a card.** This is the trap. The markdown
+below differs from the one above only in word order, but each item now opens with a
+full-width block embed and leaves its own sentence stranded underneath.
+
+<Storybook.Demo>
+  <ListLeadingTagDemo />
+</Storybook.Demo>
+
+This is not specific to lists -- a paragraph that opens with a tag promotes it the same
+way. A list just makes it likely, because a bullet that leads with the issue it is about
+reads naturally when you write it.
+
+**A block embed you actually meant is fine in a list.** It nests as a sibling of the item's
+paragraph and keeps the list's indentation.
+
+<Storybook.Demo>
+  <ListBlockPlacementDemo />
+</Storybook.Demo>
+
+The same card at the top level, for comparison:
+
+<Storybook.Demo>
+  <BaselineBlockDemo />
+</Storybook.Demo>
+
+So: keep a reference inline by giving it a few words of lead-in, and give a block embed its
+own line.
 
 ## Embed Architecture
 
