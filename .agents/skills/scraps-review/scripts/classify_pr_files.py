@@ -230,7 +230,15 @@ def mark_files_viewed(pr_node_id: str, paths: list[str]) -> list[str]:
             capture_output=True,
             text=True,
         )
-        return None if result.returncode == 0 else path
+        if result.returncode != 0:
+            return path
+        try:
+            body = json.loads(result.stdout)
+        except json.JSONDecodeError:
+            return path
+        if body.get("errors"):
+            return path
+        return None
 
     with ThreadPoolExecutor(max_workers=10) as pool:
         return [path for path in pool.map(mark_one, paths) if path is not None]
