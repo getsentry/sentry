@@ -858,6 +858,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert response.status_code == 200, response.content
         assert response.data["data"] == []
         assert response.data["meta"]["dataScanned"] == "full"
+        assert isinstance(response.data["meta"]["routingHint"], str)
+        assert response.data["meta"]["routingHint"]
         links = {
             attrs["rel"]: {**attrs, "href": url}
             for url, attrs in parse_link_header(response["link"]).items()
@@ -921,6 +923,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert [row["message"] for row in response.data["data"]] == [
             f"log {i + 1} of {n}" for i in range(5)
         ]
+        assert isinstance(response.data["meta"]["routingHint"], str)
+        assert response.data["meta"]["routingHint"]
         assert response.data["meta"]["dataScanned"] == "full"
         links = {
             attrs["rel"]: {**attrs, "href": url}
@@ -971,6 +975,8 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         assert [row["message"] for row in response.data["data"]] == [
             f"log {i + 6} of {n}" for i in range(3)
         ]
+        assert isinstance(response.data["meta"]["routingHint"], str)
+        assert response.data["meta"]["routingHint"]
         assert response.data["meta"]["dataScanned"] == "full"
         links = {
             attrs["rel"]: {**attrs, "href": url}

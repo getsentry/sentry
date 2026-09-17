@@ -20,13 +20,16 @@ from sentry.integrations.base import (
 from sentry.integrations.cursor_origin.client import (
     CursorOriginApiClient,
     CursorOriginSetupApiClient,
+    OriginRepositorySummary,
 )
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_INSTALL_URL,
     CURSOR_ORIGIN_SCOPES,
     CURSOR_ORIGIN_WEB_BASE_URL,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
@@ -34,8 +37,10 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -80,7 +85,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         search endpoint, so `query` filters locally.
         """
 
-        def to_repository_info(raw: list[dict[str, Any]]) -> list[RepositoryInfo]:
+        def to_repository_info(raw: Sequence[OriginRepositorySummary]) -> list[RepositoryInfo]:
             return [
                 {
                     "name": repo["fullName"],
@@ -140,9 +145,12 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
     def format_source_url(self, repo: Repository, filepath: str, branch: str | None) -> str:
         branch = branch or repo.config["default_branch"]
         return (
-            f"{CURSOR_ORIGIN_WEB_BASE_URL}/{repo.name}/blob/"
+            f"{CURSOR_ORIGIN_WEB_BASE_URL}/{quote(repo.name)}/blob/"
             f"{quote(branch, safe='')}/{quote(filepath)}"
         )
+
+    def encode_source_url(self, url: str) -> str:
+        return url
 
     def extract_branch_from_source_url(self, repo: Repository, url: str) -> str:
         return unquote(self._split_blob_url(repo, url)[0])
@@ -151,12 +159,16 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         return unquote(self._split_blob_url(repo, url)[1])
 
     def _split_blob_url(self, repo: Repository, url: str) -> tuple[str, str]:
-        prefix = f"{urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path}/{repo.name}/blob/"
+        base = urlparse(CURSOR_ORIGIN_WEB_BASE_URL).path
         path = urlparse(url).path
-        if not path.startswith(prefix):
-            return "", ""
-        branch, _, filepath = path[len(prefix) :].partition("/")
-        return branch, filepath
+        # `project_repo_path_parsing` unquotes the path before it gets here, so the
+        # repository name arrives either as we encoded it or decoded.
+        for name in (quote(repo.name), repo.name):
+            prefix = f"{base}/{name}/blob/"
+            if path.startswith(prefix):
+                branch, _, filepath = path[len(prefix) :].partition("/")
+                return branch, filepath
+        return "", ""
 
     def uninstall(self) -> None:
         """Remove the installation on Origin; a failure must not block disconnecting."""
@@ -196,7 +208,7 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
 
 
 DESCRIPTION = """
-Connect your Cursor Origin repositories to Sentry. Origin is Cursor's git forge --
+Connect your Cursor Origin repositories to Sentry. Origin is SpaceXAI's git forge --
 linking it lets Sentry suggest the right platform when you create a project and map
 stack traces back to source.
 """
@@ -274,6 +286,26 @@ class CursorOriginIntegrationProvider(IntegrationProvider):
             },
         }
 
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        """Link repositories now; the sweep that would otherwise do it runs daily."""
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration.id, organization_id=organization.id
+        )
+        if org_integration is None:
+            logger.warning(
+                "cursor_origin.post_install.no_org_integration",
+                extra={"integration_id": integration.id, "organization_id": organization.id},
+            )
+            return
+
+        sync_repos_for_org.apply_async(kwargs={"organization_integration_id": org_integration.id})
+
     def setup(self) -> None:
         from sentry.plugins.base import bindings
 
@@ -294,6 +326,7 @@ def build_install_url(state: str, redirect_uri: str, scopes: Sequence[str] | Non
             "scope": " ".join(scopes or CURSOR_ORIGIN_SCOPES),
             "redirect_uri": redirect_uri,
             "state": state,
+            "include_granted_scopes": "true",
         },
         quote_via=quote,
     )

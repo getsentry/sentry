@@ -274,6 +274,7 @@ export const OnionCardBody = memo(function OnionCardBodyImpl({
         </Text>
         <Flex width="200px">
           <Slider
+            aria-label={t('Head image opacity')}
             value={opacity}
             onChange={setOpacity}
             formatOptions={{style: 'unit', unit: 'percent'}}
@@ -305,6 +306,7 @@ function LazyImage({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setLoaded(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [src]);
 
   const onLoad = useCallback(() => setLoaded(true), []);

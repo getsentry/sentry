@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import Annotated, Any
 
@@ -93,6 +93,29 @@ def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
         for block in blocks
         for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
     ]
+
+
+def feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether a batch is manual, automated, or both — the ``feedback_kind`` metrics tag."""
+    kinds = {item.source.is_automated for item in items}
+    if not kinds:
+        return "unknown"
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
+
+
+def latest_iteration_feedback_kind(run_state: SeerRunState) -> str:
+    """``feedback_kind`` for the run's most recent PR iteration."""
+    from sentry.seer.autofix.autofix_agent import get_iterations
+
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return "unknown"
+    if not iterations:
+        return "unknown"
+    return feedback_kind(blocks_feedback(iterations[-1].blocks))
 
 
 def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:

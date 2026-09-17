@@ -1,6 +1,6 @@
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';

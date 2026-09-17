@@ -4,6 +4,11 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
@@ -13,11 +18,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {
-  DropdownMenu,
-  type DropdownMenuProps,
-  type MenuItemProps,
-} from 'sentry/components/dropdownMenu';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
@@ -1015,7 +1015,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   );
 }
 
-export type SectionCardKeyValueList = KeyValueListData;
+type SectionCardKeyValueList = KeyValueListData;
 
 const SECTION_CARD_TRUNCATE_LENGTH = 5;
 

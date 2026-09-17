@@ -280,6 +280,7 @@ function useUpdateOverlayPositionOnContentChange({
     return () => {
       resizeObserverRef.current?.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
@@ -640,6 +641,7 @@ export function SearchQueryBuilderCombobox<
     }
 
     return () => {};
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});

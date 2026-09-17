@@ -68,8 +68,8 @@ from sentry.utils.snuba import (
     UnqualifiedQueryError,
 )
 from sentry.utils.snuba_rpc import (
+    SnubaRPCBadRequest,
     SnubaRPCError,
-    SnubaRPCInvalidRequest,
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
 )
@@ -419,7 +419,7 @@ def handle_query_errors() -> Generator[None]:
         sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
         sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
         raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
-    except SnubaRPCInvalidRequest as error:
+    except SnubaRPCBadRequest as error:
         # Snuba's own rejections quote ClickHouse verbatim, down to the generated SQL, so the
         # reason is logged rather than returned.
         sentry_sdk.set_tag("query.error_reason", "InvalidRequest")

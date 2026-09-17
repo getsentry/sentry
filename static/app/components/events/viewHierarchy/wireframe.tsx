@@ -312,6 +312,7 @@ function Wireframe({
   }, [
     transformationMatrix,
     canvasRef,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     scale,
     overlayRef,
     hierarchyData.nodes,

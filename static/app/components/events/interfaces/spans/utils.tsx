@@ -64,25 +64,6 @@ export enum SpanSubTimingName {
   RESPONSE_TIME = 'Response Time',
 }
 
-const HTTP_DATA_KEYS = [
-  'http.request.redirect_start',
-  'http.request.fetch_start',
-  'http.request.domain_lookup_start',
-  'http.request.domain_lookup_end',
-  'http.request.connect_start',
-  'http.request.secure_connection_start',
-  'http.request.connection_end',
-  'http.request.request_start',
-  'http.request.response_start',
-  'http.request.response_end',
-];
-const INTERNAL_DATA_KEYS = ['sentry_tags'];
-const HIDDEN_DATA_KEYS = [...HTTP_DATA_KEYS, ...INTERNAL_DATA_KEYS];
-
-export const isHiddenDataKey = (key: string) => {
-  return HIDDEN_DATA_KEYS.includes(key);
-};
-
 export function generateRootSpan(
   trace: ParsedTraceType
 ): RawSpanType | AggregateSpanType {
@@ -476,55 +457,6 @@ export function getSiblingGroupKey(span: SpanType, occurrence?: number): string 
   }
 
   return `${span.op}.${span.description}`;
-}
-
-/**
- * Formats start and end unix timestamps by inserting a leading and trailing zero if needed, so they can have the same length
- */
-export function getFormattedTimeRangeWithLeadingAndTrailingZero(
-  start: number,
-  end: number
-) {
-  const startStrings = String(start).split('.');
-  const endStrings = String(end).split('.');
-
-  if (startStrings.length !== 2 || endStrings.length !== 2) {
-    return {
-      start: String(start),
-      end: String(end),
-    };
-  }
-
-  const newTimestamps = startStrings.reduce<{
-    end: string[];
-    start: string[];
-  }>(
-    (acc, startString, index) => {
-      if (startString.length > endStrings[index]!.length) {
-        acc.start.push(startString);
-        acc.end.push(
-          index === 0
-            ? endStrings[index]!.padStart(startString.length, '0')
-            : endStrings[index]!.padEnd(startString.length, '0')
-        );
-        return acc;
-      }
-
-      acc.start.push(
-        index === 0
-          ? startString.padStart(endStrings[index]!.length, '0')
-          : startString.padEnd(endStrings[index]!.length, '0')
-      );
-      acc.end.push(endStrings[index]!);
-      return acc;
-    },
-    {start: [], end: []}
-  );
-
-  return {
-    start: newTimestamps.start.join('.'),
-    end: newTimestamps.end.join('.'),
-  };
 }
 
 export function groupShouldBeHidden(

@@ -29,6 +29,7 @@ import {RequiredOrganizationSso} from './components/requiredOrganizationSso';
 import {SecondFactorAuth} from './components/secondFactorAuth';
 import {useAuthConfig} from './hooks/useAuthConfig';
 import {useAuthOrganization} from './hooks/useAuthOrganization';
+import {useDemoLogin} from './hooks/useDemoLogin';
 import type {EmailAuthResult} from './hooks/useEmailAuth';
 import type {AuthenticatedResult, MfaMethod} from './types';
 
@@ -47,6 +48,8 @@ export default function AuthLogin() {
   const theme = useTheme();
   const {orgSlug} = useParams<{orgSlug?: string}>();
   const location = useLocation();
+  const requestedNextUri =
+    typeof location.query.next === 'string' ? location.query.next : undefined;
   const {setAuthV2CookieState} = useEnableAuthV2();
   const hasStartedAnalyticsSession = useRef(false);
 
@@ -150,18 +153,38 @@ export default function AuthLogin() {
     [completeAuthentication, location, navigate]
   );
 
-  const mainState = hasInitialAuthConfigError
-    ? 'auth_config_error'
-    : hasAuthOrganizationError
-      ? 'organization_error'
-      : pendingMfaMethods
-        ? 'mfa'
-        : organizationSsoOnly
-          ? 'organization_sso'
-          : 'login';
+  const demoLogin = useDemoLogin({
+    authOrganization,
+    enabled: Boolean(loginConfig && !pendingMfaMethods),
+    nextUri: requestedNextUri,
+    onAuthResult: handleAuthResult,
+  });
+
+  function getMainState() {
+    if (hasInitialAuthConfigError) {
+      return 'auth_config_error' as const;
+    }
+
+    if (hasAuthOrganizationError) {
+      return 'organization_error' as const;
+    }
+
+    if (pendingMfaMethods) {
+      return 'mfa' as const;
+    }
+
+    if (organizationSsoOnly) {
+      return 'organization_sso' as const;
+    }
+
+    return 'login' as const;
+  }
+
+  const mainState = getMainState();
   const isLoginRenderable = !(
     isAuthConfigPending ||
     (orgSlug && isAuthOrganizationPending) ||
+    demoLogin.isLoading ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
   useBrandedAuthLoading(!isLoginRenderable);
@@ -268,6 +291,7 @@ export default function AuthLogin() {
                 <SecondFactorAuth
                   methods={pendingMfaMethods}
                   onBack={() => {
+                    demoLogin.reset();
                     setMfaMethods(undefined);
                   }}
                   onComplete={completeAuthentication}
