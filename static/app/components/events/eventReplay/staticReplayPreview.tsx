@@ -88,20 +88,11 @@ export function StaticReplayPreview({
   );
 }
 
-// Everything below this container sizes itself with `height: 100%`, so this is
-// where the height has to come from. Without a floor the whole chain resolves
-// against a content-sized parent, the player measures 0 and never grows back.
-// `ReplayClipPreviewPlayer` and `GroupReplaysPlayer` already pin the container
-// they use for replays that have a duration; this is the same floor for the
-// zero-duration replays that land here instead.
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
   background: ${p => p.theme.tokens.background.primary};
   gap: ${p => p.theme.space.md};
   max-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    min-height: ${REPLAY_LOADING_HEIGHT + 16}px;
-  }
 `;
 
 const StaticPanel = styled(FluidHeight)`

@@ -149,14 +149,6 @@ const UNUSABLE_CLIP_WINDOW_MESSAGES = {
 } as const;
 
 /**
- * Clip windows already reported this page load. A `ReplayReader` is built inside
- * a `useMemo`, so the same bad window is rebuilt on every refetch and on any
- * re-render that changes the identity of the attachments or errors arrays —
- * without this the same message goes out over and over for one replay.
- */
-const reportedClipWindows = new Set<string>();
-
-/**
  * Report a clip window that could not be applied, so a caller passing a
  * timestamp that has nothing to do with the replay is visible rather than
  * silently widened to the whole recording.
@@ -177,12 +169,6 @@ function reportUnusableClipWindow(
     eventTimestampMs?: number;
   }
 ) {
-  const key = `${replayId}:${reason}:${clipWindow.startTimestampMs}:${clipWindow.endTimestampMs}`;
-  if (reportedClipWindows.has(key)) {
-    return;
-  }
-  reportedClipWindows.add(key);
-
   Sentry.logger.error(UNUSABLE_CLIP_WINDOW_MESSAGES[reason], {
     replay_id: replayId,
     event_timestamp_ms: eventTimestampMs,

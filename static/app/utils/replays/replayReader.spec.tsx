@@ -738,8 +738,6 @@ describe('ReplayReader', () => {
       });
     }
 
-    // Each test needs its own replay id: the reported-window cache is module
-    // level, so it is shared by every test in this file.
     it('reports an error when the window does not overlap the replay', () => {
       const startTimestampMs = replayFinishedAt.getTime() + 60_000;
       buildReader({
@@ -768,17 +766,6 @@ describe('ReplayReader', () => {
         'replay.clip_window.invalid_timestamps: Clip window is not a real time range, playing the whole replay instead',
         expect.objectContaining({replay_id: 'report-invalid-timestamps'})
       );
-    });
-
-    it('only reports the same window once, however often the reader is rebuilt', () => {
-      const startTimestampMs = replayFinishedAt.getTime() + 60_000;
-      const clipWindow = {startTimestampMs, endTimestampMs: startTimestampMs + 10_000};
-
-      buildReader({id: 'report-once', clipWindow});
-      buildReader({id: 'report-once', clipWindow});
-      buildReader({id: 'report-once', clipWindow});
-
-      expect(logSpy).toHaveBeenCalledTimes(1);
     });
 
     it('does not report while the replay is still fetching', () => {
