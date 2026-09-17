@@ -29,7 +29,13 @@ export default function AutofixPage() {
     <SentryDocumentTitle title={TITLE} orgSlug={organization.slug}>
       <AnalyticsArea name="autofix_page">
         <AutofixBreadcrumbs groupId={groupId} />
-        <Stack flex={1} minWidth={0} minHeight={0} overflow="hidden">
+        {/*
+         * `contain="size"` keeps this column's height out of the flex
+         * calculation, so it fills Layout.Page rather than growing with the
+         * preview. Without it the whole page scrolls and IssuePreview's own
+         * scroll container never gets a bounded height.
+         */}
+        <Stack flex={1} minWidth={0} minHeight={0} contain="size" overflow="hidden">
           <IssuePreview groupId={groupId} />
         </Stack>
       </AnalyticsArea>
