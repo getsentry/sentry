@@ -615,8 +615,8 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         mock_record_event: MagicMock,
     ) -> None:
         signature_path = f"/{self.proxy_path}"
-        headers = self.create_request_headers(
-            signature_path=signature_path, integration_id=self.org_integration.id
+        headers = create_request_headers(
+            self.secret, signature_path=signature_path, integration_id=self.org_integration.id
         )
         error = ApiInvalidRequestError(
             '{"error":{"code":"BadSyntax","message":"Bad format of conversation ID"}}'
