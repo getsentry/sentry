@@ -827,7 +827,7 @@ function RequestDetail({
 }) {
   return (
     <Stack gap="xs" minWidth={0}>
-      <Text size="xs" variant="muted" monospace>
+      <Text size="xs" variant="muted" monospace wordBreak="break-all">
         {detail.request}
       </Text>
       {detail.body ? <CodeBlock language="json">{detail.body}</CodeBlock> : null}
