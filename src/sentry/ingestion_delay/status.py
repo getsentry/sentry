@@ -116,4 +116,4 @@ def get_ingestion_delay_status(
         return result(IngestionStatus.STALLED, last_ingested_at)
 
     # No data was accepted, therefore projects are idle.
-    return result(IngestionStatus.IDLE)
+    return result(IngestionStatus.IDLE, now - timedelta(seconds=delay_seconds))
