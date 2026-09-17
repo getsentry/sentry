@@ -1,3 +1,6 @@
+import {useContext} from 'react';
+
+import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -6,20 +9,30 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 const CONTEXT_HINT =
   'Sentry monitor edit page. unsavedValues are the live form values, which may differ from the ' +
   'saved monitor — the user is mid-edit and has not submitted. Answer questions about the ' +
-  'configuration from these values, not from a fetched copy of the monitor.';
+  'configuration from these values, not from a fetched copy of the monitor. Only fields this ' +
+  'monitor type actually has are present; a field being absent does not mean it is blank.';
 
 function MonitorBuilderNodeInner({detector}: {detector: Detector}) {
-  // Keys a given monitor type lacks come back undefined and drop out of the
-  // serialized snapshot, so one list covers every type using this form.
-  const unsavedValues = {
+  const {form} = useContext(FormContext);
+
+  const candidates = {
     name: useFormField<string>('name'),
     owner: useFormField<string>('owner'),
     projectId: useFormField<string>('projectId'),
     environment: useFormField<string>('environment'),
     description: useFormField<string>('description'),
     query: useFormField<string>('query'),
-    connectedAlertIds: useFormField<string[]>('workflowIds'),
+    workflowIds: useFormField<string[]>('workflowIds'),
   };
+
+  // `FormModel.getValue` returns '' for a field the form does not define — see
+  // the XXX in components/forms/model.tsx — so an unfiltered list would report
+  // an empty `query` on a cron edit, which has no query at all. Reporting a
+  // field a type lacks as blank is worse than omitting it, because the hint
+  // above tells the reader to trust these values.
+  const unsavedValues = Object.fromEntries(
+    Object.entries(candidates).filter(([field]) => form?.fields.has(field))
+  );
 
   useLLMContext({
     // Outranks the page nodes beneath it, so a monitor being edited wins.
