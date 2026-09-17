@@ -820,8 +820,7 @@ const config = defineConfig({
     'unicorn/prefer-native-coercion-functions': 'error',
     'unicorn/prefer-negative-index': 'error',
     'unicorn/prefer-node-protocol': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/prefer-prototype-methods': 'warn',
+    'unicorn/prefer-prototype-methods': 'error',
     'unicorn/prefer-reflect-apply': 'error',
     'unicorn/prefer-response-static-json': 'error',
     'unicorn/prefer-set-size': 'error',
