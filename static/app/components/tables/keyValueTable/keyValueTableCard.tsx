@@ -27,6 +27,7 @@ interface KeyValueTableCardProps {
    *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
   sortAlphabetically?: boolean;
+  striped?: boolean;
   /**
    * Title of the key value data grouping
    */
@@ -43,6 +44,7 @@ export function KeyValueTableCard({
   truncateLength = Infinity,
   sortAlphabetically = false,
   expandLeft = false,
+  striped,
 }: KeyValueTableCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
@@ -65,6 +67,7 @@ export function KeyValueTableCard({
         <KeyValueTableDataRow
           expandLeft={expandLeft}
           key={String(index)}
+          striped={striped}
           {...itemProps}
         />
       ))}

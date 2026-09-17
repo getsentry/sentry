@@ -5,7 +5,6 @@ import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/a
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 
-import {rowContent} from './presets';
 import {Value, ValueLink} from './value';
 
 export interface KeyValueTableDataRowProps {
@@ -42,6 +41,7 @@ export interface KeyValueTableDataRowProps {
    * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
+  striped?: boolean;
 }
 
 export function KeyValueTableDataRow({
@@ -116,14 +116,14 @@ const rowStateStyles = ({
   isSuspectFlag,
   striped,
 }: RowState & {theme: Theme}) => {
-  const tint = hasErrors
-    ? theme.colors.red100
+  const [content, tint] = hasErrors
+    ? [theme.colors.red500, theme.colors.red100]
     : isSuspectFlag
-      ? theme.colors.yellow100
-      : null;
+      ? [theme.colors.yellow500, theme.colors.yellow100]
+      : [theme.tokens.content.secondary, null];
 
   return css`
-    color: ${rowContent({theme, hasErrors, isSuspect: isSuspectFlag})};
+    color: ${content};
     box-shadow: inset 0 0 0 1px ${tint ?? 'transparent'};
     background-color: ${tint ?? theme.tokens.background.primary};
     ${

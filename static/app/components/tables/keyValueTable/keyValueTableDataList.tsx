@@ -106,20 +106,13 @@ function Row({
   );
 }
 
-// Literal px values below are carried over verbatim from the `table.table.key-value`
-// rules this component used to inherit from global LESS. They are normalized onto
-// theme tokens in a later commit; keeping them exact here is what makes this move
-// a pure relocation with no visual change.
 const Table = styled('table')<{margin: boolean}>`
   width: 100%;
   max-width: 100%;
-  border: none;
   margin-bottom: ${p => (p.margin ? '20px' : 0)};
 
   td {
-    padding: 0;
     max-width: 500px;
-    border: 0;
     vertical-align: top;
     line-height: 1;
   }
@@ -133,35 +126,27 @@ const Table = styled('table')<{margin: boolean}>`
     padding: 10px 15px 10px 10px;
     line-height: 1.4;
   }
+`;
 
-  td pre {
+const TableValue = styled('div')`
+  pre {
     box-sizing: border-box;
     white-space: pre-wrap;
     margin: 2px 0;
-    word-break: break-word;
+    word-break: break-all;
     padding: 8px 10px;
     font-size: 12px;
     overflow: visible;
   }
 
-  td pre .val-string:first-child {
+  pre .val-string:first-child {
     padding-left: 0;
   }
 
-  > * pre > pre {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-`;
-
-const TableValue = styled('div')`
-  pre {
-    && {
-      word-break: break-all;
-    }
-  }
   pre > pre {
     display: inline-block;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 `;
 
