@@ -44,7 +44,7 @@ describe('useDroppedDataBand', () => {
   it('ignores client discard annotations', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
-        annotations: [AnnotationFixture({label: 'Client discard', eventCount: 10})],
+        annotations: [AnnotationFixture({outcome: 'client_discard', eventCount: 10})],
       })
     );
 

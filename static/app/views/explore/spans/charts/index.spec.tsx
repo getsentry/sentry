@@ -168,7 +168,7 @@ describe('ExploreCharts', () => {
       renderCharts({
         features: ['explore-data-fidelity-annotations'],
         droppedAnnotations: [],
-        acceptedAnnotations: [AnnotationFixture({label: 'Accepted', eventCount: 8000})],
+        acceptedAnnotations: [AnnotationFixture({outcome: 'accepted', eventCount: 8000})],
       });
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();

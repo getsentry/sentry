@@ -203,7 +203,6 @@ export interface Annotation {
   category: string;
   end: number;
   eventCount: number;
-  label: string;
   outcome: string;
   reason: string;
   start: number;
