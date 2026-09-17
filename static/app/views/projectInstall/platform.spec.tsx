@@ -32,12 +32,6 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
 
   MockApiClient.addMockResponse({
     method: 'GET',
-    url: '/projects/org-slug/project-slug/rules/',
-    body: [],
-  });
-
-  MockApiClient.addMockResponse({
-    method: 'GET',
     url: '/projects/org-slug/project-slug/',
     body: projects,
   });

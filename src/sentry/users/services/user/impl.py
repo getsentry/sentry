@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, MutableMapping
 from typing import Any
 from uuid import uuid4
@@ -49,6 +50,7 @@ from sentry.users.services.user.serial import (
     serialize_user_avatar,
 )
 from sentry.users.services.user.service import UserService
+from sentry.utils import metrics
 
 logger = logging.getLogger("user:provisioning")
 
@@ -103,6 +105,46 @@ class DatabaseBackedUserService(UserService):
             for user in user_query
             for email in emails_by_user_ids[user.id]
         ]
+
+    def resolve_fuzzy_user(
+        self,
+        organization_id: int,
+        email: str | None = None,
+        name: str | None = None,
+    ) -> int | None:
+        identity_pattern, inferred_name = _identity_pattern(email)
+        name_pattern = _name_pattern(name or inferred_name)
+        if not identity_pattern and not name_pattern:
+            metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "empty"}, sample_rate=1.0)
+            return None
+
+        query = Q()
+        if identity_pattern:
+            query |= Q(emails__email__iregex=rf"^{identity_pattern}@")
+            query |= Q(username__iregex=rf"^{identity_pattern}$")
+        if name_pattern:
+            query |= Q(name__iregex=rf"^{name_pattern}$")
+
+        user_ids = list(
+            User.objects.filter(
+                query,
+                is_active=True,
+                orgmembermapping_set__organization_id=organization_id,
+            )
+            .exclude(is_sentry_app=True)
+            .values_list("id", flat=True)
+            .distinct()[:2]
+        )
+
+        if len(user_ids) == 1:
+            metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "hit"}, sample_rate=1.0)
+            return user_ids[0]
+        if len(user_ids) > 1:
+            metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "ambiguous"}, sample_rate=1.0)
+            return None
+
+        metrics.incr("user.resolve_fuzzy_user", tags={"outcome": "none"}, sample_rate=1.0)
+        return None
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
@@ -389,3 +431,58 @@ class DatabaseBackedUserService(UserService):
             return serialize_rpc_user(user)
 
     _FQ = _UserFilterQuery()
+
+
+def _identity_pattern(value: str | None) -> tuple[str | None, str | None]:
+    if not value:
+        return None, None
+    value = value.strip()
+    inferred_name = None
+
+    # Commit authors are often formatted as `Dana Reed <dana.reed@example.com>`.
+    # Keep the display name as another matching signal and parse the email inside `<...>`.
+    angled = re.match(r"^(?P<name>.*?)\s*<\s*(?P<email>[^<>]+)\s*>\s*$", value)
+    if angled:
+        inferred_name = angled.group("name").strip() or None
+        value = angled.group("email").strip()
+
+    local, separator, domain = value.lower().partition("@")
+    if not separator or not local or not domain:
+        return None, inferred_name
+
+    # GitHub noreply addresses encode the login after `+`, for example
+    # `12345+dana@users.noreply.github.com`. With no `+`, use the local part as-is.
+    token = local.split("+", 1)[-1] if domain == "users.noreply.github.com" else local
+
+    # Treat `.`, `_`, and `-` as interchangeable between known chunks. `dana.reed`
+    # becomes `dana[._-]*reed`, matching `dana_reed`, `dana-reed`, or `danareed`
+    parts = [part for part in re.split(r"[._-]+", token) if part]
+    if not parts:
+        return None, inferred_name
+    if len(parts) > 1 and not inferred_name:
+        inferred_name = " ".join(parts)
+    pattern = r"[._-]*".join(re.escape(part) for part in parts)
+    return pattern, inferred_name
+
+
+def _name_pattern(value: str | None) -> str | None:
+    parts = (value or "").split()
+    if not parts:
+        return None
+    if len(parts) == 1:
+        return re.escape(parts[0])
+
+    first, *middle, last = parts
+    if not middle:
+        # `John Smith` may refer to `John Smith`, `John G Smith`, or
+        # `John George Smith`, but the first and last names must stay exact.
+        return rf"{re.escape(first)}(?:\s+\S+)*\s+{re.escape(last)}"
+
+    # When middle names are supplied, preserve them as evidence but make the complete
+    # middle section optional so `John G Smith` can still match `John Smith`.
+    # A one-letter initial accepts an optional period; `G` and `G.` are equivalent.
+    middle_pattern = r"\s+".join(
+        rf"{re.escape(part.rstrip('.'))}\.?" if len(part.rstrip(".")) == 1 else re.escape(part)
+        for part in middle
+    )
+    return rf"{re.escape(first)}(?:\s+{middle_pattern})?\s+{re.escape(last)}"

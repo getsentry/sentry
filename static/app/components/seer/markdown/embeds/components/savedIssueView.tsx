@@ -10,9 +10,13 @@ const LazySavedIssueViewBlock = lazy(() => import('./savedIssueViewBlock'));
 export const SavedIssueView = defineSeerEmbed({
   name: 'savedIssueView',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazySavedIssueViewBlock} {...props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazySavedIssueViewBlock} {...props} />;
+      case 'markdown':
+        return <SavedIssueViewLink {...props} format="markdown" />;
+      case 'inline':
+        return <SavedIssueViewLink {...props} />;
     }
-    return <SavedIssueViewLink {...props} />;
   },
 });

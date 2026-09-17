@@ -75,6 +75,7 @@ describe('EventNavigation', () => {
       },
       detectorDetails: {},
       eventCount: 0,
+      eventNavigationHeight: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
       dispatch: jest.fn(),

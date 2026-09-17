@@ -8,6 +8,8 @@ import omit from 'lodash/omit';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -16,8 +18,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {Count} from 'sentry/components/count';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -100,6 +100,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
   const [expandedIndex, setExpandedIndex] = useState(0);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setSortFunction(DEFAULT_SORTING_OPTION);
     setExpandedIndex(0);
   }, [

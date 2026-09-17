@@ -1,0 +1,217 @@
+from __future__ import annotations
+
+from base64 import b64encode
+from datetime import UTC, datetime, timedelta
+from typing import Any
+from unittest import mock
+
+import pytest
+import responses
+
+from sentry.constants import ObjectStatus
+from sentry.integrations.cursor_origin.client import CursorOriginApiClient
+from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL
+from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import (
+    ApiConflictError,
+    ApiError,
+    ApiForbiddenError,
+)
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
+
+INSTALLATION_ID = "i_01example"
+REPO = "acme/rocket"
+
+
+def _iso(offset: timedelta) -> str:
+    return (datetime.now(UTC) + offset).isoformat().replace("+00:00", "Z")
+
+
+def blob(path: str, size: int = 100) -> dict[str, Any]:
+    return {"path": path, "mode": "100644", "type": "blob", "sha": "abc", "size": size}
+
+
+@control_silo_test
+class CursorOriginReadsTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            metadata={"access_token": "oit_stored", "expires_at": _iso(timedelta(minutes=14))},
+            status=ObjectStatus.ACTIVE,
+        )
+        self.origin_client = CursorOriginApiClient(integration=self.integration)
+
+    # -- repositories -----------------------------------------------------
+
+    def test_get_repositories_paginates(self) -> None:
+        with mock.patch.object(
+            self.origin_client,
+            "_paginate",
+            return_value=[{"id": "1", "fullName": REPO, "name": "rocket"}],
+        ) as mock_paginate:
+            repos = self.origin_client.get_repositories()
+
+        assert repos == [{"id": "1", "fullName": REPO, "name": "rocket"}]
+        assert mock_paginate.call_args.args == ("/installation/repos", "repositories")
+
+    @responses.activate
+    def test_get_repo(self) -> None:
+        responses.add(
+            responses.GET, f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}", json={"fullName": REPO}
+        )
+
+        assert self.origin_client.get_repo(REPO) == {"fullName": REPO}
+
+    @responses.activate
+    def test_get_tree_requests_a_recursive_walk(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/git/trees/HEAD",
+            json={"tree": [blob("a.py")], "truncated": False},
+        )
+
+        entries = self.origin_client.get_tree(REPO, "HEAD")
+
+        assert entries == [blob("a.py")]
+        assert "recursive=true" in responses.calls[0].request.url
+
+    @responses.activate
+    def test_get_tree_response_reports_truncation(self) -> None:
+        """Origin caps recursive walks at 100k entries / 7 MiB."""
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/git/trees/HEAD",
+            json={"tree": [blob("a.py")], "truncated": True},
+        )
+
+        entries, truncated = self.origin_client.get_tree_response(REPO, "HEAD")
+
+        assert entries == [blob("a.py")]
+        assert truncated is True
+
+    @responses.activate
+    def test_an_empty_repository_raises_api_conflict(self) -> None:
+        """Origin answers 409 for an empty repo; detection already handles ApiConflictError."""
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/git/trees/HEAD",
+            json={"code": 10, "message": "empty repository"},
+            status=409,
+        )
+
+        with pytest.raises(ApiConflictError):
+            self.origin_client.get_tree(REPO, "HEAD")
+
+    def test_get_languages_uses_a_tree_it_is_given(self) -> None:
+        """Detection already holds the tree, so passing it avoids a second fetch."""
+        with mock.patch.object(self.origin_client, "get_tree") as mock_tree:
+            languages = self.origin_client.get_languages(REPO, [blob("a.py", 300)])
+
+        assert languages == {"Python": 300}
+        assert not mock_tree.called
+
+    def test_get_languages_fetches_the_tree_when_not_given_one(self) -> None:
+        with mock.patch.object(
+            self.origin_client, "get_tree", return_value=[blob("a.py", 42)]
+        ) as mock_tree:
+            languages = self.origin_client.get_languages(REPO)
+
+        assert languages == {"Python": 42}
+        assert mock_tree.called
+
+    @responses.activate
+    def test_get_contents_passes_the_path_as_a_query_parameter(self) -> None:
+        """Origin serves contents from ?path=; the path form 404s misleadingly."""
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={"type": "file", "content": ""},
+        )
+
+        self.origin_client.get_contents(REPO, "src/app.py")
+
+        request_url = responses.calls[0].request.url
+        assert "/contents?" in request_url
+        assert "path=src%2Fapp.py" in request_url
+
+    @responses.activate
+    def test_get_file_decodes_base64(self) -> None:
+        repo = Repository(name=REPO)
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={"type": "file", "encoding": "base64", "content": b64encode(b"hi").decode()},
+        )
+
+        assert self.origin_client.get_file(repo, "a.py", ref=None) == "hi"
+
+    @responses.activate
+    def test_get_file_on_a_directory_raises_api_error(self) -> None:
+        """A directory has entries and no content; callers handle ApiError, not KeyError."""
+        repo = Repository(name=REPO)
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={"type": "dir", "entries": []},
+        )
+
+        with pytest.raises(ApiError):
+            self.origin_client.get_file(repo, "src", ref=None)
+
+    @responses.activate
+    def test_check_file_raises_when_missing(self) -> None:
+        """RepositoryIntegration.check_file is what turns a 404 into None."""
+        repo = Repository(name=REPO)
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={"code": 5, "message": "resource not found"},
+            status=404,
+        )
+
+        with pytest.raises(ApiError) as exc:
+            self.origin_client.check_file(repo, "nope.py", None)
+
+        assert exc.value.code == 404
+
+    @responses.activate
+    def test_check_file_does_not_hide_a_forbidden_file(self) -> None:
+        """A swallowed 403 is indistinguishable from a file that is not there."""
+        repo = Repository(name=REPO)
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={"code": 7, "message": "permission denied"},
+            status=403,
+        )
+
+        with pytest.raises(ApiForbiddenError):
+            self.origin_client.check_file(repo, "secret.py", None)
+
+    @responses.activate
+    def test_rate_limit_header_is_captured(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}",
+            json={"fullName": REPO},
+            headers={"x-ratelimit-remaining": "42"},
+        )
+
+        self.origin_client.get_repo(REPO)
+
+        assert self.origin_client.get_remaining_api_requests() == 42
+
+    def test_remaining_requests_defaults_to_the_documented_budget(self) -> None:
+        """Reporting 0 before any request would make repo_trees back off immediately."""
+        assert self.origin_client.get_remaining_api_requests() == 3000
+
+    def test_expected_conditions_do_not_count_as_connection_errors(self) -> None:
+        for code in (403, 404, 409):
+            assert self.origin_client.should_count_api_error(ApiError("x", code=code), {}) is False
+
+    def test_unexpected_errors_count(self) -> None:
+        assert self.origin_client.should_count_api_error(ApiError("x", code=500), {}) is True

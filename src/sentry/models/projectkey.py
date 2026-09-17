@@ -11,7 +11,6 @@ import petname
 from django.conf import settings
 from django.db import ProgrammingError, models
 from django.db.models.signals import pre_delete
-from django.forms import model_to_dict
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -393,16 +392,7 @@ class ProjectKey(ReplicatedCellModel):
         if not self.secret_key or matching_secret_key:
             self.secret_key = self.generate_api_key()
 
-        # ProjectKeys for the project are automatically generated at insertion time via a
-        # `post_save()` hook, so the keys for the project should already exist. We simply need to
-        # update them with the correct values here.
-        (key, _) = ProjectKey.objects.get_or_create(
-            project=self.project, defaults=model_to_dict(self)
-        )
-        if key:
-            self.pk = key.pk
-            self.save()
-
+        self.save(force_insert=True)
         return (self.pk, ImportKind.Inserted)
 
 

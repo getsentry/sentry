@@ -5,13 +5,13 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
@@ -153,6 +153,7 @@ export function InvestigationCell({
 
   const actionItems: MenuItemProps[] = [];
   if (block.kind === 'query') {
+    // oxlint-disable-next-line react/refs
     actionItems.push({
       key: 'rerun',
       label: t('Rerun'),
@@ -429,7 +430,7 @@ function CellProgress({state}: {state: CellProgressState}) {
     <Flex align="center" gap="xs" data-test-id={`cell-progress-${state}`}>
       <IconSeer
         size="xs"
-        animation={['running', 'waiting'].includes(state) ? 'waiting' : undefined}
+        animation={['running', 'waiting'].includes(state) ? 'idle' : undefined}
       />
       <Text variant="muted">{message}</Text>
     </Flex>
@@ -715,7 +716,7 @@ function RefinementPanel({
   return (
     <RefinementDisclosure defaultExpanded size="sm">
       <AgentActivityDisclosureTitle
-        leadingItems={<IconSeer size="xs" animation={active ? 'waiting' : undefined} />}
+        leadingItems={<IconSeer size="xs" animation={active ? 'idle' : undefined} />}
         trailingItems={
           <Flex align="center" gap="sm">
             {elapsed === null ? null : <ElapsedDuration milliseconds={elapsed} />}

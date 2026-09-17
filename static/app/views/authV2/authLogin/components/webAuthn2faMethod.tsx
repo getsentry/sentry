@@ -16,6 +16,7 @@ import {AuthenticatorIconCarousel} from './authenticatorIconCarousel';
 
 interface WebAuthn2FAMethodProps {
   isActive: boolean;
+  isAuthenticating: boolean;
   isProcessing: boolean;
   onRetrySubmission: () => void;
   onSubmit: (response: WebAuthnResponse) => void;
@@ -26,6 +27,7 @@ type WebAuthnError = 'unsupported' | 'failed';
 
 export function WebAuthn2FAMethod({
   isActive,
+  isAuthenticating,
   isProcessing,
   onRetrySubmission,
   onSubmit,
@@ -43,6 +45,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setHasActivated(true);
     activate('u2f');
   }, [activate, hasActivated, isActive]);
@@ -63,6 +66,7 @@ export function WebAuthn2FAMethod({
       return;
     }
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setError(null);
 
     if (!window.PublicKeyCredential) {
@@ -162,7 +166,7 @@ export function WebAuthn2FAMethod({
     <Stack gap="lg" align="center">
       <AuthenticatorIconCarousel isActive={isActive} />
       <Text as="p" align="center">
-        {isProcessing
+        {isAuthenticating
           ? t('Authorizing...')
           : t('Waiting for passkey, biometric, or hardware key')}
       </Text>

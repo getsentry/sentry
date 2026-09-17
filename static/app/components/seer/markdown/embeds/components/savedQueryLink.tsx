@@ -1,6 +1,9 @@
 import queryString from 'query-string';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -48,7 +51,10 @@ function datasetPathname(dataset: Dataset, organization: Organization): string {
  * query's own filters would mean fetching it, and an inline mention shouldn't
  * cost a request — the block level does that and links precisely.
  */
-export function SavedQueryLink({data}: {data: SavedQueryData}) {
+export function SavedQueryLink({
+  data,
+  format,
+}: {data: SavedQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
   const href = queryString.stringifyUrl({
     url: datasetPathname(data.dataset, organization),
@@ -57,6 +63,7 @@ export function SavedQueryLink({data}: {data: SavedQueryData}) {
 
   return (
     <ResourceLink
+      format={format}
       icon={IconStar}
       href={href}
       title={data.name ?? t('Saved query %s', data.id)}

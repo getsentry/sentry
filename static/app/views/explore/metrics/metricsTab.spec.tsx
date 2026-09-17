@@ -16,6 +16,10 @@ import {
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
@@ -53,6 +57,11 @@ const validationBody: EventValidationData = {
   valid: true,
 };
 
+const encodedBarMetric = encodeMetricQueryParams({
+  ...defaultMetricQuery(),
+  metric: {name: 'bar', type: 'distribution'},
+});
+
 describe('MetricsTabContent', () => {
   const {
     organization,
@@ -66,7 +75,7 @@ describe('MetricsTabContent', () => {
     routerQuery: {
       start: '2025-04-10T14%3A37%3A55',
       end: '2025-04-10T20%3A04%3A51',
-      metric: ['bar||distribution'],
+      metric: [encodedBarMetric],
       title: 'Test Title',
     },
   });
@@ -173,7 +182,7 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it.isKnownFlake('should add a metric when Add Metric button is clicked', async () => {
+  it('should add a metric when Add Metric button is clicked', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -193,42 +202,76 @@ describe('MetricsTabContent', () => {
     });
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
 
-    let addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
-    expect(addButtons[0]).toBeEnabled();
+    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
+    expect(addButton).toBeEnabled();
 
-    await userEvent.click(addButtons[0]!);
+    await userEvent.click(addButton);
 
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
     });
     toolbars = screen.getAllByTestId('metric-toolbar');
-    // copies the last metric as a starting point
     expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
+  });
 
-    // change the second metric from bar to foo
-    await userEvent.click(within(toolbars[1]!).getByRole('button', {name: 'bar'}));
-    await userEvent.click(within(toolbars[1]!).getByRole('option', {name: 'foo'}));
+  it('copies the last edited metric when adding another metric', async () => {
+    render(
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+      </ProviderWrapper>,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              metric: [encodedBarMetric, encodedBarMetric],
+            },
+          },
+        },
+        organization,
+      }
+    );
 
-    const toolbar = await screen.findAllByTestId('metric-toolbar');
+    expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
+    await waitFor(() => {
+      expect(
+        within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+          name: 'bar',
+        })
+      ).toBeInTheDocument();
+    });
 
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('button', {
+        name: 'bar',
+      })
+    );
+    await userEvent.click(
+      within(screen.getAllByTestId('metric-toolbar')[1]!).getByRole('option', {
+        name: 'foo',
+      })
+    );
     expect(
-      await within(toolbar[1]!).findByRole('button', {
+      await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {
         name: 'foo',
       })
     ).toBeInTheDocument();
 
-    addButtons = screen.getAllByRole('button', {name: 'Add Metric'});
-    expect(addButtons[0]).toBeEnabled();
-
-    await userEvent.click(addButtons[0]!);
+    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
+    expect(addButton).toBeEnabled();
+    await userEvent.click(addButton);
 
     await waitFor(() => {
       expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(3);
     });
-    toolbars = screen.getAllByTestId('metric-toolbar');
-    // copies the last metric as a starting point
-    expect(within(toolbars[2]!).getByRole('button', {name: 'foo'})).toBeInTheDocument();
+    expect(
+      within(screen.getAllByTestId('metric-toolbar')[2]!).getByRole('button', {
+        name: 'foo',
+      })
+    ).toBeInTheDocument();
     expect(screen.getAllByTestId('metric-panel')).toHaveLength(3);
   });
 
@@ -249,25 +292,6 @@ describe('MetricsTabContent', () => {
     await waitFor(() => {
       expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
         1,
-        'metrics.explorer.metadata',
-        expect.objectContaining({
-          organization,
-          metric_queries_count: 1,
-          metric_panels_with_filters_count: 0,
-          metric_panels_with_group_bys_count: 0,
-          datetime_selection: '--14d',
-          environment_count: 0,
-          has_exceeded_performance_usage_limit: false,
-          interval: '1h',
-          project_count: 1,
-          title: 'Test Title',
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
-        2,
         'metrics.explorer.panel.metadata',
         expect.objectContaining({
           panel_index: 0,
@@ -287,6 +311,25 @@ describe('MetricsTabContent', () => {
           interval: '1h',
           metric_name: 'bar',
           metric_type: 'distribution',
+        })
+      );
+    });
+
+    await waitFor(() => {
+      expect(trackAnalyticsMock).toHaveBeenNthCalledWith(
+        2,
+        'metrics.explorer.metadata',
+        expect.objectContaining({
+          organization,
+          metric_queries_count: 1,
+          metric_panels_with_filters_count: 0,
+          metric_panels_with_group_bys_count: 0,
+          datetime_selection: '--14d',
+          environment_count: 0,
+          has_exceeded_performance_usage_limit: false,
+          interval: '1h',
+          project_count: 1,
+          title: 'Test Title',
         })
       );
     });
@@ -482,6 +525,13 @@ describe('MetricsTabContent', () => {
   });
 
   it('should fire analytics with no metrics available', async () => {
+    // Use a router config with no pre-selected metric so the component starts with an empty selection.
+    const {metric: _metric, ...queryWithoutMetric} = initialLocation.query ?? {};
+    const noMetricRouterConfig = {
+      location: {...initialLocation, query: queryWithoutMetric},
+      route: '/organizations/:orgId/explore/metrics/',
+    };
+
     MockApiClient.clearMockResponses();
     setupPageFilters();
 
@@ -532,7 +582,7 @@ describe('MetricsTabContent', () => {
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
-        initialRouterConfig,
+        initialRouterConfig: noMetricRouterConfig,
         organization,
       }
     );

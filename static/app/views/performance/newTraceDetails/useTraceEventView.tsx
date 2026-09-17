@@ -1,15 +1,13 @@
 import {useMemo} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import type {NewQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 
 import type {TraceViewQueryParams} from './useTraceQueryParams';
 
 export function useTraceEventView(
   traceSlug: string,
-  params: TraceViewQueryParams,
-  partialSavedQuery?: Partial<NewQuery>
+  params: TraceViewQueryParams
 ): EventView {
   return useMemo(() => {
     let startTimeStamp = params.start;
@@ -36,7 +34,6 @@ export function useTraceEventView(
       start: startTimeStamp,
       end: endTimeStamp,
       range: startTimeStamp || endTimeStamp ? undefined : params.statsPeriod,
-      ...partialSavedQuery,
     });
-  }, [params, traceSlug, partialSavedQuery]);
+  }, [params, traceSlug]);
 }

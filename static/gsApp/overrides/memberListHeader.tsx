@@ -24,20 +24,18 @@ function MemberListHeader({members, organization, subscription}: Props) {
   const hasDisabledMembers = members.some(isMemberDisabledFromLimit);
   const {data: billingConfig} = useBillingConfig({organization});
 
-  const getDefaultView = () => <PanelHeader>{t('Members')}</PanelHeader>;
-
   if (!hasDisabledMembers) {
-    return getDefaultView();
+    return <PanelHeader>{t('Members')}</PanelHeader>;
   }
 
   if (!billingConfig) {
-    return getDefaultView();
+    return <PanelHeader>{t('Members')}</PanelHeader>;
   }
 
   // the best plan is the first one that has unlimited members
   const bestPlan = getBestPlanForUnlimitedMembers(billingConfig, subscription);
   if (!bestPlan) {
-    return getDefaultView();
+    return <PanelHeader>{t('Members')}</PanelHeader>;
   }
 
   return (
@@ -65,7 +63,7 @@ function MemberListHeader({members, organization, subscription}: Props) {
     </PanelHeader>
   );
 }
-export default withSubscription(MemberListHeader);
+export default withSubscription(MemberListHeader, {noLoader: true});
 
 const Wrapper = styled('div')`
   text-transform: none;

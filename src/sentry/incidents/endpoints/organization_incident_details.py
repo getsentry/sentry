@@ -23,7 +23,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
 from sentry.workflow_engine.models import IncidentGroupOpenPeriod
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 
 class IncidentSerializer(serializers.Serializer):
@@ -117,7 +117,6 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
 
         return args, kwargs
 
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-incident-details")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(
         self,
@@ -130,6 +129,7 @@ class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
         ``````````````````
         :auth: required
         """
+        enforce_alerts_api_deprecation(organization)
         expand = request.GET.getlist("expand", [])
         return Response(
             serialize(

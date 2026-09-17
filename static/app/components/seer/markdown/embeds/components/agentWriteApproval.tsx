@@ -63,10 +63,27 @@ export function AgentWriteApprovalProvider({
   );
 }
 
+const APPROVAL_STATUS_LABELS: Record<
+  EmbedOutput<'agentWriteApproval'>['status'],
+  string
+> = {
+  pending: t('pending'),
+  approved: t('approved'),
+  rejected: t('rejected'),
+};
+
 export const AgentWriteApprovalEmbed = defineSeerEmbed({
   name: 'agentWriteApproval',
-  render(props) {
-    return <AgentWriteApprovalContent {...props} />;
+  render(props, level) {
+    switch (level) {
+      case 'markdown':
+        // An approval prompt is an action, not content: record only that it
+        // was asked and how it was answered.
+        return t('Seer permission request (%s)', APPROVAL_STATUS_LABELS[props.status]);
+      case 'block':
+      case 'inline':
+        return <AgentWriteApprovalContent {...props} />;
+    }
   },
 });
 
