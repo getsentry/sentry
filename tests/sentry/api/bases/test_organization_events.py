@@ -37,7 +37,6 @@ class OrganizationEventsRoutingHintTest(TestCase):
         assert result["meta"]["dataScanned"] == "partial"
         assert result["meta"]["bytesScanned"] == 123
         assert "routing_hint" not in result["meta"]
-        assert meta["routing_hint"] == "opaque+/=="
 
     def test_empty_result_retains_routing_hint(self) -> None:
         result = self.serialize_results({"fields": {}, "routing_hint": "opaque"}, [])

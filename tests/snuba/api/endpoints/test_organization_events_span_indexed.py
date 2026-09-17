@@ -58,7 +58,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             {
                 "item_type": "spans",
                 "trace_id": row["trace"],
-                "timestamp": timestamp.isoformat(),
+                "timestamp": row["timestamp"],
                 "routing_hint": hint,
             },
         )
