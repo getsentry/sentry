@@ -333,6 +333,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/data_export/                                             @getsentry/data-browsing
 /tests/sentry/data_export/                                           @getsentry/data-browsing
 
+/src/sentry/ingestion_delay/                                         @getsentry/data-browsing
+/tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
+/src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
+
 
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing

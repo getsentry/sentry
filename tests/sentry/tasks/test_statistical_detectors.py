@@ -22,6 +22,7 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.seer.breakpoints import BreakpointData
+from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
 from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.statistical_detectors.detector import TrendBundle, generate_fingerprint
@@ -39,6 +40,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 @pytest.fixture
@@ -643,23 +645,29 @@ def test_detect_function_change_points(
         ],
     }
 
-    mock_detect_breakpoints.return_value = {
-        "data": [
-            {
-                "absolute_percentage_change": 5.0,
-                "aggregate_range_1": 100000000.0,
-                "aggregate_range_2": 500000000.0,
-                "breakpoint": 1687323600,
-                "change": "regression",
-                "project": str(project.id),
-                "transaction": str(fingerprint),
-                "trend_difference": 400000000.0,
-                "trend_percentage": 5.0,
-                "unweighted_p_value": 0.0,
-                "unweighted_t_value": -float("inf"),
-            },
-        ]
-    }
+    observed_contexts: list[ViewerContext | None] = []
+
+    def detect_breakpoints(*args, **kwargs):
+        observed_contexts.append(get_viewer_context())
+        return {
+            "data": [
+                {
+                    "absolute_percentage_change": 5.0,
+                    "aggregate_range_1": 100000000.0,
+                    "aggregate_range_2": 500000000.0,
+                    "breakpoint": 1687323600,
+                    "change": "regression",
+                    "project": str(project.id),
+                    "transaction": str(fingerprint),
+                    "trend_difference": 400000000.0,
+                    "trend_percentage": 5.0,
+                    "unweighted_p_value": 0.0,
+                    "unweighted_t_value": -float("inf"),
+                },
+            ]
+        }
+
+    mock_detect_breakpoints.side_effect = detect_breakpoints
 
     options = {
         "statistical_detectors.enable": True,
@@ -669,6 +677,74 @@ def test_detect_function_change_points(
         detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
 
     assert mock_emit_function_regression_issue.called
+    assert observed_contexts == [
+        ViewerContext(
+            organization_id=project.organization_id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ]
+
+
+@mock.patch.object(FunctionRegressionDetector, "detect_regressions")
+@django_db_all
+def test_detect_function_change_points_groups_viewer_context_by_organization(
+    mock_detect_regressions: mock.MagicMock,
+    timestamp: datetime,
+    project: Project,
+) -> None:
+    other_project = Project(
+        id=project.id + 1,
+        organization_id=project.organization_id + 1,
+    )
+    observed_calls: list[tuple[list[int], ViewerContext | None, SeerViewerContext | None]] = []
+
+    def detect_regressions(
+        function_pairs: list[tuple[Project, int | str]],
+        start: datetime,
+        function: str,
+        timeseries_per_batch: int,
+        viewer_context: SeerViewerContext | None = None,
+    ) -> list[BreakpointData]:
+        observed_calls.append(
+            (
+                [function_project.id for function_project, _ in function_pairs],
+                get_viewer_context(),
+                viewer_context,
+            )
+        )
+        return []
+
+    mock_detect_regressions.side_effect = detect_regressions
+
+    with (
+        mock.patch(
+            "sentry.tasks.statistical_detectors.get_detector_enabled_projects",
+            return_value=[project, other_project],
+        ),
+        override_options({"statistical_detectors.enable": True}),
+    ):
+        detect_function_change_points(
+            [(project.id, 12345), (other_project.id, 67890)], timestamp.isoformat()
+        )
+
+    assert observed_calls == [
+        (
+            [project.id],
+            ViewerContext(
+                organization_id=project.organization_id,
+                actor_type=ActorType.SYSTEM,
+            ),
+            SeerViewerContext(organization_id=project.organization_id),
+        ),
+        (
+            [other_project.id],
+            ViewerContext(
+                organization_id=other_project.organization_id,
+                actor_type=ActorType.SYSTEM,
+            ),
+            SeerViewerContext(organization_id=other_project.organization_id),
+        ),
+    ]
 
 
 @pytest.mark.parametrize(

@@ -421,6 +421,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             group.organization.id,
                             referrer="autofix_open_pr",
                         ),
+                        user=request.user,
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -594,6 +595,9 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         insert_index=data.get("insert_index"),
                         user=request.user,
                         enable_bash_tools=data.get("enable_bash_tools", False),
+                        actor_user_id=(
+                            request.user.id if step == AutofixStep.CODE_CHANGES.value else None
+                        ),
                     )
                 except NoSeerQuotaException:
                     return Response(

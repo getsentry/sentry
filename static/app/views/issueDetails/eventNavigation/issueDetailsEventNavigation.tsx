@@ -40,6 +40,7 @@ export function IssueDetailsEventNavigation({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setShouldPreload({next: false, previous: false});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [group.id]);
 
   // Prefetch next

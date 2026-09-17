@@ -25,6 +25,8 @@ export type LLMContextNodeType =
   | 'issue-list'
   | 'logs-explorer'
   | 'metrics-explorer'
+  | 'monitor-builder'
+  | 'monitor-detail'
   | 'monitor-list'
   | 'navigation'
   | 'profiling-explorer'

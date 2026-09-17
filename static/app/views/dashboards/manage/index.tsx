@@ -177,6 +177,7 @@ function ManageDashboards() {
     location.pathname,
     location.query,
     navigate,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization,
     sortOptions,
     hasUserLastVisited,

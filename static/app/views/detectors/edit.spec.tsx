@@ -35,6 +35,7 @@ import {
 import {SnubaQueryType} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import DetectorEdit from 'sentry/views/detectors/edit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
@@ -370,6 +371,56 @@ describe('DetectorEdit', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/metrics/data/`,
+      });
+    });
+
+    it('reports unsaved form values to Seer without saving', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <DetectorEdit />;
+      }
+
+      render(<Component />, {organization, initialRouterConfig});
+      await screen.findAllByText(name);
+
+      const readNode = () =>
+        getLLMContext!().nodes.find(node => node.nodeType === 'monitor-builder');
+
+      await waitFor(() => {
+        expect(readNode()).toBeDefined();
+      });
+
+      // Outranks the page nodes rendered alongside it.
+      expect(readNode()!.priority).toBe(1);
+      expect(readNode()!.data).toEqual(
+        expect.objectContaining({
+          mode: 'editing',
+          id: mockDetector.id,
+          type: 'metric_issue',
+          unsavedValues: expect.objectContaining({name}),
+        })
+      );
+
+      const descriptionField = await screen.findByRole('textbox', {name: 'description'});
+      await userEvent.type(descriptionField, 'Typed but never saved');
+
+      // No save. The node must still reflect the edit, which is the whole point
+      // of reading the form model rather than the fetched detector.
+      await waitFor(() => {
+        expect(readNode()!.data).toEqual(
+          expect.objectContaining({
+            unsavedValues: expect.objectContaining({
+              description: 'Typed but never saved',
+            }),
+          })
+        );
       });
     });
 
