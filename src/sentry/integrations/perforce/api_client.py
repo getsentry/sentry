@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import base64
 import io
+import re
 import tarfile
 import time
 from collections.abc import Iterator
@@ -26,6 +27,48 @@ TEXT_BASE_TYPES = frozenset({"text", "unicode", "utf8", "utf16"})
 
 # Mirrors Seer's own per-file cap.
 MAX_FILE_SIZE_BYTES = 1024 * 1024
+
+_INDEXED_FIELD = re.compile(r"^(?P<name>.*?)(?P<index>\d+)$")
+
+# ``p4 describe`` reports far more than the provider maps. An allowlist keeps
+# fields like the submitter's workspace name, which names things outside this
+# repository, from crossing the wire at all.
+DESCRIBE_FIELDS = frozenset({"change", "user", "desc", "time", "status", "changeType"})
+DESCRIBE_FILE_FIELDS = frozenset({"depotFile", "action", "type", "rev", "fileSize", "digest"})
+
+
+def scope_describe(records: list[dict[str, str]], depot_root: str) -> list[dict[str, str]]:
+    """Restrict ``p4 describe`` output to files under ``depot_root``.
+
+    Changelist numbers are server-global, so a caller-supplied id can name a change
+    in a depot the organization never connected. Unscoped, describing it leaks the
+    message, author, workspace name and foreign paths. A changelist touching
+    nothing here is dropped entirely rather than returned with its files removed.
+    """
+    scoped = []
+    for record in records:
+        foreign = {
+            match.group("index")
+            for key, value in record.items()
+            if (match := _INDEXED_FIELD.match(key))
+            and match.group("name") == "depotFile"
+            and not value.startswith(f"{depot_root}/")
+        }
+        kept = {}
+        for key, value in record.items():
+            match = _INDEXED_FIELD.match(key)
+            if match:
+                if (
+                    match.group("index") in foreign
+                    or match.group("name") not in DESCRIBE_FILE_FIELDS
+                ):
+                    continue
+            elif key not in DESCRIBE_FIELDS:
+                continue
+            kept[key] = value
+        if any(_INDEXED_FIELD.match(key) and key.startswith("depotFile") for key in kept):
+            scoped.append(kept)
+    return scoped
 
 
 class _ByteStream:
@@ -151,7 +194,8 @@ class PerforceApiClient:
     def handle_describe(self, params: dict[str, str]) -> requests.Response:
         with self.client._connect() as p4:
             records = [r for r in p4.run("describe", "-s", params["change"]) if isinstance(r, dict)]
-        return _json_response(self.enrich_users(records))
+        scoped = scope_describe(records, params["path"].removesuffix("/..."))
+        return _json_response(self.enrich_users(scoped))
 
     def enrich_users(self, records: list[dict[str, str]]) -> list[dict[str, str]]:
         """Attach real names and emails to change records.

@@ -141,3 +141,46 @@ def test_archive_batches_prints():
 
     assert len(_archive_members(client)) == 250
     assert p4.run.call_count == 3  # 1 manifest + 2 print batches
+
+
+FOREIGN = {
+    "change": "2981",
+    "user": "jlindgren",
+    "client": "jlindgren_JaseWin_merge-demo",
+    "desc": "merge fix from orange",
+    "path": "//jase_demo/merge-demo/*",
+    "depotFile0": "//jase_demo/merge-demo/FruitContainer.cpp",
+    "action0": "edit",
+}
+
+
+def test_describe_drops_a_changelist_from_another_depot():
+    # Changelist numbers are server-global, so an unscoped id names changes in any
+    # depot; describing it leaks the message, author, workspace name and paths.
+    client, _ = _client([FOREIGN])
+    response = client.request("GET", "/describe", params={"change": "2981", "path": f"{DEPOT}/..."})
+    assert json.loads(response.content) == []
+
+
+def test_describe_keeps_only_this_depots_files_in_a_mixed_changelist():
+    client, _ = _client(
+        [
+            {
+                "change": "3000",
+                "user": "someone",
+                "client": "someone_ws",
+                "depotFile0": "//jase_demo/a.cpp",
+                "action0": "edit",
+                "depotFile1": f"{DEPOT}/b.cpp",
+                "action1": "add",
+            }
+        ]
+    )
+    response = client.request("GET", "/describe", params={"change": "3000", "path": f"{DEPOT}/..."})
+    (record,) = json.loads(response.content)
+
+    assert record["depotFile1"] == f"{DEPOT}/b.cpp"
+    assert "depotFile0" not in record
+    assert "action0" not in record
+    # The submitter's workspace names something outside this repository.
+    assert "client" not in record
