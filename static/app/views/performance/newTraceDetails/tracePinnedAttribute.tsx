@@ -6,7 +6,7 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,10 +14,11 @@ import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconCopy, IconPin, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {formatDollars} from 'sentry/utils/formatters';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -25,7 +26,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getTraceQueryParams} from './traceApi/useTrace';
 import type {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
@@ -38,6 +38,10 @@ import {
 
 export const TRACE_ATTRIBUTE_PINNING_FEATURE = 'trace-waterfall-attribute-pinning';
 const PINNED_ATTRIBUTE_PARAM = 'pinnedAttribute';
+
+type PinnedAttributeResponse = {
+  data: Array<{[key: string]: unknown; span_id: string}>;
+};
 
 type PinnedAttributeState = {
   attribute: string | null;
@@ -70,7 +74,6 @@ export function useTracePinnedAttribute({
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
-  const {selection} = usePageFilters();
   const queryAttribute = location.query[PINNED_ATTRIBUTE_PARAM];
   const attribute =
     enabled && typeof queryAttribute === 'string' && queryAttribute.length > 0
@@ -93,31 +96,30 @@ export function useTracePinnedAttribute({
     [enabled, location, navigate]
   );
 
-  const queryParams = getTraceQueryParams(location.query, selection, {
-    limit: 10_000,
-  });
-  // A timestamp narrows the backend query to a fixed window around that instant.
-  // Use the full loaded trace instead, including traces found by the date fallback.
-  delete queryParams.timestamp;
-  delete queryParams.statsPeriod;
+  // Query the full loaded trace independently of the selected span or error.
   // Snuba uses whole-second bounds with an exclusive end. Include the final
   // second even for subsecond traces and zero-duration spans.
   const start = Math.floor(tree.root.space[0] / 1000) * 1000;
   const end = (Math.floor((tree.root.space[0] + tree.root.space[1]) / 1000) + 1) * 1000;
-  const query = useQuery({
-    ...apiOptions.as<TraceTree.EAPTrace>()(
-      '/organizations/$organizationIdOrSlug/trace/$traceId/',
+  const query = useInfiniteQuery({
+    ...apiOptions.asInfinite<PinnedAttributeResponse>()(
+      '/organizations/$organizationIdOrSlug/events/',
       {
         path:
           attribute && tree.type === 'trace'
-            ? {organizationIdOrSlug: organization.slug, traceId: traceSlug}
+            ? {organizationIdOrSlug: organization.slug}
             : skipToken,
         query: {
-          ...queryParams,
           start: new Date(start).toISOString(),
           end: new Date(end).toISOString(),
+          dataset: DiscoverDatasets.SPANS,
+          field:
+            attribute && attribute !== 'span_id' ? ['span_id', attribute] : ['span_id'],
+          query: `trace:${traceSlug}`,
           project: -1,
-          additional_attributes: attribute ? [attribute] : [],
+          per_page: 100,
+          sort: 'span_id',
+          sampling: 'HIGHEST_ACCURACY',
           referrer: 'trace.waterfall.attribute-pinning',
         },
         staleTime: Infinity,
@@ -125,23 +127,19 @@ export function useTracePinnedAttribute({
     ),
     retry: false,
   });
+  useFetchAllPages({result: query, enabled: attribute !== null && tree.type === 'trace'});
   const values = useMemo(() => {
     const result = new Map<string, PinnedAttributeValue>();
-    const pending = [...(query.data ?? [])];
-    for (const item of pending) {
-      if ('children' in item) {
-        pending.push(...item.children);
-      }
-      if (item.event_type !== 'span') {
-        continue;
-      }
-      const value: unknown = attribute ? item.additional_attributes?.[attribute] : null;
-      if (
-        typeof value === 'string' ||
-        typeof value === 'number' ||
-        typeof value === 'boolean'
-      ) {
-        result.set(item.event_id, value);
+    for (const page of query.data?.pages ?? []) {
+      for (const item of page.json.data) {
+        const value = attribute ? item[attribute] : null;
+        if (
+          typeof value === 'string' ||
+          typeof value === 'number' ||
+          typeof value === 'boolean'
+        ) {
+          result.set(item.span_id, value);
+        }
       }
     }
     return result;
@@ -160,7 +158,9 @@ export function useTracePinnedAttribute({
     attribute: visibleAttribute,
     setAttribute,
     values,
-    isPending: query.isPending,
+    isPending:
+      !query.isError &&
+      (query.isPending || query.isFetchingNextPage || query.hasNextPage),
     isError: query.isError,
     retry: () => {
       void query.refetch();

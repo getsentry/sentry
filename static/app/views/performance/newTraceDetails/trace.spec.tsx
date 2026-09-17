@@ -989,9 +989,9 @@ describe('trace view', () => {
         body: [root],
       });
       const attributeRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
-        body: [{...root, additional_attributes: {'custom.region': 'waterfall-region'}}],
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
       });
       mockQueryString('?pinnedAttribute=custom.region');
       const {router} = render(<TraceView />, {
@@ -1028,18 +1028,17 @@ describe('trace view', () => {
         body: [root],
       });
       const attributeRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
-        body: [
-          {
-            ...root,
-            additional_attributes: {'custom.region': 'root-region'},
-            children: root.children.map(child => ({
-              ...child,
-              additional_attributes: {'custom.region': 'child-region'},
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {
+          data: [
+            {span_id: root.event_id, 'custom.region': 'root-region'},
+            ...root.children.map(child => ({
+              span_id: child.event_id,
+              'custom.region': 'child-region',
             })),
-          },
-        ],
+          ],
+        },
       });
       const query = {pinnedAttribute: 'custom.region', fov: '100,500'};
       mockQueryString('?pinnedAttribute=custom.region&fov=100%2C500');
@@ -1078,16 +1077,16 @@ describe('trace view', () => {
     it('pins from the drawer, resizes both edges independently, replaces the pin and unpins', async () => {
       const {organization, root} = setupPinnedTrace();
       const regionRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
-        body: [{...root, additional_attributes: {'custom.region': 'waterfall-region'}}],
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
       });
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
+        url: '/organizations/org-slug/events/',
         match: [
-          MockApiClient.matchQuery({additional_attributes: ['tags[custom.size,number]']}),
+          MockApiClient.matchQuery({field: ['span_id', 'tags[custom.size,number]']}),
         ],
-        body: [{...root, additional_attributes: {'tags[custom.size,number]': 0}}],
+        body: {data: [{span_id: root.event_id, 'tags[custom.size,number]': 0}]},
       });
       const {router} = render(<TraceView />, {initialRouterConfig, organization});
       await userEvent.click(await screen.findByText('pinnable root'));
@@ -1203,9 +1202,9 @@ describe('trace view', () => {
       async ({attribute, value}) => {
         const {organization, root} = setupPinnedTrace();
         const attributeRequest = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace/trace-id/',
-          match: [MockApiClient.matchQuery({additional_attributes: [attribute]})],
-          body: [{...root, additional_attributes: {[attribute]: value}}],
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({field: ['span_id', attribute]})],
+          body: {data: [{span_id: root.event_id, [attribute]: value}]},
         });
         const {router, unmount} = render(<TraceView />, {
           initialRouterConfig,
@@ -1312,7 +1311,6 @@ describe('trace view', () => {
                     description: 'late child',
                     start_timestamp: start + childOffset,
                     end_timestamp: start + childOffset + duration,
-                    additional_attributes: {'custom.region': 'late-region'},
                   }),
                 ],
         };
@@ -1321,9 +1319,17 @@ describe('trace view', () => {
           body: [trace],
         });
         const attributeRequest = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace/trace-id/',
-          match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
-          body: [{...trace, additional_attributes: {'custom.region': 'root-region'}}],
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+          body: {
+            data: [
+              {span_id: trace.event_id, 'custom.region': 'root-region'},
+              ...trace.children.map(child => ({
+                span_id: child.event_id,
+                'custom.region': 'late-region',
+              })),
+            ],
+          },
         });
         // The original window is centered between the spans and includes both.
         // Reanchoring it to the first span would exclude the later one.
@@ -1383,9 +1389,9 @@ describe('trace view', () => {
         body: [trace],
       });
       const attributeRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
-        body: [{...trace, additional_attributes: {'custom.region': 'older-region'}}],
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: trace.event_id, 'custom.region': 'older-region'}]},
       });
       const query = {pinnedAttribute: 'custom.region', statsPeriod: '14d'};
       mockQueryString(`?${new URLSearchParams(query).toString()}`);
@@ -1418,8 +1424,8 @@ describe('trace view', () => {
     it('loads a shared pin, keeps the trace usable on failure, and retries only the attribute', async () => {
       const {organization, root} = setupPinnedTrace();
       const attributeRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
         statusCode: 500,
       });
       mockQueryString('?pinnedAttribute=custom.region');
@@ -1442,9 +1448,9 @@ describe('trace view', () => {
       await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
       const selectedNode = router.location.query.node;
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
-        body: [{...root, additional_attributes: {'custom.region': 'recovered-region'}}],
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: root.event_id, 'custom.region': 'recovered-region'}]},
       });
       await userEvent.click(
         screen.getByRole('button', {name: 'Retry loading attribute'})
@@ -1457,8 +1463,8 @@ describe('trace view', () => {
     it('ignores URL pins and hides controls when the flag is absent', async () => {
       const {organization} = setupPinnedTrace(['trace-spans-format']);
       const attributeRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/trace/trace-id/',
-        match: [MockApiClient.matchQuery({additional_attributes: ['custom.region']})],
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
         body: [],
       });
       mockQueryString('?pinnedAttribute=custom.region');
