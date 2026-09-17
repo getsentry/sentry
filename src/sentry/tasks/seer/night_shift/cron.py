@@ -51,6 +51,7 @@ from sentry.seer.models.workflow import (
 from sentry.seer.night_shift.models import NightShiftPayload, TriageCandidate, TriageTweaks
 from sentry.seer.workflows.schemas import WorkflowRunSource
 from sentry.tasks.base import instrumented_task
+from sentry.tasks.seer.autofix_issue_data import schedule_judging_for_org
 from sentry.tasks.seer.night_shift.simple_triage import (
     fixability_score_strategy,
     fixability_score_strategy_per_project,
@@ -638,6 +639,16 @@ def _complete_run(run: SeerWorkflowRun) -> None:
         extras.pop("error_message", None)
         extras.pop("error_type", None)
         locked_run.update(extras=extras, date_completed=timezone.now())
+
+    try:
+        schedule_judging_for_org.apply_async(
+            args=[run.organization_id], headers={"sentry-propagate-traces": False}
+        )
+    except Exception:
+        logger.exception(
+            "night_shift.autofix_issue_data.judge_dispatch_failed",
+            extra={"organization_id": run.organization_id, "night_shift_run_id": run.id},
+        )
 
 
 def _record_run_error(

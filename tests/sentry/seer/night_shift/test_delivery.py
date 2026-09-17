@@ -198,15 +198,9 @@ class TestDeliverNightShiftResult(TestCase):
                 "sentry.seer.night_shift.delivery._get_serialized_event",
                 return_value=(event["eventID"], event),
             ),
-            patch(
-                "sentry.seer.night_shift.delivery.schedule_judging_for_org.apply_async"
-            ) as mock_schedule,
         ):
             self._deliver_dry_run_verdict(org, group.id, "fixable")
 
-        mock_schedule.assert_called_once_with(
-            args=[org.id], headers={"sentry-propagate-traces": False}
-        )
         row = SeerAutofixIssueData.objects.get(group=group)
         assert row.organization_id == org.id
         assert row.project_id == group.project_id

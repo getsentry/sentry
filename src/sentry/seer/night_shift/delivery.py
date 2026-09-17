@@ -37,7 +37,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
-from sentry.tasks.seer.autofix_issue_data import schedule_judging_for_org
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.types.activity import ActivityType
@@ -393,10 +392,8 @@ def _process_verdicts(
     SeerNightShiftRunResult.objects.bulk_create(rows, ignore_conflicts=True)
 
     captured_event_ids: dict[int, str] = {}
-    capture_enabled = False
     try:
-        capture_enabled = features.has("organizations:seer-fixability-training-data", organization)
-        if capture_enabled:
+        if features.has("organizations:seer-fixability-training-data", organization):
             captured_event_ids = _capture_autofix_issue_data(
                 organization=organization,
                 verdicts=verdicts,
@@ -428,14 +425,3 @@ def _process_verdicts(
             ],
         },
     )
-
-    if capture_enabled:
-        try:
-            schedule_judging_for_org.apply_async(
-                args=[organization.id],
-                headers={"sentry-propagate-traces": False},
-            )
-        except Exception:
-            logger.exception(
-                "night_shift.autofix_issue_data.judge_dispatch_failed", extra=log_extra
-            )
