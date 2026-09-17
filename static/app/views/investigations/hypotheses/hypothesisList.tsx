@@ -1,6 +1,6 @@
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Grid} from '@sentry/scraps/layout';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {HypothesisCard} from 'sentry/views/investigations/hypotheses/hypothesisCard';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 

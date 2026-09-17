@@ -2,9 +2,9 @@ import {useState} from 'react';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {

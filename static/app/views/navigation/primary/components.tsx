@@ -10,6 +10,7 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {
   Container,
   type ContainerProps,
@@ -23,7 +24,6 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {Overlay, type OverlayProps, PositionWrapper} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';

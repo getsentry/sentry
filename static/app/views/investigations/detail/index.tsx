@@ -4,6 +4,7 @@ import {useDebouncer} from '@tanstack/react-pacer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -14,7 +15,6 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -263,11 +263,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const summaryBlock = investigation.template ? blocks[0] : undefined;
   const notebookCells = summaryBlock ? blocks.slice(1) : blocks;
   const visibleSummaryBlock =
-    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock, blocks)
+    summaryBlock && shouldDisplayInvestigationBlock(summaryBlock)
       ? summaryBlock
       : undefined;
   const visibleNotebookCells = notebookCells.filter(block =>
-    shouldDisplayInvestigationBlock(block, blocks)
+    shouldDisplayInvestigationBlock(block)
   );
 
   return (

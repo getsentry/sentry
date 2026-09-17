@@ -453,6 +453,7 @@ export function useChartXRangeSelection({
     enableBrushMode,
     chartRef,
     chartsGroupName,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     initialSelection,
     deps,
     syncSelectionStates,

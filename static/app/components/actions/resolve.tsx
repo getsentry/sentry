@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -10,8 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
 import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';

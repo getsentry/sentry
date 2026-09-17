@@ -570,6 +570,7 @@ export function Provider({
         instance.destroy();
       }
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rootEl, isVideoReplay, initVideoRoot, videoEvents, replay]);
 
   // For non-video (e.g. rrweb) replays, initialize the player
