@@ -237,10 +237,60 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-afterEach(() => {
+// Captured before a test can replace them, so the cleanup below can tell real timers from
+// faked ones and always has a timer that actually fires.
+const realSetTimeout = globalThis.setTimeout;
+
+function nextAnimationFrame() {
+  return new Promise(resolve => {
+    requestAnimationFrame(resolve);
+  });
+}
+
+/**
+ * Lets animation frames the test itself left queued run while `act` still covers them.
+ *
+ * Sonner dismisses a toast through `requestAnimationFrame`, and showing a toast dismisses
+ * the one it replaces, so a test that showed two toasts ends with a dismissal frame
+ * pending. Dismissing again here does not reach that frame: it is already queued, and the
+ * toast it belongs to no longer counts as active. Left alone it fires during the *next*
+ * test, where it reaches the `Toaster` that test has since mounted and updates it outside
+ * of `act` - which React reports as an update not wrapped in `act`, failing whichever
+ * test happened to be running.
+ */
+async function drainPendingAnimationFrames() {
+  // Under fake timers these frames never fire, and jest discards them when it restores
+  // the timers, so there is nothing to drain and waiting here would hang this hook.
+  if (globalThis.setTimeout !== realSetTimeout) {
+    return;
+  }
+
+  // Two frames, because Sonner's dismissal frame schedules the frame that updates the
+  // toast list. Bounded by a real timer so a test that stubbed out
+  // `requestAnimationFrame` cannot stall every hook after it.
+  let bail: ReturnType<typeof setTimeout>;
+  try {
+    await Promise.race([
+      (async () => {
+        await nextAnimationFrame();
+        await nextAnimationFrame();
+      })(),
+      new Promise(resolve => {
+        bail = realSetTimeout(resolve, 250);
+      }),
+    ]);
+  } finally {
+    clearTimeout(bail!);
+  }
+}
+
+afterEach(async () => {
   const {toast} =
     jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  act(() => {
+
+  await act(async () => {
+    await drainPendingAnimationFrames();
+
     const originalRequestAnimationFrame = window.requestAnimationFrame;
     // Sonner defers dismissal updates with requestAnimationFrame. Flush them
     // synchronously so cleanup also works when a test has enabled fake timers.
@@ -254,6 +304,7 @@ afterEach(() => {
       window.requestAnimationFrame = originalRequestAnimationFrame;
     }
   });
+
   resetResizeObservers();
 });
 
