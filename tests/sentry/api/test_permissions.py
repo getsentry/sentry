@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from rest_framework.views import APIView
 
 from sentry.api.bases.organization import OrganizationPermission
@@ -295,6 +297,28 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             )
 
             assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+
+    def test_determine_access_omits_full_organization_resources(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_project(organization=self.organization, teams=[team])
+        request = self.make_request(self.readonly_user)
+
+        with (
+            override_options(
+                {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+            ),
+            patch(
+                "sentry.organizations.services.organization.serial.serialize_project"
+            ) as serialize_project,
+            patch(
+                "sentry.organizations.services.organization.serial.serialize_rpc_team"
+            ) as serialize_team,
+        ):
+            self.user_permission.determine_access(request=request, organization=self.organization)
+
+        serialize_project.assert_not_called()
+        serialize_team.assert_not_called()
+        assert request.access.scopes == frozenset(READONLY_SCOPES)
 
 
 class InsufficientScopeResponseTest(APITestCase):
