@@ -3,8 +3,6 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
-
 type InvestigationSummaryCardProps = {
   summary: string | null;
   summaryDescription: string | null;
@@ -22,9 +20,6 @@ export function InvestigationSummaryCard({
 
   return (
     <SummaryCard className={className} gap="xs" data-test-id="investigation-summary">
-      <Text size="md" variant="muted">
-        {t('Current understanding')}
-      </Text>
       <Text size="lg" bold>
         {summary}
       </Text>

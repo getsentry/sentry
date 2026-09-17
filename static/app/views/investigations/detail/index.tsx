@@ -383,11 +383,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         <Layout.Body>
           <Layout.Main width="full">
             <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
-              <NotebookSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
-
               {/*
                * Only an agentic investigation has hypotheses, and `orchestration`
                * being present is the only thing that says one is: it is null for
@@ -399,6 +394,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   <InvestigationHypotheses investigationId={investigation.id} />
                 </Stack>
               ) : null}
+
+              <NotebookSummaryCard
+                summary={investigation.summary}
+                summaryDescription={investigation.summaryDescription}
+              />
 
               <Stack width="100%" minWidth={0}>
                 {visibleSummaryBlock ? (
