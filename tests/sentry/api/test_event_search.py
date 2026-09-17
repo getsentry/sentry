@@ -260,20 +260,6 @@ class ParseSearchQueryTest(SimpleTestCase):
                 new_search_value = expected[0].value._replace(raw_value=trailing_wildcard_value)
                 expected = [SearchFilter(expected[0].key, trailing_op, new_search_value)]
 
-            # The backend keeps a regex pattern verbatim and marks the value instead of
-            # carrying the marker through as an operator.
-            if REGEX_OPERATOR in query:
-                if test_case[1]["filter"] == "textIn":
-                    regex_op = "NOT IN" if test_case[1]["negated"] else "IN"
-                else:
-                    regex_op = "!=" if test_case[1]["negated"] else "="
-
-                expected = [
-                    SearchFilter(
-                        expected[0].key, regex_op, expected[0].value._replace(is_regex=True)
-                    )
-                ]
-
         except InvalidSearchQuery:
             # If our expected result will raise an InvalidSearchQuery from one
             # of the filters we handle that here
