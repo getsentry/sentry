@@ -115,7 +115,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
       paddingRight="xs"
       radius="md"
     >
-      {leadingItems}
+      {leadingItems ? <Flex flexShrink={0}>{leadingItems}</Flex> : null}
       <StretchedButton
         icon={leadingItems ? undefined : chevron}
         disabled={isDisabled}
@@ -133,7 +133,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
           children
         )}
       </StretchedButton>
-      {trailingItems}
+      {trailingItems ? <Flex flexShrink={0}>{trailingItems}</Flex> : null}
     </TitleRow>
   );
 }
