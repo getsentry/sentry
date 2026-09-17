@@ -116,6 +116,7 @@ function useTimelineCursor<E extends HTMLElement>({
     if (enabled) {
       window.addEventListener('mousemove', handleMouseMove);
     } else {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsVisible(false);
     }
 

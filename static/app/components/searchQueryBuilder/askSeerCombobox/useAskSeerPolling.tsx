@@ -173,6 +173,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       const isStillProcessing =
         sessionData.status === 'processing' || !!sessionData.current_step;
       if (!isStillProcessing) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setWaitingForResponse(false);
       }
     }

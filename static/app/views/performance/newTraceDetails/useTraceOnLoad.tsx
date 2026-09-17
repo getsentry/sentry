@@ -86,11 +86,13 @@ export function useTraceOnLoad(
 
   const traceState = useTraceState();
   const traceStateRef = useRef(traceState);
+  // oxlint-disable-next-line react/refs
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
   >(traceState.preferences);
+  // oxlint-disable-next-line react/refs
   traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
@@ -99,6 +101,7 @@ export function useTraceOnLoad(
     }
 
     let cancel = false;
+    // oxlint-disable-next-line react/set-state-in-effect
     setStatus('pending');
 
     const expandOptions = {
@@ -165,11 +168,13 @@ export function useTraceIssuesOnLoad(
 
   const traceState = useTraceState();
   const traceStateRef = useRef(traceState);
+  // oxlint-disable-next-line react/refs
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
   >(traceState.preferences);
+  // oxlint-disable-next-line react/refs
   traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
@@ -179,6 +184,7 @@ export function useTraceIssuesOnLoad(
 
     let cancel = false;
 
+    // oxlint-disable-next-line react/set-state-in-effect
     setStatus('pending');
 
     const expandOptions = {

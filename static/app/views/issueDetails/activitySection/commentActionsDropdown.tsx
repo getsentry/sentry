@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
+import {DropdownMenu, type DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
+
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, type DropdownMenuProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';

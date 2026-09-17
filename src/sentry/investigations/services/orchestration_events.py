@@ -187,8 +187,19 @@ def _report_revision(run: InvestigationOrchestrationRun) -> int:
     return value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else 0
 
 
-def _notebook_writes_are_fenced(run: InvestigationOrchestrationRun) -> bool:
-    return run.investigation.status == InvestigationStatus.ARCHIVED
+def _notebook_writes_are_fenced(
+    run: InvestigationOrchestrationRun,
+    *,
+    event_generation: int,
+) -> bool:
+    if run.investigation.status == InvestigationStatus.ARCHIVED:
+        return True
+    fence_generation = _control(run).get("notebookWriteFenceGeneration")
+    return (
+        isinstance(fence_generation, int)
+        and not isinstance(fence_generation, bool)
+        and event_generation <= fence_generation
+    )
 
 
 def _set_projection(
@@ -351,7 +362,17 @@ def _adopt_preserved_report_revision(
     run: InvestigationOrchestrationRun, projection: dict[str, Any]
 ) -> bool:
     report = projection.get("report")
-    if not isinstance(report, dict) or report.get("clearIntent") is not None:
+    if not isinstance(report, dict):
+        return False
+    clear_intent = report.get("clearIntent")
+    if isinstance(clear_intent, dict):
+        revision = clear_intent.get("revision")
+        if (
+            clear_intent.get("completed") is True
+            and isinstance(revision, int)
+            and not isinstance(revision, bool)
+        ):
+            return _clear_report(run, revision, bump=False)
         return False
     revision = report.get("revision")
     if (
@@ -714,9 +735,11 @@ def _complete_metadata(
     investigation.summary_description = description
     title = payload.get("title")
     if title is not None:
-        investigation.title = title
-        update_fields.append("title")
-        _control(run)["titleBuffer"] = title
+        control = _control(run)
+        if control.get("manualTitleOverride") is not True:
+            investigation.title = title
+            update_fields.append("title")
+            control["titleBuffer"] = title
     investigation.version += 1
     investigation.date_updated = timezone.now()
     investigation.save(update_fields=update_fields)
@@ -792,7 +815,10 @@ def _apply_event(
     )
     if generation > run.generation and not carries_projection:
         return False, "future_generation_without_projection"
-    notebook_writes_are_fenced = _notebook_writes_are_fenced(run)
+    notebook_writes_are_fenced = _notebook_writes_are_fenced(
+        run,
+        event_generation=generation,
+    )
     if notebook_writes_are_fenced and event.type in _NOTEBOOK_EVENT_TYPES:
         return False, "notebook_write_fenced"
 
@@ -915,20 +941,24 @@ def _apply_event(
                 _bump_notebook(run, run.investigation)
         elif event.type == "title_delta":
             control = _control(run)
-            title = (
-                control.get("titleBuffer", "")
-                if control.get("titleStarted") and payload.get("reset") is not True
-                else ""
-            )
-            title = f"{title}{payload['delta']}"[:255]
-            control.update({"titleBuffer": title, "titleStarted": True})
             investigation = run.investigation
-            investigation.title = title
-            investigation.save(update_fields=["title", "date_updated"])
             metadata = run.projection.setdefault("report", {}).setdefault("metadata", {})
-            if isinstance(metadata, dict):
-                metadata.update({"status": "generating", "title": title})
-            _bump_notebook(run, investigation)
+            if control.get("manualTitleOverride") is True:
+                if isinstance(metadata, dict):
+                    metadata.update({"status": "generating", "title": investigation.title})
+            else:
+                title = (
+                    control.get("titleBuffer", "")
+                    if control.get("titleStarted") and payload.get("reset") is not True
+                    else ""
+                )
+                title = f"{title}{payload['delta']}"[:255]
+                control.update({"titleBuffer": title, "titleStarted": True})
+                investigation.title = title
+                investigation.save(update_fields=["title", "date_updated"])
+                if isinstance(metadata, dict):
+                    metadata.update({"status": "generating", "title": title})
+                _bump_notebook(run, investigation)
         elif event.type == "metadata_completed":
             _complete_metadata(run, payload)
     elif event.type == "workflow_failed":
@@ -1266,7 +1296,10 @@ def _synchronize_orchestration_projection(
             generation >= run.generation
             and not _projection_is_stale(run, projection, event_generation=generation)
         ):
-            notebook_writes_are_fenced = _notebook_writes_are_fenced(run)
+            notebook_writes_are_fenced = _notebook_writes_are_fenced(
+                run,
+                event_generation=generation,
+            )
             notebook_changed = False
             if not notebook_writes_are_fenced:
                 notebook_changed = _adopt_preserved_report_revision(run, projection)
