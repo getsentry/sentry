@@ -160,22 +160,9 @@ type UseTraceIssuesOnLoadOptions = {
 export function useTraceIssuesOnLoad(
   options: UseTraceIssuesOnLoadOptions
 ): 'success' | 'error' | 'pending' | 'idle' {
-  const api = useApi();
-  const organization = useOrganization();
   const {tree, onTraceLoad} = options;
 
   const [status, setStatus] = useState<'success' | 'error' | 'pending' | 'idle'>('idle');
-
-  const traceState = useTraceState();
-  const traceStateRef = useRef(traceState);
-  // oxlint-disable-next-line react/refs
-  traceStateRef.current = traceState;
-
-  const traceStatePreferencesRef = useRef<
-    Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
-  >(traceState.preferences);
-  // oxlint-disable-next-line react/refs
-  traceStatePreferencesRef.current = traceState.preferences;
 
   useLayoutEffect(() => {
     if (tree.type !== 'trace') {
@@ -187,17 +174,11 @@ export function useTraceIssuesOnLoad(
     // oxlint-disable-next-line react/set-state-in-effect
     setStatus('pending');
 
-    const expandOptions = {
-      api,
-      organization,
-      preferences: traceStatePreferencesRef.current,
-    };
+    if (options.event) {
+      IssuesTraceTree.ExpandToEvent(tree, options.event);
+    }
 
-    const promise = options.event
-      ? IssuesTraceTree.ExpandToEvent(tree, options.event, expandOptions)
-      : Promise.resolve();
-
-    promise
+    Promise.resolve()
       .then(() => {
         if (cancel) {
           return;
@@ -215,7 +196,7 @@ export function useTraceIssuesOnLoad(
     return () => {
       cancel = true;
     };
-  }, [tree, api, onTraceLoad, organization, options.event]);
+  }, [tree, onTraceLoad, options.event]);
 
   return status;
 }
