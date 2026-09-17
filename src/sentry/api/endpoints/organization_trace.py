@@ -2,6 +2,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -18,7 +19,6 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.trace import SerializedTraceItem, query_trace_data
-from sentry.utils.tracing import trace
 from sentry.utils.validators import is_event_id
 
 TRACE_ID_PATH_PARAM = OpenApiParameter(
@@ -96,7 +96,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             include_all_accessible=True,
         )
 
-    @trace
+    @traces.trace
     def query_trace_data(
         self,
         snuba_params: SnubaParams,

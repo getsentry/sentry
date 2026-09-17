@@ -11,6 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import connection
 from django.db.models import prefetch_related_objects
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import features, options, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
@@ -51,7 +52,6 @@ from sentry.tempest.utils import has_tempest_access
 from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
-from sentry.utils.tracing import set_span_data, start_span
 
 if TYPE_CHECKING:
     from sentry.api.serializers.models.organization import OrganizationSummarySerializerResponse
@@ -141,7 +141,9 @@ def get_access_by_project(
 
     result: dict[Project, dict[str, Any]] = {}
     has_team_roles_cache: dict[int, bool] = {}
-    with start_span(op="project.check-access", name="project.check-access"):
+    with traces.start_span(
+        name="project.check-access", attributes={"sentry.op": "project.check-access"}
+    ):
         for project in projects:
             member_teams = [
                 memberships_by_team[tid]
@@ -372,11 +374,11 @@ class ProjectSerializer(Serializer):
         self, item_list: Sequence[Project], user: User | RpcUser | AnonymousUser, **kwargs: Any
     ) -> dict[Project, dict[str, Any]]:
         def measure_span(op_tag):
-            span = start_span(
-                op=f"serialize.get_attrs.project.{op_tag}",
+            span = traces.start_span(
                 name=f"serialize.get_attrs.project.{op_tag}",
+                attributes={"sentry.op": f"serialize.get_attrs.project.{op_tag}"},
             )
-            set_span_data(span, "Object Count", len(item_list))
+            span.set_attribute("Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):
