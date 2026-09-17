@@ -608,12 +608,21 @@ class CheckSuiteLogFieldsTest(TestCase):
 
         fields = source.log_fields(state)
 
-        assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(state) == TriggerDecision(task=None, reason="stale_head")
         assert fields["check_suite_head_sha"] == "abc"
         assert fields["run_pr_commit_sha"] == "newer"
 
 
-class CheckSuiteShouldQueueTest(TestCase):
+class CheckSuiteShouldTriggerStaleHeadTest(TestCase):
+    """A suite that is not on the run's current head schedules nothing.
+
+    It is still queued; ``should_consume`` keeps it out of the agent if some
+    other item drains the run. The gate here is what stops it costing a GitHub
+    sweep and a consume of its own.
+    """
+
+    STALE = TriggerDecision(task=None, reason="stale_head")
+
     def _event(self, *, head_sha="abc", repo_name="owner/repo") -> dict:
         return {
             "check_suite": {
@@ -628,17 +637,9 @@ class CheckSuiteShouldQueueTest(TestCase):
             },
         }
 
-    def test_true_when_matches_repo_pr_state(self) -> None:
-        source = _check_suite_source(self._event())
-        state = _run_state(
-            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
-        )
-
-        assert source.should_queue(state) == Decision(ok=True, reason="head_matches")
-
-    def test_false_when_only_matches_block_commit_sha(self) -> None:
+    def test_stale_when_only_matches_block_commit_sha(self) -> None:
         # A past block's SHA no longer counts: only the PR's current head
-        # (repo_pr_states) is valid, so a suite for a superseded commit is dropped.
+        # (repo_pr_states) is valid, so a suite for a superseded commit is stale.
         source = _check_suite_source(self._event())
         block = MemoryBlock(
             id="b1",
@@ -647,11 +648,9 @@ class CheckSuiteShouldQueueTest(TestCase):
             pr_commit_shas={"owner/repo": "abc"},
         )
 
-        assert source.should_queue(_run_state(blocks=[block])) == Decision(
-            ok=False, reason="stale_head"
-        )
+        assert source.should_trigger(_run_state(blocks=[block])) == self.STALE
 
-    def test_false_when_no_match(self) -> None:
+    def test_stale_when_no_match(self) -> None:
         source = _check_suite_source(self._event())
         state = _run_state(
             repo_pr_states={
@@ -659,17 +658,17 @@ class CheckSuiteShouldQueueTest(TestCase):
             }
         )
 
-        assert source.should_queue(state) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(state) == self.STALE
 
-    def test_false_when_missing_head_sha(self) -> None:
+    def test_stale_when_missing_head_sha(self) -> None:
         source = _check_suite_source(self._event(head_sha=""))
 
-        assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(_run_state()) == self.STALE
 
-    def test_false_when_missing_repo_name(self) -> None:
+    def test_stale_when_missing_repo_name(self) -> None:
         source = _check_suite_source(self._event(repo_name=""))
 
-        assert source.should_queue(_run_state()) == Decision(ok=False, reason="stale_head")
+        assert source.should_trigger(_run_state()) == self.STALE
 
 
 class CheckSuiteShouldConsumeTest(TestCase):
@@ -779,28 +778,32 @@ class CheckSuiteShouldConsumeTest(TestCase):
 
 
 class CheckSuiteShouldTriggerTest(TestCase):
-    def _source(self, head_sha="abc", *, repo: MagicMock | None = None) -> CheckSuiteFeedbackSource:
+    def _source(self, *, repo: MagicMock | None = None) -> CheckSuiteFeedbackSource:
         return _check_suite_source(
             {
                 "check_suite": {
                     "id": 1,
-                    "head_sha": head_sha,
+                    "head_sha": "abc",
                     "check_runs_url": "https://github.com/owner/repo/check-runs",
                     "app": {"name": "CI"},
                 },
-                "repository": {"html_url": "https://github.com/owner/repo"},
+                "repository": {
+                    "full_name": "owner/repo",
+                    "html_url": "https://github.com/owner/repo",
+                },
             },
             autofix_run=_autofix_run(repo=repo),
         )
 
-    def test_now_when_no_head_sha(self) -> None:
-        assert self._source(head_sha="").should_trigger(_run_state()) == TriggerDecision(
-            task=ConsumeTask.Now, reason="missing_head_sha"
+    def _state(self) -> SeerRunState:
+        """The run with its PR on the suite's head, so the head gate passes."""
+        return _run_state(
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
 
     @patch("sentry.scm.factory.new", side_effect=Exception("boom"))
     def test_now_when_scm_init_fails(self, _mock_new: MagicMock) -> None:
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="scm_init_failed"
         )
 
@@ -809,7 +812,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
     def test_now_when_unsupported_provider(self, mock_new: MagicMock) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="sweep_complete"
         )
 
@@ -824,7 +827,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "in_progress"}]}]
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Later(timedelta(hours=1)), reason="sweep_incomplete"
         )
 
@@ -839,7 +842,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "completed"}]}]
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="sweep_complete"
         )
 
@@ -853,7 +856,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
     ) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == TriggerDecision(
+        assert self._source().should_trigger(self._state()) == TriggerDecision(
             task=ConsumeTask.Now, reason="sweep_complete"
         )
 
