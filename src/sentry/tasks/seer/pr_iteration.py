@@ -73,7 +73,11 @@ from sentry.seer.autofix.pr_iteration.emit import (
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    automated_iteration_cap_reached,
+    feedback_kind,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
@@ -161,14 +165,6 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     if len(referrers) == 1:
         return referrers.pop()
     return AutofixReferrer.UNKNOWN
-
-
-def _get_feedback_kind(items: Collection[Feedback]) -> str:
-    """Whether the batch is manual, automated, or both."""
-    kinds = {item.source.is_automated for item in items}
-    if len(kinds) != 1:
-        return "mixed"
-    return "automated" if kinds.pop() else "manual"
 
 
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
@@ -671,14 +667,14 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
-    feedback_kind = _get_feedback_kind(feedback_items)
+    kind = feedback_kind(feedback_items)
     metrics.incr(
         "autofix.pr_iteration.step",
         amount=len(feedback_items),
         tags={
             "checkpoint": "consumed",
             "referrer": referrer.value,
-            "feedback_kind": feedback_kind,
+            "feedback_kind": kind,
         },
         sample_rate=1.0,
     )
@@ -718,7 +714,7 @@ def _drain_queued_autofix_feedback(
             tags={
                 "checkpoint": "sent_to_seer",
                 "referrer": referrer.value,
-                "feedback_kind": feedback_kind,
+                "feedback_kind": kind,
             },
             sample_rate=1.0,
         )

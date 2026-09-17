@@ -77,6 +77,25 @@ class RepositoryService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
+    def transfer_repository_to_integration(
+        self,
+        *,
+        organization_id: int,
+        update: RpcRepository,
+        organization_integration_id: int,
+    ) -> bool:
+        """
+        Applies ``update`` to the repository and moves its code mappings to
+        ``update.integration_id`` / ``organization_integration_id``, in one transaction.
+        Used when a repository moves between two integrations of the same organization,
+        e.g. a GitHub repo transferred between GitHub orgs.
+
+        Returns False without changing anything if the repository no longer exists or is
+        being deleted.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:
