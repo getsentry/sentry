@@ -283,18 +283,10 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert validator.errors["config"]["schedule"][0] == "Schedule is invalid"
 
     def test_interval_schedule_string_count(self) -> None:
-        """Regression test for #119214.
-
-        Sentry should accept a numeric string for the interval count
-        (e.g. "6") instead of rejecting it with 'Invalid schedule for
-        schedule unit count'. This can happen when the value is sent as
-        a string from a form-encoded or certain JSON request paths.
-        """
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
-            # count sent as a string — should be coerced to int
             "config": {"schedule_type": "interval", "schedule": ["6", "minute"]},
         }
         validator = MonitorValidator(data=data, context=self.context)
@@ -304,7 +296,6 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
 
     def test_interval_schedule_non_numeric_string_count(self) -> None:
-        """Non-numeric string counts should still be rejected."""
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
