@@ -1,16 +1,24 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {
+  useTraceQueryWriter,
+  type TraceQueryWriter,
+} from 'sentry/views/performance/newTraceDetails/useTraceQueryWriter';
 
 import {TraceScheduler} from './traceRenderers/traceScheduler';
 import {TraceView} from './traceRenderers/traceView';
 import {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 
-export function useTraceWaterfallModels() {
+export function useTraceWaterfallModels(): {
+  queryWriter: TraceQueryWriter;
+  traceScheduler: TraceScheduler;
+  traceView: TraceView;
+  viewManager: VirtualizedViewManager;
+} {
   const theme = useTheme();
-  const navigate = useNavigate();
+  const queryWriter = useTraceQueryWriter();
   const traceState = useTraceState();
   const traceView = useMemo(() => new TraceView(), []);
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
@@ -29,7 +37,7 @@ export function useTraceWaterfallModels() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  viewManager.navigate = navigate;
+  viewManager.queryWriter = queryWriter;
 
-  return {traceView, traceScheduler, viewManager};
+  return {traceView, traceScheduler, viewManager, queryWriter};
 }

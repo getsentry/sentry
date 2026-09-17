@@ -1,19 +1,18 @@
 import {useEffect, useRef} from 'react';
-import * as qs from 'query-string';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import type {TraceQueryWriter} from './useTraceQueryWriter';
 
 // Syncs query params with URL state. Only performs a state sync if the query params have changed.
 // Waterfalls embedded in another page (e.g. a Seer response) opt out with `disabled` so they do
 // not rewrite the host page's query string.
 export function useTraceQueryParamStateSync(
   query: Record<string, string | undefined>,
-  options?: {disabled?: boolean}
+  options: {queryWriter: TraceQueryWriter; disabled?: boolean}
 ) {
   const previousQueryRef = useRef(query);
   const syncStateTimeoutRef = useRef<number | null>(null);
-  const navigate = useNavigate();
-  const disabled = options?.disabled ?? false;
+  const {queryWriter} = options;
+  const disabled = options.disabled ?? false;
 
   useEffect(() => {
     if (disabled) {
@@ -39,16 +38,7 @@ export function useTraceQueryParamStateSync(
 
     previousQueryRef.current = query;
     syncStateTimeoutRef.current = window.setTimeout(() => {
-      navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...qs.parse(location.search),
-            ...previousQueryRef.current,
-          },
-        },
-        {replace: true}
-      );
+      queryWriter.writeQuery(previousQueryRef.current);
     }, 1000);
-  }, [disabled, navigate, query]);
+  }, [disabled, queryWriter, query]);
 }

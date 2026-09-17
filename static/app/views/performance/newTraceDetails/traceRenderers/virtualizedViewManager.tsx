@@ -1,6 +1,5 @@
 import type {Theme} from '@emotion/react';
 import {mat3} from 'gl-matrix';
-import * as qs from 'query-string';
 
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {clamp} from 'sentry/utils/number/clamp';
@@ -8,7 +7,6 @@ import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
   MIN_PINNED_TRACE_WIDTH,
   TraceColumnLayout,
@@ -38,6 +36,7 @@ import {
   type TraceViewCalculationContext,
   type TraceViewCalculations,
 } from 'sentry/views/performance/newTraceDetails/traceRenderers/traceViewCalculations';
+import type {TraceQueryWriter} from 'sentry/views/performance/newTraceDetails/useTraceQueryWriter';
 
 import type {TraceScheduler} from './traceScheduler';
 
@@ -179,7 +178,10 @@ export class VirtualizedViewManager {
   columns: Record<'list' | 'attribute' | 'span_list', ViewColumn>;
   pinnedColumnLayout: TraceColumnLayout | null = null;
   private attributeColumnPreferences: TraceColumnLayout | null = null;
-  navigate: ReactRouter3Navigate | null = null;
+  // Set by useTraceWaterfallModels. Writing through the waterfall's query writer keeps
+  // this sync from dropping params (e.g. the selected node) that other debounced
+  // callbacks have written but the router has not rendered yet.
+  queryWriter: TraceQueryWriter | null = null;
   scheduler: TraceScheduler;
   view: TraceView;
   time_compression = TraceTimeCompression.Disabled();
@@ -939,16 +941,9 @@ export class VirtualizedViewManager {
     }
 
     this.timers.onFovChange = requestAnimationTimeout(() => {
-      this.navigate?.(
-        {
-          pathname: location.pathname,
-          query: {
-            ...qs.parse(location.search),
-            fov: `${view.trace_view.x},${view.trace_view.width}`,
-          },
-        },
-        {replace: true}
-      );
+      this.queryWriter?.writeQuery({
+        fov: `${view.trace_view.x},${view.trace_view.width}`,
+      });
       this.timers.onFovChange = null;
     }, 500);
   }

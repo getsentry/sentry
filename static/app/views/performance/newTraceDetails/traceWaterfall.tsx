@@ -134,7 +134,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   const traceStateRef = useRef(traceState);
   traceStateRef.current = traceState;
 
-  const {viewManager, traceScheduler, traceView} = useTraceWaterfallModels();
+  const {viewManager, traceScheduler, traceView, queryWriter} = useTraceWaterfallModels();
   const {onScrollToNode, scrollRowIntoView} = useTraceWaterfallScroll({
     organization,
     tree: props.tree,
@@ -324,24 +324,14 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         }
 
         queryStringAnimationTimeoutRef.current = requestAnimationTimeout(() => {
-          const currentQueryStringPath = qs.parse(location.search).node;
+          const currentQueryStringPath = queryWriter.getQuery().node;
           const nextNodePath = node.pathToNode();
           // Updating the query string with the same path is problematic because it causes
           // the entire sentry app to rerender, which is enough to cause jank and drop frames
           if (JSON.stringify(currentQueryStringPath) === JSON.stringify(nextNodePath)) {
             return;
           }
-          const {eventId: _eventId, ...query} = qs.parse(location.search);
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...query,
-                node: nextNodePath,
-              },
-            },
-            {replace: true}
-          );
+          queryWriter.writeQuery({node: nextNodePath, eventId: undefined});
           queryStringAnimationTimeoutRef.current = null;
         }, debounce);
 
@@ -360,7 +350,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
         });
       }
     },
-    [disableUrlSync, navigate, traceDispatch]
+    [disableUrlSync, queryWriter, traceDispatch]
   );
 
   const onRowClick = useCallback(
@@ -713,6 +703,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }, [traceState.search.query]);
   useTraceQueryParamStateSync(traceQueryStateSync, {
     disabled: disableUrlSync,
+    queryWriter,
   });
 
   const onAutogroupChange = useCallback(() => {

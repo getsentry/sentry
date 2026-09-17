@@ -3,12 +3,14 @@ import {useEffect, useState} from 'react';
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
+import {useTraceQueryWriter} from './useTraceQueryWriter';
 
 // Mounts with no search, then transitions to one — the shape the waterfall produces when
 // somebody types into the trace search box.
 function Probe({disabled}: {disabled?: boolean}) {
   const [search, setSearch] = useState<string | undefined>(undefined);
-  useTraceQueryParamStateSync({search}, {disabled});
+  const queryWriter = useTraceQueryWriter();
+  useTraceQueryParamStateSync({search}, {disabled, queryWriter});
 
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
