@@ -20,6 +20,7 @@ from collections.abc import (
 from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import local
+from time import monotonic
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
@@ -28,6 +29,7 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
+from urllib3.exceptions import ProtocolError
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
@@ -752,8 +754,9 @@ class _RemoteSiloCall:
         url = self.address + self.path
 
         timeout = self.get_method_timeout()
+        started_at = monotonic()
         try:
-            return http.post(url, headers=headers, data=data, timeout=timeout)
+            response = http.post(url, headers=headers, data=data, timeout=timeout)
         except requests.exceptions.ConnectionError as e:
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.failure",
@@ -772,6 +775,46 @@ class _RemoteSiloCall:
                 tags=self._metrics_tags(kind="timeout"),
             )
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+
+        if (
+            self.service_name == "region_replica"
+            and self.method_name == "upsert_replicated_api_token"
+            and response.status_code == 200
+        ):
+            duration = monotonic() - started_at
+            retries = getattr(response.raw, "retries", None)
+            if isinstance(retries, Retry) and (retries.history or duration >= timeout):
+                # Exception messages and retry URLs may contain credentials.
+                error_types = [
+                    type(attempt.error).__name__
+                    if attempt.error is not None
+                    else f"HTTP{attempt.status}"
+                    for attempt in retries.history
+                ]
+                first_error = retries.history[0].error if retries.history else None
+                cause = getattr(first_error, "__cause__", None)
+                if (
+                    isinstance(first_error, ProtocolError)
+                    and len(first_error.args) > 1
+                    and isinstance(first_error.args[1], Exception)
+                ):
+                    cause = first_error.args[1]
+                logger.info(
+                    "hybrid_cloud.dispatch_rpc.transport_diagnostic",
+                    extra={
+                        **self._metrics_tags(),
+                        "rpc_retry_count": len(retries.history),
+                        "rpc_retry_first_error_type": error_types[0] if error_types else None,
+                        "rpc_retry_error_types": error_types,
+                        "rpc_retry_first_cause_type": type(cause).__name__ if cause else None,
+                        "rpc_retry_first_errno": cause.errno
+                        if isinstance(cause, OSError)
+                        else None,
+                        "rpc_request_duration_ms": duration * 1000,
+                        "rpc_request_timeout_ms": timeout * 1000,
+                    },
+                )
+        return response
 
     def _check_disabled(self) -> None:
         if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):

@@ -1,20 +1,31 @@
 from __future__ import annotations
 
+import errno
+import socket
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from threading import Thread
 from typing import Any
 from unittest import mock
 
 import pytest
+import requests
 import responses
 from django.conf import settings
 from django.db import router
 from django.test import override_settings
+from requests.adapters import HTTPAdapter
+from urllib3.exceptions import ConnectTimeoutError, NameResolutionError, ProtocolError
+from urllib3.response import HTTPResponse
+from urllib3.util.retry import Retry
 
 from sentry import options
 from sentry.auth.services.auth import AuthService
 from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
     RpcDisabledException,
+    RpcRemoteException,
     RpcResponseException,
+    _create_request_session,
     _RemoteSiloCall,
     dispatch_remote_call,
     dispatch_to_local_service,
@@ -335,3 +346,268 @@ class DispatchRemoteCallTest(TestCase):
         timeout_override_setting = {"organization_service.some_other_method": 20}
         with override_options({"hybridcloud.rpc.method_retry_overrides": timeout_override_setting}):
             assert test_class.get_method_retry_count() == default_value
+
+
+@no_silo_test
+@override_settings(RPC_TIMEOUT=1.0)
+@override_options({"hybridcloud.rpc.retries": 1})
+def test_token_replica_diagnostic_after_dns_retry() -> None:
+    request_body = b'{"token": "synthetic-private-token"}'
+    authorization = "synthetic-private-authorization"
+    response_body = b'{"meta": {}, "value": null}'
+    received: list[tuple[str, str | None, bytes]] = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self) -> None:
+            received.append(
+                (
+                    self.path,
+                    self.headers.get("Authorization"),
+                    self.rfile.read(int(self.headers["Content-Length"])),
+                )
+            )
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(response_body)))
+            self.end_headers()
+            self.wfile.write(response_body)
+
+        def log_message(self, format: str, *args: Any) -> None:
+            pass
+
+    with HTTPServer(("127.0.0.1", 0), Handler) as server, _create_request_session(1) as http:
+        server.timeout = 2
+        http.trust_env = False
+        host = "127.0.0.1"
+        port = server.server_port
+        resolved = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+        call = _RemoteSiloCall(
+            Cell("test-cell", 1, f"http://{host}:{port}"),
+            "region_replica",
+            "upsert_replicated_api_token",
+            {},
+        )
+        thread = Thread(target=server.handle_request, daemon=True)
+        thread.start()
+        try:
+            with (
+                mock.patch("sentry.hybridcloud.rpc.service._get_connection", return_value=http),
+                mock.patch(
+                    "socket.getaddrinfo",
+                    side_effect=[
+                        socket.gaierror(socket.EAI_AGAIN, "synthetic-private-error"),
+                        resolved,
+                    ],
+                ) as getaddrinfo,
+                mock.patch("sentry.hybridcloud.rpc.service.monotonic", side_effect=[10.0, 10.25]),
+                mock.patch("sentry.hybridcloud.rpc.service.logger.info") as log_info,
+            ):
+                response = call._fire_request({"Authorization": authorization}, request_body)
+        finally:
+            thread.join(timeout=3)
+        assert not thread.is_alive()
+
+        assert response.status_code == 200
+        assert response.content == response_body
+        assert received == [(call.path, authorization, request_body)]
+        assert getaddrinfo.call_count == 2
+        adapter = http.get_adapter(call.address)
+        assert isinstance(adapter, HTTPAdapter)
+        assert adapter.max_retries.total == 1
+        retries = response.raw.retries
+        assert isinstance(retries, Retry)
+        history = retries.history
+        assert len(history) == 1
+        assert type(history[0].error) is NameResolutionError
+        cause = history[0].error.__cause__
+        assert isinstance(cause, socket.gaierror)
+        assert cause.errno == socket.EAI_AGAIN
+        log_info.assert_called_once_with(
+            "hybrid_cloud.dispatch_rpc.transport_diagnostic",
+            extra={
+                "rpc_destination_region": "test-cell",
+                "rpc_method": "region_replica.upsert_replicated_api_token",
+                "rpc_retry_count": 1,
+                "rpc_retry_first_error_type": "NameResolutionError",
+                "rpc_retry_error_types": ["NameResolutionError"],
+                "rpc_retry_first_cause_type": "gaierror",
+                "rpc_retry_first_errno": socket.EAI_AGAIN,
+                "rpc_request_duration_ms": 250.0,
+                "rpc_request_timeout_ms": 1000.0,
+            },
+        )
+        assert "synthetic-private" not in repr(log_info.call_args)
+
+
+@no_silo_test
+@override_settings(RPC_TIMEOUT=10.0)
+@pytest.mark.parametrize(
+    "error,cause,error_type,cause_type,error_number",
+    [
+        (
+            ConnectTimeoutError("synthetic-private-error"),
+            TimeoutError("synthetic-private-cause"),
+            "ConnectTimeoutError",
+            "TimeoutError",
+            None,
+        ),
+        (
+            ProtocolError(
+                "synthetic-private-error",
+                ConnectionResetError(errno.ECONNRESET, "synthetic-private-cause"),
+            ),
+            None,
+            "ProtocolError",
+            "ConnectionResetError",
+            errno.ECONNRESET,
+        ),
+    ],
+    ids=["connect-timeout", "connection-reset"],
+)
+def test_token_replica_diagnostic_preserves_retry_error_types(
+    error: Exception,
+    cause: Exception | None,
+    error_type: str,
+    cause_type: str,
+    error_number: int | None,
+) -> None:
+    error.__cause__ = cause
+    retries = Retry(total=2, allowed_methods=["POST"], status_forcelist=[503]).increment(
+        method="POST",
+        url="/synthetic-private-url",
+        error=error,
+    )
+    retries = retries.increment(
+        method="POST", url="/synthetic-private-url", response=HTTPResponse(status=503)
+    )
+    response = requests.Response()
+    response.status_code = 200
+    response.raw = HTTPResponse(retries=retries)
+    call = _RemoteSiloCall(_CELLS[1], "region_replica", "upsert_replicated_api_token", {})
+    with (
+        mock.patch("sentry.hybridcloud.rpc.service._get_connection") as connection,
+        mock.patch("sentry.hybridcloud.rpc.service.monotonic", side_effect=[10.0, 10.5]),
+        mock.patch("sentry.hybridcloud.rpc.service.logger.info") as log_info,
+    ):
+        connection.return_value.post.return_value = response
+        assert call._fire_request({}, b"synthetic-private-body") is response
+
+    log_info.assert_called_once_with(
+        "hybrid_cloud.dispatch_rpc.transport_diagnostic",
+        extra={
+            "rpc_destination_region": "europe",
+            "rpc_method": "region_replica.upsert_replicated_api_token",
+            "rpc_retry_count": 2,
+            "rpc_retry_first_error_type": error_type,
+            "rpc_retry_error_types": [error_type, "HTTP503"],
+            "rpc_retry_first_cause_type": cause_type,
+            "rpc_retry_first_errno": error_number,
+            "rpc_request_duration_ms": 500.0,
+            "rpc_request_timeout_ms": 10000.0,
+        },
+    )
+    assert "synthetic-private" not in repr(log_info.call_args)
+
+
+@no_silo_test
+@override_settings(RPC_TIMEOUT=10.0)
+def test_token_replica_diagnostic_for_slow_request_without_retry() -> None:
+    response = requests.Response()
+    response.status_code = 200
+    response.raw = HTTPResponse(retries=Retry(total=1))
+    call = _RemoteSiloCall(_CELLS[1], "region_replica", "upsert_replicated_api_token", {})
+    with (
+        mock.patch("sentry.hybridcloud.rpc.service._get_connection") as connection,
+        mock.patch("sentry.hybridcloud.rpc.service.monotonic", side_effect=[10.0, 20.0]),
+        mock.patch("sentry.hybridcloud.rpc.service.logger.info") as log_info,
+    ):
+        connection.return_value.post.return_value = response
+        assert call._fire_request({}, b"") is response
+
+    log_info.assert_called_once_with(
+        "hybrid_cloud.dispatch_rpc.transport_diagnostic",
+        extra={
+            "rpc_destination_region": "europe",
+            "rpc_method": "region_replica.upsert_replicated_api_token",
+            "rpc_retry_count": 0,
+            "rpc_retry_first_error_type": None,
+            "rpc_retry_error_types": [],
+            "rpc_retry_first_cause_type": None,
+            "rpc_retry_first_errno": None,
+            "rpc_request_duration_ms": 10000.0,
+            "rpc_request_timeout_ms": 10000.0,
+        },
+    )
+
+
+@no_silo_test
+@override_settings(RPC_TIMEOUT=10.0)
+@pytest.mark.parametrize(
+    "service_name,method_name,status,duration,raw",
+    [
+        ("region_replica", "upsert_replicated_api_token", 200, 0.25, HTTPResponse(retries=Retry())),
+        ("region_replica", "upsert_replicated_api_token", 200, 20, None),
+        ("region_replica", "upsert_replicated_api_token", 200, 20, HTTPResponse(retries=None)),
+        ("region_replica", "upsert_replicated_api_token", 500, 20, HTTPResponse(retries=Retry())),
+        ("region_replica", "upsert_replicated_user", 200, 20, HTTPResponse(retries=Retry())),
+        ("other_service", "upsert_replicated_api_token", 200, 20, HTTPResponse(retries=Retry())),
+    ],
+    ids=["fast", "missing-raw", "missing-retries", "non-200", "other-method", "other-service"],
+)
+def test_token_replica_diagnostic_ignores_unrelated_requests(
+    service_name: str, method_name: str, status: int, duration: float, raw: HTTPResponse | None
+) -> None:
+    response = requests.Response()
+    response.status_code = status
+    response.raw = raw
+    call = _RemoteSiloCall(_CELLS[1], service_name, method_name, {})
+    with (
+        mock.patch("sentry.hybridcloud.rpc.service._get_connection") as connection,
+        mock.patch("sentry.hybridcloud.rpc.service.monotonic", side_effect=[10.0, 10.0 + duration]),
+        mock.patch("sentry.hybridcloud.rpc.service.logger.info") as log_info,
+    ):
+        connection.return_value.post.return_value = response
+        assert call._fire_request({}, b"") is response
+
+    log_info.assert_not_called()
+
+
+@no_silo_test
+@pytest.mark.parametrize(
+    "error,kind,message",
+    [
+        (
+            requests.exceptions.ConnectionError("synthetic-private-error"),
+            "connectionerror",
+            "RPC Connection failed",
+        ),
+        (
+            requests.exceptions.RetryError("synthetic-private-error"),
+            "retryerror",
+            "RPC failed, max retries reached.",
+        ),
+        (requests.exceptions.Timeout("synthetic-private-error"), "timeout", "Timeout of"),
+    ],
+)
+def test_token_replica_diagnostic_preserves_request_errors(
+    error: requests.exceptions.RequestException, kind: str, message: str
+) -> None:
+    call = _RemoteSiloCall(_CELLS[1], "region_replica", "upsert_replicated_api_token", {})
+    with (
+        mock.patch("sentry.hybridcloud.rpc.service._get_connection") as connection,
+        mock.patch("sentry.hybridcloud.rpc.service.logger.info") as log_info,
+        mock.patch("sentry.hybridcloud.rpc.service.metrics.incr") as incr,
+    ):
+        connection.return_value.post.side_effect = error
+        with pytest.raises(RpcRemoteException, match=message) as exc_info:
+            call._fire_request({}, b"")
+
+    assert exc_info.value.__cause__ is error
+    log_info.assert_not_called()
+    incr.assert_called_once_with(
+        "hybrid_cloud.dispatch_rpc.failure",
+        tags={
+            "rpc_destination_region": "europe",
+            "rpc_method": "region_replica.upsert_replicated_api_token",
+            "kind": kind,
+        },
+    )
