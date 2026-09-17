@@ -47,14 +47,6 @@ const defaultInitialRouterConfig: RouterConfig & {location: LocationConfig} = {
   },
 };
 
-let eventsMetaMock: jest.Mock;
-
-const waitForMetaToHaveBeenCalled = async () => {
-  await waitFor(() => {
-    expect(eventsMetaMock).toHaveBeenCalled();
-  });
-};
-
 async function renderModal({
   initialData: {organization, initialRouterConfig},
   widget,
@@ -100,11 +92,6 @@ async function renderModal({
       initialRouterConfig: routerConfig,
     }
   );
-  // Need to wait since WidgetViewerModal will make a request to events-meta
-  // for total events count on mount
-  if (widget.widgetType === WidgetType.DISCOVER) {
-    await waitForMetaToHaveBeenCalled();
-  }
   // Component renders twice
   await act(tick);
   return rendered;
@@ -154,11 +141,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
       body: [],
     });
 
-    eventsMetaMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-meta/',
-      body: {count: 33323612},
-    });
-
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState({
       projects: [1, 2],
@@ -172,7 +154,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
     ProjectsStore.reset();
   });
 
-  describe('Discover Widgets', () => {
+  describe('Errors Widgets', () => {
     describe('Area Chart Widget', () => {
       let mockQuery: WidgetQuery;
       let additionalMockQuery: WidgetQuery;
@@ -224,7 +206,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           displayType: DisplayType.AREA,
           interval: '5m',
           queries: [mockQuery, additionalMockQuery],
-          widgetType: WidgetType.DISCOVER,
+          widgetType: WidgetType.ERRORS,
         };
         jest.mocked(ReactEchartsCore).mockClear();
         MockApiClient.addMockResponse({
@@ -401,12 +383,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
           'href',
           '/organizations/org-slug/explore/discover/results/?environment=prod&environment=dev&field=count%28%29&name=Test%20Widget&project=1&project=2&query=&queryDataset=error-events&statsPeriod=24h&yAxis=count%28%29'
         );
-      });
-
-      it('renders total results in footer', async () => {
-        mockEvents();
-        await renderModal({initialData, widget: mockWidget});
-        expect(await screen.findByText('33,323,612')).toBeInTheDocument();
       });
 
       it('renders highlighted query text and multiple queries in select dropdown', async () => {
@@ -603,7 +579,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           displayType: DisplayType.TOP_N,
           interval: '5m',
           queries: [mockQuery],
-          widgetType: WidgetType.DISCOVER,
+          widgetType: WidgetType.ERRORS,
         };
 
         MockApiClient.addMockResponse({
@@ -673,7 +649,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
         const {router} = await renderModal({initialData, widget: mockWidget});
         expect(await screen.findByText('Test Error 1c')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', {name: 'Next'}));
-        await waitForMetaToHaveBeenCalled();
         await waitFor(() =>
           expect(router.location.query).toEqual(
             expect.objectContaining({cursor: '0:10:0', page: '1'})
@@ -730,7 +705,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         displayType: DisplayType.TABLE,
         interval: '5m',
         queries: [mockQuery],
-        widgetType: WidgetType.DISCOVER,
+        widgetType: WidgetType.ERRORS,
       };
       function mockEvents() {
         return MockApiClient.addMockResponse({

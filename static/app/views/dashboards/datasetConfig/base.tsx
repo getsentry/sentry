@@ -37,7 +37,6 @@ import type {FieldValue} from 'sentry/views/discover/table/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {ErrorsConfig} from './errors';
-import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {LogsConfig} from './logs';
 import {MobileAppSizeConfig} from './mobileAppSize';
@@ -367,12 +366,11 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
               ? typeof TraceMetricsConfig
               : T extends WidgetType.PREPROD_APP_SIZE
                 ? typeof MobileAppSizeConfig
-                : typeof ErrorsAndTransactionsConfig;
+                : typeof ErrorsConfig;
 
 export function getDatasetConfig(widgetType?: WidgetType):
   | typeof IssuesConfig
   | typeof ReleasesConfig
-  | typeof ErrorsAndTransactionsConfig
   /* eslint-disable @typescript-eslint/no-duplicate-type-constituents */
   | typeof ErrorsConfig
   | typeof TransactionsConfig
@@ -398,10 +396,12 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return TraceMetricsConfig;
     case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
-    case WidgetType.DISCOVER:
-    default:
-      return ErrorsAndTransactionsConfig;
+    case WidgetType.METRICS:
+    case undefined:
+      return ErrorsConfig;
   }
+
+  throw new Error(`Unsupported widget type: ${widgetType}`);
 }
 
 /**
