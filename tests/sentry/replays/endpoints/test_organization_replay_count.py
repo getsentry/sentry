@@ -296,8 +296,13 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    @pytest.mark.parametrize("data_source", [Dataset.Events.value, "errors"])
-    def test_simple_events(self, data_source: str) -> None:
+    def test_simple_events(self) -> None:
+        self._test_simple_events(Dataset.Events.value)
+
+    def test_simple_errors(self) -> None:
+        self._test_simple_events("errors")
+
+    def _test_simple_events(self, data_source: str) -> None:
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
 
