@@ -15,13 +15,20 @@ def delete_malformed_anomaly_conditions(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
-    anomaly_condition_group_ids = DataCondition.objects.filter(
-        type="anomaly_detection"
-    ).values_list("condition_group_id", flat=True)
+    anomaly_conditions = DataCondition.objects.filter(type="anomaly_detection")
+    anomaly_condition_group_ids = anomaly_conditions.values_list("condition_group_id", flat=True)
     conditions = (
         DataCondition.objects.filter(condition_group_id__in=anomaly_condition_group_ids)
         .exclude(type="anomaly_detection")
         .values_list("id", flat=True)
+    )
+
+    anomaly_conditions.filter(comparison=0.0).update(
+        comparison={
+            "seasonality": "auto",
+            "sensitivity": "low",
+            "threshold_type": 2,
+        }
     )
 
     for condition_ids in chunked(

@@ -14,11 +14,7 @@ class DeleteMalformedAnomalyConditionsTest(TestMigrations):
         self.anomaly_condition = DataCondition.objects.create(
             condition_group_id=malformed_group.id,
             type="anomaly_detection",
-            comparison={
-                "sensitivity": "low",
-                "seasonality": "auto",
-                "threshold_type": 0,
-            },
+            comparison=0.0,
             condition_result=75,
         )
         self.malformed_condition = DataCondition.objects.create(
@@ -26,6 +22,20 @@ class DeleteMalformedAnomalyConditionsTest(TestMigrations):
             type="lte",
             comparison=0,
             condition_result=0,
+        )
+
+        valid_anomaly_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id
+        )
+        self.valid_anomaly_condition = DataCondition.objects.create(
+            condition_group_id=valid_anomaly_group.id,
+            type="anomaly_detection",
+            comparison={
+                "sensitivity": "high",
+                "seasonality": "auto",
+                "threshold_type": 0,
+            },
+            condition_result=75,
         )
 
         static_group = DataConditionGroup.objects.create(organization_id=self.organization.id)
@@ -39,6 +49,18 @@ class DeleteMalformedAnomalyConditionsTest(TestMigrations):
     def test(self):
         DataCondition = self.apps.get_model("workflow_engine", "DataCondition")
 
-        assert DataCondition.objects.filter(id=self.anomaly_condition.id).exists()
+        anomaly_condition = DataCondition.objects.get(id=self.anomaly_condition.id)
+        assert anomaly_condition.comparison == {
+            "seasonality": "auto",
+            "sensitivity": "low",
+            "threshold_type": 2,
+        }
         assert not DataCondition.objects.filter(id=self.malformed_condition.id).exists()
+
+        valid_anomaly_condition = DataCondition.objects.get(id=self.valid_anomaly_condition.id)
+        assert valid_anomaly_condition.comparison == {
+            "sensitivity": "high",
+            "seasonality": "auto",
+            "threshold_type": 0,
+        }
         assert DataCondition.objects.filter(id=self.valid_static_condition.id).exists()
