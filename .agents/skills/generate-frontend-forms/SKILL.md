@@ -5,7 +5,7 @@ description: Guide for creating forms using Sentry's new form system. Use when i
 
 # Form System Guide
 
-This skill provides patterns for building forms using Sentry's new form system built on TanStack React Form and Zod validation.
+This skill provides patterns for building forms using Sentry's new form system, built on TanStack React Form v2 and Zod validation.
 
 ## Core Principle
 
@@ -22,13 +22,17 @@ import {z} from 'zod';
 
 import {
   AutoSaveForm,
-  defaultFormOptions,
-  setFieldErrors,
+  defaultFormValidators,
+  ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
+
+// Sentry-side, only when handling API errors:
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 ```
 
-> **Important**: DO NOT import from deeper paths, like '@sentry/scraps/form/field'. You can only use what is part of the PUBLIC interface in the index file in @sentry/scraps/form.
+> **Important**: DO NOT import from deeper paths, like '@sentry/scraps/form/field'. You can only use what is part of the PUBLIC interface in the index file in @sentry/scraps/form. Never import from `@tanstack/react-form` directly — an ESLint rule blocks it. If you need a type that the barrel does not export, add the export to `static/app/components/core/form/index.ts` rather than reaching past it.
 
 ---
 
@@ -41,89 +45,107 @@ The main hook for creating forms with validation and submission handling.
 ```tsx
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
+  email: z.email('Invalid email'),
   name: z.string().min(2, 'Name must be at least 2 characters'),
 });
 
 function MyForm() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       email: '',
       name: '',
     },
-    validators: {
-      onDynamic: schema,
-    },
-    onSubmit: ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value}) => {
       // Handle submission
       console.log(value);
     },
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="email">
+    <ScrapsForm form={form}>
+      <form.Field name="email">
         {field => (
-          <field.Layout.Stack label="Email" required>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+          <field.Layout.Stack label={t('Email')} required>
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Stack>
         )}
-      </form.AppField>
+      </form.Field>
 
-      <form.SubmitButton>Submit</form.SubmitButton>
-    </form.AppForm>
+      <form.SubmitButton>{t('Submit')}</form.SubmitButton>
+    </ScrapsForm>
   );
 }
 ```
 
-> **Important**: Always spread `defaultFormOptions` first. It configures validation to run on submit initially, then on every change after the first submission. This is why validators are defined as `onDynamic`, and it's what provides a consistent UX.
+> **Important**: `<ScrapsForm form={form}>` is the outer wrapper. It renders the `<form>` element and provides form context, so `form.SubmitButton` and the other form components work. There is no `...defaultFormOptions` spread — error visibility and invalid-submit focus are configured once inside `createFormHook`.
+
+### Validation Timing
+
+The form system applies one policy to every form:
+
+- **Error visibility** — validation errors are hidden until the first submit attempt, then shown as the user edits. This is set globally via `errorVisibility` and needs no per-form configuration.
+- **`defaultFormValidators(schema)`** — additionally delays _running_ the validator until after the first submit attempt, then re-runs it on change and blur. Use it for form-level schema validation.
+
+Both together reproduce "validate on submit, then on every change". Every validator also runs on submit regardless of its triggers, so `defaultFormValidators` never skips submit-time validation.
+
+Reach for a raw validator entry when you need different timing:
+
+```tsx
+const form = useScrapsForm({
+  defaultValues,
+  validators: [{run: schema, triggers: ['change']}],
+  onSubmit,
+});
+```
 
 ### Returned Properties
 
-| Property         | Description                                                                                                   |
-| ---------------- | ------------------------------------------------------------------------------------------------------------- |
-| `AppForm`        | Root wrapper component (provides form context and renders `<form>` element). Must receive `form={form}` prop. |
-| `AppField`       | Field renderer component                                                                                      |
-| `FieldGroup`     | Section grouping with title                                                                                   |
-| `SubmitButton`   | Pre-wired submit button                                                                                       |
-| `Subscribe`      | Subscribe to form state changes                                                                               |
-| `reset()`        | Reset form to default values                                                                                  |
-| `handleSubmit()` | Manually trigger submission                                                                                   |
+| Property         | Description                                                                                                 |
+| ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| `Field`          | Field renderer. Takes `name` and a render function receiving the field API with all bound field components. |
+| `ArrayField`     | Array field renderer. Use for lists that render child fields (`pushValue`, `removeValue`, …).               |
+| `FieldGroup`     | Section grouping with title                                                                                 |
+| `SubmitButton`   | Pre-wired submit button                                                                                     |
+| `ResetButton`    | Pre-wired reset button, disabled while the form is pristine                                                 |
+| `Subscribe`      | Subscribe to form state changes                                                                             |
+| `atom`           | Form state atom. Read it with `useSelector(form.atom, selector)` outside JSX.                               |
+| `reset()`        | Reset form to default values                                                                                |
+| `handleSubmit()` | Manually trigger submission                                                                                 |
 
 ---
 
 ## Field Components
 
-All fields are accessed via the `field` render prop and follow consistent patterns.
+All fields are accessed via the `field` render prop and follow consistent patterns: pass `value` and `onChange` from the field API, and wrap in a layout.
 
 ### Input Field (Text)
 
 ```tsx
-<form.AppField name="firstName">
+<form.Field name="firstName">
   {field => (
-    <field.Layout.Stack label="First Name" required>
+    <field.Layout.Stack label={t('First Name')} required>
       <field.Input
-        value={field.state.value}
+        value={field.value}
         onChange={field.handleChange}
-        placeholder="Enter your name"
+        placeholder={t('Enter your name')}
       />
     </field.Layout.Stack>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ### Number Field
 
 ```tsx
-<form.AppField name="age">
+<form.Field name="age">
   {field => (
-    <field.Layout.Stack label="Age" required>
+    <field.Layout.Stack label={t('Age')} required>
       <field.Number
-        value={field.state.value}
+        value={field.value}
         onChange={field.handleChange}
         min={0}
         max={120}
@@ -131,17 +153,31 @@ All fields are accessed via the `field` render prop and follow consistent patter
       />
     </field.Layout.Stack>
   )}
-</form.AppField>
+</form.Field>
+```
+
+### Password Field
+
+Same API as `field.Input`, plus a built-in show/hide toggle.
+
+```tsx
+<form.Field name="password">
+  {field => (
+    <field.Layout.Stack label={t('Password')} required>
+      <field.Password value={field.value} onChange={field.handleChange} />
+    </field.Layout.Stack>
+  )}
+</form.Field>
 ```
 
 ### Select Field (Single)
 
 ```tsx
-<form.AppField name="country">
+<form.Field name="country">
   {field => (
-    <field.Layout.Stack label="Country">
+    <field.Layout.Stack label={t('Country')}>
       <field.Select
-        value={field.state.value}
+        value={field.value}
         onChange={field.handleChange}
         options={[
           {value: 'us', label: 'United States'},
@@ -150,18 +186,18 @@ All fields are accessed via the `field` render prop and follow consistent patter
       />
     </field.Layout.Stack>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ### Select Field (Multiple)
 
 ```tsx
-<form.AppField name="tags">
+<form.Field name="tags">
   {field => (
-    <field.Layout.Stack label="Tags">
+    <field.Layout.Stack label={t('Tags')}>
       <field.Select
         multiple
-        value={field.state.value}
+        value={field.value}
         onChange={field.handleChange}
         options={[
           {value: 'bug', label: 'Bug'},
@@ -171,46 +207,67 @@ All fields are accessed via the `field` render prop and follow consistent patter
       />
     </field.Layout.Stack>
   )}
-</form.AppField>
+</form.Field>
+```
+
+### Async Select Field
+
+Loads options from an API as the user types. `queryOptions` receives the current input value and returns TanStack Query options.
+
+```tsx
+<form.Field name="assignee">
+  {field => (
+    <field.Layout.Row label={t('Assignee')}>
+      <field.SelectAsync
+        value={field.value}
+        onChange={field.handleChange}
+        queryOptions={inputValue => ({
+          queryKey: ['users', inputValue],
+          queryFn: () => fetchUsers({search: inputValue}),
+        })}
+      />
+    </field.Layout.Row>
+  )}
+</form.Field>
 ```
 
 ### Switch Field (Boolean)
 
 ```tsx
-<form.AppField name="notifications">
+<form.Field name="notifications">
   {field => (
-    <field.Layout.Stack label="Enable notifications">
-      <field.Switch checked={field.state.value} onChange={field.handleChange} />
+    <field.Layout.Stack label={t('Enable notifications')}>
+      <field.Switch checked={field.value} onChange={field.handleChange} />
     </field.Layout.Stack>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ### TextArea Field
 
 ```tsx
-<form.AppField name="bio">
+<form.Field name="bio">
   {field => (
-    <field.Layout.Stack label="Bio">
+    <field.Layout.Stack label={t('Bio')}>
       <field.TextArea
-        value={field.state.value}
+        value={field.value}
         onChange={field.handleChange}
         rows={4}
-        placeholder="Tell us about yourself"
+        placeholder={t('Tell us about yourself')}
       />
     </field.Layout.Stack>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ### Range Field (Slider)
 
 ```tsx
-<form.AppField name="volume">
+<form.Field name="volume">
   {field => (
-    <field.Layout.Stack label="Volume">
+    <field.Layout.Stack label={t('Volume')}>
       <field.Range
-        value={field.state.value}
+        value={field.value}
         onChange={field.handleChange}
         min={0}
         max={100}
@@ -218,7 +275,7 @@ All fields are accessed via the `field` render prop and follow consistent patter
       />
     </field.Layout.Stack>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ### Radio Field
@@ -228,19 +285,19 @@ Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Gr
 > **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
 
 ```tsx
-<form.AppField name="priority">
+<form.Field name="priority">
   {field => (
-    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-      <field.Layout.Stack label="Priority">
-        <field.Radio.Item value="low">Low</field.Radio.Item>
-        <field.Radio.Item value="medium">Medium</field.Radio.Item>
-        <field.Radio.Item value="high" description="Urgent issues">
-          High
+    <field.Radio.Group value={field.value} onChange={field.handleChange}>
+      <field.Layout.Stack label={t('Priority')}>
+        <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
+        <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
+        <field.Radio.Item value="high" description={t('Urgent issues')}>
+          {t('High')}
         </field.Radio.Item>
       </field.Layout.Stack>
     </field.Radio.Group>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
@@ -248,11 +305,11 @@ For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper insid
 ```tsx
 import {Flex} from '@sentry/scraps/layout';
 
-<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-  <field.Layout.Row label="Priority">
+<field.Radio.Group value={field.value} onChange={field.handleChange}>
+  <field.Layout.Row label={t('Priority')}>
     <Flex gap="lg">
-      <field.Radio.Item value="low">Low</field.Radio.Item>
-      <field.Radio.Item value="high">High</field.Radio.Item>
+      <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
+      <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
     </Flex>
   </field.Layout.Row>
 </field.Radio.Group>;
@@ -263,16 +320,16 @@ import {Flex} from '@sentry/scraps/layout';
 For one-off fields that don't have a built-in component (e.g. a color picker, or any custom input), use `field.Base`. It provides a render prop with all the necessary accessibility and form integration props (`ref`, `disabled`, `aria-invalid`, `aria-describedby`, `onBlur`, `name`, `id`) that you spread onto your native element.
 
 ```tsx
-<form.AppField name="color">
+<form.Field name="color">
   {field => (
-    <field.Layout.Row label="Brand Color">
+    <field.Layout.Row label={t('Brand Color')}>
       <field.Base<HTMLInputElement>>
         {(baseProps, {indicator}) => (
           <Flex flexGrow={1}>
             <input
               {...baseProps}
               type="color"
-              value={field.state.value}
+              value={field.value}
               onChange={e => field.handleChange(e.target.value)}
             />
             {indicator}
@@ -281,7 +338,7 @@ For one-off fields that don't have a built-in component (e.g. a color picker, or
       </field.Base>
     </field.Layout.Row>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 The render prop receives two arguments:
@@ -312,11 +369,11 @@ Label above, field below. Best for forms with longer labels or mobile layouts.
 
 ```tsx
 <field.Layout.Stack
-  label="Email Address"
-  hintText="We'll never share your email"
+  label={t('Email Address')}
+  hintText={t("We'll never share your email")}
   required
 >
-  <field.Input value={field.state.value} onChange={field.handleChange} />
+  <field.Input value={field.value} onChange={field.handleChange} />
 </field.Layout.Stack>
 ```
 
@@ -325,8 +382,12 @@ Label above, field below. Best for forms with longer labels or mobile layouts.
 Label on left (~50%), field on right. Compact layout for settings pages.
 
 ```tsx
-<field.Layout.Row label="Email Address" hintText="We'll never share your email" required>
-  <field.Input value={field.state.value} onChange={field.handleChange} />
+<field.Layout.Row
+  label={t('Email Address')}
+  hintText={t("We'll never share your email")}
+  required
+>
+  <field.Input value={field.value} onChange={field.handleChange} />
 </field.Layout.Row>
 ```
 
@@ -336,18 +397,18 @@ Both Stack and Row layouts support a `variant="compact"` prop. In compact mode, 
 
 ```tsx
 // Default: hint text appears below the label
-<field.Layout.Row label="Email" hintText="We'll never share your email">
-    <field.Input ... />
+<field.Layout.Row label={t('Email')} hintText={t("We'll never share your email")}>
+  <field.Input ... />
 </field.Layout.Row>
 
 // Compact: hint text appears in tooltip when hovering the label
-<field.Layout.Row label="Email" hintText="We'll never share your email" variant="compact">
-    <field.Input ... />
+<field.Layout.Row label={t('Email')} hintText={t("We'll never share your email")} variant="compact">
+  <field.Input ... />
 </field.Layout.Row>
 
 // Also works with Stack layout
-<field.Layout.Stack label="Email" hintText="We'll never share your email" variant="compact">
-    <field.Input ... />
+<field.Layout.Stack label={t('Email')} hintText={t("We'll never share your email")} variant="compact">
+  <field.Input ... />
 </field.Layout.Stack>
 ```
 
@@ -359,17 +420,17 @@ Both Stack and Row layouts support a `variant="compact"` prop. In compact mode, 
 
 ### Custom Layouts
 
-You are allowed to create new layouts if necessary, or not use any layouts at all. Without a layout, you _should_ render `field.meta.Label` and optionally `field.meta.HintText` for a11y.
+You are allowed to create new layouts if necessary, or not use any layouts at all. Without a layout, you _should_ render `field.Meta.Label` and optionally `field.Meta.HintText` for a11y.
 
 ```tsx
-<form.AppField name="firstName">
+<form.Field name="firstName">
   {field => (
     <Flex gap="md">
-      <field.Meta.Label required>First Name:</field.Meta.Label>
-      <field.Input value={field.state.value ?? ''} onChange={field.handleChange} />
+      <field.Meta.Label required>{t('First Name:')}</field.Meta.Label>
+      <field.Input value={field.value ?? ''} onChange={field.handleChange} />
     </Flex>
   )}
-</form.AppField>
+</form.Field>
 ```
 
 ### Layout Props
@@ -385,19 +446,92 @@ You are allowed to create new layouts if necessary, or not use any layouts at al
 
 ## Field Groups
 
-Group related fields into sections with a title.
+Group related fields into titled sections with `form.FieldGroup`. It renders a `Panel` with a header.
 
 ```tsx
-<form.FieldGroup title="Personal Information">
-    <form.AppField name="firstName">{/* ... */}</form.AppField>
-    <form.AppField name="lastName">{/* ... */}</form.AppField>
+<form.FieldGroup title={t('Personal Information')}>
+  <form.Field name="firstName">{/* ... */}</form.Field>
+  <form.Field name="lastName">{/* ... */}</form.Field>
 </form.FieldGroup>
 
-<form.FieldGroup title="Contact Information">
-    <form.AppField name="email">{/* ... */}</form.AppField>
-    <form.AppField name="phone">{/* ... */}</form.AppField>
+<form.FieldGroup title={t('Contact Information')}>
+  <form.Field name="email">{/* ... */}</form.Field>
+  <form.Field name="phone">{/* ... */}</form.Field>
 </form.FieldGroup>
 ```
+
+### Reusable Field Groups Across Forms
+
+When the same section must bind into several different forms, define a field group with `defineAppFieldGroup`. Declare the virtual field names and their value types, write the component against `fields`, then bind it. Callers map each virtual name to a real path in their own form.
+
+```tsx
+import {defineAppFieldGroup, FieldGroup} from '@sentry/scraps/form';
+
+const segmentConfigFieldGroup = defineAppFieldGroup(({strict}) => ({
+  write_key: strict<string>(),
+}));
+
+function SegmentConfigFieldsImpl({
+  fields,
+  disabled,
+}: {
+  disabled: boolean;
+  fields: typeof segmentConfigFieldGroup.fields;
+}) {
+  return (
+    <FieldGroup title={t('Global Configuration')}>
+      <fields.Field name="write_key">
+        {field => (
+          <field.Layout.Row label={t('Write Key')} required>
+            <field.Input
+              value={field.value}
+              onChange={field.handleChange}
+              disabled={disabled}
+            />
+          </field.Layout.Row>
+        )}
+      </fields.Field>
+    </FieldGroup>
+  );
+}
+
+const SegmentConfigFields = segmentConfigFieldGroup.bindComponent(
+  SegmentConfigFieldsImpl,
+  'fields'
+);
+
+// Caller — `fields` maps virtual names to real paths in this form
+<SegmentConfigFields form={form} disabled={disabled} fields={{write_key: 'write_key'}} />;
+```
+
+> **Note**: A field group exposes field components only, so use the plain `FieldGroup` import for the panel — there is no `fields.FieldGroup`.
+
+---
+
+## Array Fields
+
+Use `form.ArrayField` for lists that render child fields. It re-renders when the list structure changes, without re-rendering every item on each value change. A whole array value that is _not_ broken into child fields can stay a normal `form.Field`.
+
+```tsx
+<form.ArrayField name="branchOverrides">
+  {arrayField => (
+    <Stack gap="lg">
+      {arrayField.value.map((_, index) => (
+        <form.Field key={index} name={`branchOverrides[${index}].branch`}>
+          {field => (
+            <field.Layout.Row label={t('Branch')}>
+              <field.Input value={field.value} onChange={field.handleChange} />
+            </field.Layout.Row>
+          )}
+        </form.Field>
+      ))}
+      <Button onClick={() => arrayField.pushValue({branch: ''})}>{t('Add')}</Button>
+    </Stack>
+  )}
+</form.ArrayField>
+```
+
+Array helpers on the render arg: `pushValue`, `insertValue`, `removeValue`, `moveValue`, `swapValues`, `filterValues`, `clearValues`. The same operations exist on the form as path methods (`form.pushFieldValue('branchOverrides', …)`) when you are outside the render prop.
 
 ---
 
@@ -407,13 +541,13 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 
 ```tsx
 // ❌ Don't disable without explanation
-<field.Input disabled value={field.state.value} onChange={field.handleChange} />
+<field.Input disabled value={field.value} onChange={field.handleChange} />
 
 // ✅ Provide a reason when disabling
 <field.Input
-    disabled="This feature requires a Business plan"
-    value={field.state.value}
-    onChange={field.handleChange}
+  disabled="This feature requires a Business plan"
+  value={field.value}
+  onChange={field.handleChange}
 />
 ```
 
@@ -427,7 +561,7 @@ Fields accept `disabled` as a boolean or string. When a string is provided, it d
 import {z} from 'zod';
 
 const userSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  email: z.email('Please enter a valid email'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
   age: z.number().gte(13, 'You must be at least 13 years old'),
   bio: z.string().optional(),
@@ -461,13 +595,9 @@ const defaultValues: z.input<typeof schema> = {
   name: '',
 };
 
-// z.output<typeof schema> has provider as non-null after refine
-type FormOutput = z.output<typeof schema>;
-
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues,
-  validators: {onDynamic: schema},
+  validators: defaultFormValidators(schema),
   onSubmit: ({value}) => {
     // schema.parse narrows null away — mutation receives z.output
     return mutation.mutateAsync(schema.parse(value)).catch(() => {});
@@ -493,6 +623,31 @@ const schema = z
   });
 ```
 
+### Per-Field Validators
+
+For validation that only applies to one field, pass a `validators` array to `form.Field`. Each entry is `{run, triggers}`; `run` is a Zod schema or a function, and every entry also runs on submit.
+
+```tsx
+<form.Field
+  name="secret"
+  validators={[
+    {
+      run: ({value, formApi}) =>
+        formApi.state.values.type === 'pattern' && !value.trim()
+          ? t('Secret is required')
+          : undefined,
+      triggers: ['change'],
+    },
+  ]}
+>
+  {field => (
+    <field.Layout.Row label={t('Secret')} required>
+      <field.Input value={field.value ?? ''} onChange={field.handleChange} />
+    </field.Layout.Row>
+  )}
+</form.Field>
+```
+
 ### Conditional Fields
 
 Use `form.Subscribe` to show/hide fields based on other field values:
@@ -501,17 +656,58 @@ Use `form.Subscribe` to show/hide fields based on other field values:
 <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
   {showBilling =>
     showBilling ? (
-      <form.AppField name="billingEmail">
+      <form.Field name="billingEmail">
         {field => (
-          <field.Layout.Stack label="Billing Email" required>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+          <field.Layout.Stack label={t('Billing Email')} required>
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Stack>
         )}
-      </form.AppField>
+      </form.Field>
     ) : null
   }
 </form.Subscribe>
 ```
+
+Outside JSX — when you need a form value in plain component code — use `useSelector` with the form atom:
+
+```tsx
+import {useSelector} from '@sentry/scraps/form';
+
+const plan = useSelector(form.atom, state => state.values.plan);
+```
+
+> **Important**: `form.state` is a non-reactive snapshot. Reading it during render will not re-render on change. Use `form.Subscribe` or `useSelector(form.atom, …)`.
+
+---
+
+## Listeners
+
+Listeners react to field events without validating. They are an array of `{run, triggers}` entries, optionally debounced with `triggerDebounceMs`.
+
+```tsx
+const form = useScrapsForm({
+  defaultValues,
+  listeners: [
+    {
+      run: ({formApi}) => void formApi.handleSubmit(),
+      triggers: ['change'],
+      triggerDebounceMs: 1000,
+    },
+  ],
+  onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+});
+```
+
+Field-level listeners use the same shape on `form.Field`:
+
+```tsx
+<form.Field
+  name="url"
+  listeners={[{run: ({value}) => normalize(value), triggers: ['blur']}]}
+>
+```
+
+Form listener triggers are `change`, `blur`, `submit`, `mount`, `reset`; fields add `unmount`. The form listener context exposes `triggerFieldApi`, which is **optional** — it is absent for mount, reset, and submit, so guard it before reading `triggerFieldApi.meta`.
 
 ---
 
@@ -519,12 +715,20 @@ Use `form.Subscribe` to show/hide fields based on other field values:
 
 ### Server-Side Errors
 
-Use `setFieldErrors` to display backend validation errors:
+Two rules combine here:
+
+1. **Scraps does not know about `RequestError`.** Convert a Sentry API error to
+   the Scraps `FieldErrors` contract with `requestErrorToFieldErrors`, after
+   narrowing the unknown error. It keeps only response keys that exist in the
+   form values, and returns `undefined` when the response carries nothing the
+   form can display.
+2. **Validation errors are returned from `onSubmit`,** not set imperatively.
+   Wrap the field errors with `createValidationError` from the submit context.
 
 ```tsx
 import {useMutation} from '@tanstack/react-query';
 
-import {setFieldErrors} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -532,67 +736,74 @@ import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorT
 
 function MyForm() {
   const mutation = useMutation({
-    mutationFn: (data: {email: string; username: string}) => {
-      return fetchMutation({
-        url: '/users/',
-        method: 'POST',
-        data,
-      });
-    },
+    mutationFn: (data: {email: string; username: string}) =>
+      fetchMutation({url: '/users/', method: 'POST', data}),
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {email: '', username: ''},
-    validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
-      try {
-        await mutation.mutateAsync(value);
-      } catch (error) {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) =>
+      mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
         }
-      }
-    },
+        throw error;
+      }),
   });
 
   // ...
 }
 ```
 
-`setFieldErrors` accepts the Scraps `FieldErrors` contract. It does not accept
-Sentry's `RequestError`. Use `requestErrorToFieldErrors` at the app boundary to:
-
-- accept a `RequestError` after the call site narrows the unknown error;
-- keep only keys that exist in the form values;
-- convert string and array response values to `{message: string}`.
-
-Do not pass an API error to Scraps directly:
+When the backend gives you nothing field-specific, `fields` is `undefined` —
+fall back to a toast instead:
 
 ```tsx
-// ❌ RequestError is an app type, not a Scraps form error
-setFieldErrors(formApi, error);
-
-// ✅ Narrow at the app call site, then convert to the Scraps contract
-if (error instanceof RequestError) {
-  setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
-}
-```
-
-Use a direct object when you create the field messages in the form code:
-
-```tsx
-setFieldErrors(formApi, {
-  email: {message: 'This email is already registered'},
-  username: {message: 'Username is taken'},
+.catch(error => {
+  if (error instanceof RequestError) {
+    const fields = requestErrorToFieldErrors(error, value);
+    if (fields) {
+      return createValidationError({fields});
+    }
+  }
+  addErrorMessage(t('Unable to save changes.'));
+  return;
 });
 ```
 
-> **Important**: `setFieldErrors` supports nested paths with dot notation: `'address.city': {message: 'City not found'}`
+Never hand an API error straight to Scraps:
+
+```tsx
+// ❌ RequestError is an app type, not a Scraps form error
+return createValidationError({fields: error.responseJSON});
+
+// ✅ Narrow at the app call site, then convert to the Scraps contract
+if (error instanceof RequestError) {
+  const fields = requestErrorToFieldErrors(error, value);
+  return fields ? createValidationError({fields}) : undefined;
+}
+```
+
+When the form code itself creates the messages, skip the adapter:
+
+```tsx
+return createValidationError({
+  fields: {
+    email: {message: t('This email is already registered')},
+    'address.city': {message: t('City not found')},
+  },
+});
+```
+
+> **Important**: Field paths support dot notation: `'address.city': {message: 'City not found'}`.
+
+> **Important**: Validation failures are **returned** from `onSubmit`. Thrown or rejected errors are submit failures. Keep transient network failures in the query layer; only return validation errors for things the user can fix in the form.
 
 ### Error Display
 
-Validation errors automatically show as a warning icon with tooltip in the field's trailing area. No additional code needed.
+Validation errors automatically show as a warning icon with tooltip in the field's trailing area. No additional code needed. Read them yourself with `field.errors` (an array of `{message}`) or `field.meta.errors`; both respect the "hidden until first submit" policy.
 
 ---
 
@@ -634,14 +845,16 @@ function SettingsForm() {
       }}
     >
       {field => (
-        <field.Layout.Row label="Display Name">
-          <field.Input value={field.state.value} onChange={field.handleChange} />
+        <field.Layout.Row label={t('Display Name')}>
+          <field.Input value={field.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
     </AutoSaveForm>
   );
 }
 ```
+
+`AutoSaveForm` opts out of the global "hide errors until submit" policy — validation errors appear as the user edits, which is the right behaviour when there is no submit button.
 
 ### Auto-Save Behavior by Field Type
 
@@ -666,21 +879,35 @@ The form system automatically shows:
 
 ### Auto-Save Request Errors
 
-`AutoSaveForm` receives app-specific error mapping from the form error context.
-Sentry installs this mapping once through `ScrapsProviders`. Do not catch
+`AutoSaveForm` gets its app-specific error mapping from the form error context,
+which Sentry installs once through `ScrapsProviders`. Do **not** catch
 `RequestError` or call `requestErrorToFieldErrors` at each `AutoSaveForm` call
 site.
 
-The Sentry provider:
+The Sentry provider (`static/app/scrapsProviders/formError.tsx`):
 
 - narrows failed mutations to `RequestError`;
 - uses `requestErrorToFieldErrors` for matching backend field errors;
 - uses `getRequestErrorUserMessage` for request detail and status messages;
-- keeps `Failed to save` as the fallback for other errors.
+- keeps `Failed to save` as the fallback for everything else.
 
-Scraps remains independent of Sentry's API error type. Outside the Sentry app,
-the form error context uses the generic fallback unless the host app supplies
-its own mapper.
+Scraps stays independent of Sentry's API error type. Outside the Sentry app the
+context falls back to the generic message unless the host supplies its own
+mapper via `FormErrorContextProvider`.
+
+### Sharing Auto-Save Status
+
+Fields rendered outside an `AutoSaveForm` — for example rows of an array field that save through one mutation — can still show the indicators by providing the context themselves:
+
+```tsx
+import {AutoSaveContextProvider} from '@sentry/scraps/form';
+
+<AutoSaveContextProvider value={{status: mutation.status, resetOnErrorRef}}>
+  {/* fields here render the spinner / checkmark and disable while pending */}
+</AutoSaveContextProvider>;
+```
+
+`resetOnErrorRef` is a ref that immediate-commit controls (switch, radio) set to `true` so the value snaps back when the save fails.
 
 ### Confirmation Dialogs
 
@@ -693,14 +920,14 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
   initialValue={false}
   confirm={value =>
     value
-      ? 'This will remove all members without 2FA. Continue?'
-      : 'Are you sure you want to allow members without 2FA?'
+      ? t('This will remove all members without 2FA. Continue?')
+      : t('Are you sure you want to allow members without 2FA?')
   }
   mutationOptions={{...}}
 >
   {field => (
-    <field.Layout.Row label="Require Two-Factor Auth">
-      <field.Switch checked={field.state.value} onChange={field.handleChange} />
+    <field.Layout.Row label={t('Require Two-Factor Auth')}>
+      <field.Switch checked={field.value} onChange={field.handleChange} />
     </field.Layout.Row>
   )}
 </AutoSaveForm>
@@ -719,23 +946,16 @@ For dangerous operations (security settings, permissions), use the `confirm` pro
 
 ```tsx
 // ✅ Simple string - always confirm
-confirm="Are you sure you want to change this setting?"
+confirm={t('Are you sure you want to change this setting?')}
 
 // ✅ Only confirm when ENABLING (return undefined to skip)
-confirm={value => value ? 'Are you sure you want to enable this?' : undefined}
+confirm={value => value ? t('Are you sure you want to enable this?') : undefined}
 
 // ✅ Only confirm when DISABLING
-confirm={value => !value ? 'Disabling this removes security protection.' : undefined}
-
-// ✅ Different messages for each direction
-confirm={value =>
-  value
-    ? 'Enable 2FA requirement for all members?'
-    : 'Allow members without 2FA?'
-}
+confirm={value => !value ? t('Disabling this removes security protection.') : undefined}
 
 // ✅ For select fields - confirm specific values
-confirm={value => value === 'delete' ? 'This will permanently delete all data!' : undefined}
+confirm={value => value === 'delete' ? t('This will permanently delete all data!') : undefined}
 ```
 
 ---
@@ -766,9 +986,8 @@ function MyForm() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {...},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       return mutation.mutateAsync(value).catch(() => {});
     },
@@ -796,8 +1015,8 @@ onSubmit: ({value}) =>
 
 ```tsx
 <Flex gap="md" justify="end">
-  <form.ResetButton>Reset</form.ResetButton>
-  <form.SubmitButton>Save Changes</form.SubmitButton>
+  <form.ResetButton>{t('Reset')}</form.ResetButton>
+  <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
 </Flex>
 ```
 
@@ -805,6 +1024,27 @@ The `SubmitButton` automatically:
 
 - Disables while submission is pending
 - Triggers form validation before submit
+
+---
+
+## Settings Search
+
+If the form lives on a settings page, wrap it in `FormSearch` so its fields appear in the Cmd+K settings search.
+
+```tsx
+import {FormSearch} from '@sentry/scraps/form';
+
+<FormSearch route="/settings/account/details/">
+  <FieldGroup title={t('Account Details')}>{/* form or AutoSaveForm */}</FieldGroup>
+</FormSearch>;
+```
+
+`FormSearch` is a **build-time marker** with no runtime behaviour. Rules:
+
+- The `route` must match the settings page URL exactly, including the trailing slash.
+- Wrap the entire form section with a single `FormSearch`, not individual fields.
+- `label` and `hintText` must be plain string literals or `t()` calls — computed strings are skipped by the extractor.
+- After adding or changing fields inside a `FormSearch`, run `pnpm run extract-form-fields` and commit the regenerated `static/app/views/settings/fieldRegistry.generated.ts`. CI fails if it is out of sync.
 
 ---
 
@@ -818,25 +1058,44 @@ The `SubmitButton` automatically:
 
 // ✅ Use useScrapsForm with Zod validation
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues: {email: ''},
-  validators: {onDynamic: schema},
+  validators: defaultFormValidators(schema),
 });
 ```
 
-### Default Options
+### Validators Are an Array
 
 ```tsx
-// ❌ Don't forget defaultFormOptions
-const form = useScrapsForm({
-  defaultValues: {name: ''},
-});
+// ❌ v1 shape — event-keyed object, no longer supported
+validators: {
+  onDynamic: schema;
+}
 
-// ✅ Always spread defaultFormOptions first
-const form = useScrapsForm({
-  ...defaultFormOptions,
-  defaultValues: {name: ''},
-});
+// ❌ Don't add 'submit' to triggers — every validator runs on submit already
+validators: [{run: schema, triggers: ['change', 'submit']}];
+
+// ✅ Use the shared policy for form-level schema validation
+validators: defaultFormValidators(schema);
+
+// ✅ Or spell out the triggers when you need different timing
+validators: [{run: schema, triggers: ['change']}];
+```
+
+### Reading Form and Field State
+
+```tsx
+// ❌ v1 shape — field.state no longer exists
+<field.Input value={field.state.value} />
+
+// ❌ Non-reactive: won't re-render when the value changes
+const plan = form.state.values.plan;
+
+// ✅ Read the value straight off the field API
+<field.Input value={field.value} onChange={field.handleChange} />
+
+// ✅ Subscribe for reactive reads
+<form.Subscribe selector={state => state.values.plan}>{plan => …}</form.Subscribe>
+const plan = useSelector(form.atom, state => state.values.plan);
 ```
 
 ### Nullable Default Values
@@ -847,19 +1106,12 @@ onSubmit: ({value}) => {
   return mutation.mutateAsync({...value, provider: value.provider!});
 };
 
-// ❌ Don't skip typing defaultValues when the schema has refine
-const form = useScrapsForm({
-  ...defaultFormOptions,
-  defaultValues: {provider: null, name: ''}, // type is inferred but imprecise
-});
-
 // ✅ Use z.input for defaultValues and schema.parse in onSubmit
 const defaultValues: z.input<typeof schema> = {provider: null, name: ''};
 
 const form = useScrapsForm({
-  ...defaultFormOptions,
   defaultValues,
-  validators: {onDynamic: schema},
+  validators: defaultFormValidators(schema),
   onSubmit: ({value}) => {
     return mutation.mutateAsync(schema.parse(value)).catch(() => {});
   },
@@ -899,11 +1151,11 @@ onSubmit: ({value}) => {
 ### Field Value Handling
 
 ```tsx
-// ❌ Don't use field.state.value directly when it might be undefined
-<field.Input value={field.state.value} />
+// ❌ Don't pass a possibly-undefined value to a controlled input
+<field.Input value={field.value} />
 
 // ✅ Provide fallback for optional fields
-<field.Input value={field.state.value ?? ''} />
+<field.Input value={field.value ?? ''} />
 ```
 
 ### Validation Messages
@@ -1012,10 +1264,10 @@ onSubmit: ({value}) => {
 
 ```tsx
 // ❌ Don't use Row layout when labels are very long
-<field.Layout.Row label="Please enter the primary email address for your account">
+<field.Layout.Row label={t('Please enter the primary email address for your account')}>
 
 // ✅ Use Stack layout for long labels
-<field.Layout.Stack label="Please enter the primary email address for your account">
+<field.Layout.Stack label={t('Please enter the primary email address for your account')}>
 ```
 
 ---
@@ -1024,17 +1276,18 @@ onSubmit: ({value}) => {
 
 When creating a new form:
 
-- [ ] Import from `@sentry/scraps/form` and `zod`
+- [ ] Import from `@sentry/scraps/form` and `zod` — never from `@tanstack/react-form`
 - [ ] Define Zod schema with helpful error messages
-- [ ] Use `useScrapsForm` with `...defaultFormOptions`
 - [ ] Set `defaultValues` matching schema shape (use `z.input<typeof schema>` if schema has `.refine()`)
-- [ ] Set `validators: {onDynamic: schema}`
-- [ ] Wrap with `<form.AppForm form={form}>`
-- [ ] Use `<form.AppField>` for each field
+- [ ] Set `validators: defaultFormValidators(schema)`
+- [ ] Wrap with `<ScrapsForm form={form}>`
+- [ ] Use `<form.Field>` for each field, `<form.ArrayField>` for lists of child fields
+- [ ] Read values with `field.value`, not `field.state.value`
 - [ ] Choose appropriate layout (Stack or Row)
-- [ ] Narrow unknown errors to `RequestError` at the call site, convert them with `requestErrorToFieldErrors`, then call `setFieldErrors`
+- [ ] For server errors, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `createValidationError({fields})` from `onSubmit`
 - [ ] Add `<form.SubmitButton>` for submission
 - [ ] Call `form.reset()` after successful mutation if the form stays on the page
+- [ ] Wrap settings forms in `<FormSearch route="...">` and run `pnpm run extract-form-fields`
 
 When creating auto-save fields:
 
@@ -1043,18 +1296,18 @@ When creating auto-save fields:
 - [ ] Pass `initialValue` from current data
 - [ ] Configure `mutationOptions` with `mutationFn`
 - [ ] Update cache in `onSuccess` callback
-- [ ] Let the Sentry form error provider handle standard request errors
+- [ ] Let the Sentry form error provider handle request errors — do not map them per field
 
 ---
 
 ## File References
 
-| File                                                   | Purpose                     |
-| ------------------------------------------------------ | --------------------------- |
-| `static/app/components/core/form/scrapsForm.tsx`       | Main form hook              |
-| `static/app/components/core/form/autoSaveForm.tsx`     | Auto-save wrapper           |
-| `static/app/components/core/form/formErrorContext.tsx` | Host error-mapper contract  |
-| `static/app/scrapsProviders/formError.tsx`             | Sentry request-error mapper |
-| `static/app/components/core/form/field/*.tsx`          | Individual field components |
-| `static/app/components/core/form/layout/index.tsx`     | Layout components           |
-| `static/app/components/core/form/form.stories.tsx`     | Usage examples              |
+| File                                               | Purpose                              |
+| -------------------------------------------------- | ------------------------------------ |
+| `static/app/components/core/form/scrapsForm.tsx`   | Form hook and form components        |
+| `static/app/components/core/form/autoSaveForm.tsx` | Auto-save wrapper                    |
+| `static/app/components/core/form/field/*.tsx`      | Individual field components          |
+| `static/app/components/core/form/layout/index.tsx` | Layout components                    |
+| `static/app/components/core/form/form.mdx`         | Usage examples (submit forms)        |
+| `static/app/components/core/form/fields.mdx`       | Usage examples (per field component) |
+| `static/app/components/core/form/autoSaveForm.mdx` | Usage examples (auto-save)           |

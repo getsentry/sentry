@@ -2,35 +2,43 @@ import {z} from 'zod';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {AutoSaveForm, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   label: string;
   defaultValue?: string;
   hintText?: string;
   required?: boolean;
+  submit?: boolean;
   validator?: z.ZodObject<{testField: z.ZodString}>;
 }
 
-function TestForm({label, hintText, required, defaultValue, validator}: TestFormProps) {
+function TestForm({
+  label,
+  hintText,
+  required,
+  defaultValue,
+  validator,
+  submit,
+}: TestFormProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       testField: defaultValue ?? '',
     },
-    validators: validator ? {onBlur: validator} : undefined,
+    validators: validator ? [{run: validator, triggers: ['blur']}] : undefined,
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="testField">
+    <ScrapsForm form={form}>
+      <form.Field name="testField">
         {field => (
           <field.Layout.Row label={label} hintText={hintText} required={required}>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+      {submit ? <button type="submit">Submit</button> : null}
+    </ScrapsForm>
   );
 }
 
@@ -42,25 +50,24 @@ interface CompactTestFormProps {
 
 function CompactTestForm({label, hintText, layout = 'Row'}: CompactTestFormProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       testField: '',
     },
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="testField">
+    <ScrapsForm form={form}>
+      <form.Field name="testField">
         {field => {
           const LayoutComponent = field.Layout[layout];
           return (
             <LayoutComponent label={label} hintText={hintText} variant="compact">
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </LayoutComponent>
           );
         }}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 
@@ -88,7 +95,7 @@ function AutoSaveTestForm({
     >
       {field => (
         <field.Layout.Row label={label}>
-          <field.Input value={field.state.value} onChange={field.handleChange} />
+          <field.Input value={field.value} onChange={field.handleChange} />
         </field.Layout.Row>
       )}
     </AutoSaveForm>
@@ -141,11 +148,14 @@ describe('BaseField aria-invalid', () => {
   });
 
   it('is invalid when field is touched and has validation errors', async () => {
-    render(<TestForm label="Username" defaultValue="ab" validator={validationSchema} />);
+    render(
+      <TestForm label="Username" defaultValue="ab" validator={validationSchema} submit />
+    );
 
     const input = screen.getByRole('textbox');
     await userEvent.click(input);
     await userEvent.tab(); // blur
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
     await waitFor(() => {
       expect(input).toHaveAttribute('aria-invalid', 'true');
@@ -209,11 +219,14 @@ describe('BaseField indicator', () => {
       testField: z.string().min(3, 'Must be at least 3 characters'),
     });
 
-    render(<TestForm label="Username" defaultValue="ab" validator={validationSchema} />);
+    render(
+      <TestForm label="Username" defaultValue="ab" validator={validationSchema} submit />
+    );
 
     const input = screen.getByRole('textbox');
     await userEvent.click(input);
     await userEvent.tab(); // blur to trigger validation
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
     await waitFor(() => {
       expect(screen.getByRole('img')).toBeInTheDocument();
@@ -225,11 +238,14 @@ describe('BaseField indicator', () => {
       testField: z.string().min(3, 'Must be at least 3 characters'),
     });
 
-    render(<TestForm label="Username" defaultValue="ab" validator={validationSchema} />);
+    render(
+      <TestForm label="Username" defaultValue="ab" validator={validationSchema} submit />
+    );
 
     const input = screen.getByRole('textbox');
     await userEvent.click(input);
     await userEvent.tab(); // blur to trigger validation
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
     await waitFor(() => {
       expect(screen.getByText('Must be at least 3 characters')).toBeInTheDocument();
@@ -243,13 +259,16 @@ describe('BaseField onBlur', () => {
       testField: z.string().min(3, 'Too short'),
     });
 
-    render(<TestForm label="Username" defaultValue="ab" validator={validationSchema} />);
+    render(
+      <TestForm label="Username" defaultValue="ab" validator={validationSchema} submit />
+    );
 
     const input = screen.getByRole('textbox');
     expect(input).toHaveAttribute('aria-invalid', 'false');
 
     await userEvent.click(input);
     await userEvent.tab(); // blur
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
 
     await waitFor(() => {
       expect(input).toHaveAttribute('aria-invalid', 'true');

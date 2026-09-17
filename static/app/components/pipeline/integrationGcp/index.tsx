@@ -5,7 +5,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -22,6 +22,7 @@ import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import type {
   GcpVerificationInput,
@@ -137,7 +138,6 @@ const emptyGcpCustomerConfig: z.infer<typeof gcpCustomerConfigSchema> = {
 
 function GcpCustomerConfigStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<
@@ -145,50 +145,50 @@ function GcpCustomerConfigStep({
   {customerSaEmail: string; projects: string[]}
 >) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: emptyGcpCustomerConfig,
-    validators: {onDynamic: gcpCustomerConfigSchema},
-    onSubmit: ({value}) => {
-      advance({
-        customerSaEmail: value.customerSaEmail,
-        projects: value.projects,
-      });
-    },
+    validators: defaultFormValidators(gcpCustomerConfigSchema),
+    onSubmit: ({value, createValidationError}) =>
+      Promise.resolve(
+        advance({
+          customerSaEmail: value.customerSaEmail,
+          projects: value.projects.map(s => s.trim()).filter(Boolean),
+        })
+      ).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t(
             'Enter your GCP service account email and the project IDs you want to connect to Seer.'
           )}
         </Text>
-        <form.AppField name="customerSaEmail">
+        <form.Field name="customerSaEmail">
           {field => (
             <field.Layout.Stack label={t('Service Account Email')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="gcp-sentry@your-project.iam.gserviceaccount.com"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="projects">
+        </form.Field>
+        <form.Field name="projects">
           {field => (
             <field.Layout.Stack label={t('GCP Project IDs')} required>
               <field.Select
                 multiple
                 creatable
                 options={[]}
-                value={field.state.value}
+                value={field.value}
                 onChange={ids =>
                   field.handleChange(ids.map(id => id.trim()).filter(Boolean))
                 }
@@ -196,14 +196,14 @@ function GcpCustomerConfigStep({
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
             {t('Continue')}
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

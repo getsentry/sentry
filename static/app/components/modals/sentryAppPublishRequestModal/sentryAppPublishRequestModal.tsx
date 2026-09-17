@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -127,9 +127,8 @@ export function SentryAppPublishRequestModal({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsed = schema.parse(value);
       const questionnaire = QUESTIONS.map(({name, question}) => ({
@@ -141,7 +140,7 @@ export function SentryAppPublishRequestModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <h1>{t('Publish Request Questionnaire')}</h1>
       </Header>
@@ -154,7 +153,7 @@ export function SentryAppPublishRequestModal({
             )}
           </Text>
 
-          <form.AppField name="question0">
+          <form.Field name="question0">
             {field => (
               <field.Layout.Stack
                 label={t(
@@ -165,14 +164,14 @@ export function SentryAppPublishRequestModal({
                 <field.TextArea
                   autosize
                   rows={3}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="question1">
+          <form.Field name="question1">
             {field => (
               <field.Layout.Stack
                 label={tct(
@@ -186,14 +185,14 @@ export function SentryAppPublishRequestModal({
                 <field.TextArea
                   autosize
                   rows={3}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="question2">
+          <form.Field name="question2">
             {field => (
               <field.Layout.Stack
                 label={tct(
@@ -208,38 +207,38 @@ export function SentryAppPublishRequestModal({
               >
                 <field.Select
                   options={CATEGORY_OPTIONS}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="question3">
+          <form.Field name="question3">
             {field => (
               <field.Layout.Stack label={t('Link to your documentation page.')} required>
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="supportEmail">
+          <form.Field name="supportEmail">
             {field => (
               <field.Layout.Stack label={t('Email address for user support.')} required>
                 <field.Input
                   type="email"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="question4">
+          <form.Field name="question4">
             {field => (
               <field.Layout.Stack
                 label={t(
@@ -249,12 +248,12 @@ export function SentryAppPublishRequestModal({
               >
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
 
           <Alert variant="info">
             <Stack gap="lg">
@@ -286,6 +285,6 @@ export function SentryAppPublishRequestModal({
           <form.SubmitButton>{t('Request Publication')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

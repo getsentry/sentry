@@ -239,7 +239,7 @@ export default function ProjectOwnership() {
                   )}
                 >
                   <field.Select
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     disabled={disabled}
                     options={[
@@ -274,7 +274,7 @@ export default function ProjectOwnership() {
                   )}
                 >
                   <field.Switch
-                    checked={field.state.value}
+                    checked={field.value}
                     onChange={field.handleChange}
                     disabled={disabled || !(codeowners || []).length}
                   />

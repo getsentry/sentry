@@ -7,10 +7,10 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {
-  defaultFormOptions,
-  setFieldErrors,
+  defaultFormValidators,
+  ScrapsForm,
   useScrapsForm,
-  useStore,
+  useSelector,
 } from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -102,21 +102,25 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
     useQuery(orgDefaultAgentQueryOptions({organization})).data ?? 'seer';
   const stoppingPoint = useOrgDefaultStoppingPoint();
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       project: '',
       repoEntries: [] as Array<{branch: string; repoId: string}>,
       agentOption,
       stoppingPoint,
     },
-    validators: {
-      onMount: formSchema.extend({
-        project: z.string(),
-        repoEntries: z.array(repoEntrySchema),
-      }),
-      onDynamic: formSchema,
-    },
-    onSubmit: ({value, formApi}) => {
+    validators: [
+      {
+        ...defaultFormValidators(
+          formSchema.extend({
+            project: z.string(),
+            repoEntries: z.array(repoEntrySchema),
+          })
+        )[0],
+        runOnMount: true,
+      },
+      ...defaultFormValidators(formSchema),
+    ],
+    onSubmit: ({value, createValidationError}) => {
       return saveMutation
         .mutateAsync(formSchema.parse(value), {
           onSuccess: () => {
@@ -130,20 +134,25 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
           // idempotent full-replaces).
           if (error instanceof AutofixSettingsPartialSaveError) {
             // Repos already saved; only the settings write failed.
-            setFieldErrors(formApi, {
-              agentOption: {
-                message: t(
-                  'Your repositories were saved, but these settings could not be updated. Adjust and try again.'
-                ),
+            return createValidationError({
+              fields: {
+                agentOption: {
+                  message: t(
+                    'Your repositories were saved, but these settings could not be updated. Adjust and try again.'
+                  ),
+                },
+                stoppingPoint: {message: t('Could not be saved. Please try again.')},
               },
-              stoppingPoint: {message: t('Could not be saved. Please try again.')},
-            });
-          } else {
-            // The repos write failed first, so nothing was persisted.
-            setFieldErrors(formApi, {
-              repoEntries: {message: t('Could not save repositories. Please try again.')},
             });
           }
+          // The repos write failed first, so nothing was persisted.
+          return createValidationError({
+            fields: {
+              repoEntries: {
+                message: t('Could not save repositories. Please try again.'),
+              },
+            },
+          });
         });
     },
   });
@@ -153,7 +162,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
   // the display) so the user isn't left re-selecting an agent they can't use,
   // and the saved value is correct. Unresolved repos (still loading) are ignored
   // so the dropdown isn't disabled mid-fetch.
-  const repoEntries = useStore(form.store, state => state.values.repoEntries);
+  const repoEntries = useSelector(form.atom, state => state.values.repoEntries);
   const isOnlyGithubRepos = repoEntries.every(entry => {
     const providerId = repositoriesById.get(entry.repoId)?.provider.id;
     // Ignore unresolved repos (still loading) so we don't disable mid-fetch.
@@ -170,7 +179,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       <Header closeButton>
         <Heading as="h4">{title}</Heading>
       </Header>
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Body>
           <Stack gap="xl">
             <Text size="md">
@@ -187,14 +196,14 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
             <Separator orientation="horizontal" />
 
             <Grid columns="minmax(0, 1fr) max-content minmax(0, 1fr)" gap="lg">
-              <form.AppField name="project">
+              <form.Field name="project">
                 {field => (
                   <Flex minWidth={0}>
                     <Flex gap="sm" align="start" flexGrow={1} minWidth={0}>
                       <CompactSelect
                         style={{width: '100%'}}
                         trigger={triggerProps => {
-                          const project = projectsById.get(field.state.value ?? '');
+                          const project = projectsById.get(field.value ?? '');
                           return (
                             <OverlayTrigger.Button
                               {...triggerProps}
@@ -215,24 +224,24 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                         onChange={option => field.handleChange(option?.value ?? '')}
                         options={projectOptions}
                         search
-                        value={field.state.value ?? ''}
+                        value={field.value ?? ''}
                         virtualizeThreshold={50}
                       />
                       <field.Meta.Status />
                     </Flex>
                   </Flex>
                 )}
-              </form.AppField>
+              </form.Field>
 
               <Flex align="center" height="36px">
                 <IconArrow direction="right" size="md" />
               </Flex>
 
               <Stack gap="xl">
-                <form.AppField name="repoEntries" mode="array">
+                <form.ArrayField name="repoEntries">
                   {field => (
                     <Fragment>
-                      {field.state.value.map((_, i) => (
+                      {field.value.map((_, i) => (
                         <Flex
                           key={`repoEntries[${i}]`}
                           gap="sm"
@@ -245,9 +254,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                                 <CompactSelect
                                   style={{width: '100%'}}
                                   trigger={triggerProps => {
-                                    const repo = repositoriesById.get(
-                                      subField.state.value
-                                    );
+                                    const repo = repositoriesById.get(subField.value);
                                     return (
                                       <OverlayTrigger.Button
                                         {...triggerProps}
@@ -274,7 +281,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                                   onChange={option => subField.handleChange(option.value)}
                                   options={repositoryOptions.data ?? []}
                                   search
-                                  value={subField.state.value}
+                                  value={subField.value}
                                   virtualizeThreshold={50}
                                 />
                               )}
@@ -289,7 +296,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                                   <InputGroup.Input
                                     size="sm"
                                     placeholder={t('Select Branch (optional)')}
-                                    value={subField.state.value ?? ''}
+                                    value={subField.value ?? ''}
                                     onChange={e => subField.handleChange(e.target.value)}
                                   />
                                 </InputGroup>
@@ -306,7 +313,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                         </Flex>
                       ))}
                       <Flex gap="sm" align="center" minWidth={0}>
-                        {field.state.value.every(entry => entry.repoId !== '') && (
+                        {field.value.every(entry => entry.repoId !== '') && (
                           <CompactSelect
                             style={{width: '100%'}}
                             trigger={triggerProps => (
@@ -333,11 +340,13 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                             virtualizeThreshold={50}
                           />
                         )}
-                        <field.Meta.Status />
+                        <form.Field name="repoEntries">
+                          {repoEntriesField => <repoEntriesField.Meta.Status />}
+                        </form.Field>
                       </Flex>
                     </Fragment>
                   )}
-                </form.AppField>
+                </form.ArrayField>
               </Stack>
             </Grid>
 
@@ -347,7 +356,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
               {!isOnlyGithubRepos && (
                 <Alert variant="info">{NON_GITHUB_HANDOFF_WARNING}</Alert>
               )}
-              <form.AppField name="agentOption">
+              <form.Field name="agentOption">
                 {field => (
                   <field.Layout.Row
                     label={t('Handoff to Agent')}
@@ -363,19 +372,19 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                     )}
                   >
                     <field.Select
-                      value={isOnlyGithubRepos ? field.state.value : 'seer'}
+                      value={isOnlyGithubRepos ? field.value : 'seer'}
                       onChange={field.handleChange}
                       options={agentOptions}
                       disabled={!isOnlyGithubRepos}
                     />
                   </field.Layout.Row>
                 )}
-              </form.AppField>
+              </form.Field>
             </Stack>
 
             <Separator orientation="horizontal" />
 
-            <form.AppField name="stoppingPoint">
+            <form.Field name="stoppingPoint">
               {field => (
                 <field.Layout.Row
                   label={t('Automation Steps')}
@@ -384,13 +393,13 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                   )}
                 >
                   <field.Select
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     options={stoppingPointOptions}
                   />
                 </field.Layout.Row>
               )}
-            </form.AppField>
+            </form.Field>
           </Stack>
         </Body>
         <Footer>
@@ -399,7 +408,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
             <form.SubmitButton>{t('Save Project')}</form.SubmitButton>
           </Flex>
         </Footer>
-      </form.AppForm>
+      </ScrapsForm>
     </Fragment>
   );
 }

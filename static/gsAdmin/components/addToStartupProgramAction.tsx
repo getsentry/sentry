@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -74,15 +74,6 @@ function AddToStartupProgramModal({
       onSuccess();
       closeModal();
     },
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      addErrorMessage('Unable to add customer to startup program.');
-    },
   });
 
   const defaultValues: z.input<typeof schema> = {
@@ -92,10 +83,9 @@ function AddToStartupProgramModal({
     customNotes: '',
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) => {
       const parsed = schema.parse(value);
       return mutation
         .mutateAsync({
@@ -103,12 +93,21 @@ function AddToStartupProgramModal({
           ticketUrl: parsed.ticketUrl,
           notes: parsed.notes === 'other' ? parsed.customNotes : parsed.notes,
         })
-        .catch(() => {});
+        .catch(error => {
+          if (error instanceof RequestError) {
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
+            }
+          }
+          addErrorMessage('Unable to add customer to startup program.');
+          return;
+        });
     },
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <Heading as="h2">Add to Startup Program</Heading>
       </Header>
@@ -118,7 +117,7 @@ function AddToStartupProgramModal({
             <Text bold>Current Balance: </Text>
             {formatBalance(subscription.accountBalance)}
           </Text>
-          <form.AppField name="creditAmount">
+          <form.Field name="creditAmount">
             {field => (
               <field.Layout.Stack
                 label="Credit Amount"
@@ -126,52 +125,52 @@ function AddToStartupProgramModal({
                 required
               >
                 <field.Number
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="ticketUrl">
+          </form.Field>
+          <form.Field name="ticketUrl">
             {field => (
               <field.Layout.Stack label="Ticket URL">
                 <field.Input
                   type="url"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="notes">
+          </form.Field>
+          <form.Field name="notes">
             {field => (
               <field.Layout.Stack label="Notes">
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={STARTUP_PROGRAM_OPTIONS}
                   disabled={mutation.isPending}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           <form.Subscribe selector={state => state.values.notes}>
             {notes =>
               notes === 'other' ? (
-                <form.AppField name="customNotes">
+                <form.Field name="customNotes">
                   {field => (
                     <field.Layout.Stack label="Custom Notes">
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         maxLength={500}
                         disabled={mutation.isPending}
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               ) : null
             }
           </form.Subscribe>
@@ -183,7 +182,7 @@ function AddToStartupProgramModal({
           <form.SubmitButton>Submit</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

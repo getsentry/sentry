@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -70,9 +70,8 @@ export function RelocationUnpauseModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {untilStep: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const payload: {untilStep?: string} = {};
       if (value.untilStep && value.untilStep !== 'NONE') {
@@ -83,27 +82,27 @@ export function RelocationUnpauseModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>Unpause Relocation</Header>
       <Body>
-        <form.AppField name="untilStep">
+        <form.Field name="untilStep">
           {field => (
             <field.Layout.Stack
               label="Until"
               hintText="Optionally select another future step to pause at:"
             >
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 options={options}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </Body>
       <Footer>
         <form.SubmitButton>Unpause</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

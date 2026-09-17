@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -57,27 +57,27 @@ function ChangeDatesModal({
       onSuccess();
       closeModal();
     },
-    onError: error => {
-      if (
-        error instanceof RequestError &&
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
-      ) {
-        return;
-      }
-      addErrorMessage('Unable to update subscription dates.');
-    },
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       onDemandPeriodStart: subscription.onDemandPeriodStart ?? '',
       onDemandPeriodEnd: subscription.onDemandPeriodEnd ?? '',
       contractPeriodStart: subscription.billingPeriodStart ?? '',
       contractPeriodEnd: subscription.billingPeriodEnd ?? '',
     },
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) =>
+      mutation.mutateAsync(value).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
+        }
+        addErrorMessage('Unable to update subscription dates.');
+        return;
+      }),
   });
 
   const dateFields = [
@@ -104,7 +104,7 @@ function ChangeDatesModal({
   ];
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h2">Change Contract and Current On-Demand Period Dates</Heading>
       </Header>
@@ -121,18 +121,18 @@ function ChangeDatesModal({
             Immediately" action.
           </Text>
           {dateFields.map(({name, label, hintText}) => (
-            <form.AppField key={name} name={name}>
+            <form.Field key={name} name={name}>
               {field => (
                 <field.Layout.Stack label={label} hintText={hintText}>
                   <field.Input
                     type="date"
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     disabled={mutation.isPending}
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           ))}
         </Stack>
       </Body>
@@ -142,7 +142,7 @@ function ChangeDatesModal({
           <form.SubmitButton>Submit</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

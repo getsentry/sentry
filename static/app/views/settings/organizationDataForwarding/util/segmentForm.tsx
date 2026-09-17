@@ -1,7 +1,13 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm, withFieldGroup} from '@sentry/scraps/form';
+import {
+  defaultFormValidators,
+  defineAppFieldGroup,
+  FieldGroup,
+  ScrapsForm,
+  useScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {IconDelete} from 'sentry/icons';
@@ -42,12 +48,20 @@ function buildSegmentConfig(
 /**
  * Reusable field group for Segment-specific configuration fields.
  */
-const SegmentConfigFields = withFieldGroup({
-  defaultValues: segmentDefaults,
-  props: {disabled: false},
-  render: ({group, disabled}) => (
-    <group.FieldGroup title={t('Global Configuration')}>
-      <group.AppField name="write_key">
+const segmentConfigFieldGroup = defineAppFieldGroup(({strict}) => ({
+  write_key: strict<string>(),
+}));
+
+function SegmentConfigFieldsImpl({
+  fields,
+  disabled,
+}: {
+  disabled: boolean;
+  fields: typeof segmentConfigFieldGroup.fields;
+}) {
+  return (
+    <FieldGroup title={t('Global Configuration')}>
+      <fields.Field name="write_key">
         {field => (
           <field.Layout.Row
             label={t('Write Key')}
@@ -57,17 +71,22 @@ const SegmentConfigFields = withFieldGroup({
             required
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder="e.g. itA5bLOPNxccvZ9ON1NYg9EXAMPLEKEY"
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-    </group.FieldGroup>
-  ),
-});
+      </fields.Field>
+    </FieldGroup>
+  );
+}
+
+const SegmentConfigFields = segmentConfigFieldGroup.bindComponent(
+  SegmentConfigFieldsImpl,
+  'fields'
+);
 
 export function SegmentSetupForm({
   projects,
@@ -79,9 +98,8 @@ export function SegmentSetupForm({
   projects: Project[];
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {...baseFormSetupDefaults, ...segmentDefaults},
-    validators: {onDynamic: segmentSchema},
+    validators: defaultFormValidators(segmentSchema),
     onSubmit: ({value}) => {
       const {
         is_enabled: _is_enabled,
@@ -102,7 +120,7 @@ export function SegmentSetupForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <EnablementFields
         form={form}
         fields={{is_enabled: 'is_enabled'}}
@@ -126,7 +144,7 @@ export function SegmentSetupForm({
       <Flex justify="end" padding="lg">
         <form.SubmitButton disabled={disabled}>{t('Complete Setup')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -142,13 +160,12 @@ export function SegmentEditForm({
   projects: Project[];
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       ...baseFormEditDefaults(dataForwarder),
       ...segmentDefaults,
       ...dataForwarder.config,
     },
-    validators: {onDynamic: segmentSchema},
+    validators: defaultFormValidators(segmentSchema),
     onSubmit: ({value}) => {
       const {is_enabled, enroll_new_projects, project_ids, ...configFields} = value;
       onSubmit({
@@ -164,7 +181,7 @@ export function SegmentEditForm({
   const projectOptions = buildProjectOptions(projects);
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <EnablementFields
         form={form}
         fields={{is_enabled: 'is_enabled'}}
@@ -193,6 +210,6 @@ export function SegmentEditForm({
         </DataForwarderDeleteConfirm>
         <form.SubmitButton disabled={disabled}>{t('Update Forwarder')}</form.SubmitButton>
       </Flex>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

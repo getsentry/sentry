@@ -1,7 +1,6 @@
-import {useEffect} from 'react';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -13,6 +12,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {DATADOG_SITES, DATADOG_SITE_VALUES} from 'sentry/utils/seer/datadogSites';
 
@@ -39,7 +39,6 @@ const credentialsSchema = z.object({
 
 function DatadogCredentialsStep({
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<
@@ -47,29 +46,29 @@ function DatadogCredentialsStep({
   {apiKey: string; appKey: string; site: string}
 >) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {apiKey: '', appKey: '', site: ''},
-    validators: {onDynamic: credentialsSchema},
-    onSubmit: ({value}) => {
-      advance({apiKey: value.apiKey, appKey: value.appKey, site: value.site});
-    },
+    validators: defaultFormValidators(credentialsSchema),
+    onSubmit: ({value, createValidationError}) =>
+      advance({apiKey: value.apiKey, appKey: value.appKey, site: value.site}).catch(
+        error => {
+          if (error instanceof RequestError) {
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
+          }
+          throw error;
+        }
+      ),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {t(
             'Enter an organization-level Datadog API key and application key so Seer can access your Datadog telemetry.'
           )}
         </Text>
-        <form.AppField name="site">
+        <form.Field name="site">
           {field => (
             <field.Layout.Stack
               label={t('Datadog Site')}
@@ -79,19 +78,19 @@ function DatadogCredentialsStep({
               required
             >
               <field.Select
-                value={field.state.value}
+                value={field.value}
                 onChange={value => field.handleChange(value)}
                 placeholder={t('Select your Datadog site')}
                 options={DATADOG_SITES}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         <form.Subscribe selector={state => state.values.site}>
           {site => {
             return (
               <Stack gap="lg">
-                <form.AppField name="apiKey">
+                <form.Field name="apiKey">
                   {field => (
                     <field.Layout.Stack
                       label={t('API Key')}
@@ -108,14 +107,14 @@ function DatadogCredentialsStep({
                       required
                     >
                       <field.Password
-                        value={field.state.value}
+                        value={field.value}
                         onChange={value => field.handleChange(value.trim())}
                         placeholder="********************************"
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
-                <form.AppField name="appKey">
+                </form.Field>
+                <form.Field name="appKey">
                   {field => (
                     <field.Layout.Stack
                       label={t('Application Key')}
@@ -132,13 +131,13 @@ function DatadogCredentialsStep({
                       required
                     >
                       <field.Password
-                        value={field.state.value}
+                        value={field.value}
                         onChange={value => field.handleChange(value.trim())}
                         placeholder="****************************************"
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               </Stack>
             );
           }}
@@ -149,7 +148,7 @@ function DatadogCredentialsStep({
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

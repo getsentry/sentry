@@ -4,10 +4,11 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {
+  defaultFormValidators,
   AutoSaveForm,
-  defaultFormOptions,
   FieldGroup,
   FormSearch,
+  ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -122,7 +123,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
                 aria-label={t(
@@ -152,7 +153,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -181,7 +182,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -210,7 +211,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -233,7 +234,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
                 )}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={!hasOrgWrite}
                   options={getStoreCrashReportsValues(SettingScope.ORGANIZATION).map(
@@ -268,7 +269,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
                 hintText={t('Allow users to request to join your organization')}
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={!hasOrgWrite}
                   aria-label={t(
@@ -303,7 +304,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
                 aria-label={t('Enable server-side data scrubbing')}
@@ -333,7 +334,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
                 aria-label={t(
@@ -365,7 +366,7 @@ export default function OrganizationSecurityAndPrivacyContent() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
                 aria-label={t(
@@ -402,13 +403,12 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
   const orgMutation = useMutation(getOrgMutationOptions(organization));
 
   const scrubbingConfiguration = useScrapsForm({
-    ...defaultFormOptions,
     formId: 'organization-settings-security-and-privacy',
     defaultValues: {
       sensitiveFields: initialSensitiveFields,
       safeFields: initialSafeFields,
     },
-    validators: {onDynamic: dataScrubMultilineSchema},
+    validators: defaultFormValidators(dataScrubMultilineSchema),
     onSubmit: ({value}) =>
       orgMutation
         .mutateAsync({
@@ -426,9 +426,9 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
 
   return (
     <FormSearch route="/settings/:orgId/security-and-privacy/">
-      <scrubbingConfiguration.AppForm form={scrubbingConfiguration}>
+      <ScrapsForm form={scrubbingConfiguration}>
         <FieldGroup title={t('Scrubbing Configuration')}>
-          <scrubbingConfiguration.AppField name="sensitiveFields">
+          <scrubbingConfiguration.Field name="sensitiveFields">
             {field => (
               <field.Layout.Row
                 label={t('Global Sensitive Fields')}
@@ -437,7 +437,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
                 )}
               >
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. email"
                   disabled={!hasOrgWrite}
@@ -445,9 +445,9 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
                 />
               </field.Layout.Row>
             )}
-          </scrubbingConfiguration.AppField>
+          </scrubbingConfiguration.Field>
 
-          <scrubbingConfiguration.AppField name="safeFields">
+          <scrubbingConfiguration.Field name="safeFields">
             {field => (
               <field.Layout.Row
                 label={t('Global Safe Fields')}
@@ -456,7 +456,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
                 )}
               >
                 <field.TextArea
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('e.g. business-email')}
                   disabled={!hasOrgWrite}
@@ -464,7 +464,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
                 />
               </field.Layout.Row>
             )}
-          </scrubbingConfiguration.AppField>
+          </scrubbingConfiguration.Field>
           {hasOrgWrite ? (
             <Flex gap="md" align="center" padding="sm">
               <scrubbingConfiguration.Subscribe
@@ -498,7 +498,7 @@ function ScrubbingConfigurationFieldGroup({hasOrgWrite}: {hasOrgWrite: boolean})
             </Flex>
           ) : null}
         </FieldGroup>
-      </scrubbingConfiguration.AppForm>
+      </ScrapsForm>
     </FormSearch>
   );
 }

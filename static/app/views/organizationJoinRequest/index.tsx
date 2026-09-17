@@ -3,7 +3,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -48,9 +48,8 @@ export default function OrganizationJoinRequest() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {email: ''},
-    validators: {onDynamic: joinRequestSchema},
+    validators: defaultFormValidators(joinRequestSchema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
@@ -96,20 +95,20 @@ export default function OrganizationJoinRequest() {
             })}
           </Text>
         </Stack>
-        <form.AppForm form={form}>
+        <ScrapsForm form={form}>
           <Stack gap="xl">
-            <form.AppField name="email">
+            <form.Field name="email">
               {field => (
                 <field.Layout.Stack label={t('Email Address')} required>
                   <field.Input
                     type="email"
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder="name@example.com"
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
             <Container borderTop="secondary" paddingTop="xl" paddingBottom="xl">
               <Flex gap="md" justify="end">
                 <Button onClick={handleCancel}>{t('Cancel')}</Button>
@@ -117,7 +116,7 @@ export default function OrganizationJoinRequest() {
               </Flex>
             </Container>
           </Stack>
-        </form.AppForm>
+        </ScrapsForm>
       </Stack>
     </NarrowLayout>
   );

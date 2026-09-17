@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -68,13 +68,12 @@ export function SeerAdminPage() {
     dryRun: false,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: formSchema},
-    onSubmit: ({value}) =>
+    validators: defaultFormValidators(formSchema),
+    onSubmit: ({value, formApi}) =>
       mutation
         .mutateAsync(formSchema.parse(value))
-        .then(() => form.setFieldValue('organizationId', null))
+        .then(() => formApi.setFieldValue('organizationId', null))
         .catch(() => {}),
   });
 
@@ -88,7 +87,7 @@ export function SeerAdminPage() {
         </Text>
 
         <Container width={{'screen:xs': '100%', 'screen:md': '50%'}}>
-          <form.AppForm form={form}>
+          <ScrapsForm form={form}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
               <Stack gap="lg" align="stretch">
                 <Heading as="h3">Trigger Night Shift Run</Heading>
@@ -106,11 +105,11 @@ export function SeerAdminPage() {
                     don't fire repeatedly.
                   </Alert>
                 </Alert.Container>
-                <form.AppField name="locality">
+                <form.Field name="locality">
                   {field => (
                     <field.Layout.Stack label="Region" required>
                       <field.Select
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         options={localities.map((locality: Region) => ({
                           label: locality.name,
@@ -119,47 +118,44 @@ export function SeerAdminPage() {
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
-                <form.AppField name="organizationId">
+                </form.Field>
+                <form.Field name="organizationId">
                   {field => (
                     <field.Layout.Stack label="Organization ID (blank = all orgs)">
                       <field.Number
                         min={1}
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="Leave blank to trigger every eligible org"
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
-                <form.AppField name="maxCandidates">
+                </form.Field>
+                <form.Field name="maxCandidates">
                   {field => (
                     <field.Layout.Stack label="Max candidates (optional)">
                       <field.Number
                         min={1}
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder="Leave blank to use default"
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
-                <form.AppField name="dryRun">
+                </form.Field>
+                <form.Field name="dryRun">
                   {field => (
                     <field.Layout.Stack label="Dry run (triage only, no autofix triggered)">
-                      <field.Switch
-                        checked={field.state.value}
-                        onChange={field.handleChange}
-                      />
+                      <field.Switch checked={field.value} onChange={field.handleChange} />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
                 <Flex justify="end">
                   <form.SubmitButton>Trigger Night Shift</form.SubmitButton>
                 </Flex>
               </Stack>
             </Container>
-          </form.AppForm>
+          </ScrapsForm>
         </Container>
       </Stack>
     </div>

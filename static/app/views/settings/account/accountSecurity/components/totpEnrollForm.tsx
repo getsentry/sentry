@@ -1,8 +1,9 @@
 import {z} from 'zod';
 
 import {
-  defaultFormOptions,
+  defaultFormValidators,
   FieldGroup as FormPanel,
+  ScrapsForm,
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -32,13 +33,12 @@ export function TotpEnrollForm({
   const {mutateAsync: enrollAuthenticator} = useEnrollAuthenticator(authenticator.id);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {otp: getServerFieldDefault(authenticator.form, 'otp')},
-    validators: {
-      onDynamic: z.object({
+    validators: defaultFormValidators(
+      z.object({
         otp: z.string().min(1, t('Authenticator token is required')).max(OTP_MAX_LENGTH),
-      }),
-    },
+      })
+    ),
     onSubmit: async ({value}) => {
       if (!authenticator.secret) {
         return;
@@ -61,7 +61,7 @@ export function TotpEnrollForm({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FormPanel title={t('Configuration')}>
         <Flex justify="center">
           <QuietZoneQRCode
@@ -78,26 +78,26 @@ export function TotpEnrollForm({
           <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
         </Stack>
 
-        <form.AppField name="otp">
+        <form.Field name="otp">
           {field => (
             <field.Layout.Row
               label={getServerFieldLabel(authenticator.form, 'otp')}
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 autoComplete="off"
                 maxLength={OTP_MAX_LENGTH}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
 
         <Flex justify="end">
           <form.SubmitButton>{t('Confirm')}</form.SubmitButton>
         </Flex>
       </FormPanel>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

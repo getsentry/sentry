@@ -2,7 +2,7 @@ import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {
   Container,
   Flex,
@@ -14,6 +14,7 @@ import {
 
 interface LayoutProps {
   children: React.ReactNode;
+  field: AnyFieldApi;
   label: React.ReactNode;
   hintText?: React.ReactNode;
   required?: boolean;
@@ -33,11 +34,9 @@ function RowLayout(props: RowLayoutProps) {
 
 function RowLayoutContent(props: RowLayoutProps) {
   const isCompact = props.variant === 'compact';
-  const field = useFieldContext();
-
   return (
     <HighlightableFlex
-      id={field.name}
+      id={props.field.name}
       direction="row"
       gap="xl"
       align="center"
@@ -66,10 +65,9 @@ function RowLayoutContent(props: RowLayoutProps) {
 
 function StackLayout(props: LayoutProps) {
   const isCompact = props.variant === 'compact';
-  const field = useFieldContext();
 
   return (
-    <HighlightableFlex id={field.name} direction="column" gap="md" flexGrow={1}>
+    <HighlightableFlex id={props.field.name} direction="column" gap="md" flexGrow={1}>
       <Flex gap="xs" align="center">
         <FieldMeta.Label
           required={props.required}
@@ -90,8 +88,8 @@ export function FieldLayout() {
   return null;
 }
 
-FieldLayout.Row = RowLayout;
-FieldLayout.Stack = StackLayout;
+FieldLayout.Row = fieldComponent.loose(RowLayout, 'field');
+FieldLayout.Stack = fieldComponent.loose(StackLayout, 'field');
 
 const highlightFade = keyframes`
   0% {

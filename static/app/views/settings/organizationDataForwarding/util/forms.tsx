@@ -1,6 +1,6 @@
 import {z} from 'zod';
 
-import {withFieldGroup} from '@sentry/scraps/form';
+import {defineAppFieldGroup, FieldGroup} from '@sentry/scraps/form';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -91,17 +91,27 @@ export const dataForwarderOverrideSchema = z.object({
 
 /**
  * Reusable field group for the enablement toggle. Shared across all provider setup and
- * edit forms via the TanStack withFieldGroup composition pattern.
+ * edit forms via the TanStack field-group composition pattern.
  *
  * In setup mode (isSetup=true) the switch is locked because forwarding activates after
  * initial configuration is complete.
  */
-export const EnablementFields = withFieldGroup({
-  defaultValues: {is_enabled: false},
-  props: {disabled: false, isSetup: false},
-  render: ({group, disabled, isSetup}) => (
-    <group.FieldGroup title={t('Enablement')}>
-      <group.AppField name="is_enabled">
+const enablementFieldGroup = defineAppFieldGroup(({strict}) => ({
+  is_enabled: strict<boolean>(),
+}));
+
+function EnablementFieldsImpl({
+  fields,
+  disabled,
+  isSetup,
+}: {
+  disabled: boolean;
+  fields: typeof enablementFieldGroup.fields;
+  isSetup: boolean;
+}) {
+  return (
+    <FieldGroup title={t('Enablement')}>
+      <fields.Field name="is_enabled">
         {field => (
           <field.Layout.Row
             label={t('Enable data forwarding')}
@@ -112,41 +122,57 @@ export const EnablementFields = withFieldGroup({
             }
           >
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={isSetup || disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-    </group.FieldGroup>
-  ),
-});
+      </fields.Field>
+    </FieldGroup>
+  );
+}
+
+export const EnablementFields = enablementFieldGroup.bindComponent(
+  EnablementFieldsImpl,
+  'fields'
+);
 
 /**
  * Reusable field group for project enrollment configuration. Shared across all provider
- * setup and edit forms via the TanStack withFieldGroup composition pattern.
+ * setup and edit forms via the TanStack field-group composition pattern.
  */
-export const ProjectConfigFields = withFieldGroup({
-  defaultValues: {enroll_new_projects: false, project_ids: [] as string[]},
-  props: {disabled: false, projectOptions: [] as Array<SelectValue<string>>},
-  render: ({group, disabled, projectOptions}) => (
-    <group.FieldGroup title={t('Project Configuration')}>
-      <group.AppField name="enroll_new_projects">
+const projectConfigFieldGroup = defineAppFieldGroup(({strict}) => ({
+  enroll_new_projects: strict<boolean>(),
+  project_ids: strict<string[]>(),
+}));
+
+function ProjectConfigFieldsImpl({
+  fields,
+  disabled,
+  projectOptions,
+}: {
+  disabled: boolean;
+  fields: typeof projectConfigFieldGroup.fields;
+  projectOptions: Array<SelectValue<string>>;
+}) {
+  return (
+    <FieldGroup title={t('Project Configuration')}>
+      <fields.Field name="enroll_new_projects">
         {field => (
           <field.Layout.Row
             label={t('Auto-enroll new projects')}
             hintText={t('Should new projects automatically forward their data?')}
           >
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-      <group.AppField name="project_ids">
+      </fields.Field>
+      <fields.Field name="project_ids">
         {field => (
           <field.Layout.Row
             label={t('Forwarding projects')}
@@ -154,14 +180,19 @@ export const ProjectConfigFields = withFieldGroup({
           >
             <field.Select
               multiple
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               options={projectOptions}
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </group.AppField>
-    </group.FieldGroup>
-  ),
-});
+      </fields.Field>
+    </FieldGroup>
+  );
+}
+
+export const ProjectConfigFields = projectConfigFieldGroup.bindComponent(
+  ProjectConfigFieldsImpl,
+  'fields'
+);

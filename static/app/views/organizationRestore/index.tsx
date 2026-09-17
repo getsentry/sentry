@@ -1,7 +1,7 @@
 import {Navigate} from 'react-router-dom';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -112,14 +112,13 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {cancelDeletion: 1},
     onSubmit: ({value}) => restoreOrganization(value).catch(() => {}),
   });
 
   return (
     <Stack gap="xl">
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Stack gap="xl" align="start">
           <Text as="p">
             {tct('The [name] organization is currently scheduled for deletion.', {
@@ -141,7 +140,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
             <form.SubmitButton>{t('Restore Organization')}</form.SubmitButton>
           </Flex>
         </Stack>
-      </form.AppForm>
+      </ScrapsForm>
       <Text as="p">
         {t(
           'Note: Restoration is available until deletion has started. Once it begins, there is no recovering the data that has been removed.'

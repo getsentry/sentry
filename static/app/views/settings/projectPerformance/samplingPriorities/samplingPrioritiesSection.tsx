@@ -40,7 +40,7 @@ export function SamplingPrioritiesSection({
             {field => (
               <field.Layout.Row label={priority.label} hintText={priority.hintText}>
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={!hasWriteAccess || isUpdatingSamplingPriority}
                 />

@@ -100,7 +100,7 @@ export function StoreCrashReportsConfig({
           )}
         >
           <field.Select
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             disabled={!hasAccess}
             options={values.map(value => ({

@@ -1,7 +1,7 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -65,9 +65,8 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       const parsedValue = schema.parse(value);
       return onSubmit({
@@ -90,7 +89,7 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         {isEditing
           ? tct('Update [name] Repository', {name: DEBUG_SOURCE_TYPES.http})
@@ -98,7 +97,7 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack
                 label={t('Name')}
@@ -106,14 +105,14 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder={t('New Repository')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="url">
+          </form.Field>
+          <form.Field name="url">
             {field => (
               <field.Layout.Stack
                 label={t('Download Url')}
@@ -121,31 +120,31 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
                 required
               >
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="https://msdl.microsoft.com/download/symbols/"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="username">
+          </form.Field>
+          <form.Field name="username">
             {field => (
               <field.Layout.Stack
                 label={t('User')}
                 hintText={t('User for HTTP basic auth')}
               >
                 <field.Input
-                  value={field.state.value ?? ''}
+                  value={field.value ?? ''}
                   onChange={field.handleChange}
                   placeholder="admin"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="password">
+          </form.Field>
+          <form.Field name="password">
             {field => {
-              const isUnchanged = field.state.value === undefined;
-              const showClearButton = isUnchanged || !!field.state.value;
+              const isUnchanged = field.value === undefined;
+              const showClearButton = isUnchanged || !!field.value;
               return (
                 <field.Layout.Stack
                   label={t('Password')}
@@ -154,7 +153,7 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
                   <field.Input
                     type={isUnchanged ? 'text' : 'password'}
                     placeholder={isUnchanged ? t('(Password unchanged)') : 'open-sesame'}
-                    value={field.state.value ?? ''}
+                    value={field.value ?? ''}
                     onChange={field.handleChange}
                     trailingItems={
                       showClearButton ? (
@@ -171,40 +170,40 @@ export function Http({Header, Body, Footer, onSubmit, initialData}: Props) {
                 </field.Layout.Stack>
               );
             }}
-          </form.AppField>
-          <form.AppField name="layoutType">
+          </form.Field>
+          <form.Field name="layoutType">
             {field => (
               <field.Layout.Stack
                 label={t('Directory Layout')}
                 hintText={t('The layout of the folder structure.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={LAYOUT_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="layoutCasing">
+          </form.Field>
+          <form.Field name="layoutCasing">
             {field => (
               <field.Layout.Stack
                 label={t('Path Casing')}
                 hintText={t('The case of files and folders.')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={CASING_OPTIONS}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
         <form.SubmitButton>{t('Save changes')}</form.SubmitButton>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

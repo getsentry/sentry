@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -63,9 +63,8 @@ export function DataRequests() {
     : null;
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {orgSlug, email},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       setSearchParams(schema.parse(value), {history: 'push'});
     },
@@ -155,7 +154,7 @@ export function DataRequests() {
         </Alert>
       </Alert.Container>
 
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Panel>
           <Flex
             align="center"
@@ -170,21 +169,21 @@ export function DataRequests() {
           </Flex>
           <Container padding="xl">
             <Stack gap="xl">
-              <form.AppField name="orgSlug">
+              <form.Field name="orgSlug">
                 {field => (
                   <field.Layout.Stack
                     label="Organization Slug"
                     hintText="If a specific customer submitted a request (on behalf of one of their users), enter the organization slug."
                   >
                     <field.Input
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       placeholder="orgSlug"
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
-              <form.AppField name="email">
+              </form.Field>
+              <form.Field name="email">
                 {field => (
                   <field.Layout.Stack
                     label="Email Address"
@@ -193,20 +192,20 @@ export function DataRequests() {
                   >
                     <field.Input
                       type="email"
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       placeholder="user@email.com"
                     />
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
             </Stack>
           </Container>
           <Flex justify="end" padding="xl" borderTop="primary">
             <form.SubmitButton>Search</form.SubmitButton>
           </Flex>
         </Panel>
-      </form.AppForm>
+      </ScrapsForm>
 
       {isLoading ? <LoadingIndicator>Searching...</LoadingIndicator> : renderResults()}
     </Fragment>

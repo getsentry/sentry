@@ -3,7 +3,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -108,9 +108,8 @@ export default function ApiNewToken() {
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {name: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       addLoadingMessage();
       return mutation.mutateAsync(value).catch(() => {});
@@ -142,18 +141,18 @@ export default function ApiNewToken() {
             </Stack>
           }
         />
-        <form.AppForm form={form}>
+        <ScrapsForm form={form}>
           <form.FieldGroup title={t('General')}>
-            <form.AppField name="name">
+            <form.Field name="name">
               {field => (
                 <field.Layout.Row
                   label={t('Name')}
                   hintText={t('A name to help you identify this token.')}
                 >
-                  <field.Input value={field.state.value} onChange={field.handleChange} />
+                  <field.Input value={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
-            </form.AppField>
+            </form.Field>
           </form.FieldGroup>
           <Panel>
             <PanelHeader>{t('Permissions')}</PanelHeader>
@@ -181,7 +180,7 @@ export default function ApiNewToken() {
               {t('Create Token')}
             </form.SubmitButton>
           </Flex>
-        </form.AppForm>
+        </ScrapsForm>
       </div>
     </SentryDocumentTitle>
   );
