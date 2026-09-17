@@ -281,7 +281,8 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
     const combinedTags: TagCollection =
       dataset === DiscoverDatasets.ERRORS
         ? Object.assign({}, functionTags, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
-        : dataset === DiscoverDatasets.TRANSACTIONS
+        : dataset === DiscoverDatasets.TRANSACTIONS ||
+            dataset === DiscoverDatasets.METRICS_ENHANCED
           ? Object.assign(
               {},
               measurementsWithKind,
@@ -338,7 +339,10 @@ export function useResultsSearchBarDataProvider(props: DataProviderProps): Searc
       ...(includeFeatureFlags && featureFlagTags ? [featureFlagsSection] : []),
     ];
 
-    if (dataset === DiscoverDatasets.TRANSACTIONS) {
+    if (
+      dataset === DiscoverDatasets.TRANSACTIONS ||
+      dataset === DiscoverDatasets.METRICS_ENHANCED
+    ) {
       return [...ALL_INSIGHTS_FILTER_KEY_SECTIONS, ...tagsAndFlagsSections];
     }
 
