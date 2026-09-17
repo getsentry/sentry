@@ -14,32 +14,54 @@ BATCH_SIZE = 1000
 def delete_malformed_anomaly_conditions(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    AlertRuleTrigger = apps.get_model("sentry", "AlertRuleTrigger")
     DataCondition = apps.get_model("workflow_engine", "DataCondition")
-    anomaly_conditions = DataCondition.objects.filter(type="anomaly_detection", comparison=0.0)
-    anomaly_condition_group_ids = anomaly_conditions.values_list("condition_group_id", flat=True)
-    conditions = (
-        DataCondition.objects.filter(condition_group_id__in=anomaly_condition_group_ids)
-        .exclude(type="anomaly_detection")
-        .values_list("id", flat=True)
+    DataConditionAlertRuleTrigger = apps.get_model(
+        "workflow_engine", "DataConditionAlertRuleTrigger"
     )
+    anomaly_condition_ids = DataCondition.objects.filter(
+        type="anomaly_detection", comparison=0.0
+    ).values_list("id", flat=True)
 
     for condition_ids in chunked(
         RangeQuerySetWrapper(
-            conditions,
+            anomaly_condition_ids,
             step=BATCH_SIZE,
             result_value_getter=lambda condition_id: condition_id,
         ),
         BATCH_SIZE,
     ):
-        DataCondition.objects.filter(id__in=condition_ids).delete()
+        condition_ids_by_trigger_id = dict(
+            DataConditionAlertRuleTrigger.objects.filter(
+                data_condition_id__in=condition_ids,
+                alert_rule_trigger_id__isnull=False,
+            ).values_list("alert_rule_trigger_id", "data_condition_id")
+        )
+        triggers = AlertRuleTrigger.objects.filter(
+            id__in=condition_ids_by_trigger_id
+        ).select_related("alert_rule")
 
-    anomaly_conditions.update(
-        comparison={
-            "seasonality": "auto",
-            "sensitivity": "low",
-            "threshold_type": 2,
-        }
-    )
+        for trigger in triggers:
+            alert_rule = trigger.alert_rule
+            if (
+                alert_rule.sensitivity is None
+                or alert_rule.seasonality is None
+                or alert_rule.threshold_type is None
+            ):
+                continue
+
+            condition_id = condition_ids_by_trigger_id[trigger.id]
+            condition = DataCondition.objects.get(id=condition_id)
+            DataCondition.objects.filter(condition_group_id=condition.condition_group_id).exclude(
+                type="anomaly_detection"
+            ).delete()
+            DataCondition.objects.filter(id=condition_id).update(
+                comparison={
+                    "seasonality": alert_rule.seasonality,
+                    "sensitivity": alert_rule.sensitivity,
+                    "threshold_type": alert_rule.threshold_type,
+                }
+            )
 
 
 class Migration(CheckedMigration):
@@ -53,6 +75,13 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             delete_malformed_anomaly_conditions,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["workflow_engine_datacondition"]},
+            hints={
+                "tables": [
+                    "sentry_alertrule",
+                    "sentry_alertruletrigger",
+                    "workflow_engine_datacondition",
+                    "workflow_engine_dataconditionalertruletrigger",
+                ]
+            },
         ),
     ]
