@@ -37,7 +37,7 @@ describe('AddIntegrationRow', () => {
   it('renders', async () => {
     render(getComponent(), {organization: org});
 
-    const button = await screen.findByRole('button', {name: /add integration/i});
+    const button = await screen.findByRole('button', {name: 'Add Installation'});
     expect(button).toBeInTheDocument();
   });
 
@@ -48,7 +48,7 @@ describe('AddIntegrationRow', () => {
 
     render(getComponent(), {organization: org});
 
-    const button = await screen.findByRole('button', {name: /add integration/i});
+    const button = await screen.findByRole('button', {name: 'Add Installation'});
     await userEvent.click(button);
 
     expect(openPipelineModalSpy).toHaveBeenCalledWith(

@@ -44,7 +44,7 @@ describe('MessagingIntegrationModal', () => {
       name: /connect with a messaging tool/i,
     });
     expect(heading).toBeInTheDocument();
-    const buttons = await screen.findAllByRole('button', {name: /add integration/i});
+    const buttons = await screen.findAllByRole('button', {name: 'Add Installation'});
     expect(buttons).toHaveLength(providerKeys.length);
   });
 });
