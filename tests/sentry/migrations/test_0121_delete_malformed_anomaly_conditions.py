@@ -1,0 +1,44 @@
+from sentry.testutils.cases import TestMigrations
+
+
+class DeleteMalformedAnomalyConditionsTest(TestMigrations):
+    app = "workflow_engine"
+    migrate_from = "0120_replace_boolean_deescalation_comparisons"
+    migrate_to = "0121_delete_malformed_anomaly_conditions"
+
+    def setup_before_migration(self, apps):
+        DataCondition = apps.get_model("workflow_engine", "DataCondition")
+        DataConditionGroup = apps.get_model("workflow_engine", "DataConditionGroup")
+
+        malformed_group = DataConditionGroup.objects.create(organization_id=self.organization.id)
+        self.anomaly_condition = DataCondition.objects.create(
+            condition_group_id=malformed_group.id,
+            type="anomaly_detection",
+            comparison={
+                "sensitivity": "low",
+                "seasonality": "auto",
+                "threshold_type": 0,
+            },
+            condition_result=75,
+        )
+        self.malformed_condition = DataCondition.objects.create(
+            condition_group_id=malformed_group.id,
+            type="lte",
+            comparison=0,
+            condition_result=0,
+        )
+
+        static_group = DataConditionGroup.objects.create(organization_id=self.organization.id)
+        self.valid_static_condition = DataCondition.objects.create(
+            condition_group_id=static_group.id,
+            type="lte",
+            comparison=0,
+            condition_result=0,
+        )
+
+    def test(self):
+        DataCondition = self.apps.get_model("workflow_engine", "DataCondition")
+
+        assert DataCondition.objects.filter(id=self.anomaly_condition.id).exists()
+        assert not DataCondition.objects.filter(id=self.malformed_condition.id).exists()
+        assert DataCondition.objects.filter(id=self.valid_static_condition.id).exists()
