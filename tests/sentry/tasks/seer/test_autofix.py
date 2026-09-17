@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
@@ -13,7 +13,15 @@ from sentry.tasks.seer.autofix import (
     configure_seer_for_existing_org,
     generate_issue_summary_only,
 )
+from sentry.tasks.seer.autofix_issue_data import (
+    FEATURE_FLAG,
+    _parse_response,
+    _select_candidates,
+    judge_issue_data,
+    schedule_judging_for_org,
+)
 from sentry.testutils.cases import TestCase as SentryTestCase
+from sentry.utils import json
 from sentry.utils.cache import cache
 
 
@@ -54,6 +62,104 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
 
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
+
+
+class TestAutofixIssueDataJudge(SentryTestCase):
+    def test_selects_bottom_decile_and_control_samples(self) -> None:
+        for index in range(11):
+            group = self.create_group(
+                project=self.project,
+                seer_fixability_score=index / 10,
+            )
+            self.create_seer_autofix_issue_data(group)
+
+        candidates = _select_candidates(self.organization.id)
+        scores = [candidate.group.seer_fixability_score for candidate in candidates]
+
+        assert len(scores) == 6
+        assert set(scores) >= {0.0, 0.1, 0.9, 1.0}
+        assert len([score for score in scores if score is not None and 0.4 <= score <= 0.6]) == 2
+
+    @patch("sentry.tasks.seer.autofix_issue_data.judge_issue_data.apply_async")
+    @patch("sentry.tasks.seer.autofix_issue_data._dispatch_rate_limited")
+    @patch("sentry.tasks.seer.autofix_issue_data._select_candidates")
+    def test_limits_dispatches_to_twenty_per_organization(
+        self,
+        mock_select_candidates: MagicMock,
+        mock_rate_limited: MagicMock,
+        mock_apply_async: MagicMock,
+    ) -> None:
+        mock_select_candidates.return_value = [
+            Mock(id=index, raw_issue_data={"event_id": str(index)}) for index in range(21)
+        ]
+        mock_rate_limited.side_effect = [False] * 20 + [True]
+
+        with self.feature(FEATURE_FLAG):
+            schedule_judging_for_org(self.organization.id)
+
+        assert mock_apply_async.call_count == 20
+
+    def test_accepts_all_verdicts(self) -> None:
+        for verdict in ("fixable", "not_fixable", "uncertain"):
+            response = _parse_response(
+                json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"})
+            )
+            assert response.verdict.value == verdict
+
+    @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
+    def test_judges_blinded_issue_data_and_records_verdict(
+        self,
+        mock_request: MagicMock,
+    ) -> None:
+        verdict = "not_fixable"
+        event_id = "b" * 32
+        group = self.create_group(project=self.project, seer_fixability_score=0.1)
+        issue_data = self.create_seer_autofix_issue_data(
+            group,
+            raw_issue_data={
+                "event_id": event_id,
+                "event": {"entries": []},
+                "issue": {"title": "Example"},
+                "status": "skip",
+                "reason": "hidden",
+            },
+        )
+        response = Mock(status=200)
+        response.json.return_value = {
+            "content": json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"}),
+            "model": "claude-opus-4-8@default",
+        }
+        mock_request.return_value = response
+
+        with self.feature(FEATURE_FLAG):
+            judge_issue_data(issue_data.id, event_id)
+
+        prompt = json.loads(mock_request.call_args.args[0]["prompt"])
+        assert prompt == {
+            "event_id": event_id,
+            "event": {"entries": []},
+            "issue": {"title": "Example"},
+        }
+
+        issue_data.refresh_from_db()
+        assert issue_data.judge_review is not None
+        assert issue_data.judge_review["verdict"] == verdict
+        assert issue_data.judge_review["confidence"] == "high"
+        assert issue_data.judge_review["reviewed_event_id"] == event_id
+        assert issue_data.judge_review["model"] == "claude-opus-4-8@default"
+        assert issue_data.judge_review["prompt_version"] == "1"
+
+    @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
+    def test_skips_stale_event(self, mock_request: MagicMock) -> None:
+        group = self.create_group(project=self.project, seer_fixability_score=0.1)
+        issue_data = self.create_seer_autofix_issue_data(group)
+
+        with self.feature(FEATURE_FLAG):
+            judge_issue_data(issue_data.id, "stale-event")
+
+        mock_request.assert_not_called()
+        issue_data.refresh_from_db()
+        assert issue_data.judge_review is None
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):
