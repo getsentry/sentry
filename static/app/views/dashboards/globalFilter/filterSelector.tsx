@@ -420,19 +420,6 @@ export function FilterSelector({
   const hasStagedChanges =
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
 
-  const renderFilterSelectorTrigger = (filterValues: string[]) => {
-    const displayValues = stripUnsupportedNoValue(filterValues, stagedOperator);
-
-    return (
-      <FilterSelectorTrigger
-        globalFilter={globalFilter}
-        activeFilterValues={displayValues}
-        operator={stagedOperator}
-        options={translatedOptions}
-      />
-    );
-  };
-
   const loadingFooter = isFetching ? (
     <Flex justify="center" padding="xs">
       <FooterLoadingIndicator size={14} />
@@ -484,7 +471,15 @@ export function FilterSelector({
         )}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(activeFilterValues)}
+            <FilterSelectorTrigger
+              activeFilterValues={stripUnsupportedNoValue(
+                activeFilterValues,
+                stagedOperator
+              )}
+              globalFilter={globalFilter}
+              operator={stagedOperator}
+              options={translatedOptions}
+            />
           </OverlayTrigger.Button>
         )}
       />
@@ -581,7 +576,15 @@ export function FilterSelector({
       )}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>
-          {renderFilterSelectorTrigger(activeFilterValues)}
+          <FilterSelectorTrigger
+            activeFilterValues={stripUnsupportedNoValue(
+              activeFilterValues,
+              stagedOperator
+            )}
+            globalFilter={globalFilter}
+            operator={stagedOperator}
+            options={translatedOptions}
+          />
         </OverlayTrigger.Button>
       )}
     />

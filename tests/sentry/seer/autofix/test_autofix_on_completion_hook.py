@@ -1157,6 +1157,41 @@ class TestFailedRunCompletionHook(TestCase):
         mock_continue.assert_called_once()
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
 
+    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_failed_run_reaches_completion_details_under_its_reason(
+        self, mock_fetch, mock_complete
+    ):
+        for failure_reason, expected in (
+            ("timeout", PrIterationOutcome.TIMEOUT.value),
+            ("stalled", PrIterationOutcome.STALLED.value),
+            (None, PrIterationOutcome.ERRORED.value),
+        ):
+            with self.subTest(failure_reason=failure_reason):
+                mock_complete.reset_mock()
+                mock_fetch.return_value = self._errored(
+                    [pr_iteration_memory_block(commit_sha="iteration-sha")],
+                    failure_reason=failure_reason,
+                )
+
+                AutofixOnCompletionHook.execute(self.organization, 123)
+
+                assert mock_complete.call_args.kwargs["outcome"] == expected
+
+    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_run_awaiting_user_input_is_not_treated_as_a_failure(self, mock_fetch, mock_complete):
+        """Pausing here would abandon feedback the agent can still act on."""
+        mock_fetch.return_value = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="iteration-sha")],
+            metadata={"group_id": self.group.id},
+            status="awaiting_user_input",
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_complete.assert_not_called()
+
 
 class TestPipelineConstants(TestCase):
     """Tests for pipeline constants."""

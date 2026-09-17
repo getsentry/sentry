@@ -729,3 +729,47 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data["meta"]["estimatedIngestionDelaySeconds"] == 42.5
         assert response.data["meta"]["completeThrough"] == complete_through.timestamp() * 1000
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_buckets_are_marked_incomplete_from_measured_complete_through(
+        self, mock_measure
+    ) -> None:
+        complete_through = self.end - timedelta(seconds=10)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=3600.0,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+
+        boundary_ms = complete_through.timestamp() * 1000
+        interval_ms = response.data["timeSeries"][0]["meta"]["interval"]
+        rows = response.data["timeSeries"][0]["values"]
+        for row in rows:
+            extends_past_boundary = row["timestamp"] + interval_ms >= boundary_ms
+            assert row["incomplete"] is extends_past_boundary, row
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_buckets_fall_back_to_static_incomplete_boundary_when_no_measurement(
+        self, mock_measure
+    ) -> None:
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=None,
+            complete_through=None,
+            status=IngestionStatus.UNKNOWN,
+        )
+        response = self._do_request(
+            {
+                "organizations:visibility-explore-view": True,
+                "organizations:measured-ingestion-delay-metadata": True,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert "completeThrough" not in response.data["meta"]
+        assert not any(row["incomplete"] for row in response.data["timeSeries"][0]["values"])

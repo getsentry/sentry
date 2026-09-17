@@ -322,6 +322,42 @@ interface CodeChangesNextStepContentProps extends NextStepProps {
   permissionsTarget: PermissionsTarget | null;
 }
 
+function CodeChangesActionButton({
+  checkTargetWriteAccess,
+  getPermissionsLabel,
+  isPolling,
+  onClick,
+  permissionsTarget,
+  readyLabel,
+}: {
+  checkTargetWriteAccess: () => Promise<boolean>;
+  getPermissionsLabel: (providerName: string) => string;
+  isPolling: boolean;
+  onClick: () => void;
+  permissionsTarget: PermissionsTarget | null;
+  readyLabel: string;
+}) {
+  if (permissionsTarget) {
+    const providerName = permissionsTarget.integration.provider.name;
+    return (
+      <RepositoryWritePermissionButton
+        key={permissionsTarget.integration.id}
+        checkTargetWriteAccess={checkTargetWriteAccess}
+        disabled={isPolling}
+        label={getPermissionsLabel(providerName)}
+        permissionsUrl={permissionsTarget.url}
+        providerName={providerName}
+      />
+    );
+  }
+
+  return (
+    <Button variant="primary" disabled={isPolling} onClick={onClick}>
+      {readyLabel}
+    </Button>
+  );
+}
+
 function CodeChangesNextStepContent({
   autofix,
   group,
@@ -357,45 +393,34 @@ function CodeChangesNextStepContent({
     [organization, group, startStep, runId, referrer, section.index]
   );
 
-  const renderActionButton = (
-    getPermissionsLabel: (providerName: string) => string,
-    readyLabel: string
-  ) => {
-    if (permissionsTarget) {
-      const providerName = permissionsTarget.integration.provider.name;
-      return (
-        <RepositoryWritePermissionButton
-          key={permissionsTarget.integration.id}
-          checkTargetWriteAccess={checkTargetWriteAccess}
-          disabled={isPolling}
-          label={getPermissionsLabel(providerName)}
-          permissionsUrl={permissionsTarget.url}
-          providerName={providerName}
-        />
-      );
-    }
-
-    return (
-      <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-        {readyLabel}
-      </Button>
-    );
-  };
-
   return (
     <NextStepTemplate
       isProcessing={isPolling}
       prompt={t('Are you happy with these code changes?')}
       labelNo={t('No')}
       onClickNo={handleNoClick}
-      yesButton={renderActionButton(
-        providerName => t('Yes, view %s permissions', providerName),
-        t('Yes, draft a PR')
-      )}
-      nevermindButton={renderActionButton(
-        providerName => t('View %s permissions', providerName),
-        t('Nevermind, draft a PR')
-      )}
+      yesButton={
+        <CodeChangesActionButton
+          checkTargetWriteAccess={checkTargetWriteAccess}
+          getPermissionsLabel={providerName =>
+            t('Yes, view %s permissions', providerName)
+          }
+          isPolling={isPolling}
+          onClick={handleYesClick}
+          permissionsTarget={permissionsTarget}
+          readyLabel={t('Yes, draft a PR')}
+        />
+      }
+      nevermindButton={
+        <CodeChangesActionButton
+          checkTargetWriteAccess={checkTargetWriteAccess}
+          getPermissionsLabel={providerName => t('View %s permissions', providerName)}
+          isPolling={isPolling}
+          onClick={handleYesClick}
+          permissionsTarget={permissionsTarget}
+          readyLabel={t('Nevermind, draft a PR')}
+        />
+      }
       placeholderPrompt={t('Give seer additional context to improve this code change.')}
       rethinkPrompt={t('How can this code change be improved?')}
       labelRethink={t('Rethink code changes')}

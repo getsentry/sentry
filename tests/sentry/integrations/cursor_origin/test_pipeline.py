@@ -21,6 +21,7 @@ from sentry.integrations.cursor_origin.keys import OriginSigningKey
 from sentry.integrations.cursor_origin.pipeline import (
     CursorOriginInstallApiStep,
     ExternalInstallSerializer,
+    InstallSerializer,
     verify_receipt,
 )
 from sentry.integrations.types import IntegrationProviderSlug
@@ -205,6 +206,12 @@ class InstallStepTest(TestCase):
             return CursorOriginInstallApiStep().get_step_data(
                 pipeline or self.pipeline, mock.Mock()
             )
+
+    def test_accepts_the_frontend_receipt_field(self) -> None:
+        serializer = InstallSerializer(data={"installationReceipt": "receipt-jwt", "state": STATE})
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data == {"installation_receipt": "receipt-jwt", "state": STATE}
 
     def test_a_verified_receipt_binds_the_installation(self) -> None:
         result = self._post(installation_receipt=_receipt(self.private))

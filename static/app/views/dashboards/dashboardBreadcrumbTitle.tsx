@@ -16,6 +16,7 @@ import {
   IconStar,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -78,6 +79,113 @@ interface DashboardBreadcrumbTitleProps {
   isSaving: boolean;
   onChange: (title: string) => void;
   onEdit: () => void;
+}
+
+function DashboardTitle({
+  dashboard,
+  duplicateDashboard,
+  duplicateDisabledReason = null,
+  hasUnsavedFilters,
+  isDashboardEditor,
+  isDuplicateDisabled = false,
+  isFavorited,
+  isPrebuiltDashboard,
+  isSaving,
+  canViewRevisions,
+  onEdit,
+  onToggleFavorite,
+  openDashboardRevisions,
+  organization,
+}: {
+  canViewRevisions: boolean;
+  dashboard: DashboardDetails;
+  duplicateDashboard: ReturnType<typeof useDuplicateDashboard>;
+  hasUnsavedFilters: boolean;
+  isDashboardEditor: boolean;
+  isFavorited: boolean | undefined;
+  isPrebuiltDashboard: boolean;
+  isSaving: boolean;
+  onEdit: () => void;
+  onToggleFavorite: () => void;
+  openDashboardRevisions: () => void;
+  organization: Organization;
+  duplicateDisabledReason?: ReactNode;
+  isDuplicateDisabled?: boolean;
+}) {
+  const revisionItem = {
+    key: 'revisions',
+    label: t('Show version history'),
+    leadingItems: <IconClock />,
+    onAction: openDashboardRevisions,
+  };
+  const editItem = {
+    key: 'dashboard-edit',
+    label: t('Edit'),
+    leadingItems: <IconEdit />,
+    disabled: hasUnsavedFilters || isSaving,
+    tooltip: isSaving
+      ? DASHBOARD_SAVING_MESSAGE
+      : hasUnsavedFilters
+        ? UNSAVED_FILTERS_MESSAGE
+        : null,
+    onAction: onEdit,
+  };
+  const exportItem = {
+    key: 'export',
+    label: t('Export'),
+    leadingItems: <IconDownload />,
+    onAction: exportDashboard,
+  };
+  const duplicateItem: MenuItemProps = {
+    key: 'duplicate',
+    label: t('Duplicate'),
+    leadingItems: <IconCopy />,
+    disabled: isDuplicateDisabled,
+    tooltip: isDuplicateDisabled ? duplicateDisabledReason : null,
+    onAction: () => {
+      openConfirmModal({
+        message: t('Are you sure you want to duplicate this dashboard?'),
+        onConfirm: () => duplicateDashboard(dashboard, 'details'),
+      });
+    },
+  };
+  const menuItems = [
+    ...(canViewRevisions ? [revisionItem] : []),
+    ...(isDashboardEditor ? [editItem] : []),
+    ...(isPrebuiltDashboard ? [duplicateItem] : []),
+    ...(organization.features.includes('dashboards-import') ? [exportItem] : []),
+  ];
+
+  return (
+    <BreadcrumbList.Title
+      item={{
+        type: 'page-title',
+        label: dashboard.title,
+        trailingActions: [
+          // Starring used to be the one item every dashboard had, so the menu
+          // was unconditional. Now that it has moved out, hide the trigger
+          // when nothing is left to put behind it.
+          menuItems.length > 0
+            ? {
+                type: 'menu',
+                triggerLabel: t('Dashboard actions'),
+                triggerIcon: <IconEllipsis />,
+                items: menuItems,
+              }
+            : null,
+          {
+            type: 'button',
+            element: (
+              <DashboardFavoriteButton
+                isFavorited={isFavorited}
+                onToggle={onToggleFavorite}
+              />
+            ),
+          },
+        ],
+      }}
+    />
+  );
 }
 
 export function DashboardBreadcrumbTitle({
@@ -168,95 +276,45 @@ export function DashboardBreadcrumbTitle({
       setIsFavorited(isFavorited);
     }
   };
-  const revisionItem = {
-    key: 'revisions',
-    label: t('Show version history'),
-    leadingItems: <IconClock />,
-    onAction: openDashboardRevisions,
-  };
-  const editItem = {
-    key: 'dashboard-edit',
-    label: t('Edit'),
-    leadingItems: <IconEdit />,
-    disabled: hasUnsavedFilters || isSaving,
-    tooltip: isSaving
-      ? DASHBOARD_SAVING_MESSAGE
-      : hasUnsavedFilters
-        ? UNSAVED_FILTERS_MESSAGE
-        : null,
-    onAction: onEdit,
-  };
-  const exportItem = {
-    key: 'export',
-    label: t('Export'),
-    leadingItems: <IconDownload />,
-    onAction: exportDashboard,
-  };
-  function renderTitle(
-    isDuplicateDisabled = false,
-    duplicateDisabledReason: ReactNode = null
-  ) {
-    const duplicateItem: MenuItemProps = {
-      key: 'duplicate',
-      label: t('Duplicate'),
-      leadingItems: <IconCopy />,
-      disabled: isDuplicateDisabled,
-      tooltip: isDuplicateDisabled ? duplicateDisabledReason : null,
-      onAction: () => {
-        openConfirmModal({
-          message: t('Are you sure you want to duplicate this dashboard?'),
-          onConfirm: () => duplicateDashboard(dashboard, 'details'),
-        });
-      },
-    };
-    const menuItems = [
-      ...(canViewRevisions ? [revisionItem] : []),
-      ...(isDashboardEditor ? [editItem] : []),
-      ...(isPrebuiltDashboard ? [duplicateItem] : []),
-      ...(organization.features.includes('dashboards-import') ? [exportItem] : []),
-    ];
-
+  if (!isPrebuiltDashboard) {
     return (
-      <BreadcrumbList.Title
-        item={{
-          type: 'page-title',
-          label: dashboard.title,
-          trailingActions: [
-            // Starring used to be the one item every dashboard had, so the menu
-            // was unconditional. Now that it has moved out, hide the trigger
-            // when nothing is left to put behind it.
-            menuItems.length > 0
-              ? {
-                  type: 'menu',
-                  triggerLabel: t('Dashboard actions'),
-                  triggerIcon: <IconEllipsis />,
-                  items: menuItems,
-                }
-              : null,
-            {
-              type: 'button',
-              element: (
-                <DashboardFavoriteButton
-                  isFavorited={isFavorited}
-                  onToggle={handleToggleFavorite}
-                />
-              ),
-            },
-          ],
-        }}
+      <DashboardTitle
+        canViewRevisions={canViewRevisions}
+        dashboard={dashboard}
+        duplicateDashboard={duplicateDashboard}
+        hasUnsavedFilters={hasUnsavedFilters}
+        isDashboardEditor={isDashboardEditor}
+        isFavorited={isFavorited}
+        isPrebuiltDashboard={isPrebuiltDashboard}
+        isSaving={isSaving}
+        onEdit={onEdit}
+        onToggleFavorite={handleToggleFavorite}
+        openDashboardRevisions={openDashboardRevisions}
+        organization={organization}
       />
     );
   }
 
-  if (!isPrebuiltDashboard) {
-    return renderTitle();
-  }
-
   return (
     <DashboardCreateLimitWrapper>
-      {({hasReachedDashboardLimit, isLoading, limitMessage}) =>
-        renderTitle(hasReachedDashboardLimit || isLoading, limitMessage)
-      }
+      {({hasReachedDashboardLimit, isLoading, limitMessage}) => (
+        <DashboardTitle
+          canViewRevisions={canViewRevisions}
+          dashboard={dashboard}
+          duplicateDashboard={duplicateDashboard}
+          duplicateDisabledReason={limitMessage}
+          hasUnsavedFilters={hasUnsavedFilters}
+          isDashboardEditor={isDashboardEditor}
+          isDuplicateDisabled={hasReachedDashboardLimit || isLoading}
+          isFavorited={isFavorited}
+          isPrebuiltDashboard={isPrebuiltDashboard}
+          isSaving={isSaving}
+          onEdit={onEdit}
+          onToggleFavorite={handleToggleFavorite}
+          openDashboardRevisions={openDashboardRevisions}
+          organization={organization}
+        />
+      )}
     </DashboardCreateLimitWrapper>
   );
 }

@@ -53,7 +53,7 @@ def query_project_outcomes_usage(request: GetUsageByProjectRequest) -> GetUsageB
     rows = result["data"]
     metrics.distribution("billing.project_usage_query.rows", len(rows))
     if len(rows) >= _QUERY_LIMIT:
-        logger.error(
+        logger.warning(
             "billing.project_usage_query.truncated",
             extra={
                 "org_id": request.organization_id,
@@ -61,10 +61,6 @@ def query_project_outcomes_usage(request: GetUsageByProjectRequest) -> GetUsageB
             },
         )
         metrics.incr("billing.project_usage_query.truncated", sample_rate=1.0)
-        raise ProjectUsageQueryTruncatedError(
-            f"project usage query for organization {request.organization_id} reached "
-            f"the {_QUERY_LIMIT:,}-row limit"
-        )
 
     return _build_project_response(rows, _latest_usage_timestamp(rows))
 
