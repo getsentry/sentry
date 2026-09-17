@@ -25,6 +25,17 @@ interface ChartLegendProps {
   items: LegendItem[];
   onSelectionChange: (selected: Record<string, boolean>) => void;
   selected: Record<string, boolean>;
+  /**
+   * Cap the overflow menu's labels at `MAX_LABEL_WIDTH`, the width the row
+   * beside it already caps its own at.
+   *
+   * Off by default. Sized to its content the menu is fine wherever the chart
+   * has the page to spill into, and the untruncated series name is worth more
+   * there than a tidy box. It is only a problem where the chart sits in
+   * something narrow enough to clip the menu -- a Seer embed's card, whose
+   * series names are model-written and ran a sentence long (CW-2052).
+   */
+  truncateMenuLabels?: boolean;
 }
 
 /**
@@ -60,7 +71,12 @@ interface ChartLegendProps {
  *    to account for the text potentially getting wider after step 2 (e.g.
  *    "+9 more" → "+10 more" gains a digit).
  */
-export function ChartLegend({items, selected, onSelectionChange}: ChartLegendProps) {
+export function ChartLegend({
+  items,
+  selected,
+  onSelectionChange,
+  truncateMenuLabels,
+}: ChartLegendProps) {
   const theme = useTheme();
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -131,19 +147,20 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
 
   const overflowOptions: Array<SelectOption<string>> = overflowItems.map(item => ({
     value: item.name,
-    // Truncated the same way, and to the same width, as the row's own labels:
-    // a series name reads the same in the menu as it does in the legend. It is
-    // also what keeps the menu narrow enough to sit under its trigger --
-    // sized to its content, a menu of model-written series names comes out
-    // wider than the chart, and Popper pins the overflow to the left where the
-    // surrounding card clips it (CW-2052).
+    // Truncated to the same width as the row's own labels, so a series name
+    // reads the same in the menu as it does in the legend -- and so the menu
+    // stays narrow enough to sit under its trigger rather than growing past
+    // the chart and being clipped by whatever holds it.
+    //
     // No `size` here, unlike the row: the menu sets its own option type, and
     // overriding it would leave this one menu's labels smaller than every
     // other one in the app.
-    label: (
+    label: truncateMenuLabels ? (
       <Text ellipsis style={{maxWidth: MAX_LABEL_WIDTH}}>
         {item.label}
       </Text>
+    ) : (
+      item.label
     ),
     // React-aria needs the plain string once the label stops being one, or
     // typeahead and screen readers lose the option's name.
