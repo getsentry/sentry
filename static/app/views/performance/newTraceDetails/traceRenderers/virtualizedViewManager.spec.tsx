@@ -74,6 +74,63 @@ describe('VirtualizedViewManger', () => {
     );
   });
 
+  it.each([
+    {name: 'minimum timeline width', moveX: 850, releaseX: 850, listWidth: 0.9},
+    {name: 'maximum timeline width', moveX: -850, releaseX: -850, listWidth: 0.1},
+    {name: 'unclamped release', moveX: 250, releaseX: 250, listWidth: 0.625},
+    {name: 'new mouse-up position', moveX: 250, releaseX: 400, listWidth: 0.7},
+    {name: 'rejected final mouse move', moveX: 950, releaseX: 950, listWidth: 0.9},
+    {name: 'click without movement', moveX: null, releaseX: 0, listWidth: 0.5},
+  ])(
+    'finalizes $name before notifying resize-end listeners',
+    ({moveX, releaseX, listWidth}) => {
+      const scheduler = new TraceScheduler();
+      const manager = new VirtualizedViewManager(
+        {list: {width: 0.5}, span_list: {width: 0.5}},
+        scheduler,
+        new TraceView(),
+        ThemeFixture()
+      );
+      manager.scrollbar_width = 16;
+      manager.container = document.createElement('div');
+      manager.divider = document.createElement('div');
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 2000, 1], [0, 0, 992, 1]);
+      manager.view.setTraceView({x: 200, width: 400});
+      manager.draw();
+      scheduler.on('divider resize', view => manager.draw(view));
+      const onResizeEnd = jest.fn(() => {
+        expect(
+          Number(manager.container!.style.getPropertyValue('--list-column-width'))
+        ).toBeCloseTo(listWidth);
+        expect(
+          Number(manager.container!.style.getPropertyValue('--span-column-width'))
+        ).toBeCloseTo(1 - listWidth);
+        expect(manager.view.trace_physical_space.width).toBeCloseTo(
+          (2000 - 16) * (1 - listWidth)
+        );
+        expect(manager.transformXFromTimestamp(400)).toBeCloseTo(
+          manager.view.trace_physical_space.width / 2
+        );
+        expect(manager.view.trace_view.serialize()).toEqual([200, 0, 400, 1]);
+      });
+      scheduler.on('divider resize end', onResizeEnd);
+
+      manager.onDividerMouseDown(new MouseEvent('mousedown', {clientX: 0}));
+      if (moveX !== null) {
+        manager.onDividerMouseMove(new MouseEvent('mousemove', {clientX: moveX}));
+      }
+      manager.onDividerMouseUp(new MouseEvent('mouseup', {clientX: releaseX}));
+      expect(onResizeEnd).toHaveBeenCalledTimes(1);
+      expect(onResizeEnd).toHaveBeenCalledWith(listWidth);
+      expect(manager.time_compression.enabled).toBe(false);
+
+      const finalWidth = manager.view.trace_physical_space.width;
+      manager.onDividerMouseMove(new MouseEvent('mousemove', {clientX: 0}));
+      expect(manager.view.trace_physical_space.width).toBe(finalWidth);
+    }
+  );
+
   it('uses explicit time compression options over previously stored options', () => {
     const manager = new VirtualizedViewManager(
       {
