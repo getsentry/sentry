@@ -17,14 +17,16 @@ from sentry.integrations.cursor_origin.integration import (
     CursorOriginIntegration,
     CursorOriginIntegrationProvider,
 )
+from sentry.integrations.types import ExternalProviders
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiPaginationTruncated,
     IntegrationError,
 )
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 INSTALLATION_ID = "i_01example"
 REPO = "acme/rocket"
@@ -299,3 +301,42 @@ class CursorOriginIntegrationTest(TestCase):
             side_effect=ApiError("boom", code=500),
         ):
             self.install.uninstall()
+
+    @assume_test_silo_mode(SiloMode.CELL)
+    def test_external_actors_work_with_codeowners(self) -> None:
+        """Test that external actors created for Cursor Origin can resolve CODEOWNERS handles."""
+        from sentry.api.validators.project_codeowners import build_codeowners_associations
+
+        user = self.create_user("dev@acme.com")
+        self.create_member(user=user, organization=self.organization)
+        team = self.create_team(organization=self.organization, slug="engineering", members=[user])
+        project = self.create_project(organization=self.organization, teams=[team])
+
+        # Create external actors for Cursor Origin
+        self.create_external_user(
+            user=user,
+            external_name="@dev-user",
+            integration=self.integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+        self.create_external_team(
+            team=team,
+            external_name="@acme/engineering",
+            integration=self.integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+
+        # CODEOWNERS content with handles
+        codeowners = "src/*  @acme/engineering @dev-user\n"
+
+        associations, errors = build_codeowners_associations(codeowners, project)
+
+        # Verify associations are correctly resolved
+        assert "@acme/engineering" in associations
+        assert associations["@acme/engineering"] == f"#{team.slug}"
+        assert "@dev-user" in associations
+        assert associations["@dev-user"] == user.email
+
+        # Verify no errors for known associations
+        assert "@acme/engineering" not in errors["missing_external_teams"]
+        assert "@dev-user" not in errors["missing_external_users"]

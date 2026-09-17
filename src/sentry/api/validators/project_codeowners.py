@@ -51,6 +51,7 @@ def build_codeowners_associations(
                     ExternalProviders.GITHUB.value,
                     ExternalProviders.GITHUB_ENTERPRISE.value,
                     ExternalProviders.GITLAB.value,
+                    ExternalProviders.CURSOR_ORIGIN.value,
                 ],
             )
         )

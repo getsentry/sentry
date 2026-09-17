@@ -1,6 +1,7 @@
 from rest_framework import status
 
 from sentry.api.validators.project_codeowners import build_codeowners_associations
+from sentry.integrations.types import ExternalProviders
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
@@ -149,3 +150,53 @@ class OrganizationCodeOwnersAssociationsEndpointTest(APITestCase):
         # Ensure all associations are returned without the provider specified
         response = self.get_success_response(self.organization.slug, status=status.HTTP_200_OK)
         assert len(response.data.keys()) == 3
+
+    def test_cursor_origin_associations(self) -> None:
+        """
+        Tests that Cursor Origin external actors are properly resolved in CODEOWNERS.
+        """
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            origin_integration = self.create_provider_integration(
+                provider="cursor_origin", name="cursor-org"
+            )
+            origin_org_integration = origin_integration.add_organization(
+                self.organization, self.user
+            )
+
+        origin_project = self.create_project(
+            organization=self.organization, teams=[self.team_1, self.team_2]
+        )
+        origin_code_mapping = self.create_code_mapping(
+            project=origin_project, organization_integration=origin_org_integration
+        )
+
+        # Create external actors for Cursor Origin
+        self.create_external_user(
+            user=self.user_1,
+            external_name="@walter",
+            integration=origin_integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+        self.create_external_team(
+            team=self.team_2,
+            external_name="@cursor-org/exec",
+            integration=origin_integration,
+            provider=ExternalProviders.CURSOR_ORIGIN.value,
+        )
+
+        raw = "src/*  @cursor-org/exec @walter\n"
+        self.create_codeowners(origin_project, origin_code_mapping, raw=raw)
+
+        response = self.get_success_response(
+            self.organization.slug, status=status.HTTP_200_OK, provider="cursor_origin"
+        )
+
+        assert len(response.data.keys()) == 1
+        assert origin_project.slug in response.data.keys()
+
+        # Verify associations are correctly mapped
+        associations = response.data[origin_project.slug]["associations"]
+        assert "@cursor-org/exec" in associations
+        assert associations["@cursor-org/exec"] == f"#{self.team_2.slug}"
+        assert "@walter" in associations
+        assert associations["@walter"] == self.user_1.email
