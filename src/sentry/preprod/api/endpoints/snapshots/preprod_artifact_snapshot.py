@@ -30,6 +30,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.constants import DataCategory
 from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
@@ -90,6 +91,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
@@ -852,6 +854,16 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             manifest_bytes = manifest.json(exclude_none=True).encode()
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)
+
+        if images:
+            track_outcome(
+                org_id=project.organization_id,
+                project_id=project.id,
+                key_id=None,
+                outcome=Outcome.ACCEPTED,
+                quantity=len(images),
+                category=DataCategory.SNAPSHOT_IMAGE,
+            )
 
         try:
             parsed_manifest = orjson.loads(manifest_bytes)
