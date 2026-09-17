@@ -278,7 +278,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
     act(() => jest.advanceTimersByTime(10_000));
     expect(screen.getByText('Resolving issues…')).toBeInTheDocument();
 
-    await act(async () => response.resolve());
+    act(() => response.resolve());
     expect(await screen.findByText('Selected issues resolved')).toBeInTheDocument();
     expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Undo'})).not.toBeInTheDocument();
