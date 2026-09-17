@@ -107,6 +107,37 @@ const AVATAR_STYLES = {
   },
 };
 
+function SentryAppAvatarChooser({
+  addAvatar,
+  app,
+  isColor,
+  isInternal,
+}: {
+  addAvatar: ({avatar}: {avatar?: Avatar}) => void;
+  app: SentryApp;
+  isColor: boolean;
+  isInternal: boolean;
+}) {
+  const avatarStyle = isColor ? 'color' : 'simple';
+  const styleProps = AVATAR_STYLES[avatarStyle];
+
+  return (
+    <AvatarChooser
+      endpoint={`/sentry-apps/${app.slug}/avatar/`}
+      supportedTypes={['default', 'upload']}
+      type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+      model={app}
+      onSave={addAvatar}
+      title={isColor ? t('Logo') : t('Small Icon')}
+      help={styleProps.help.concat(isInternal ? '' : t(' Required for publishing.'))}
+      defaultChoice={{
+        label: styleProps.label,
+        description: styleProps.description,
+      }}
+    />
+  );
+}
+
 const sentryAppBaseSchema = z.object({
   name: z.string(),
   author: z.string(),
@@ -942,27 +973,6 @@ function SentryAppEditForm({
     }
   };
 
-  const getAvatarChooser = (isColor: boolean) => {
-    const avatarStyle = isColor ? 'color' : 'simple';
-    const styleProps = AVATAR_STYLES[avatarStyle];
-
-    return (
-      <AvatarChooser
-        endpoint={`/sentry-apps/${app.slug}/avatar/`}
-        supportedTypes={['default', 'upload']}
-        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-        model={app}
-        onSave={addAvatar}
-        title={isColor ? t('Logo') : t('Small Icon')}
-        help={styleProps.help.concat(isInternal ? '' : t(' Required for publishing.'))}
-        defaultChoice={{
-          label: styleProps.label,
-          description: styleProps.description,
-        }}
-      />
-    );
-  };
-
   const defaultValues = {
     name: app.name,
     author: app.author ?? '',
@@ -1038,8 +1048,18 @@ function SentryAppEditForm({
         <AllowedOriginsField form={form} fields={{allowedOrigins: 'allowedOrigins'}} />
       </form.FieldGroup>
 
-      {getAvatarChooser(true)}
-      {getAvatarChooser(false)}
+      <SentryAppAvatarChooser
+        addAvatar={addAvatar}
+        app={app}
+        isColor
+        isInternal={isInternal}
+      />
+      <SentryAppAvatarChooser
+        addAvatar={addAvatar}
+        app={app}
+        isColor={false}
+        isInternal={isInternal}
+      />
 
       <PermissionsObserver
         appPublished={app.status === 'published'}

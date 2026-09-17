@@ -67,6 +67,10 @@ class CursorOriginSetupApiClient(IntegrationProxyClient):
     def get_installation(self, installation_id: str) -> dict[str, Any]:
         return self.get(f"/app/installations/{installation_id}")
 
+    def delete_installation(self, installation_id: str) -> None:
+        """Remove the installation on Origin. Responds with an empty body."""
+        self.delete(f"/app/installations/{installation_id}")
+
 
 class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesClient):
     """Authenticates as an installation, for an installed integration."""

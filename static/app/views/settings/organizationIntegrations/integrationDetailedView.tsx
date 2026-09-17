@@ -74,6 +74,65 @@ const FirstPartyIntegrationAdditionalCTA = OverrideOrDefault({
   defaultComponent: () => null,
 });
 
+function IntegrationUpgradeButton({
+  onInstall,
+  onSelectConfigurations,
+  organization,
+  outdatedConfigurations,
+  provider,
+}: {
+  onInstall: (integration: Integration) => void;
+  onSelectConfigurations: () => void;
+  organization: Organization;
+  outdatedConfigurations: OrganizationIntegration[];
+  provider?: IntegrationProvider;
+}) {
+  if (!canManageIntegrations(organization)) {
+    return (
+      <Tooltip title={t('You must be an organization owner, manager or admin to update')}>
+        <Button size="xs" variant="primary" disabled>
+          {t('Update')}
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  const [outdatedConfiguration] = outdatedConfigurations;
+
+  if (outdatedConfigurations.length !== 1 || !provider || !outdatedConfiguration) {
+    return (
+      <Button size="xs" variant="primary" onClick={onSelectConfigurations}>
+        {t('Update')}
+      </Button>
+    );
+  }
+
+  return provider.key === 'github' ? (
+    <Button
+      size="xs"
+      variant="primary"
+      onClick={() => openGithubPermissionsUpdateModal(outdatedConfiguration)}
+      data-test-id="integration-upgrade-button"
+    >
+      {t('Update now')}
+    </Button>
+  ) : (
+    <AddIntegrationButton
+      provider={provider}
+      organization={organization}
+      onAddIntegration={onInstall}
+      analyticsParams={{
+        view: 'integrations_directory_integration_detail',
+        already_installed: true,
+      }}
+      buttonText={t('Update now')}
+      variant="primary"
+      size="xs"
+      data-test-id="integration-upgrade-button"
+    />
+  );
+}
+
 const slackFeaturesSchema = z.object({
   issueAlertsThreadFlag: z.boolean(),
   metricAlertsThreadFlag: z.boolean(),
@@ -559,59 +618,6 @@ export default function IntegrationDetailedView() {
     return <LoadingError message={t('There was an error loading this integration.')} />;
   }
 
-  const renderUpgradeButton = () => {
-    if (!canManageIntegrations(organization)) {
-      return (
-        <Tooltip
-          title={t('You must be an organization owner, manager or admin to update')}
-        >
-          <Button size="xs" variant="primary" disabled>
-            {t('Update')}
-          </Button>
-        </Tooltip>
-      );
-    }
-
-    const [outdatedConfiguration] = outdatedConfigurations;
-
-    if (outdatedConfigurations.length !== 1 || !provider || !outdatedConfiguration) {
-      return (
-        <Button
-          size="xs"
-          variant="primary"
-          onClick={() => setActiveTab('configurations')}
-        >
-          {t('Update')}
-        </Button>
-      );
-    }
-
-    return provider.key === 'github' ? (
-      <Button
-        size="xs"
-        variant="primary"
-        onClick={() => openGithubPermissionsUpdateModal(outdatedConfiguration)}
-        data-test-id="integration-upgrade-button"
-      >
-        {t('Update now')}
-      </Button>
-    ) : (
-      <AddIntegrationButton
-        provider={provider}
-        organization={organization}
-        onAddIntegration={onInstall}
-        analyticsParams={{
-          view: 'integrations_directory_integration_detail',
-          already_installed: true,
-        }}
-        buttonText={t('Update now')}
-        variant="primary"
-        size="xs"
-        data-test-id="integration-upgrade-button"
-      />
-    );
-  };
-
   return (
     <SentryDocumentTitle title={integrationName}>
       {navigationTabTitle}
@@ -647,7 +653,18 @@ export default function IntegrationDetailedView() {
               upgradeAlert={
                 alertText && (
                   <Alert.Container>
-                    <Alert variant="warning" trailingItems={renderUpgradeButton()}>
+                    <Alert
+                      variant="warning"
+                      trailingItems={
+                        <IntegrationUpgradeButton
+                          onInstall={onInstall}
+                          onSelectConfigurations={() => setActiveTab('configurations')}
+                          organization={organization}
+                          outdatedConfigurations={outdatedConfigurations}
+                          provider={provider}
+                        />
+                      }
+                    >
                       {alertText}
                     </Alert>
                   </Alert.Container>

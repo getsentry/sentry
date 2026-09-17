@@ -110,12 +110,6 @@ function AutomateSectionInner({
   const permissionTooltipText = canEditWorkflowConnections
     ? undefined
     : getNoAlertWritePermissionTooltip();
-  const createPermissionTooltipText = canCreateAlert
-    ? undefined
-    : canEditWorkflowConnections
-      ? t('Save this monitor, then create an alert from its detail page.')
-      : getNoAlertWritePermissionTooltip();
-
   const toggleDrawer = () => {
     if (isDrawerOpen) {
       closeDrawer();
@@ -173,15 +167,13 @@ function AutomateSectionInner({
           />
         </FormSection>
         <ButtonWrapper justify="between">
-          <Button
-            size="sm"
-            icon={<IconAdd />}
-            onClick={openCreateDrawer}
-            disabled={!canCreateAlert}
-            tooltipProps={{title: createPermissionTooltipText}}
-          >
-            {t('Create New Alert')}
-          </Button>
+          {canCreateAlert ? (
+            <Button size="sm" icon={<IconAdd />} onClick={openCreateDrawer}>
+              {t('Create New Alert')}
+            </Button>
+          ) : (
+            <div />
+          )}
           <Button
             size="sm"
             icon={<IconEdit />}
@@ -220,14 +212,11 @@ function AutomateSectionInner({
                 >
                   {t('Connect Existing Alerts')}
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={openCreateDrawer}
-                  disabled={!canCreateAlert}
-                  tooltipProps={{title: createPermissionTooltipText}}
-                >
-                  {t('Create New Alert')}
-                </Button>
+                {canCreateAlert && (
+                  <Button size="sm" onClick={openCreateDrawer}>
+                    {t('Create New Alert')}
+                  </Button>
+                )}
                 <Text variant="muted" align="center" density="comfortable">
                   {tct(
                     'Alerts configured for all Issues in the project [project] will also apply to this Monitor.',

@@ -156,7 +156,7 @@ describe('AutomateSection', () => {
     {initial: [], connectionButton: 'Connect Existing Alerts'},
     {initial: [automation1.id], connectionButton: 'Edit Alerts'},
   ])(
-    'allows team admins to $connectionButton but not create detached alerts',
+    'allows team admins to $connectionButton without creating detached alerts',
     async ({initial, connectionButton}) => {
       ProjectsStore.loadInitialData([
         ProjectFixture({...project, access: ['project:read', 'alerts:write']}),
@@ -165,14 +165,9 @@ describe('AutomateSection', () => {
         organization: OrganizationFixture({access: ['org:read', 'alerts:read']}),
       });
 
-      const createButton = screen.getByRole('button', {name: 'Create New Alert'});
-      expect(createButton).toBeDisabled();
-      await userEvent.hover(createButton);
       expect(
-        await screen.findByText(
-          'Save this monitor, then create an alert from its detail page.'
-        )
-      ).toBeInTheDocument();
+        screen.queryByRole('button', {name: 'Create New Alert'})
+      ).not.toBeInTheDocument();
 
       const connectButton = screen.getByRole('button', {name: connectionButton});
       expect(connectButton).toBeEnabled();
