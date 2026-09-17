@@ -27,7 +27,11 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrganizationContext
+from sentry.organizations.services.organization import (
+    RpcTeamMember,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
@@ -773,17 +777,17 @@ class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
     @cached_property
     def accessible_team_ids(self) -> frozenset[int]:
         return frozenset(
-            t.id
-            for t in self.rpc_user_organization_context.organization.teams
-            if t.status == TeamStatus.ACTIVE
+            organization_service.get_active_team_ids(
+                organization_id=self.rpc_user_organization_context.organization.id
+            )
         )
 
     @cached_property
     def accessible_project_ids(self) -> frozenset[int]:
         return frozenset(
-            p.id
-            for p in self.rpc_user_organization_context.organization.projects
-            if p.status == ObjectStatus.ACTIVE
+            organization_service.get_active_project_ids(
+                organization_id=self.rpc_user_organization_context.organization.id
+            )
         )
 
 

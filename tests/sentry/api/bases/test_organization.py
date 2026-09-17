@@ -37,11 +37,12 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.impl import DatabaseBackedOrganizationService
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.requests import drf_request_from_request
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.security.orgauthtoken_token import hash_token
@@ -422,6 +423,62 @@ class BaseOrganizationEndpointTest(TestCase):
         request.auth = None
         request.access = from_request(drf_request_from_request(request), self.org)
         return request
+
+
+@all_silo_test
+class DetermineAccessHydrationTest(TestCase):
+    def test_member_access_omits_full_organization_resources(self) -> None:
+        user = self.create_user()
+        org = self.create_organization(flags=0)
+        team = self.create_team(organization=org)
+        project = self.create_project(organization=org, teams=[team])
+        self.create_member(user=user, organization=org, role="member", teams=[team])
+        other_team = self.create_team(organization=org)
+        other_project = self.create_project(organization=org, teams=[other_team])
+        request = drf_request_from_request(self.make_request(user=user))
+
+        with (
+            mock.patch.object(
+                DatabaseBackedOrganizationService,
+                "get_organization_by_id",
+                autospec=True,
+                side_effect=DatabaseBackedOrganizationService.get_organization_by_id,
+            ) as get_org,
+            mock.patch(
+                "sentry.organizations.services.organization.serial.serialize_project"
+            ) as serialize_project,
+            mock.patch(
+                "sentry.organizations.services.organization.serial.serialize_rpc_team"
+            ) as serialize_team,
+        ):
+            OrganizationPermission().determine_access(request, org)
+
+        get_org.assert_called_once()
+        assert get_org.call_args.kwargs["id"] == org.id
+        assert get_org.call_args.kwargs["user_id"] == user.id
+        assert get_org.call_args.kwargs["include_projects"] is False
+        assert get_org.call_args.kwargs["include_teams"] is False
+        serialize_project.assert_not_called()
+        serialize_team.assert_not_called()
+        assert request.access.accessible_team_ids == frozenset({team.id})
+        assert request.access.accessible_project_ids == frozenset({project.id})
+        assert not request.access.has_team_access(other_team)
+        assert not request.access.has_project_access(other_project)
+
+    def test_existing_context_is_reused(self) -> None:
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        context = organization_service.get_organization_by_id(
+            id=org.id, user_id=user.id, include_projects=False, include_teams=False
+        )
+        assert context is not None
+        request = drf_request_from_request(self.make_request(user=user))
+
+        with mock.patch.object(organization_service, "get_organization_by_id") as get_org:
+            OrganizationPermission().determine_access(request, context)
+
+        get_org.assert_not_called()
+        assert request.access.has_scope("org:read")
 
 
 class ControlSiloOrganizationEndpointTest(TestCase):
