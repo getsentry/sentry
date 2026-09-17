@@ -1,15 +1,76 @@
 from django.conf import settings
 
+from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.hybridcloud.services.organization_mapping.serial import (
     serialize_organization_mapping_flags,
 )
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.project import Project
+from sentry.models.team import Team, TeamStatus
 from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 from sentry.organizations.services.organization.service import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
+
+
+@all_silo_test
+class ActiveOrganizationResourcesTest(TestCase):
+    def test_active_project_ids(self) -> None:
+        org = self.create_organization()
+        other_org = self.create_organization()
+        team = self.create_team(organization=org)
+        project = self.create_project(organization=org, teams=[team])
+        unassigned = self.create_project(organization=org, teams=[])
+        self.create_project(organization=other_org)
+        self.create_project(organization=org, status=ObjectStatus.PENDING_DELETION)
+        self.create_project(organization=org, status=ObjectStatus.DELETION_IN_PROGRESS)
+        self.create_project(organization=org, status=ObjectStatus.DISABLED)
+
+        assert set(organization_service.get_active_project_ids(organization_id=org.id)) == {
+            project.id,
+            unassigned.id,
+        }
+
+    def test_active_team_ids(self) -> None:
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_team(organization=self.create_organization())
+        self.create_team(organization=org, status=TeamStatus.PENDING_DELETION)
+        self.create_team(organization=org, status=TeamStatus.DELETION_IN_PROGRESS)
+
+        assert organization_service.get_active_team_ids(organization_id=org.id) == [team.id]
+
+    def test_empty_organization(self) -> None:
+        org = self.create_organization()
+
+        assert organization_service.get_active_project_ids(organization_id=org.id) == []
+        assert organization_service.get_active_team_ids(organization_id=org.id) == []
+
+    def test_project_ids_rpc_serialization(self) -> None:
+        project = self.create_project()
+
+        with assume_test_silo_mode_of(Project):
+            response = dispatch_to_local_service(
+                "organization",
+                "get_active_project_ids",
+                {"organization_id": project.organization_id},
+            )
+
+        assert response["value"] == [project.id]
+
+    def test_team_ids_rpc_serialization(self) -> None:
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+
+        with assume_test_silo_mode_of(Team):
+            response = dispatch_to_local_service(
+                "organization", "get_active_team_ids", {"organization_id": org.id}
+            )
+
+        assert response["value"] == [team.id]
 
 
 @all_silo_test

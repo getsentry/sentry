@@ -11,6 +11,7 @@ from django.dispatch import Signal
 from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
@@ -90,6 +91,20 @@ from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def get_active_project_ids(self, *, organization_id: int) -> list[int]:
+        return list(
+            Project.objects.filter(
+                organization_id=organization_id, status=ObjectStatus.ACTIVE
+            ).values_list("id", flat=True)
+        )
+
+    def get_active_team_ids(self, *, organization_id: int) -> list[int]:
+        return list(
+            Team.objects.filter(
+                organization_id=organization_id, status=TeamStatus.ACTIVE
+            ).values_list("id", flat=True)
+        )
+
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> RpcOrganizationMember | None:
