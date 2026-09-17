@@ -29,20 +29,23 @@ type UpdateParams = ParamsType & {
 type QueryArgs = {
   end?: string;
   environment?: string | string[];
-  id?: string[];
   project?: Array<number | string>;
-  query?: string;
   sort?: string;
   start?: string;
   statsPeriod?: string;
   utc?: boolean;
-};
+} & ({id: number[] | string[]; query?: never} | {id?: never; query?: string});
 
 /**
  * Converts input parameters to API-compatible query arguments
  */
 export function paramsToQueryArgs(params: ParamsType): QueryArgs {
-  const p: QueryArgs = {};
+  // An empty query means all statuses; omitting it defaults to unresolved issues.
+  const p: QueryArgs = params.itemIds
+    ? {id: params.itemIds}
+    : params.query === undefined
+      ? {}
+      : {query: params.query};
 
   // only include projects if it is not null/undefined/an empty array
   if (params.project?.length) {
@@ -50,12 +53,7 @@ export function paramsToQueryArgs(params: ParamsType): QueryArgs {
   }
 
   if (params.itemIds) {
-    return {...p, id: params.itemIds};
-  }
-
-  // An empty query means all statuses; omitting it defaults to unresolved issues.
-  if (params.query !== undefined) {
-    p.query = params.query;
+    return p;
   }
   if (params.environment !== null && params.environment !== undefined) {
     p.environment = params.environment;
