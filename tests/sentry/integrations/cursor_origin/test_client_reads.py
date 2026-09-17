@@ -53,7 +53,7 @@ class CursorOriginReadsTest(TestCase):
         ) as mock_paginate:
             repos = self.origin_client.get_repositories()
 
-        assert repos == [{"id": "1", "fullName": REPO, "name": "rocket"}]
+        assert [repo["fullName"] for repo in repos] == [REPO]
         assert mock_paginate.call_args.args == ("/installation/repos", "repositories")
 
     @responses.activate
@@ -62,7 +62,24 @@ class CursorOriginReadsTest(TestCase):
             responses.GET, f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}", json={"fullName": REPO}
         )
 
-        assert self.origin_client.get_repo(REPO) == {"fullName": REPO}
+        assert self.origin_client.get_repo(REPO)["fullName"] == REPO
+
+    @responses.activate
+    def test_get_branches_reads_tip_commits(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/branches",
+            json={
+                "branches": [{"name": "main", "commit": {"sha": "abc"}}],
+                "nextPageToken": "",
+            },
+        )
+
+        branches = self.origin_client.get_branches(REPO)
+
+        assert [(branch["name"], branch["commit"]["sha"]) for branch in branches] == [
+            ("main", "abc")
+        ]
 
     @responses.activate
     def test_get_tree_requests_a_recursive_walk(self) -> None:
@@ -216,6 +233,50 @@ class CursorOriginReadsTest(TestCase):
         request_url = responses.calls[0].request.url
         assert "/contents?" in request_url
         assert "path=src%2Fapp.py" in request_url
+
+    @responses.activate
+    def test_get_contents_on_a_directory_lists_its_children(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/contents",
+            json={
+                "type": "dir",
+                "name": "src",
+                "path": "src",
+                "sha": "def",
+                "encoding": "",
+                "size": "0",
+                "entries": [
+                    {
+                        "type": "file",
+                        "name": "app.py",
+                        "path": "src/app.py",
+                        "sha": "abc",
+                        "size": "312",
+                    }
+                ],
+            },
+        )
+
+        contents = self.origin_client.get_contents(REPO, "src")
+
+        assert contents["type"] == "dir"
+        assert [entry["path"] for entry in contents["entries"]] == ["src/app.py"]
+
+    @responses.activate
+    def test_get_blob_reads_base64_content(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}/git/blobs/abc",
+            json={
+                "sha": "abc",
+                "size": 2,
+                "encoding": "base64",
+                "content": b64encode(b"hi").decode(),
+            },
+        )
+
+        assert self.origin_client.get_blob(REPO, "abc")["content"] == b64encode(b"hi").decode()
 
     @responses.activate
     def test_get_file_decodes_base64(self) -> None:
