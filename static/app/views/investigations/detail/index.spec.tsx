@@ -1757,6 +1757,7 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
     expect(
       screen.getByRole('heading', {
         name: 'Database or cache degradation delayed the response',

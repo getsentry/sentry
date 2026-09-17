@@ -1,11 +1,14 @@
 import {useState} from 'react';
+import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
 
+import {Disclosure} from '@sentry/scraps/disclosure';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   investigationOrchestrationQueryOptions,
@@ -126,6 +129,18 @@ export function InvestigationHypotheses({
     {onSuccess: () => setCommandSentAt(Date.now())}
   );
 
+  const verificationComplete =
+    projection?.status === 'completed' ||
+    ['reporting', 'metadata', 'completed'].includes(projection?.phase ?? '');
+  const [panelState, setPanelState] = useState({
+    verificationComplete,
+    expanded: !verificationComplete,
+  });
+
+  if (panelState.verificationComplete !== verificationComplete) {
+    setPanelState({verificationComplete, expanded: !verificationComplete});
+  }
+
   // The status block is the run talking, so it appears as soon as there is a
   // run — before the first hypothesis exists, which is exactly when a viewer
   // most needs to be told that something is happening.
@@ -136,6 +151,13 @@ export function InvestigationHypotheses({
   const statusBlock = getSeerStatusBlock(projection);
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
+  const completedChecks = projection.hypotheses.reduce(
+    (count, hypothesis) =>
+      count +
+      (hypothesis.verificationSteps ?? []).filter(step => step.status === 'completed')
+        .length,
+    0
+  );
 
   function setDisposition(
     hypothesis: InvestigationHypothesis,
@@ -198,20 +220,59 @@ export function InvestigationHypotheses({
     <Stack gap="2xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {projection.hypotheses.length > 0 ? (
-        <Container
+        <Disclosure
+          expanded={panelState.expanded}
+          onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
           border="primary"
           radius="xl"
           background="secondary"
           padding="xl"
+          gap={panelState.expanded ? 'xl' : undefined}
           data-test-id="investigation-run-panel"
         >
-          <HypothesisList
-            hypotheses={projection.hypotheses}
-            primaryHypothesisId={projection.report.primaryHypothesisId}
-            getActions={getActions}
-          />
-        </Container>
+          <HypothesesTitle>
+            <Stack gap="xs" minWidth={0}>
+              <Text variant="muted" bold>
+                {t('Hypotheses')}
+              </Text>
+              <Text variant="muted" density="comfortable" bold={false}>
+                {tn(
+                  '%s plausible cause',
+                  '%s plausible causes',
+                  projection.hypotheses.length
+                )}
+                {' • '}
+                {tn('%s check completed', '%s checks completed', completedChecks)}
+              </Text>
+            </Stack>
+          </HypothesesTitle>
+          <HypothesesContent>
+            <HypothesisList
+              hypotheses={projection.hypotheses}
+              primaryHypothesisId={projection.report.primaryHypothesisId}
+              getActions={getActions}
+            />
+          </HypothesesContent>
+        </Disclosure>
       ) : null}
     </Stack>
   );
 }
+
+const HypothesesTitle = styled(Disclosure.Title)`
+  && {
+    height: auto;
+    white-space: normal;
+    text-align: left;
+  }
+
+  && > span {
+    height: auto;
+    white-space: normal;
+    align-items: flex-start;
+  }
+`;
+
+const HypothesesContent = styled(Disclosure.Content)`
+  padding: 0;
+`;

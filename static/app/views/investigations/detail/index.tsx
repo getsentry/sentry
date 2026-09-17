@@ -6,7 +6,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -156,7 +156,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
-  const titleInputRef = useAutosizeInput({value: displayedTitle});
   const {data: orchestration} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
@@ -354,33 +353,27 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
           </HeaderBreadcrumbs>
         </Layout.Title>
         <Container as="header" width="100%" padding="xl">
-          <Grid
-            columns="minmax(0, 1fr) auto"
-            align="start"
-            gap="lg"
-            width="100%"
-            maxWidth="960px"
-            margin="0 auto"
-          >
-            <Stack gap="xs" minWidth={0}>
-              <Flex align="center" gap="md" minWidth={0}>
-                <NotebookTitleInput
-                  ref={titleInputRef}
-                  aria-label={t('Investigation title')}
-                  value={displayedTitle}
-                  onChange={event => handleTitleChange(event.target.value)}
-                  onBlur={handleTitleBlur}
-                  maxLength={200}
-                  aria-busy={renameMutation.isPending}
-                />
-                {runStatus ? (
-                  <Flex justify="start" flexShrink={0}>
-                    <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                      {runStatus.statusLabel}
-                    </Tag>
-                  </Flex>
-                ) : null}
-              </Flex>
+          <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
+            <Grid
+              columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
+              align="center"
+              gap="md"
+            >
+              <NotebookTitleInput
+                aria-label={t('Investigation title')}
+                value={displayedTitle}
+                onChange={event => handleTitleChange(event.target.value)}
+                onBlur={handleTitleBlur}
+                maxLength={200}
+                aria-busy={renameMutation.isPending}
+              />
+              {runStatus ? (
+                <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                  {runStatus.statusLabel}
+                </Tag>
+              ) : null}
+            </Grid>
+            <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
@@ -388,8 +381,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   {t('Last update: %s', formatNotebookDate(investigation.dateUpdated))}
                 </Text>
               </Flex>
-            </Stack>
-            <Flex align="center" gap="sm">
               <FeedbackButton
                 feedbackOptions={{
                   formTitle: t('Give feedback on this investigation'),
@@ -408,7 +399,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 {t('Give feedback')}
               </FeedbackButton>
             </Flex>
-          </Grid>
+          </Stack>
         </Container>
         <Layout.Body>
           <Layout.Main width="full">
