@@ -168,6 +168,58 @@ describe('Dashboards > Detail', () => {
     );
   });
 
+  it('requests only custom dashboards on the Custom Dashboards tab', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard'})],
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/',
+          query: {filter: 'excludePrebuilt'},
+        },
+      },
+    });
+
+    expect(await screen.findByText('Custom Dashboards')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        query: expect.objectContaining({filter: 'excludePrebuilt'}),
+      })
+    );
+  });
+
+  it('ignores the custom filter without the prebuilt dashboards feature', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [DashboardListItemFixture({title: 'Test Dashboard'})],
+    });
+
+    render(<ManageDashboards />, {
+      organization: OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+      }),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/',
+          query: {filter: 'excludePrebuilt'},
+        },
+      },
+    });
+
+    expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/',
+      expect.objectContaining({
+        query: expect.not.objectContaining({filter: expect.anything()}),
+      })
+    );
+  });
+
   it('can search', async () => {
     const org = OrganizationFixture({features: FEATURES});
 
