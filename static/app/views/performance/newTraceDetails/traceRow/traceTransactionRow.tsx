@@ -102,6 +102,8 @@ export function TraceTransactionRow(props: TraceRowProps<TransactionNode>) {
           <span className="TraceDescription">{props.node.value.transaction}</span>
         </div>
       </div>
+      {/* oxlint-disable-next-line react/refs -- This is a React element, not a ref. */}
+      {props.pinnedAttributeCell}
       <div
         // oxlint-disable-next-line react/refs
         ref={props.registerSpanColumnRef}

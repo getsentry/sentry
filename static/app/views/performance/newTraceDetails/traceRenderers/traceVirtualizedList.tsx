@@ -82,6 +82,7 @@ export const useVirtualizedList = (
         'Virtualized list container has to render a scroll container as its first child.'
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.container, props.items.length]);
 
   useLayoutEffect(() => {
@@ -232,6 +233,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.container, props.items, props.items.length, props.manager, props.scheduler]);
 
   useLayoutEffect(() => {
@@ -255,6 +257,7 @@ export const useVirtualizedList = (
     });
 
     setItems(recomputedItems);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.items, props.items.length, props.render]);
 
   return {

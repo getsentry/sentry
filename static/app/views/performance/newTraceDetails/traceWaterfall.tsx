@@ -63,6 +63,11 @@ import {
 } from './traceState/traceStateProvider';
 import {Trace} from './trace';
 import {traceAnalytics} from './traceAnalytics';
+import {
+  TracePinnedAttributeContext,
+  TRACE_ATTRIBUTE_PINNING_FEATURE,
+  useTracePinnedAttribute,
+} from './tracePinnedAttribute';
 import {TracePreferencesDropdown} from './tracePreferencesDropdown';
 import {TraceResetZoomButton} from './traceResetZoomButton';
 import type {TraceReducer} from './traceState';
@@ -625,6 +630,17 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     tree: props.tree,
   });
 
+  const pinnedAttribute = useTracePinnedAttribute({
+    isLoading: onLoadScrollStatus === 'pending',
+    enabled:
+      props.source === 'performance' &&
+      !disableUrlSync &&
+      organization.features.includes(TRACE_ATTRIBUTE_PINNING_FEATURE),
+    traceSlug: props.traceSlug,
+    tree: props.tree,
+    manager: viewManager,
+  });
+
   const handledZoomQueryRef = useRef<string | null>(null);
   useEffect(() => {
     if (disableUrlSync) {
@@ -808,93 +824,95 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.source !== 'performance' && props.source !== 'seer_embed';
 
   return (
-    <Stack flex={1}>
-      <Flex gap="md">
-        <TraceSearchInput onTraceSearch={onTraceSearch} />
-        {showToolbarTraceActions && (
-          <Fragment>
-            <TraceLinksNavigation
-              rootEventResults={props.rootEventResults}
-              source={props.source}
-            />
-            <TraceOpenInExploreButton
-              traceSlug={props.traceSlug}
-              traceEventView={props.traceEventView}
-              source={props.source}
-              replayId={props.replay?.id}
-            />
-          </Fragment>
-        )}
-        <TraceResetZoomButton
-          viewManager={viewManager}
-          organization={props.organization}
-        />
-        <TracePreferencesDropdown
-          fallbackPlacements={
-            props.source === 'seer_embed' ? SEER_EMBED_MENU_FALLBACKS : undefined
-          }
-          rootEventResults={props.rootEventResults}
-          autogroup={
-            traceState.preferences.autogroup.parent &&
-            traceState.preferences.autogroup.sibling
-          }
-          compressedTimeline={traceState.preferences.compressed_timeline}
-          missingInstrumentation={traceState.preferences.missing_instrumentation}
-          onAutogroupChange={onAutogroupChange}
-          onCompressedTimelineChange={onCompressedTimelineChange}
-          onMissingInstrumentationChange={onMissingInstrumentationChange}
-        />
-      </Flex>
-      <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
-        <DemoTourElement
-          id={DemoTourStep.PERFORMANCE_SPAN_TREE}
-          title={t('Trace Waterfall')}
-          description={t(
-            `Trace Waterfall offers a detailed look at traces for debugging slow services and errors.
+    <TracePinnedAttributeContext value={pinnedAttribute}>
+      <Stack flex={1}>
+        <Flex gap="md">
+          <TraceSearchInput onTraceSearch={onTraceSearch} />
+          {showToolbarTraceActions && (
+            <Fragment>
+              <TraceLinksNavigation
+                rootEventResults={props.rootEventResults}
+                source={props.source}
+              />
+              <TraceOpenInExploreButton
+                traceSlug={props.traceSlug}
+                traceEventView={props.traceEventView}
+                source={props.source}
+                replayId={props.replay?.id}
+              />
+            </Fragment>
+          )}
+          <TraceResetZoomButton
+            viewManager={viewManager}
+            organization={props.organization}
+          />
+          <TracePreferencesDropdown
+            fallbackPlacements={
+              props.source === 'seer_embed' ? SEER_EMBED_MENU_FALLBACKS : undefined
+            }
+            rootEventResults={props.rootEventResults}
+            autogroup={
+              traceState.preferences.autogroup.parent &&
+              traceState.preferences.autogroup.sibling
+            }
+            compressedTimeline={traceState.preferences.compressed_timeline}
+            missingInstrumentation={traceState.preferences.missing_instrumentation}
+            onAutogroupChange={onAutogroupChange}
+            onCompressedTimelineChange={onCompressedTimelineChange}
+            onMissingInstrumentationChange={onMissingInstrumentationChange}
+          />
+        </Flex>
+        <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
+          <DemoTourElement
+            id={DemoTourStep.PERFORMANCE_SPAN_TREE}
+            title={t('Trace Waterfall')}
+            description={t(
+              `Trace Waterfall offers a detailed look at traces for debugging slow services and errors.
             Each span represents a single operation or function call in the trace.
             Expanding a span will display sub-spans, and clicking on a span will display more details about the span.`
-          )}
-        >
-          {tourProps => (
-            <div {...tourProps}>
-              <Trace
-                trace={props.tree}
-                rerender={rerender}
-                trace_id={waterfallTraceId}
-                onRowClick={onRowClick}
-                onScrollToNode={onTabScrollToNode}
-                onTraceSearch={onTraceSearch}
-                previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-                manager={viewManager}
-                scheduler={traceScheduler}
-                forceRerender={forceRender}
-                isLoading={
-                  props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
-                }
-              />
-            </div>
-          )}
-        </DemoTourElement>
+            )}
+          >
+            {tourProps => (
+              <div {...tourProps}>
+                <Trace
+                  trace={props.tree}
+                  rerender={rerender}
+                  trace_id={waterfallTraceId}
+                  onRowClick={onRowClick}
+                  onScrollToNode={onTabScrollToNode}
+                  onTraceSearch={onTraceSearch}
+                  previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+                  manager={viewManager}
+                  scheduler={traceScheduler}
+                  forceRerender={forceRender}
+                  isLoading={
+                    props.tree.type === 'loading' || onLoadScrollStatus === 'pending'
+                  }
+                />
+              </div>
+            )}
+          </DemoTourElement>
 
-        {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
-          <TraceWaterfallState.Loading trace={props.trace} />
-        ) : props.tree.type === 'error' ? (
-          <TraceWaterfallState.Error trace={props.trace} />
-        ) : props.tree.type === 'empty' ? (
-          <TraceWaterfallState.Empty />
-        ) : null}
+          {props.tree.type === 'loading' || onLoadScrollStatus === 'pending' ? (
+            <TraceWaterfallState.Loading trace={props.trace} />
+          ) : props.tree.type === 'error' ? (
+            <TraceWaterfallState.Error trace={props.trace} />
+          ) : props.tree.type === 'empty' ? (
+            <TraceWaterfallState.Empty />
+          ) : null}
 
-        <TraceDrawer
-          replay={props.replay}
-          trace={props.tree}
-          traceId={props.traceSlug}
-          traceGridRef={traceGridRef}
-          manager={viewManager}
-          scheduler={traceScheduler}
-          onTabScrollToNode={onTabScrollToNode}
-        />
-      </TraceGrid>
-    </Stack>
+          <TraceDrawer
+            replay={props.replay}
+            trace={props.tree}
+            traceId={props.traceSlug}
+            traceGridRef={traceGridRef}
+            manager={viewManager}
+            scheduler={traceScheduler}
+            onTabScrollToNode={onTabScrollToNode}
+          />
+        </TraceGrid>
+      </Stack>
+    </TracePinnedAttributeContext>
   );
 }
 

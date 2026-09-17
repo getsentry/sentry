@@ -59,10 +59,12 @@ def get_ingestion_delay_status(
         return IngestionDelayStatus(delay_seconds, through, status)
 
     # The newest row is inside the window the expected delay accounts for.
+    # STALL_MARGIN adds some tolerance for ingestion slow downs and also covers other sources
+    # of pipeline delays not captured in our attributes, like batch insert wait times.
     if (
         complete_through is not None
         and last_ingested_at is not None
-        and last_ingested_at > complete_through
+        and last_ingested_at > complete_through - STALL_MARGIN
     ):
         return result(IngestionStatus.HEALTHY)
 

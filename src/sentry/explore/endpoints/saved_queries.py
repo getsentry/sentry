@@ -86,14 +86,15 @@ def get_discover_queryset(
     request: Request, organization: Organization, user_id: int
 ) -> QuerySet[DiscoverSavedQuery]:
     """Returns the Discover queryset filtering out homepage queries"""
-    queryset: QuerySet[DiscoverSavedQuery] = DiscoverSavedQuery.objects.filter(
-        organization=organization
-    ).exclude(is_homepage=True)
-
-    # Hide transactions saved queries if organizations has the discover transactions
-    # deprecation flag enabled
-    if features.has("organizations:deprecate-discover", organization, actor=request.user):
-        queryset = queryset.exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+    queryset: QuerySet[DiscoverSavedQuery] = (
+        DiscoverSavedQuery.objects.filter(
+            organization=organization
+            # Hide transactions saved queries for everyone since they've been migrated to spans and
+            # the transactions dataset has been deprecated
+        )
+        .exclude(is_homepage=True)
+        .exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+    )
 
     queryset = filter_to_accessible_discover_queries(request, queryset)
 

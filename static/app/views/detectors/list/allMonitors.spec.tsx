@@ -24,6 +24,10 @@ import {
 } from 'sentry/types/workflowEngine/dataConditions';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import AllMonitors from 'sentry/views/detectors/list/allMonitors';
+import {
+  LLM_CONTEXT_MAX_ROWS,
+  useLLMContext,
+} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorsList', () => {
   const organization = OrganizationFixture({
@@ -294,6 +298,82 @@ describe('DetectorsList', () => {
         );
       });
       expect(router.location.query.sort).toBe('-name');
+    });
+  });
+
+  describe('Seer page context', () => {
+    /**
+     * Renders the list under a component that captures `getLLMContext`, which is
+     * how Seer reads the page. Returns a getter for the `monitor-list` node's
+     * data so each test can assert on what the node actually published.
+     */
+    function renderAndReadNode() {
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <AllMonitors />;
+      }
+
+      render(<Component />, {organization});
+
+      return () =>
+        getLLMContext!().nodes.find(node => node.nodeType === 'monitor-list')?.data as
+          | Record<string, unknown>
+          | undefined;
+    }
+
+    it('publishes a monitor-list node with the filter state and visible rows', async () => {
+      // Rows report the project slug, which means resolving detector.projectId
+      // through ProjectsStore.
+      ProjectsStore.loadInitialData([ProjectFixture({id: '1', slug: 'project-slug'})]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: [MetricDetectorFixture({id: '42', name: 'Checkout latency'})],
+        headers: {'X-Hits': '1'},
+      });
+
+      const readNode = renderAndReadNode();
+      await screen.findByText('Checkout latency');
+
+      await waitFor(() => {
+        const data = readNode();
+        expect(data).toBeDefined();
+        expect(data!.query).toBe('');
+        // Default sort, which lives in the hook rather than the URL.
+        expect(data!.sort).toBe('-latestGroup');
+        expect(data!.monitorCount).toBe(1);
+        expect(data!.contextHint).toEqual(expect.any(String));
+        expect(data!.projectSelectionInstruction).toEqual(expect.any(String));
+        expect(data!.displayedMonitors).toBe(
+          'id|name|type|enabled|project\n42|Checkout latency|metric_issue|true|project-slug'
+        );
+      });
+    });
+
+    it('caps the row sample while still reporting the full total', async () => {
+      const detectors = Array.from({length: LLM_CONTEXT_MAX_ROWS + 5}, (_, i) =>
+        MetricDetectorFixture({id: `${i}`, name: `Detector ${i}`})
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        body: detectors,
+        headers: {'X-Hits': '400'},
+      });
+
+      const readNode = renderAndReadNode();
+      await screen.findByText('Detector 0');
+
+      await waitFor(() => {
+        const data = readNode();
+        // Header row plus exactly LLM_CONTEXT_MAX_ROWS monitors.
+        expect((data!.displayedMonitors as string).split('\n')).toHaveLength(
+          LLM_CONTEXT_MAX_ROWS + 1
+        );
+        // The total is unaffected by the cap, so Seer can tell a truncated
+        // sample from a complete one and fall back to a tool call.
+        expect(data!.monitorCount).toBe(400);
+      });
     });
   });
 
