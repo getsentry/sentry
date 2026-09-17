@@ -63,6 +63,7 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.emit import bootstrap_iteration
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -482,7 +483,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     organization_id=group.organization.id,
                     feedback=feedback,
                     run_state=run_state,
-                    bypass=True,
+                    source=ConsumeTriggerSource.UI_CONSUME,
                 )
 
                 run_id, sentry_run_id = resolved_run_id, resolved_sentry_run_id

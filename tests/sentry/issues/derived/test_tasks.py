@@ -349,6 +349,50 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             group_id_end=group_ids[0] + 1,
         )
 
+    def test_logs_progress_through_scheduling_stages(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        stale = self._pick_stale_hash()
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=stale)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-batch-size": 1,
+                    "issues.derived.heal-max-tasks": 2,
+                    "issues.derived.check-task-count": 1,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
+            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+            patch.object(check_fresh_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        messages = [log_call.args[0] for log_call in mock_logger.info.call_args_list]
+        assert messages == [
+            "heal_stale_derived_data.started",
+            "heal_stale_derived_data.configuration_loaded",
+            "heal_stale_derived_data.stale_hash_discovery_started",
+            "heal_stale_derived_data.stale_hash_discovery_complete",
+            "heal_stale_derived_data.range_selection_started",
+            "heal_stale_derived_data.range_selection_complete",
+            "heal_stale_derived_data.range_selection_started",
+            "heal_stale_derived_data.range_selection_complete",
+            "heal_stale_derived_data.batch_dispatch_started",
+            "heal_stale_derived_data.batch_dispatch_complete",
+            "heal_stale_derived_data.scheduled",
+            "heal_stale_derived_data.check_range_selection_started",
+            "heal_stale_derived_data.check_range_selection_complete",
+            "heal_stale_derived_data.check_dispatch_started",
+            "heal_stale_derived_data.checks_scheduled",
+            "heal_stale_derived_data.complete",
+        ]
+
     def test_no_stale_data(self) -> None:
         groups = self.create_unprocessed_groups(2)
         for g in groups:

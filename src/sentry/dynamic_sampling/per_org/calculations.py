@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from calendar import IllegalMonthError, monthrange
 from dataclasses import replace
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, cast
 
 import sentry_sdk
 
-from sentry import options
+from sentry import options, quotas
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import (
     ProjectsRebalancingInput,
@@ -15,15 +17,71 @@ from sentry.dynamic_sampling.models.transactions_rebalancing import (
     TransactionsRebalancingInput,
     TransactionsRebalancingModel,
 )
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
+from sentry.dynamic_sampling.per_org.queries import (
+    OrganizationDataVolume,
+    ProjectTransactionCounts,
+    ProjectVolume,
+)
 from sentry.dynamic_sampling.per_org.results import TransactionSampleRates
 from sentry.dynamic_sampling.sample_rate_override import get_sample_rate_overrides
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 
 REBALANCE_INTENSITY = 0.8
+
+# MIN and MAX rebalance factor in order to make sure we don't go crazy when rebalancing orgs.
+MIN_REBALANCE_FACTOR = 0.1
+MAX_REBALANCE_FACTOR = 10
+
+CLAMP_REBALANCE_FACTOR_OPTION = "dynamic-sampling.recalibration.clamp-factor"
+
+
+def extrapolate_monthly_volume(volume: int, hours: int) -> int | None:
+    # We don't support a lower granularity than 1 hour.
+    if hours < 1:
+        return None
+
+    now = datetime.now(tz=timezone.utc)
+    try:
+        _, days_in_month = monthrange(year=now.year, month=now.month)
+    except IllegalMonthError:
+        return None
+
+    groups_of_hours = days_in_month * 24 / hours
+    return int(volume * groups_of_hours)
+
+
+def compute_sliding_window_sample_rate(
+    org_id: int,
+    total_root_count: int,
+    window_size: int,
+) -> float | None:
+    """
+    Computes the actual sample rate for the sliding window given the total root count and the size of the
+    window that was used for computing the root count.
+
+    The org_id is used only because it is required on the quotas side to determine whether dynamic sampling is
+    enabled in the first place for that project.
+    """
+    extrapolated_volume = extrapolate_monthly_volume(volume=total_root_count, hours=window_size)
+    if extrapolated_volume is None:
+        with sentry_sdk.isolation_scope() as scope:
+            scope.set_extra("org_id", org_id)
+            scope.set_extra("window_size", window_size)
+            sentry_sdk.capture_message("The volume of the current month can't be extrapolated.")
+
+        return None
+
+    sampling_tier = quotas.backend.get_transaction_sampling_tier_for_volume(
+        org_id, extrapolated_volume
+    )
+    if sampling_tier is None:
+        return None
+
+    _, sample_rate = sampling_tier
+    return float(sample_rate)
 
 
 def calculate_recalibration_factor(
@@ -51,6 +109,21 @@ def calculate_recalibration_factor(
     effective_sample_rate = min(1.0, data_volume.indexed / data_volume.total)
     new_factor = previous_factor * (target_sample_rate / effective_sample_rate)
     return new_factor
+
+
+def bounded_rebalance_factor(factor: float) -> float | None:
+    """The factor bounded to [MIN_REBALANCE_FACTOR, MAX_REBALANCE_FACTOR].
+
+    An out-of-range factor is clamped to the nearest bound when the clamp option
+    is on, and discarded (None) otherwise. A discarded factor tells the caller
+    to delete the stored factor.
+    """
+    if MIN_REBALANCE_FACTOR <= factor <= MAX_REBALANCE_FACTOR:
+        return factor
+    if options.get(CLAMP_REBALANCE_FACTOR_OPTION):
+        metrics.incr("dynamic_sampling.recalibration.factor_clamped")
+        return min(max(factor, MIN_REBALANCE_FACTOR), MAX_REBALANCE_FACTOR)
+    return None
 
 
 def run_project_balancing(

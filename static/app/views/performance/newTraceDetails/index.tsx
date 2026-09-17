@@ -41,12 +41,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 import {useTrace} from './traceApi/useTrace';
-import {
-  getTraceMetaErrorCount,
-  getTraceMetaPerformanceIssueCount,
-  getTraceMetaSpanCount,
-  useTraceMeta,
-} from './traceApi/useTraceMeta';
+import {useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {useTraceTree} from './traceApi/useTraceTree';
 import {
@@ -193,9 +188,9 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     durationMs: tree.root.children[0]?.space?.[1],
     nodeCount: tree.list.length,
     services: Array.from(tree.projects.values()).map(p => p.slug),
-    errors: getTraceMetaErrorCount(meta.data),
-    performanceIssues: getTraceMetaPerformanceIssueCount(meta.data),
-    spanCount: getTraceMetaSpanCount(meta.data),
+    errors: meta.data?.errorsCount,
+    performanceIssues: meta.data?.performanceIssuesCount,
+    spanCount: meta.data?.spansCount,
     webVitals: tree.indicators.map(i => ({
       type: i.type,
       label: i.label,

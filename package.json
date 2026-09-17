@@ -212,6 +212,7 @@
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^5.2.0",
     "screenfull": "^6.0.2",
+    "sonner": "2.0.8",
     "sprintf-js": "1.0.3",
     "style-loader": "4.0.0",
     "swc-plugin-component-annotate": "1.18.0",
