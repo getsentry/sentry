@@ -366,7 +366,11 @@ class GroupIntegrationDetailsTest(APITestCase):
         ).exists()
 
     @responses.activate
-    def test_put_github_enterprise_issue_url_without_hostname(self) -> None:
+    @mock.patch("sentry.integrations.utils.metrics.metrics.incr")
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk.capture_exception")
+    def test_put_github_enterprise_issue_url_without_hostname(
+        self, mock_capture_exception: mock.MagicMock, mock_incr: mock.MagicMock
+    ) -> None:
         self.login_as(self.user)
         integration = self.create_integration(
             organization=self.organization,
@@ -386,6 +390,8 @@ class GroupIntegrationDetailsTest(APITestCase):
 
         assert response.status_code == 400, response.content
         assert not GroupLink.objects.filter(group_id=group.id).exists()
+        mock_capture_exception.assert_not_called()
+        mock_incr.assert_any_call("integrations.slo.halted", tags=mock.ANY, sample_rate=1.0)
 
     @responses.activate
     def test_put_azure_issue_url(self) -> None:
@@ -645,6 +651,37 @@ class GroupIntegrationDetailsTest(APITestCase):
             self.assert_metric_recorded(
                 mock_record_failure, IntegrationError, "The whole operation was invalid"
             )
+
+    @mock.patch.object(
+        ExampleIntegration,
+        "after_link_issue",
+        side_effect=raise_integration_installation_configuration_error,
+    )
+    @mock.patch("sentry.integrations.utils.metrics.metrics.incr")
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk.capture_exception")
+    def test_put_after_link_configuration_error_does_not_capture_exception(
+        self,
+        mock_capture_exception: mock.MagicMock,
+        mock_incr: mock.MagicMock,
+        mock_after_link_issue: mock.MagicMock,
+    ) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+        )
+        group = self.create_group()
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.put(path, data={"externalIssue": "APP-123"})
+
+        assert response.status_code == 400
+        assert not GroupLink.objects.filter(group_id=group.id).exists()
+        mock_capture_exception.assert_not_called()
+        mock_incr.assert_any_call("integrations.slo.halted", tags=mock.ANY, sample_rate=1.0)
 
     def test_put_feature_disabled(self) -> None:
         self.login_as(user=self.user)
