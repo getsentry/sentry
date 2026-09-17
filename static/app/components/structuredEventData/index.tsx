@@ -128,7 +128,6 @@ export interface StructuredEventDataProps extends BaseProps {
   // TODO(TS): What possible types can `data` be?
   data?: any;
   'data-test-id'?: string;
-  onCopy?: (copiedCode: string) => void;
   showCopyButton?: boolean;
   withAnnotatedText?: boolean;
 }
@@ -142,7 +141,6 @@ export function StructuredEventData({
   maxDefaultDepth = 2,
   autoCollapseLimit,
   meta,
-  onCopy,
   onToggleExpand,
   showCopyButton,
   withAnnotatedText = false,
@@ -167,7 +165,6 @@ export function StructuredEventData({
         <StyledCopyButton
           aria-label={t('Copy to clipboard')}
           variant="transparent"
-          onCopy={onCopy}
           size="xs"
           text={JSON.stringify(data, null, '\t')}
         />
