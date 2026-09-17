@@ -137,8 +137,11 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     // sized to its content, a menu of model-written series names comes out
     // wider than the chart, and Popper pins the overflow to the left where the
     // surrounding card clips it (CW-2052).
+    // No `size` here, unlike the row: the menu sets its own option type, and
+    // overriding it would leave this one menu's labels smaller than every
+    // other one in the app.
     label: (
-      <Text size="xs" ellipsis style={{maxWidth: MAX_LABEL_WIDTH}}>
+      <Text ellipsis style={{maxWidth: MAX_LABEL_WIDTH}}>
         {item.label}
       </Text>
     ),
