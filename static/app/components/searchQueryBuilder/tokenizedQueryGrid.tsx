@@ -48,6 +48,7 @@ function useAutoFocus(autoFocus: boolean, state: ListState<ParseResultToken>) {
     state.selectionManager.setFocused(true);
     state.selectionManager.setFocusedKey(state.collection.getLastKey());
     autoFocused.current = true;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [dispatch, state.collection, state.selectionManager]);
 }
 

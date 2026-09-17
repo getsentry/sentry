@@ -61,6 +61,7 @@ export function usePendingUserInput({
       setFileApprovalIndex(0);
       setFileApprovalDecisions([]);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [pendingInput?.id, pendingInputType]);
 
   // Get file approval data
@@ -152,6 +153,7 @@ export function usePendingUserInput({
       setSelectedOption(0);
       setCustomText('');
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [pendingInput?.id, pendingInputType]);
 
   // Get question data

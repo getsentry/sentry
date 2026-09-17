@@ -1050,6 +1050,7 @@ export function useMetricsPanelAnalytics({
     }
   }, [
     organization,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataset,
     mode,
     metricSamplesTableResult.result.isFetching,
@@ -1107,6 +1108,7 @@ export function useMetricsPanelAnalytics({
     }
   }, [
     organization,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataset,
     mode,
     metricAggregatesTableResult.result.isPending,

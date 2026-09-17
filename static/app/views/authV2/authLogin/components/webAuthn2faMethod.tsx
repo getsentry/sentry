@@ -105,6 +105,7 @@ export function WebAuthn2FAMethod({
     return () => {
       cancelled = true;
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [attempt, challenge.result, isActive]);
 
   const errorMessage = challenge.errorMessage
