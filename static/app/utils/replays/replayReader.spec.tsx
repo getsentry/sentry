@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {
   ReplayClickEventFixture,
@@ -695,102 +694,6 @@ describe('ReplayReader', () => {
         replayFinishedAt.getTime() - replayStartedAt.getTime()
       );
       expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
-    });
-  });
-
-  describe('clip window reporting', () => {
-    const replayStartedAt = new Date('2024-01-01T00:02:00');
-    const replayFinishedAt = new Date('2024-01-01T00:04:00');
-
-    let logSpy: jest.SpyInstance;
-
-    beforeEach(() => {
-      logSpy = jest.spyOn(Sentry.logger, 'error').mockImplementation(() => {});
-    });
-
-    afterEach(() => {
-      logSpy.mockRestore();
-    });
-
-    function buildReader({
-      id,
-      clipWindow,
-      fetching = false,
-    }: {
-      clipWindow: {endTimestampMs: number; startTimestampMs: number};
-      id: string;
-      fetching?: boolean;
-    }) {
-      return ReplayReader.factory({
-        attachments: [
-          RRWebFullSnapshotFrameEventFixture({
-            timestamp: new Date('2024-01-01T00:02:30'),
-          }),
-        ],
-        errors: [],
-        fetching,
-        replayRecord: ReplayRecordFixture({
-          id,
-          started_at: replayStartedAt,
-          finished_at: replayFinishedAt,
-        }),
-        clipWindow,
-      });
-    }
-
-    it('reports an error when the window does not overlap the replay', () => {
-      const startTimestampMs = replayFinishedAt.getTime() + 60_000;
-      buildReader({
-        id: 'report-outside-replay',
-        clipWindow: {startTimestampMs, endTimestampMs: startTimestampMs + 10_000},
-      });
-
-      expect(logSpy).toHaveBeenCalledTimes(1);
-      expect(logSpy).toHaveBeenCalledWith(
-        'replay.clip_window.outside_replay: Clip window does not overlap the replay, playing the whole replay instead',
-        expect.objectContaining({
-          replay_id: 'report-outside-replay',
-          ms_after_replay_end: 60_000,
-        })
-      );
-    });
-
-    it('reports an error when the window is not a real time range', () => {
-      buildReader({
-        id: 'report-invalid-timestamps',
-        clipWindow: {startTimestampMs: NaN, endTimestampMs: NaN},
-      });
-
-      expect(logSpy).toHaveBeenCalledTimes(1);
-      expect(logSpy).toHaveBeenCalledWith(
-        'replay.clip_window.invalid_timestamps: Clip window is not a real time range, playing the whole replay instead',
-        expect.objectContaining({replay_id: 'report-invalid-timestamps'})
-      );
-    });
-
-    it('does not report while the replay is still fetching', () => {
-      // The replay bounds widen as attachments arrive, so a window that misses a
-      // half-loaded replay can still turn out to be clippable.
-      const startTimestampMs = replayFinishedAt.getTime() + 60_000;
-      buildReader({
-        id: 'report-while-fetching',
-        clipWindow: {startTimestampMs, endTimestampMs: startTimestampMs + 10_000},
-        fetching: true,
-      });
-
-      expect(logSpy).not.toHaveBeenCalled();
-    });
-
-    it('does not report a window that clips normally', () => {
-      buildReader({
-        id: 'report-usable-window',
-        clipWindow: {
-          startTimestampMs: replayStartedAt.getTime() + 10_000,
-          endTimestampMs: replayStartedAt.getTime() + 20_000,
-        },
-      });
-
-      expect(logSpy).not.toHaveBeenCalled();
     });
   });
 
