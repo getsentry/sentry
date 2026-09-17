@@ -56,6 +56,10 @@ export enum DisplayType {
 }
 
 export enum WidgetType {
+  /**
+   * @deprecated Use `WidgetType.ERRORS` instead
+   */
+  DISCOVER = 'discover',
   ISSUE = 'issue',
   RELEASE = 'metrics', // TODO(metrics): rename RELEASE to 'release', and METRICS to 'metrics'
   METRICS = 'custom-metrics',

@@ -384,6 +384,7 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
+    case WidgetType.DISCOVER:
     case WidgetType.ERRORS:
       return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
