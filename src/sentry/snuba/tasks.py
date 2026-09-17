@@ -8,7 +8,6 @@ import orjson
 from django.utils import timezone
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
-from sentry_sdk import traces
 from snuba_sdk import Request
 from taskbroker_client.retry import Retry
 
@@ -28,7 +27,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import alerts_tasks
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
-from sentry.utils.tracing import set_span_data, set_span_tag
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -225,7 +224,7 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    with traces.start_span(name="create_in_snuba", attributes={"sentry.op": "snuba.tasks"}) as span:
+    with start_span(op="snuba.tasks", name="create_in_snuba") as span:
         set_span_tag(span, "dataset", subscription.snuba_query.dataset)
 
         snuba_query = subscription.snuba_query
@@ -350,9 +349,7 @@ def subscription_checker(**kwargs: Any) -> None:
         ),
         date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
     ):
-        with traces.start_span(
-            name="repair_subscription", attributes={"sentry.op": "repair_subscription"}
-        ) as span:
+        with start_span(op="repair_subscription", name="repair_subscription") as span:
             set_span_data(span, "subscription_id", subscription.id)
             set_span_data(span, "status", subscription.status)
             count += 1

@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from sentry_sdk import traces
-
 from sentry import features, options
 from sentry.db.models.utils import is_model_attr_cached
 from sentry.grouping.grouptype import ErrorGroupType
@@ -17,6 +15,7 @@ from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.utils.tracing import trace
 
 # TODO - remove this import once getsentry can be updated
 from sentry.workflow_engine.defaults.detectors import (
@@ -302,7 +301,7 @@ def _get_detector_organization_id(detector: Detector) -> int | None:
     return detector.config.get("organization_id", None)
 
 
-@traces.trace
+@trace
 def process_detectors[T](
     data_packet: DataPacket[T], detectors: list[Detector]
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
