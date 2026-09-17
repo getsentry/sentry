@@ -5,6 +5,7 @@ from time import time
 
 import rb
 from sentry_redis_tools.clients import RedisCluster
+from sentry_sdk import traces
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
@@ -17,7 +18,6 @@ from sentry.utils.redis import (
     load_redis_script,
     validate_dynamic_cluster,
 )
-from sentry.utils.tracing import set_span_tag, start_span, trace
 
 is_rate_limited = load_redis_script("quotas/is_rate_limited.lua")
 
@@ -73,10 +73,13 @@ class RedisQuota(Quota):
 
         results = [*self.get_abuse_quotas(project.organization)]
 
-        with start_span(
-            op="redis.get_quotas.get_monitor_quota", name="redis.get_quotas.get_monitor_quota"
-        ) as span:
-            set_span_tag(span, "project.id", project.id)
+        with traces.start_span(
+            name="redis.get_quotas.get_monitor_quota",
+            attributes={
+                "sentry.op": "redis.get_quotas.get_monitor_quota",
+                "project.id": project.id,
+            },
+        ):
             mrlquota = self.get_monitor_quota(project)
             if mrlquota[0] is not None:
                 results.append(
@@ -97,10 +100,13 @@ class RedisQuota(Quota):
             keys = []
 
         for key in keys:
-            with start_span(
-                op="redis.get_quotas.get_key_quota", name="redis.get_quotas.get_key_quota"
-            ) as span:
-                set_span_tag(span, "key.id", key.id)
+            with traces.start_span(
+                name="redis.get_quotas.get_key_quota",
+                attributes={
+                    "sentry.op": "redis.get_quotas.get_key_quota",
+                    "key.id": key.id,
+                },
+            ):
                 kquota = self.get_key_quota(key)
                 if kquota[0] is not None:
                     results.append(
@@ -156,7 +162,7 @@ class RedisQuota(Quota):
     def get_refunded_quota_key(self, key: str) -> str:
         return f"r:{key}"
 
-    @trace
+    @traces.trace
     def refund(
         self,
         project: Project,

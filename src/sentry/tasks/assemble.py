@@ -13,6 +13,7 @@ from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Q
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.serializers import serialize
@@ -43,7 +44,6 @@ from sentry.taskworker.namespaces import attachments_tasks
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.sdk import bind_organization_context
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -138,7 +138,7 @@ def _get_assemble_file_blob_ids(task, org_or_project, name, checksum, chunks) ->
     return [ids_by_checksum[c] for c in chunks]
 
 
-@trace
+@traces.trace
 def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
@@ -172,7 +172,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
     return AssembleResult(bundle=file, bundle_temp_file=temp_file)
 
 
-@trace
+@traces.trace
 def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[bytes] | None:
     """Assembles uploaded chunks into a temporary file without creating a ``File``."""
     from sentry.models.files.fileblob import FileBlob
@@ -244,7 +244,7 @@ def _get_redis_cluster_for_assemble() -> RedisCluster:
     return redis.redis_clusters.get(cluster_key)
 
 
-@trace
+@traces.trace
 def get_assemble_status(task, scope, checksum):
     """
     Checks the current status of an assembling task.
@@ -264,7 +264,7 @@ def get_assemble_status(task, scope, checksum):
     return tuple(orjson.loads(rv))
 
 
-@trace
+@traces.trace
 def set_assemble_status(task, scope, checksum, state, detail=None):
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
@@ -274,7 +274,7 @@ def set_assemble_status(task, scope, checksum, state, detail=None):
     redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
 
-@trace
+@traces.trace
 def delete_assemble_status(task, scope, checksum):
     """
     Deletes the status of an assembling task.
@@ -453,7 +453,7 @@ class ArtifactBundlePostAssembler:
         with metrics.timer("tasks.assemble.artifact_bundle"):
             self._create_artifact_bundle()
 
-    @trace
+    @traces.trace
     def _create_artifact_bundle(self) -> None:
         # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
         # contents.
@@ -576,7 +576,7 @@ class ArtifactBundlePostAssembler:
                 dist=(self.dist or NULL_STRING),
             )
 
-    @trace
+    @traces.trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
     ) -> tuple[ArtifactBundle, bool]:
@@ -668,7 +668,7 @@ class ArtifactBundlePostAssembler:
         # fire the on_delete signal.
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
-    @trace
+    @traces.trace
     def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
