@@ -36,7 +36,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
 )
-from sentry.seer.night_shift.controls import is_night_shift_enabled
 from sentry.seer.night_shift.models import TriageResponse, TriageVerdict
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
@@ -193,17 +192,6 @@ def deliver_night_shift_result(
             "night_shift.triage_error", 1, attributes={"error_type": "invalid_artifact"}
         )
         logger.exception("night_shift.delivery.invalid_result", extra=log_extra)
-        return
-
-    if not is_night_shift_enabled(run.organization):
-        shard.update(
-            extras={
-                **(shard.extras or {}),
-                "error_type": SeerNightShiftRunErrorType.DISABLED.value,
-                "error_message": "Night Shift is disabled",
-            }
-        )
-        logger.info("night_shift.delivery.disabled", extra=log_extra)
         return
 
     options = (run.extras or {}).get("options") or {}

@@ -1454,14 +1454,6 @@ class TestStartRunExplorerIndexTrigger(TestCase):
 
 
 class TestStartFeatureRun(TestCase):
-    @pytest.fixture(autouse=True)
-    def enable_night_shift(self):
-        with (
-            self.options({"seer.night_shift.enable": True}),
-            self.feature("organizations:seer-night-shift"),
-        ):
-            yield
-
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()

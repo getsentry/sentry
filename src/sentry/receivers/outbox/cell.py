@@ -46,7 +46,6 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
-from sentry.seer.night_shift.controls import is_night_shift_enabled
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
@@ -244,13 +243,6 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         run_type = SeerRunType(run.type)
     except (KeyError, TypeError, ValueError) as e:
         _mark_seer_run_failed(run, "seer_run_create.invalid_payload", error=str(e))
-        return
-
-    if (
-        run.referrer == "night_shift"
-        or (run_type == SeerRunType.FEATURE_RUN and body.get("feature_id") == "night_shift")
-    ) and not is_night_shift_enabled(run.organization):
-        _mark_seer_run_failed(run, "seer_run_create.night_shift_disabled")
         return
 
     match run_type:

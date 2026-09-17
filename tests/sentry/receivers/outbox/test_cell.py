@@ -13,8 +13,6 @@ from sentry.receivers.outbox.cell import backfill_scm_integration_config, handle
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
@@ -198,8 +196,6 @@ class HandleSeerRunCreateTest(TestCase):
         assert run.seer_run_state_id == 7
         assert run.mirror_status == SeerRunMirrorStatus.LIVE
 
-    @override_options({"seer.night_shift.enable": True})
-    @with_feature("organizations:seer-night-shift")
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_happy_path_feature_run(self, mock_request: Mock) -> None:
         mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 55}))
@@ -223,57 +219,6 @@ class HandleSeerRunCreateTest(TestCase):
         assert sent_body["ref"] == str(run.uuid)
         assert sent_body["external_idempotency_key"] == str(run.uuid)
         assert sent_body["referrer"] == "night_shift"
-
-    def test_global_disable_before_triage_dispatch(self) -> None:
-        self._assert_disabled_before_outbox_dispatch(
-            False, True, SeerRunType.FEATURE_RUN, "night_shift", None
-        )
-
-    def test_org_disable_before_triage_dispatch(self) -> None:
-        self._assert_disabled_before_outbox_dispatch(
-            True, False, SeerRunType.FEATURE_RUN, "night_shift", None
-        )
-
-    def test_global_disable_before_autofix_feature_dispatch(self) -> None:
-        self._assert_disabled_before_outbox_dispatch(
-            False, True, SeerRunType.FEATURE_RUN, "autofix", "night_shift"
-        )
-
-    def test_org_disable_before_autofix_explorer_dispatch(self) -> None:
-        self._assert_disabled_before_outbox_dispatch(
-            True, False, SeerRunType.EXPLORER, None, "night_shift"
-        )
-
-    def _assert_disabled_before_outbox_dispatch(
-        self, global_enabled, org_enabled, run_type, feature_id, referrer
-    ) -> None:
-        run = self.create_seer_run(type=run_type, referrer=referrer)
-        payload = self._make_payload({"feature_id": feature_id, "payload": {}})
-
-        with (
-            self.options({"seer.night_shift.enable": global_enabled}),
-            self.feature({"organizations:seer-night-shift": org_enabled}),
-            patch("sentry.receivers.outbox.cell.make_feature_run_request") as mock_feature,
-            patch("sentry.receivers.outbox.cell.make_agent_chat_request") as mock_chat,
-        ):
-            handle_seer_run_create(object_identifier=run.id, payload=payload)
-
-        run.refresh_from_db()
-        assert run.mirror_status == SeerRunMirrorStatus.FAILED
-        assert run.seer_run_state_id is None
-        mock_feature.assert_not_called()
-        mock_chat.assert_not_called()
-
-        with (
-            self.options({"seer.night_shift.enable": True}),
-            self.feature("organizations:seer-night-shift"),
-            patch("sentry.receivers.outbox.cell.make_feature_run_request") as mock_feature,
-            patch("sentry.receivers.outbox.cell.make_agent_chat_request") as mock_chat,
-        ):
-            handle_seer_run_create(object_identifier=run.id, payload=payload)
-
-        mock_feature.assert_not_called()
-        mock_chat.assert_not_called()
 
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
     def test_feature_run_referrer_absent_when_body_carries_none(self, mock_request: Mock) -> None:

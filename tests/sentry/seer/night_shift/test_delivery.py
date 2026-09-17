@@ -2,8 +2,6 @@ from typing import Any
 from unittest.mock import Mock, patch
 from uuid import UUID
 
-import pytest
-
 from sentry.api.serializers import EventSerializer
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
 from sentry.models.activity import Activity
@@ -30,52 +28,6 @@ from sentry.utils.redis import redis_clusters
 
 @django_db_all
 class TestDeliverNightShiftResult(TestCase):
-    @pytest.fixture(autouse=True)
-    def enable_night_shift(self):
-        with (
-            self.options({"seer.night_shift.enable": True}),
-            self.feature("organizations:seer-night-shift"),
-        ):
-            yield
-
-    def test_global_disable_before_verdict_delivery(self) -> None:
-        self._assert_disabled_before_verdict_delivery(False, True)
-
-    def test_org_disable_before_verdict_delivery(self) -> None:
-        self._assert_disabled_before_verdict_delivery(True, False)
-
-    def _assert_disabled_before_verdict_delivery(self, global_enabled, org_enabled) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        fixable = self.create_group(project=project)
-        skipped = self.create_group(project=project)
-        run = self._create_night_shift_run(organization=org)
-
-        with (
-            self.options({"seer.night_shift.enable": global_enabled}),
-            self.feature({"organizations:seer-night-shift": org_enabled}),
-            patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_trigger,
-        ):
-            deliver_night_shift_result(
-                organization_id=org.id,
-                run_uuid=self._run_uuid(run),
-                status="completed",
-                result={
-                    "verdicts": [
-                        {"group_id": fixable.id, "action": TriageAction.AUTOFIX.value},
-                        {"group_id": skipped.id, "action": TriageAction.SKIP.value},
-                    ]
-                },
-                error=None,
-            )
-
-        mock_trigger.assert_not_called()
-        assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
-        assert redis_clusters.get("default").get(skip_cache_key(skipped.id)) is None
-        assert (
-            run.executions.get().extras["error_type"] == SeerNightShiftRunErrorType.DISABLED.value
-        )
-
     def _create_night_shift_run(
         self, organization: Organization | None = None, **extras_overrides: Any
     ) -> SeerWorkflowRun:
@@ -275,7 +227,7 @@ class TestDeliverNightShiftResult(TestCase):
         org = self.create_organization()
         group = self.create_group(project=self.create_project(organization=org))
         with (
-            self.feature({"organizations:seer-fixability-training-data": False}),
+            patch("sentry.seer.night_shift.delivery.features.has", return_value=False),
             patch("sentry.seer.night_shift.delivery._capture_autofix_issue_data") as capture,
         ):
             run = self._deliver_dry_run_verdict(org, group.id)

@@ -11,7 +11,6 @@ from sentry.seer.models.workflow import SeerWorkflowStrategy
 
 
 class SeerNightShiftRunErrorType(StrEnum):
-    DISABLED = "disabled"
     NO_QUOTA = "no_quota"
     ELIGIBLE_PROJECTS_FAILED = "eligible_projects_failed"
     NO_SEER_ACCESS = "no_seer_access"
