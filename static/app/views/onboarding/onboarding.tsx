@@ -51,12 +51,11 @@ import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 /**
- * Off until the messaging experiment ramps. The FlagPole config resolves every
- * production org to control today, so reporting now would fill the experiment
- * population with pre-launch control rows. Flip this in the same change as the
- * rollout segment.
+ * On now that the messaging experiment has a rollout segment. Keep this as the
+ * one place to turn reporting off again if the rollout is pulled, so the
+ * experiment population does not fill with rows from a control-only config.
  */
-const SCM_MESSAGING_EXPOSURE_ENABLED = false;
+const SCM_MESSAGING_EXPOSURE_ENABLED = true;
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
