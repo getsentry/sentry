@@ -1,11 +1,12 @@
 """The permissions the current GitHub App version requests, and helpers to
 compare an installation against them.
 
-``GITHUB_APP_REQUIRED_PERMISSIONS`` is the source of truth for what the app asks
-for. It lives in the codebase (it used to be the ``github-app.required-permissions``
+``GITHUB_APP_LATEST_PERMISSIONS`` is the source of truth for what the latest
+version of the app asks for; an installation that has not accepted that version
+may hold fewer. It lives in the codebase (it used to be the ``github-app.required-permissions``
 option) because it is not a secret and has to stay in lockstep with the app's
 declared permissions and the tiers in ``github_permission_tiers``. Update it
-whenever the app's required permissions change.
+whenever the app's permissions change.
 
 We only ever compare against it as a floor: an installation holding *more* than
 we expect is ignored, since what GitHub reports in the integration metadata
@@ -56,7 +57,7 @@ class ParsedPermissions(NamedTuple):
     unreadable: dict[str, str]
 
 
-# The union of every permission the app's features expect, as scope -> minimum
+# The union of every permission the latest app version's features expect, as scope -> minimum
 # level. Each scope is introduced by one of the tiers in github_permission_tiers,
 # except the last group, which predates them and is spoken for by BASELINE_TIER:
 #   actions:write, code_quality:read, security_events:read  -> PR iteration
@@ -65,7 +66,7 @@ class ParsedPermissions(NamedTuple):
 #   pull_requests:write                                     -> PR comments
 #   administration:read, issues:write, metadata:read,
 #   repository_hooks:write                                  -> baseline (earlier features)
-GITHUB_APP_REQUIRED_PERMISSIONS: dict[str, str] = {
+GITHUB_APP_LATEST_PERMISSIONS: dict[str, str] = {
     "actions": "write",
     "administration": "read",
     "checks": "write",
@@ -120,7 +121,7 @@ def parse_github_app_permissions(
 def get_missing_github_app_permissions(
     metadata: Mapping[str, Any],
 ) -> list[MissingGithubAppPermission] | None:
-    """The required permissions the install does not hold.
+    """The latest permissions the install does not hold.
 
     None when it holds them all, and also when any level in either map would not
     read: we cannot say what the install holds or what it needs, so we enforce
@@ -128,7 +129,7 @@ def get_missing_github_app_permissions(
     ``parse_github_app_permissions`` has logged the levels in question.
     """
     expected = parse_github_app_permissions(
-        GITHUB_APP_REQUIRED_PERMISSIONS, source="required_permissions"
+        GITHUB_APP_LATEST_PERMISSIONS, source="required_permissions"
     )
 
     integration_permissions = metadata.get("permissions") or {}

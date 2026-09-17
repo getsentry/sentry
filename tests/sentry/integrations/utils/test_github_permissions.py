@@ -59,7 +59,7 @@ from sentry.integrations.utils.github_permissions import (
 )
 def test_get_missing_github_app_permissions(required_permissions, permissions, expected) -> None:
     with mock.patch.dict(
-        "sentry.integrations.utils.github_permissions.GITHUB_APP_REQUIRED_PERMISSIONS",
+        "sentry.integrations.utils.github_permissions.GITHUB_APP_LATEST_PERMISSIONS",
         required_permissions,
         clear=True,
     ):
@@ -130,7 +130,7 @@ def test_an_unreadable_required_level_stops_enforcing_anything(mock_warning) -> 
     required = {"contents": "wrtie", "issues": "write"}
 
     with mock.patch.dict(
-        "sentry.integrations.utils.github_permissions.GITHUB_APP_REQUIRED_PERMISSIONS",
+        "sentry.integrations.utils.github_permissions.GITHUB_APP_LATEST_PERMISSIONS",
         required,
         clear=True,
     ):
@@ -140,7 +140,7 @@ def test_an_unreadable_required_level_stops_enforcing_anything(mock_warning) -> 
 @mock.patch("sentry.integrations.utils.github_permissions.logger.warning")
 def test_an_unreadable_held_level_stops_enforcing_anything(mock_warning) -> None:
     with mock.patch.dict(
-        "sentry.integrations.utils.github_permissions.GITHUB_APP_REQUIRED_PERMISSIONS",
+        "sentry.integrations.utils.github_permissions.GITHUB_APP_LATEST_PERMISSIONS",
         {"contents": "write"},
         clear=True,
     ):
@@ -151,7 +151,7 @@ def test_an_unreadable_held_level_stops_enforcing_anything(mock_warning) -> None
 def test_a_mistyped_required_level_stops_enforcing_rather_than_raising(mock_warning) -> None:
     """A non-string required level is a mistake in the codebase constant."""
     with mock.patch.dict(
-        "sentry.integrations.utils.github_permissions.GITHUB_APP_REQUIRED_PERMISSIONS",
+        "sentry.integrations.utils.github_permissions.GITHUB_APP_LATEST_PERMISSIONS",
         {"contents": 2},
         clear=True,
     ):

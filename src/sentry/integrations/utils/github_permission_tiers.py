@@ -5,7 +5,7 @@ sits at whichever version of the app it last accepted. Upgrades only ever raised
 requirements, so the tiers below are totally ordered by ``PermissionTier.order``
 and an installation should be a point on that order: satisfying one tier implies
 satisfying every lower one. An install is described by how far up it got, and
-the copy to show names the tiers above that point.
+the copy to show describes the tiers above that point.
 
 ``order`` is what encodes the chain, not the declaration order of ``TIERS``.
 A new feature gets the next number up; the numbers are spaced by one only
@@ -53,7 +53,6 @@ class PermissionTier:
     # Position on the chain. Higher is newer, and satisfying this tier means
     # satisfying every tier below it.
     order: int
-    name: str
     description: str
     # The permission raise this tier introduced, as scope -> minimum level. Not
     # the full set the feature needs: the rest came with lower tiers. Empty on
@@ -64,7 +63,6 @@ class PermissionTier:
 BASELINE_TIER = PermissionTier(
     key="baseline",
     order=0,
-    name="Various earlier features",
     description=(
         "Including issue linking, commit tracking, and keeping repository data up to date."
     ),
@@ -73,7 +71,6 @@ BASELINE_TIER = PermissionTier(
 PR_COMMENTS_TIER = PermissionTier(
     key="pull_request_comments",
     order=1,
-    name="Pull request comments",
     description="Comment on pull requests to link them to the Sentry issues they caused.",
     introduced={"pull_requests": PermissionLevel.WRITE},
 )
@@ -81,7 +78,6 @@ PR_COMMENTS_TIER = PermissionTier(
 CODE_REVIEW_TIER = PermissionTier(
     key="code_review",
     order=2,
-    name="Seer Code Review",
     description="Review your pull requests and report the result as a check run.",
     introduced={"checks": PermissionLevel.WRITE, "statuses": PermissionLevel.WRITE},
 )
@@ -89,7 +85,6 @@ CODE_REVIEW_TIER = PermissionTier(
 AUTOFIX_PULL_REQUESTS_TIER = PermissionTier(
     key="autofix_pull_requests",
     order=3,
-    name="Autofix pull requests",
     description="Push a branch and open a pull request with a fix for an issue.",
     introduced={"contents": PermissionLevel.WRITE},
 )
@@ -97,7 +92,6 @@ AUTOFIX_PULL_REQUESTS_TIER = PermissionTier(
 PR_ITERATION_TIER = PermissionTier(
     key="pr_iteration",
     order=4,
-    name="Pull request iteration",
     description=(
         "Read GitHub Actions logs and re-run jobs, so Seer can get a pull "
         "request it opened to a passing build."
@@ -176,7 +170,7 @@ def get_permission_tiers(
     ``permissions`` is the installation's own scope -> level map as GitHub
     reports it in ``Integration.metadata["permissions"]``; ``required_permissions``
     is what the current app version asks for, from
-    ``GITHUB_APP_REQUIRED_PERMISSIONS``.
+    ``GITHUB_APP_LATEST_PERMISSIONS``.
 
     Empty when the install is current. When its permissions are not a point on
     the order we cannot trust the state, so rather than guess we log it and
