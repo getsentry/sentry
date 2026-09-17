@@ -12,13 +12,13 @@ from django.apps import apps
 from django.db.models import Q
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.features.base import OrganizationFeature
 from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
@@ -131,8 +131,9 @@ class GroupTypeRegistry:
     def get_visible(
         self, organization: Organization, actor: Any | None = None
     ) -> list[type[GroupType]]:
-        with start_span(
-            op="GroupTypeRegistry.get_visible", name="GroupTypeRegistry.get_visible"
+        with traces.start_span(
+            name="GroupTypeRegistry.get_visible",
+            attributes={"sentry.op": "GroupTypeRegistry.get_visible"},
         ) as span:
             released = [gt for gt in self.all() if gt.released]
             feature_to_grouptype: dict[str, type[GroupType]] = {}
@@ -153,11 +154,11 @@ class GroupTypeRegistry:
                         if gt.type_id not in seen:
                             seen.add(gt.type_id)
                             enabled.append(gt)
-            set_span_tag(span, "organization_id", organization.id)
-            set_span_tag(span, "has_batch_features", batch_features is not None)
-            set_span_tag(span, "released", released)
-            set_span_tag(span, "enabled", enabled)
-            set_span_data(span, "feature_to_grouptype", feature_to_grouptype)
+            span.set_attribute("organization_id", organization.id)
+            span.set_attribute("has_batch_features", batch_features is not None)
+            span.set_attribute("released", released)
+            span.set_attribute("enabled", enabled)
+            span.set_attribute("feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
