@@ -269,6 +269,25 @@ const MAX_MESSAGES_AT_START = 2;
 const MAX_MESSAGES_AT_END = 1;
 const MAX_MESSAGES_TO_SHOW = MAX_MESSAGES_AT_START + MAX_MESSAGES_AT_END;
 
+function AIMessageContent({message}: {message: AIMessage}) {
+  return typeof message.content === 'string' ? (
+    <AIContentRenderer text={message.content} />
+  ) : (
+    <TraceDrawerComponents.MultilineJSON value={message.content} maxDefaultDepth={2} />
+  );
+}
+
+function AISystemMessageContent({message}: {message: AIMessage}) {
+  return (
+    <SystemMessageClippedBox
+      clipHeight={150}
+      buttonProps={{variant: 'secondary', size: 'xs'}}
+    >
+      <AIMessageContent message={message} />
+    </SystemMessageClippedBox>
+  );
+}
+
 function MessagesArrayRenderer({
   messages,
   originalLength,
@@ -285,32 +304,17 @@ function MessagesArrayRenderer({
   const previousMessagesLength = usePrevious(messages.length);
   useLayoutEffect(() => {
     if (previousMessagesLength !== messages.length) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setIsExpanded(messages.length <= MAX_MESSAGES_TO_SHOW);
     }
   }, [messages.length, previousMessagesLength]);
-
-  const renderMessageContent = (message: AIMessage) =>
-    typeof message.content === 'string' ? (
-      <AIContentRenderer text={message.content} />
-    ) : (
-      <TraceDrawerComponents.MultilineJSON value={message.content} maxDefaultDepth={2} />
-    );
-
-  const renderSystemMessageContent = (message: AIMessage) => (
-    <SystemMessageClippedBox
-      clipHeight={150}
-      buttonProps={{variant: 'secondary', size: 'xs'}}
-    >
-      {renderMessageContent(message)}
-    </SystemMessageClippedBox>
-  );
 
   const renderMessage = (message: AIMessage, index: number) => {
     if (message.role === 'system') {
       return (
         <Fragment key={index}>
           <RoleLabel>{message.role}</RoleLabel>
-          {renderSystemMessageContent(message)}
+          <AISystemMessageContent message={message} />
         </Fragment>
       );
     }
@@ -318,7 +322,7 @@ function MessagesArrayRenderer({
     return (
       <Fragment key={index}>
         <RoleLabel>{message.role}</RoleLabel>
-        {renderMessageContent(message)}
+        <AIMessageContent message={message} />
       </Fragment>
     );
   };

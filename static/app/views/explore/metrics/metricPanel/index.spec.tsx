@@ -519,16 +519,17 @@ describe('MetricPanel', () => {
     });
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
       match: [MockApiClient.matchData({timestamp})],
       body: {
-        errors: 1,
-        performance_issues: 0,
-        projects: 1,
-        transactions: 1,
-        transaction_child_count_map: [],
-        span_count: 2,
-        span_count_map: {},
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 2,
+        spansCountMap: {},
+        transactionChildCountMap: [],
+        uptimeCount: 0,
       },
     });
 
@@ -561,7 +562,7 @@ describe('MetricPanel', () => {
     const timestamp = new Date(row.timestamp).getTime() / 1000;
     const traceMetaMock = MockApiClient.addMockResponse({
       method: 'GET',
-      url: `/organizations/${organization.slug}/events-trace-meta/${row.trace}/`,
+      url: `/organizations/${organization.slug}/trace-meta/${row.trace}/`,
       match: [MockApiClient.matchData({timestamp})],
       statusCode: 500,
       body: {detail: 'Internal Server Error'},

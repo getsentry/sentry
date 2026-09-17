@@ -168,6 +168,13 @@ describe('useSeerExplorer', () => {
       '/explore/logs/trace/:traceSlug/',
       '/explore/replays/',
       '/explore/replays/:replaySlug/',
+      '/monitors/',
+      '/monitors/crons/',
+      '/monitors/errors/',
+      '/monitors/metrics/',
+      '/monitors/mobile-builds/',
+      '/monitors/my-monitors/',
+      '/monitors/uptime/',
     ])('sends structured JSON on structured-context route %s', async (route: string) => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
         getPageReferrer: () => route,
@@ -206,7 +213,7 @@ describe('useSeerExplorer', () => {
 
     it('falls back to ASCII screenshot on non-structured-context page', async () => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/monitors/mobile-builds/',
+        getPageReferrer: () => '/settings/account/details/',
       });
       const org = OrganizationFixture({
         features: ['seer-explorer', 'seer-explorer-structured-context-rollout'],
@@ -235,7 +242,7 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        // /monitors/mobile-builds/ is not in STRUCTURED_CONTEXT_ROUTES — falls back to ASCII snapshot
+        // /settings/account/details/ is not in STRUCTURED_CONTEXT_ROUTES — falls back to ASCII snapshot
         const ctx = postMock.mock.calls[0][1].data.on_page_context;
         expect(() => JSON.parse(ctx)).toThrow();
       });
@@ -243,7 +250,7 @@ describe('useSeerExplorer', () => {
 
     it('sends page_location even on a non-structured-context page', async () => {
       jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/monitors/mobile-builds/',
+        getPageReferrer: () => '/settings/account/details/',
       });
       const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({

@@ -66,6 +66,23 @@ function makeCompressedContext(): TraceViewCalculationContext {
 
 describe('TraceViewCalculations', () => {
   describe('NormalTraceViewCalculations', () => {
+    it('pads a zoom target independently of the current viewport', () => {
+      const calculations = new NormalTraceViewCalculations();
+      const context = makeCalculationContext();
+
+      for (const viewport of [
+        {x: 0, width: 1000},
+        {x: 495, width: 10},
+      ]) {
+        context.view.setTraceView(viewport);
+        calculations.recomputeSpanToPXMatrix(context);
+
+        const padded = calculations.padZoomIntoSpace(context, 500, 1);
+        expect(padded.x).toBeCloseTo(499.926);
+        expect(padded.width).toBeCloseTo(1.148);
+      }
+    });
+
     it('uses trace view duration for horizontal panning', () => {
       const calculations = new NormalTraceViewCalculations();
       const context = makeCalculationContext();
@@ -80,6 +97,42 @@ describe('TraceViewCalculations', () => {
   });
 
   describe('CompressedTraceViewCalculations', () => {
+    it.each([
+      {x: 500, width: 1},
+      {x: 147, width: 1},
+      {x: 452, width: 1},
+      {x: 100, width: 400},
+    ])(
+      'keeps zooming to [$x, $width] stable across viewports and repeated zooms',
+      target => {
+        const calculations = new CompressedTraceViewCalculations();
+        const context = makeCompressedContext();
+        calculations.recomputeSpanToPXMatrix(context);
+        const expected = calculations.padZoomIntoSpace(context, target.x, target.width);
+
+        for (const viewport of [{x: 495, width: 10}, expected]) {
+          context.view.setTraceView(viewport);
+          calculations.recomputeSpanToPXMatrix(context);
+
+          expect(calculations.padZoomIntoSpace(context, target.x, target.width)).toEqual(
+            expected
+          );
+        }
+
+        context.view.setTraceView(expected);
+        calculations.recomputeSpanToPXMatrix(context);
+        const startPx = calculations.transformXFromTimestamp(context, target.x);
+        const endPx = calculations.transformXFromTimestamp(
+          context,
+          target.x + target.width
+        );
+
+        expect(startPx).toBeCloseTo(64.46, 1);
+        expect(endPx - startPx).toBeCloseTo(871.08, 1);
+        expect(1000 - endPx).toBeCloseTo(64.46, 1);
+      }
+    );
+
     it('keeps the cursor anchored when zooming through compressed time', () => {
       const calculations = new CompressedTraceViewCalculations();
       const context = makeCompressedContext();

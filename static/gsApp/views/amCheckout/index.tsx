@@ -186,7 +186,7 @@ function AMCheckout(props: Props) {
         );
       });
     },
-    [subscription?.planDetails?.billingInterval]
+    [subscription.planDetails.billingInterval]
   );
 
   /**
@@ -242,7 +242,7 @@ function AMCheckout(props: Props) {
     [
       subscription.plan,
       subscription.planDetails.name,
-      subscription.planDetails?.billingInterval,
+      subscription.planDetails.billingInterval,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -257,7 +257,7 @@ function AMCheckout(props: Props) {
         subscription.planDetails.billingInterval === initialPlan.billingInterval
       );
     },
-    [subscription?.planDetails]
+    [subscription.planDetails]
   );
 
   const getValidData = useCallback(
@@ -667,7 +667,7 @@ function AMCheckout(props: Props) {
   const isOnSponsoredPartnerPlan =
     (subscription.partner?.isActive && subscription.isSponsored) || false;
 
-  const renderCheckoutContent = () => (
+  const checkoutContent = (
     <Fragment>
       <CheckoutBody>
         {renderPartnerAlert()}
@@ -793,7 +793,7 @@ function AMCheckout(props: Props) {
         align="start"
         paddingTop="3xl"
       >
-        {renderCheckoutContent()}
+        {checkoutContent}
       </Flex>
     </Stack>
   );

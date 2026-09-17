@@ -19,6 +19,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
+# The default Activity fixture represents a comment created before GALE dual writes.
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -63,17 +65,45 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 404
 
     def test_delete(self) -> None:
-        self.login_as(user=self.user)
-
-        url = self.url
+        self.organization.update_option("sentry:events_member_admin", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.activity.update(user_id=member.id)
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
 
         assert Group.objects.get(id=self.group.id).num_comments == 1
 
-        response = self.client.delete(url, format="json")
+        response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 204, response.status_code
         assert not Activity.objects.filter(id=self.activity.id).exists()
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
+
+    def test_delete_with_read_only_token(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+
+        response = self.client.delete(
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+
+        assert response.status_code == 403, response.content
+        assert Activity.objects.filter(id=self.activity.id).exists()
+
+    def test_delete_another_users_comment_with_write_token(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        token = self.create_user_auth_token(user=member, scope_list=["event:write"])
+
+        response = self.client.delete(
+            self.url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+
+        assert response.status_code == 404, response.content
+        assert Activity.objects.filter(id=self.activity.id).exists()
 
     def test_delete_comment_and_subscription(self) -> None:
         """Test that if a user deletes their comment on an issue, we delete the subscription too"""

@@ -152,7 +152,7 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
-  const widgetQueryError = getWidgetConfigError(props.widget);
+  const widgetQueryError = getWidgetConfigError(props.widget, organization);
 
   // Push widget metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -212,6 +212,7 @@ function WidgetCard(props: Props) {
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
+    // oxlint-disable-next-line react/immutability
     widget.displayType = DisplayType.AREA;
   }
 

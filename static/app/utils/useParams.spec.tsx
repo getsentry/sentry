@@ -27,6 +27,7 @@ describe('useParams', () => {
     it('returns an empty object', () => {
       let params: any;
       function HomePage() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         params = useParams();
         return null;
       }
@@ -46,6 +47,7 @@ describe('useParams', () => {
     it('returns an object of the URL params', () => {
       let params: any;
       function HomePage() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         params = useParams();
         return null;
       }
@@ -73,7 +75,9 @@ describe('useParams', () => {
       let useParamsValue: any;
 
       function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouter6Params();
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         useParamsValue = useParams();
         return (
           <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>
@@ -104,7 +108,9 @@ describe('useParams', () => {
       let useParamsValue: any;
 
       function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouter6Params();
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         useParamsValue = useParams();
         return (
           <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>

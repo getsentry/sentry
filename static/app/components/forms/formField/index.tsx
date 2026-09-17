@@ -226,6 +226,7 @@ export function FormField(props: FormFieldProps) {
   // wrapping FormField without it being wrapped in a Form. There's just too
   // many things that break.
   if (context.form === undefined) {
+    // oxlint-disable-next-line react/immutability
     (model as any).props = props;
   }
 

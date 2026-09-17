@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -51,7 +52,7 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
           <SimpleTable.RowCell>
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
-          <SimpleTable.RowCell data-column-name="action-filters">
+          <SimpleTable.RowCell columnKey="action-filters">
             <Placeholder height="20px" />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -59,6 +60,11 @@ function Skeletons({numberOfRows}: {numberOfRows: number}) {
     </Fragment>
   );
 }
+
+const AUTOMATIONS_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: '1fr'},
+  {key: 'action-filters', width: {zero: '120px', sm: '180px'}},
+];
 
 function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
   const getPaginationCaption = useGetPaginationCaption();
@@ -95,11 +101,12 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
         });
 
   const table = (
-    <SimpleTableWithColumns
+    <SimpleTable
+      columns={AUTOMATIONS_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="action-filters">
+          <SimpleTable.HeaderCell columnKey="action-filters">
             {t('Actions')}
           </SimpleTable.HeaderCell>
         </SimpleTable.HeaderRow>
@@ -121,12 +128,12 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
             <SimpleTable.RowCell>
               <AutomationTitleCell automation={automation} />
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell data-column-name="action-filters">
+            <SimpleTable.RowCell columnKey="action-filters">
               <ActionCell actions={getAutomationActions(automation)} />
             </SimpleTable.RowCell>
           </SimpleTable.Row>
         ))}
-    </SimpleTableWithColumns>
+    </SimpleTable>
   );
 
   return (
@@ -318,14 +325,6 @@ export function DetectorDetailsAutomations({detector}: Props) {
     </Fragment>
   );
 }
-
-const SimpleTableWithColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr 180px;
-
-  @container (max-width: ${p => p.theme.container.sm}) {
-    grid-template-columns: 1fr 120px;
-  }
-`;
 
 const InlineProjectName = styled(Flex)`
   vertical-align: bottom;

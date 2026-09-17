@@ -269,12 +269,13 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
     x: number,
     width: number
   ): {width: number; x: number} {
-    const compressedPxRatio = context.spanToPx[0];
-    const paddingCompressedMs = 74 * compressedPxRatio;
     const realStart = x + context.view.to_origin;
     const realEnd = realStart + width;
     const compressedStart = context.timeCompression.toCompressedOffset(realStart);
     const compressedEnd = context.timeCompression.toCompressedOffset(realEnd);
+    const paddingCompressedMs =
+      (74 * (compressedEnd - compressedStart)) /
+      Math.max(context.view.trace_physical_space.width, 1);
     const paddedStart = context.timeCompression.toRealTimestamp(
       compressedStart - paddingCompressedMs
     );

@@ -6,10 +6,9 @@ from collections import defaultdict
 from concurrent.futures import as_completed
 from typing import IO
 
-from objectstore_client import Session
-
 from sentry.preprod.snapshots.constants import SNAPSHOT_ARCHIVE_MANIFEST_FILENAME
 from sentry.preprod.snapshots.manifest import SnapshotManifest
+from sentry.preprod.snapshots.storage import SnapshotStorage
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import is_unsafe_path
 
@@ -22,7 +21,7 @@ def archive_object_key(artifact_id: int) -> str:
     return f"snapshot_archives/{artifact_id}.zip"
 
 
-def archive_exists(session: Session, key: str) -> bool:
+def archive_exists(session: SnapshotStorage, key: str) -> bool:
     archive = session.get(key)
     if archive is None:
         return False
@@ -36,7 +35,7 @@ class SnapshotZipBuildError(Exception):
 
 def build_snapshot_zip(
     manifest: SnapshotManifest,
-    session: Session,
+    session: SnapshotStorage,
     key_prefix: str,
     out: IO[bytes],
     artifact_id: int,
