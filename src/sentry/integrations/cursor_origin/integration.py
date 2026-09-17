@@ -217,8 +217,7 @@ FEATURES = [
     ),
     FeatureDescription(
         """
-        Import your Origin CODEOWNERS file and use it alongside your ownership rules to
-        assign Sentry issues.
+        Import your Origin CODEOWNERS file to use email-based ownership rules in Sentry.
         """,
         IntegrationFeatures.CODEOWNERS,
     ),
