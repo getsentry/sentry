@@ -97,8 +97,8 @@ export function useTracePinnedAttribute({
   );
 
   // Query the full loaded trace independently of the selected span or error.
-  // Snuba uses whole-second bounds with an exclusive end. Include the final
-  // second even for subsecond traces and zero-duration spans.
+  // Round the time range outward to whole seconds so the events query includes
+  // spans at both trace boundaries, including zero-duration spans.
   const start = Math.floor(tree.root.space[0] / 1000) * 1000;
   const end = (Math.floor((tree.root.space[0] + tree.root.space[1]) / 1000) + 1) * 1000;
   const query = useInfiniteQuery({
