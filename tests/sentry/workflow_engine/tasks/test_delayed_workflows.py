@@ -13,6 +13,7 @@ from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.delayed_workflow import (
+    DelayedWorkflowEvaluationResult,
     EventRedisData,
     _process_workflows_for_project,
     process_delayed_workflows,
@@ -269,7 +270,9 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
 
         mock_fire.assert_called_once()
         mock_emit.assert_called_once()
-        assert mock_emit.call_args.kwargs["result"][0].evaluation_phase == EvaluationPhase.DELAYED
+        result = mock_emit.call_args.kwargs["result"]
+        assert isinstance(result, DelayedWorkflowEvaluationResult)
+        assert result.artifacts[0].evaluation_phase == EvaluationPhase.DELAYED
 
         final_data = project_client.get_hash_data(batch_key=None)
         assert final_data == {}

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, TypedDict
 
@@ -184,6 +184,9 @@ class ProcessWorkflowsResult:
             for evaluation in self.evaluations.values()
         )
 
+    def evaluated_workflow_ids(self) -> set[WorkflowId]:
+        return set(self.evaluations)
+
     def to_artifact(self) -> dict[str, object]:
         return {
             "detector_id": self.detector_id,
@@ -196,3 +199,9 @@ class ProcessWorkflowsResult:
             "outcome": self.outcome,
             "project_id": self.project_id,
         }
+
+    def evaluation_artifacts(self) -> list[dict[str, object]]:
+        if not self.evaluations:
+            return [self.to_artifact()]
+
+        return [asdict(evaluation.to_artifact()) for evaluation in self.evaluations.values()]

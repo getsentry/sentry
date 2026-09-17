@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Any
@@ -597,6 +597,12 @@ class DelayedWorkflowEvaluationResult:
     # Condition-level detail is omitted; all conditions not in if_dcg_passed are assumed failed.
     if_dcg_failed: dict[WorkflowId, dict[GroupId, list[DataConditionGroupId]]]
 
+    def evaluated_workflow_ids(self) -> set[WorkflowId]:
+        return set(self.workflow_ids)
+
+    def evaluation_artifacts(self) -> list[dict[str, object]]:
+        return [asdict(artifact) for artifact in self.artifacts]
+
     def iter_per_workflow_log_dicts(self) -> Iterator[dict[str, Any]]:
         """Yield one log-ready dict per workflow, keeping each entry bounded in size."""
         for workflow_id in sorted(self.workflow_ids):
@@ -1064,7 +1070,7 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
     emit_workflow_evaluation_logs(
         logger,
         organization=project.organization,
-        result=evaluation.artifacts,
+        result=evaluation,
     )
 
     metrics.incr(
