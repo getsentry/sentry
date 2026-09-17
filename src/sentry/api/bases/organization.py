@@ -277,10 +277,10 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
     # Control silo endpoints fetch the organization over RPC from the cell silo.
     # Including projects/teams serializes every row into the response body, which is
-    # expensive for large organizations. Set these to False when the endpoint does not
-    # need them.
-    include_organization_projects: bool = True
-    include_organization_teams: bool = True
+    # expensive for large organizations. Endpoints that consume these collections must
+    # explicitly opt in; permission checks do not require them.
+    include_organization_projects: bool = False
+    include_organization_teams: bool = False
 
     def convert_args(
         self,

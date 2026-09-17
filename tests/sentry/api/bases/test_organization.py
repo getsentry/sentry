@@ -61,9 +61,9 @@ class MockSuperUser:
         return True
 
 
-class LightweightControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
-    include_organization_projects = False
-    include_organization_teams = False
+class HydratedControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
+    include_organization_projects = True
+    include_organization_teams = True
 
 
 class PermissionBaseTestCase(TestCase):
@@ -481,11 +481,14 @@ class DetermineAccessHydrationTest(TestCase):
         assert request.access.has_scope("org:read")
 
 
+@all_silo_test
 class ControlSiloOrganizationEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
 
     def build_request(self):
         request = RequestFactory().get("/")
@@ -494,62 +497,62 @@ class ControlSiloOrganizationEndpointTest(TestCase):
         request.auth = None
         return drf_request_from_request(request)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_slug",
-        wraps=organization_service.get_organization_by_slug,
-    )
-    def test_convert_args_includes_projects_and_teams_by_default(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        ControlSiloOrganizationEndpoint().convert_args(self.build_request(), self.organization.slug)
+    def assert_lightweight_context(self, organization_id_or_slug: int | str) -> None:
+        request = self.build_request()
+        with (
+            mock.patch(
+                "sentry.organizations.services.organization.serial.serialize_project"
+            ) as serialize_project,
+            mock.patch(
+                "sentry.organizations.services.organization.serial.serialize_rpc_team"
+            ) as serialize_team,
+        ):
+            _, kwargs = ControlSiloOrganizationEndpoint().convert_args(
+                request, organization_id_or_slug
+            )
 
-        mock_get_organization.assert_called_once_with(
-            slug=self.organization.slug,
-            only_visible=False,
-            user_id=self.user.id,
-            include_projects=True,
-            include_teams=True,
-        )
+        serialize_project.assert_not_called()
+        serialize_team.assert_not_called()
+        assert kwargs["organization"].projects == []
+        assert kwargs["organization"].teams == []
+        assert request.access.has_scope("org:read")
+        assert request.access.has_project_access(self.project)
+        assert request.access.has_team_access(self.team)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_slug",
-        wraps=organization_service.get_organization_by_slug,
-    )
-    def test_convert_args_can_omit_projects_and_teams_for_slug(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        LightweightControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), self.organization.slug
-        )
+    def test_convert_args_omits_projects_and_teams_by_default_for_slug(self) -> None:
+        self.assert_lightweight_context(self.organization.slug)
 
-        mock_get_organization.assert_called_once_with(
-            slug=self.organization.slug,
-            only_visible=False,
-            user_id=self.user.id,
-            include_projects=False,
-            include_teams=False,
-        )
+    def test_convert_args_omits_projects_and_teams_by_default_for_id(self) -> None:
+        self.assert_lightweight_context(self.organization.id)
 
-    @mock.patch.object(
-        organization_service,
-        "get_organization_by_id",
-        wraps=organization_service.get_organization_by_id,
-    )
-    def test_convert_args_can_omit_projects_and_teams_for_id(
-        self, mock_get_organization: mock.MagicMock
-    ) -> None:
-        LightweightControlSiloOrganizationEndpoint().convert_args(
-            self.build_request(), self.organization.id
+    def assert_hydrated_context(self, organization_id_or_slug: int | str) -> None:
+        _, kwargs = HydratedControlSiloOrganizationEndpoint().convert_args(
+            self.build_request(), organization_id_or_slug
         )
+        assert {p.id for p in kwargs["organization"].projects} == {self.project.id}
+        assert {t.id for t in kwargs["organization"].teams} == {self.team.id}
 
-        mock_get_organization.assert_called_once_with(
-            id=self.organization.id,
-            user_id=self.user.id,
-            include_projects=False,
-            include_teams=False,
-        )
+    def test_convert_args_can_include_projects_and_teams_for_slug(self) -> None:
+        self.assert_hydrated_context(self.organization.slug)
+
+    def test_convert_args_can_include_projects_and_teams_for_id(self) -> None:
+        self.assert_hydrated_context(self.organization.id)
+
+    def test_convert_args_can_include_only_projects(self) -> None:
+        endpoint = ControlSiloOrganizationEndpoint()
+        endpoint.include_organization_projects = True
+        _, kwargs = endpoint.convert_args(self.build_request(), self.organization.slug)
+
+        assert {p.id for p in kwargs["organization"].projects} == {self.project.id}
+        assert kwargs["organization"].teams == []
+
+    def test_convert_args_can_include_only_teams(self) -> None:
+        endpoint = ControlSiloOrganizationEndpoint()
+        endpoint.include_organization_teams = True
+        _, kwargs = endpoint.convert_args(self.build_request(), self.organization.id)
+
+        assert kwargs["organization"].projects == []
+        assert {t.id for t in kwargs["organization"].teams} == {self.team.id}
 
 
 class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
