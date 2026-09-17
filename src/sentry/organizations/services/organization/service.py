@@ -51,6 +51,18 @@ class OrganizationService(RpcService):
 
         return DatabaseBackedOrganizationService()
 
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_active_project_ids(self, *, organization_id: int) -> list[int]:
+        """Return all active project IDs in the organization, including projects without teams."""
+        pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def get_active_team_ids(self, *, organization_id: int) -> list[int]:
+        """Return all active team IDs in the organization."""
+        pass
+
     def get(self, id: int) -> RpcOrganization | None:
         """
         Get an organization by id
