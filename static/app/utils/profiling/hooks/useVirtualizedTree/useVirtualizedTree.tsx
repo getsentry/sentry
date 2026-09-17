@@ -904,6 +904,7 @@ export function useVirtualizedTree<T extends TreeLike>(
       }
       resizeObserver.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [props.scrollContainer, props.rowHeight]);
 
   const getNodeAtIndex = useCallback((index: number) => {

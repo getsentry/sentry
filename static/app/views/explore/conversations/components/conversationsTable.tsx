@@ -591,6 +591,7 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
       badgeWidth: badgeEl?.getBoundingClientRect().width ?? 0,
       rowHeight: badgeEl?.getBoundingClientRect().height ?? 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [toolsKey]);
 
   const visibleCount = useMemo(() => {

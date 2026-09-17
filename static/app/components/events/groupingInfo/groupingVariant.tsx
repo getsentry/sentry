@@ -150,27 +150,21 @@ export function GroupingVariant({
     return data;
   };
 
-  const renderTitle = () => {
-    const isContributing = variant.contributes;
-
-    const hint = variant.hint;
-
-    return (
-      <VariantTitle>
-        <ContributionIcon isContributing={isContributing} />
-        {variant.description
-          ?.split(' ')
-          .map(i => capitalize(i))
-          .join(' ') ?? t('Nothing')}
-        <VariantHint>{hint && t('(%s)', hint)}</VariantHint>
-      </VariantTitle>
-    );
-  };
+  const title = (
+    <VariantTitle>
+      <ContributionIcon isContributing={variant.contributes} />
+      {variant.description
+        ?.split(' ')
+        .map(i => capitalize(i))
+        .join(' ') ?? t('Nothing')}
+      <VariantHint>{variant.hint && t('(%s)', variant.hint)}</VariantHint>
+    </VariantTitle>
+  );
 
   const data = getVariantData();
   return (
     <VariantWrapper>
-      <Header>{renderTitle()}</Header>
+      <Header>{title}</Header>
 
       <KeyValueTableDataList
         margin

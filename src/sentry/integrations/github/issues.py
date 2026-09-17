@@ -13,6 +13,7 @@ from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -81,7 +82,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         return "{}#{}".format(data["repo"], data["key"])
 
     def get_issue_url(self, key: str) -> str:
-        domain_name, user = self.model.metadata["domain_name"].split("/")
+        domain_name = instance_hostname(self.model)
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
