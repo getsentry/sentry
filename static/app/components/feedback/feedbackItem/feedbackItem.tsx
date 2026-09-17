@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
@@ -19,9 +21,8 @@ import {FeedbackReplay} from 'sentry/components/feedback/feedbackItem/feedbackRe
 import {FeedbackUrl} from 'sentry/components/feedback/feedbackItem/feedbackUrl';
 import {MessageSection} from 'sentry/components/feedback/feedbackItem/messageSection';
 import {MessageTitle} from 'sentry/components/feedback/feedbackItem/messageTitle';
-import {KeyValueData} from 'sentry/components/keyValueData';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
 import {IconChat, IconFire, IconSpan, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -51,6 +52,7 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
         behavior: 'smooth',
       });
     }, 100);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [feedbackItem.id, overflowRef]);
 
   const tagsWithoutAi = useMemo(
@@ -158,7 +160,7 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
               title={
                 <Fragment>
                   {t('Internal Activity')}
-                  <QuestionTooltip
+                  <InfoTip
                     size="xs"
                     title={t(
                       'Use this section to post comments that are visible only to your organization. It will also automatically update when someone resolves or assigns the feedback.'
@@ -198,9 +200,9 @@ function FeedbackItemContexts({
       ...eventData.contexts,
       feedback: {
         ...eventData.contexts?.feedback,
-        ['auto_spam.detection_enabled']: evidenceObject.spam_detection_enabled,
+        'auto_spam.detection_enabled': evidenceObject.spam_detection_enabled,
         ...(evidenceObject.spam_detection_enabled
-          ? {['auto_spam.is_spam']: evidenceObject.is_spam}
+          ? {'auto_spam.is_spam': evidenceObject.is_spam}
           : {}),
       },
     },
@@ -225,7 +227,7 @@ function FeedbackItemContexts({
 
   return (
     <ErrorBoundary mini message={t('There was a problem loading event context.')}>
-      <KeyValueData.Container>{cards}</KeyValueData.Container>
+      <KeyValueTableCardGrid>{cards}</KeyValueTableCardGrid>
     </ErrorBoundary>
   );
 }

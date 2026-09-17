@@ -23,6 +23,9 @@ def is_smtp_enabled(backend: Backend | None = None) -> bool:
 
 def get_mail_backend() -> Backend:
     backend = options.get("mail.backend")
+    if backend == "console" and not settings.DEBUG:
+        raise RuntimeError("Console email backend is only available in debug mode.")
+
     try:
         return settings.SENTRY_EMAIL_BACKEND_ALIASES[backend]
     except KeyError:

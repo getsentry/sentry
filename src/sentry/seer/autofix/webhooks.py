@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, Literal
 
@@ -6,12 +7,14 @@ import sentry_sdk
 from django.conf import settings
 
 from sentry import analytics, features
-from sentry.analytics.events.ai_autofix_pr_events import (
+from sentry.analytics.events.autofix_events import (
     AiAutofixPrClosedEvent,
     AiAutofixPrEvent,
     AiAutofixPrMergedEvent,
     AiAutofixPrOpenedEvent,
 )
+from sentry.integrations.github.webhook_types import GithubWebhookType
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -20,8 +23,12 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
+from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import SentryAppSignalDetails, record_attribution_signal
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
+from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.webhooks")
@@ -102,6 +109,25 @@ def record_pr_action_analytic(
         metrics.incr(f"ai.autofix.pr.{analytic_action}", tags={"mode": "explorer"})
 
         try:
+            _update_autofix_issue_data_for_pr(
+                org=org,
+                repo_id=repo_id,
+                pull_request=pull_request,
+                group_id=group.id,
+                action=analytic_action,
+            )
+        except Exception:
+            logger.exception(
+                "seer.autofix.issue_data_pr_update.failed",
+                extra={
+                    "organization_id": org.id,
+                    "group_id": group.id,
+                    "run_id": agent_state.run_id,
+                    "action": analytic_action,
+                },
+            )
+
+        try:
             _record_pr_attribution(
                 org=org,
                 repo_id=repo_id,
@@ -122,6 +148,34 @@ def record_pr_action_analytic(
         return
 
 
+def _update_autofix_issue_data_for_pr(
+    *,
+    org: Organization,
+    repo_id: int,
+    pull_request: dict[str, Any],
+    group_id: int,
+    action: AnalyticAction,
+) -> None:
+    if not features.has("organizations:seer-fixability-training-data", org):
+        return
+
+    issue_data = SeerAutofixIssueData.objects.filter(
+        group_id=group_id, organization_id=org.id
+    ).first()
+    number = pull_request.get("number")
+    if issue_data is None or number is None:
+        return
+
+    pr, _ = PullRequest.objects.get_or_create(
+        organization_id=org.id,
+        repository_id=repo_id,
+        key=str(number),
+    )
+    issue_data.pull_request = pr
+    issue_data.raw_issue_data["status"] = f"pr_{action}"
+    issue_data.save(update_fields=["pull_request", "raw_issue_data", "date_updated"])
+
+
 def _record_pr_attribution(
     *,
     org: Organization,
@@ -140,7 +194,7 @@ def _record_pr_attribution(
     ``attribute_seer_created_pull_requests``; ``record_attribution_signal`` merges
     the two writes rather than one clobbering the other.
     """
-    if not features.has("organizations:pr-metrics-attribution", org):
+    if not features.has("organizations:pr-metrics", org):
         return
 
     number = pull_request.get("number")
@@ -163,6 +217,43 @@ def _record_pr_attribution(
             run_id=run_id,
         ).dict(),
     )
+
+
+def handle_pull_requests_merged_milestone(
+    *,
+    github_event: GithubWebhookType,
+    event: Mapping[str, Any],
+    organization: Organization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    """Reconcile the run's PULL_REQUESTS_MERGED milestone whenever one of its PRs closes,
+    merges, or reopens, resolving the run via the SeerRunPullRequest link (covers
+    coding-agent PRs too). A close can be the event that leaves every remaining PR
+    merged; a reopen can revoke a milestone that a since-abandoned PR let through.
+    """
+    pull_request = event.get("pull_request")
+    if not pull_request or event.get("action") not in ("closed", "reopened"):
+        return
+
+    number = pull_request.get("number")
+    if number is None:
+        return
+
+    link = (
+        SeerRunPullRequest.objects.select_related("seer_run")
+        .filter(
+            pull_request__organization_id=organization.id,
+            pull_request__repository_id=repo.id,
+            pull_request__key=str(number),
+        )
+        .first()
+    )
+    if link is None:
+        return
+
+    reconcile_pull_requests_merged_milestone(link.seer_run)
 
 
 def _get_pr_timestamp_ms(pull_request: dict[str, Any], action: AnalyticAction) -> int:

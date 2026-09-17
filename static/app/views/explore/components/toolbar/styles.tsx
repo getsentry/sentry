@@ -27,9 +27,11 @@ export const ToolbarFooterButton = styled(Button)<{
   ${p =>
     p.variant === 'link'
       ? css`
-          color: ${p.disabled
-            ? p.theme.tokens.content.disabled
-            : p.theme.tokens.interactive.link.accent.rest};
+          color: ${
+            p.disabled
+              ? p.theme.tokens.content.disabled
+              : p.theme.tokens.interactive.link.accent.rest
+          };
         `
       : ''}
 `;

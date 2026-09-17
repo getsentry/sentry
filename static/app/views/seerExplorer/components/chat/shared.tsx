@@ -3,7 +3,11 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
-import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {
+  Block,
+  PendingUserInput,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
   block: Block;
@@ -13,6 +17,7 @@ export interface UserBlockProps extends BlockVariantProps {}
 
 export interface AssistantBlockProps extends BlockVariantProps {
   blockIndex: number;
+  compact?: boolean;
   interactionPending?: boolean;
   readOnly?: boolean;
   runId?: SeerExplorerRunId;
@@ -21,6 +26,9 @@ export interface AssistantBlockProps extends BlockVariantProps {
 export interface ToolUseBlockProps extends BlockVariantProps {
   blocks?: Block[];
   getPageReferrer?: () => string;
+  pendingInput?: PendingUserInput | null;
+  readOnly?: boolean;
+  respondToUserInput?: (inputId: string, responseData?: Record<string, unknown>) => void;
   showThinking?: boolean;
 }
 

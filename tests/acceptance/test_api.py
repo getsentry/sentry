@@ -25,8 +25,9 @@ class ApiApplicationTest(AcceptanceTestCase):
 
         self.browser.click('[href="/settings/account/api/applications/"]')
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.click_when_visible('[data-test-id="toast-success"]')
-        self.browser.wait_until_not('[data-test-id="toast-success"]')
+        toast_selector = '[role="status"]'
+        self.browser.click_when_visible(f'{toast_selector} [aria-label="Dismiss"]')
+        self.browser.wait_until_not(toast_selector)
 
         app = ApiApplication.objects.first()
         assert app
@@ -36,5 +37,5 @@ class ApiApplicationTest(AcceptanceTestCase):
         self.browser.click_when_visible('[aria-label="Remove"]')
         self.browser.element("input[name='confirm-text']").send_keys(app.name)
         self.browser.click_when_visible('[aria-label="Confirm"]')
-        self.browser.wait_until_not('[data-test-id="toast-loading"]')
+        self.browser.wait_until_not(toast_selector)
         self.browser.wait_until_test_id("empty-message")

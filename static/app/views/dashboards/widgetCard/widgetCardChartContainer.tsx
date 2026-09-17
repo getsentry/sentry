@@ -1,4 +1,5 @@
 import {Fragment, useRef} from 'react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import type {LegendComponentOption} from 'echarts';
 
 import {Container} from '@sentry/scraps/layout';
@@ -16,7 +17,6 @@ import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType, Sort} from 'sentry/utils/discover/fields';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useWidgetErrorCallback} from 'sentry/views/dashboards/contexts/widgetErrorContext';
 import type {DashboardFilters, Widget as TWidget} from 'sentry/views/dashboards/types';
@@ -77,7 +77,37 @@ type Props = {
   windowWidth?: number;
 };
 
-export function WidgetCardChartContainer({
+function getErrorOrEmptyMessage(
+  errorMessage: string | undefined,
+  timeseriesResults: Series[] | undefined,
+  tableResults: TableDataWithTitle[] | undefined,
+  heatmapResults: HeatMapSeries | undefined,
+  widgetType: DisplayType
+) {
+  if (widgetFetchesOwnData(widgetType)) {
+    return;
+  }
+
+  // Heat maps return a single series object rather than table/timeseries rows.
+  if (widgetType === DisplayType.HEATMAP) {
+    return errorMessage
+      ? errorMessage
+      : heatmapResults === undefined || heatmapResults.values.length === 0
+        ? t('No data found')
+        : undefined;
+  }
+
+  // non-chart widgets need to look at tableResults
+  const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
+
+  return errorMessage
+    ? errorMessage
+    : results === undefined || results?.length === 0
+      ? t('No data found')
+      : undefined;
+}
+
+function WidgetCardDataLoaderView({
   selection,
   widget,
   dashboardFilters,
@@ -101,50 +131,19 @@ export function WidgetCardChartContainer({
   onWidgetTableSort,
   onWidgetTableResizeColumn,
   disableTableActions,
-  widgetInterval,
-}: Props) {
-  const onWidgetError = useWidgetErrorCallback();
-
-  const isHeatmap = widget.displayType === DisplayType.HEATMAP;
-
+  onWidgetError,
+  resolvedWidgetInterval,
+  yBuckets,
+}: Props & {
+  onWidgetError: ReturnType<typeof useWidgetErrorCallback>;
+  resolvedWidgetInterval: string | undefined;
+  yBuckets: number | undefined;
+}) {
   const keepLegendState: EChartLegendSelectChangeHandler = ({selected}) => {
     widgetLegendState.setWidgetSelectionState(selected, widget);
   };
 
-  function getErrorOrEmptyMessage(
-    errorMessage: string | undefined,
-    timeseriesResults: Series[] | undefined,
-    tableResults: TableDataWithTitle[] | undefined,
-    heatmapResults: HeatMapSeries | undefined,
-    widgetType: DisplayType
-  ) {
-    if (widgetFetchesOwnData(widgetType)) {
-      return;
-    }
-
-    // Heat maps return a single series object rather than table/timeseries rows.
-    if (widgetType === DisplayType.HEATMAP) {
-      return errorMessage
-        ? errorMessage
-        : heatmapResults === undefined || heatmapResults.values.length === 0
-          ? t('No data found')
-          : undefined;
-    }
-
-    // non-chart widgets need to look at tableResults
-    const results = usesTimeSeriesData(widgetType) ? timeseriesResults : tableResults;
-
-    return errorMessage
-      ? errorMessage
-      : results === undefined || results?.length === 0
-        ? t('No data found')
-        : undefined;
-  }
-
-  const renderDataLoader = (
-    resolvedWidgetInterval: string | undefined,
-    yBuckets: number | undefined
-  ) => (
+  return (
     <WidgetCardDataLoader
       widget={widget}
       selection={selection}
@@ -240,6 +239,64 @@ export function WidgetCardChartContainer({
       }}
     </WidgetCardDataLoader>
   );
+}
+
+export function WidgetCardChartContainer({
+  selection,
+  widget,
+  dashboardFilters,
+  isMobile,
+  tableItemLimit,
+  windowWidth,
+  onZoom,
+  onLegendSelectChanged,
+  legendOptions,
+  onDataFetched,
+  noPadding,
+  onWidgetSplitDecision,
+  chartGroup,
+  shouldResize,
+  widgetLegendState,
+  showConfidenceWarning,
+  minTableColumnWidth,
+  onDataFetchStart,
+  disableZoom,
+  showLoadingText,
+  onWidgetTableSort,
+  onWidgetTableResizeColumn,
+  disableTableActions,
+  widgetInterval,
+}: Props) {
+  const onWidgetError = useWidgetErrorCallback();
+
+  const isHeatmap = widget.displayType === DisplayType.HEATMAP;
+
+  const dataLoaderProps = {
+    selection,
+    widget,
+    dashboardFilters,
+    isMobile,
+    tableItemLimit,
+    windowWidth,
+    onZoom,
+    onLegendSelectChanged,
+    legendOptions,
+    onDataFetched,
+    noPadding,
+    onWidgetSplitDecision,
+    chartGroup,
+    shouldResize,
+    widgetLegendState,
+    showConfidenceWarning,
+    minTableColumnWidth,
+    onDataFetchStart,
+    disableZoom,
+    showLoadingText,
+    onWidgetTableSort,
+    onWidgetTableResizeColumn,
+    disableTableActions,
+    onWidgetError,
+  };
 
   // Heat maps size their request from the rendered dimensions, so they go
   // through a measured wrapper that resolves the bucket interval/count before
@@ -247,14 +304,24 @@ export function WidgetCardChartContainer({
   if (isHeatmap) {
     return (
       <HeatmapMeasuredArea selection={selection}>
-        {({widgetInterval: heatmapInterval, yBuckets}) =>
-          renderDataLoader(heatmapInterval, yBuckets)
-        }
+        {({widgetInterval: heatmapInterval, yBuckets}) => (
+          <WidgetCardDataLoaderView
+            {...dataLoaderProps}
+            resolvedWidgetInterval={heatmapInterval}
+            yBuckets={yBuckets}
+          />
+        )}
       </HeatmapMeasuredArea>
     );
   }
 
-  return renderDataLoader(widgetInterval, undefined);
+  return (
+    <WidgetCardDataLoaderView
+      {...dataLoaderProps}
+      resolvedWidgetInterval={widgetInterval}
+      yBuckets={undefined}
+    />
+  );
 }
 
 /**
@@ -274,10 +341,12 @@ function HeatmapMeasuredArea({
 }) {
   const chartAreaRef = useRef<HTMLDivElement>(null);
   const dimensions = useDimensions({elementRef: chartAreaRef});
-  // `leading: true` keeps the first measurement fast; mid-resize churn collapses
-  // into a single trailing update once the drag settles.
-  const debouncedDimensions = useDebouncedValue(dimensions, HEATMAP_RESIZE_DEBOUNCE_MS, {
-    leading: true,
+  // A leading update keeps the first usable measurement fast; mid-resize churn
+  // collapses into a single trailing update once the drag settles.
+  const [debouncedDimensions] = useDebouncedValue(dimensions, {
+    wait: HEATMAP_RESIZE_DEBOUNCE_MS,
+    // The initial zero-sized value must not consume the leading execution.
+    leading: dimensions.width > 0 && dimensions.height > 0,
   });
 
   // Returns null until the container is measured, which keeps the query

@@ -1,6 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-// eslint-disable-next-line boundaries/dependencies
 import {Avatar} from './avatar';
 
 describe('Avatar', () => {
@@ -100,7 +99,6 @@ describe('Avatar', () => {
           identifier="test-id"
           name="Test User"
           tooltip="Test Tooltip"
-          hasTooltip={false}
         />
       );
       expect(screen.getByText('TU')).toBeInTheDocument();

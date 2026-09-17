@@ -1,7 +1,6 @@
 import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
-import type {ApiResult} from 'sentry/types/api';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
@@ -11,7 +10,6 @@ import type {
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
@@ -19,18 +17,14 @@ import type {
 } from 'sentry/utils/discover/discoverQuery';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {
-  doOnDemandMetricsRequest,
   ErrorsAndTransactionsConfig,
   getSeriesResultType,
 } from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget} from 'sentry/views/dashboards/types';
-import {WidgetType} from 'sentry/views/dashboards/types';
-import {eventViewFromWidget, hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -48,11 +42,7 @@ type ErrorsAndTransactionsTableResponse = TableData | EventsTableData;
 
 const EMPTY_ARRAY: any[] = [];
 
-function getQueryExtraForSplittingDiscover(
-  widget: Widget,
-  _organization: any,
-  _useOnDemandMetrics: boolean
-) {
+function getQueryExtraForSplittingDiscover(widget: Widget) {
   const isEditing = location.pathname.endsWith('/edit/');
 
   if (isEditing && widget.id) {
@@ -72,8 +62,6 @@ export function useErrorsAndTransactionsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
-    onDemandControlContext,
     widgetInterval,
   } = params;
 
@@ -88,13 +76,6 @@ export function useErrorsAndTransactionsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const useOnDemandMetrics = shouldUseOnDemandMetrics(
-    organization,
-    filteredWidget,
-    onDemandControlContext
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -102,16 +83,12 @@ export function useErrorsAndTransactionsSeriesQuery(
         queryIndex,
         organization,
         pageFilters,
-        isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.DISCOVER,
+        DiscoverDatasets.DISCOVER,
         getReferrer(filteredWidget.displayType),
         widgetInterval
       );
 
-      const splitDiscoverExtras = getQueryExtraForSplittingDiscover(
-        filteredWidget,
-        organization,
-        !!useOnDemandMetrics
-      );
+      const splitDiscoverExtras = getQueryExtraForSplittingDiscover(filteredWidget);
 
       const {
         organization: _org,
@@ -128,7 +105,6 @@ export function useErrorsAndTransactionsSeriesQuery(
         ...(period ? {statsPeriod: period} : {}),
         ...requestQueryExtras,
         ...splitDiscoverExtras,
-        ...(useOnDemandMetrics ? {dataset: DiscoverDatasets.METRICS_ENHANCED} : {}),
       };
 
       if (queryParams.start) {
@@ -153,57 +129,6 @@ export function useErrorsAndTransactionsSeriesQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<ErrorsAndTransactionsSeriesResponse>> => {
-          if (useOnDemandMetrics) {
-            const onDemandRequestData = getSeriesRequestData(
-              filteredWidget,
-              queryIndex,
-              organization,
-              pageFilters,
-              DiscoverDatasets.METRICS_ENHANCED,
-              getReferrer(filteredWidget.displayType),
-              widgetInterval
-            );
-
-            onDemandRequestData.queryExtras = {
-              ...onDemandRequestData.queryExtras,
-              ...(getQueryExtraForSplittingDiscover(
-                filteredWidget,
-                organization,
-                true
-              ) as Record<string, unknown>),
-              dataset: DiscoverDatasets.METRICS_ENHANCED,
-            };
-
-            const toApiResponse = (
-              result: ApiResult<ErrorsAndTransactionsSeriesResponse>
-            ): ApiResponse<ErrorsAndTransactionsSeriesResponse> => ({
-              json: result[0],
-              headers: {},
-            });
-
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    doOnDemandMetricsRequest(
-                      context.meta?.api,
-                      onDemandRequestData,
-                      filteredWidget.widgetType
-                    )
-                      .then(toApiResponse)
-                      .then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-
-            return doOnDemandMetricsRequest(
-              context.meta?.api,
-              onDemandRequestData,
-              filteredWidget.widgetType
-            ).then(toApiResponse);
-          }
-
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
@@ -267,19 +192,7 @@ export function useErrorsAndTransactionsSeriesQuery(
         return;
       }
 
-      let responseData = q.data;
-
-      if (
-        hasDatasetSelector(organization) &&
-        filteredWidget.widgetType === WidgetType.DISCOVER
-      ) {
-        const meta: any = responseData.meta ?? {};
-        if (!meta.discoverSplitDecision && useOnDemandMetrics) {
-          meta.discoverSplitDecision = 'transaction-like';
-          responseData = {...responseData, meta};
-        }
-      }
-
+      const responseData = q.data;
       rawData[requestIndex] = responseData;
 
       const transformedResult = ErrorsAndTransactionsConfig.transformSeries!(
@@ -302,14 +215,19 @@ export function useErrorsAndTransactionsSeriesQuery(
     });
 
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 
@@ -337,8 +255,6 @@ export function useErrorsAndTransactionsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
-    onDemandControlContext,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -352,35 +268,16 @@ export function useErrorsAndTransactionsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const useOnDemandMetrics = shouldUseOnDemandMetrics(
-    organization,
-    filteredWidget,
-    onDemandControlContext
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
-
-      const queryExtras: Record<string, any> = {
-        ...getQueryExtraForSplittingDiscover(
-          filteredWidget,
-          organization,
-          !!useOnDemandMetrics
-        ),
-        useOnDemandMetrics: !!useOnDemandMetrics,
-        onDemandType: 'dynamic_query',
-      };
 
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
         referrer: getReferrer(filteredWidget.displayType),
-        dataset: isMEPEnabled
-          ? DiscoverDatasets.METRICS_ENHANCED
-          : DiscoverDatasets.DISCOVER,
-        ...queryExtras,
+        dataset: DiscoverDatasets.DISCOVER,
+        ...getQueryExtraForSplittingDiscover(filteredWidget),
       };
 
       if (query.orderby) {
@@ -485,14 +382,19 @@ export function useErrorsAndTransactionsTableQuery(
     });
 
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 

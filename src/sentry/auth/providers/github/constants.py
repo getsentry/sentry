@@ -20,8 +20,6 @@ ERR_NO_VERIFIED_PRIMARY_EMAIL = (
     "We were unable to find a verified, primary email address associated with your GitHub account."
 )
 
-ERR_NO_SINGLE_VERIFIED_PRIMARY_EMAIL = "We were unable to find a single verified, primary email address associated with your GitHub account."
-
 # we request repo as we share scopes with the other GitHub integration
 SCOPE = "user:email,read:org,repo"
 

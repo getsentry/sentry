@@ -45,6 +45,9 @@ SQL_DOUBLEQUOTES_REGEX = re.compile(r"\"([a-zA-Z0-9_]+?)\"")
 MAX_SQL_FORMAT_OPS = 20
 MAX_SQL_FORMAT_LENGTH = 1500
 
+# Page-size ceiling for endpoints that serialize a full event body per row (full=true).
+FULL_PAYLOAD_MAX_PER_PAGE = 10
+
 
 class EventTagOptional(TypedDict, total=False):
     query: str
@@ -558,7 +561,10 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         frame_data = [frame.get("data") for frame_list in frame_lists for frame in frame_list]
 
         unique_resolution_methods = {
-            frame.get("resolved_with") for frame in frame_data if frame is not None
+            resolved_with
+            for frame in frame_data
+            if frame is not None
+            if (resolved_with := frame.get("resolved_with")) is not None
         }
 
         return list(unique_resolution_methods)

@@ -89,6 +89,10 @@ class SnubaRPCError(SnubaError):
     pass
 
 
+class SnubaRPCBadRequest(SnubaRPCError):
+    """Snuba rejected the RPC request as invalid."""
+
+
 class SnubaRPCTimeout(SnubaRPCError):
     pass
 
@@ -520,6 +524,8 @@ def _make_rpc_request(
                         raise SnubaRPCRateLimitExceeded(error)
                     if "Too many simultaneous queries" in error.message:
                         raise SnubaRPCTooManySimultaneous(error)
+                    if http_resp.status == 400:
+                        raise SnubaRPCBadRequest(error)
                     raise SnubaRPCError(error)
                 return http_resp
 

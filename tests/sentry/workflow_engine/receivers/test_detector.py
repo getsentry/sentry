@@ -3,11 +3,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from jsonschema import ValidationError
 
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_detectors
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -25,22 +25,31 @@ class DetectorSignalCacheInvalidationTests(TestCase):
         self.dw = self.create_detector_workflow(detector=self.detector, workflow=self.workflow)
 
     @patch("sentry.workflow_engine.receivers.detector.invalidate_processing_workflows")
-    def test_cache_invalidate__create_detector(self, mock_invalidate: MagicMock) -> None:
+    @patch("sentry.workflow_engine.receivers.detector.invalidate_all_projects_detector_cache")
+    def test_cache_invalidate__create_detector(
+        self, mock_all_projects_invalidate: MagicMock, mock_workflows_invalidate: MagicMock
+    ) -> None:
         detector = Detector.objects.create(
-            project=self.project, type=ErrorGroupType.slug, config={}
+            project=None,
+            type=IssueStreamGroupType.slug,
+            config={"organization_id": self.organization.id},
         )
 
-        # new detectors have nothing to invalidate
-        mock_invalidate.assert_not_called()
+        mock_all_projects_invalidate.assert_called_once_with(detector)
+        mock_workflows_invalidate.assert_not_called()
         assert detector
 
     @patch("sentry.workflow_engine.receivers.detector.invalidate_processing_workflows")
-    def test_cache_invalidate__modify_detector(self, mock_invalidate: MagicMock) -> None:
+    @patch("sentry.workflow_engine.receivers.detector.invalidate_all_projects_detector_cache")
+    def test_cache_invalidate__modify_detector(
+        self, mock_all_projects_invalidate: MagicMock, mock_workflows_invalidate: MagicMock
+    ) -> None:
         self.detector.enabled = False
         self.detector.save()
 
         # Ensure the modified detector clears the workflow cache
-        mock_invalidate.assert_called_with(self.detector.id)
+        mock_all_projects_invalidate.assert_called_once_with(self.detector)
+        mock_workflows_invalidate.assert_called_with(self.detector.id)
 
 
 class TestDetectorCacheInvalidationSignals(BaseWorkflowTest):

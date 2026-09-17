@@ -34,6 +34,16 @@ export default function ProjectFilters() {
   const hasDiscardGroups = features.has('discard-groups');
   const showTabs = hasDiscardGroups || hasInboundFiltersV2;
 
+  // Unknown or gated :filterType segments (stale links, old URLs from before a
+  // rename) fall back to data filters, so the highlighted tab always matches
+  // the content actually rendered below.
+  const activeTab =
+    filterType === 'discarded-groups' && hasDiscardGroups
+      ? 'discarded-groups'
+      : filterType === 'custom-filters' && hasInboundFiltersV2
+        ? 'custom-filters'
+        : 'data-filters';
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Inbound Filters')} projectSlug={projectId} />
@@ -51,7 +61,7 @@ export default function ProjectFilters() {
 
         {showTabs && (
           <TabsContainer>
-            <Tabs value={filterType}>
+            <Tabs value={activeTab}>
               <TabList>
                 <TabList.Item
                   key="data-filters"
@@ -82,9 +92,9 @@ export default function ProjectFilters() {
           </TabsContainer>
         )}
 
-        {filterType === 'discarded-groups' ? (
+        {activeTab === 'discarded-groups' ? (
           <GroupTombstones project={project} />
-        ) : hasInboundFiltersV2 && filterType === 'custom-filters' ? (
+        ) : activeTab === 'custom-filters' ? (
           <CustomFilters project={project} />
         ) : (
           <ProjectFiltersSettings project={project} params={params} />

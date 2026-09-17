@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import Ansi from 'ansi-to-react';
 
 import {PreviewPanelItem} from 'sentry/components/events/attachmentViewers/previewPanelItem';
@@ -8,18 +9,41 @@ import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export function LogFileViewer(props: ViewerProps) {
-  const {data, isPending, isError} = useApiQuery<string>(
-    [
-      getAttachmentUrl(props),
-      {headers: {Accept: '*/*; charset=utf-8'}, query: {download: true}},
-    ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  const attachmentUrl = resolveHostname(`/api/0${getAttachmentUrl(props)}?download`);
+  const {data, isPending, isError} = useQuery({
+    queryKey: ['attachment-text-preview', attachmentUrl],
+    queryFn: async ({signal}) => {
+      // Fetch directly because the API client decodes text as UTF-8 before we can inspect the BOM.
+      const response = await fetch(attachmentUrl, {
+        credentials: 'include',
+        headers: {Accept: '*/*'},
+        signal,
+      });
+
+      if (!response.ok) {
+        throw new RequestError(
+          'GET',
+          attachmentUrl,
+          new Error('Failed to download attachment'),
+          {
+            getResponseHeader: header => response.headers.get(header),
+            responseJSON: undefined,
+            responseText: '',
+            status: response.status,
+            statusText: response.statusText,
+          }
+        );
+      }
+
+      return decodeTextAttachment(await response.arrayBuffer());
+    },
+    retry: false,
+    staleTime: Infinity,
+  });
 
   if (isError) {
     return <LoadingError message={t('Failed to download attachment.')} />;
@@ -36,6 +60,18 @@ export function LogFileViewer(props: ViewerProps) {
       </CodeWrapper>
     </PreviewPanelItem>
   ) : null;
+}
+
+function decodeTextAttachment(buffer: ArrayBuffer): string {
+  const [firstByte, secondByte] = new Uint8Array(buffer);
+  const encoding =
+    firstByte === 0xff && secondByte === 0xfe
+      ? 'utf-16le'
+      : firstByte === 0xfe && secondByte === 0xff
+        ? 'utf-16be'
+        : 'utf-8';
+
+  return new TextDecoder(encoding).decode(buffer);
 }
 
 /**

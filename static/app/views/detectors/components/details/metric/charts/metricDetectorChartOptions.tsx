@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {MarkArea} from 'sentry/components/charts/components/markArea';
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {GroupOpenPeriod} from 'sentry/types/group';
@@ -15,8 +15,6 @@ import {DetectorPriorityLevel} from 'sentry/types/workflowEngine/dataConditions'
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {getAnomalyMarkerSeries} from 'sentry/views/alerts/rules/metric/utils/anomalyChart';
-import {isCrashFreeAlert} from 'sentry/views/alerts/rules/metric/utils/isCrashFreeAlert';
 import type {Anomaly} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
@@ -27,6 +25,8 @@ import {
 } from 'sentry/views/alerts/utils';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
+import {getAnomalyMarkerSeries} from 'sentry/views/detectors/utils/anomalyChart';
+import {isCrashFreeAlert} from 'sentry/views/detectors/utils/isCrashFreeAlert';
 
 function formatTooltipDate(date: moment.MomentInput, format: string): string {
   return moment(date).format(format);
@@ -41,7 +41,7 @@ function createStatusAreaSeries(
   return {
     seriesName: 'Status Area',
     type: 'line',
-    markLine: MarkLine({
+    markLine: markLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'solid', width: 4},
       data: [[{coord: [startTime, yPosition]}, {coord: [endTime, yPosition]}]],
@@ -54,7 +54,7 @@ function createThresholdSeries(lineColor: string, threshold: number): AreaChartS
   return {
     seriesName: 'Threshold Line',
     type: 'line',
-    markLine: MarkLine({
+    markLine: markLine({
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold}],
@@ -98,7 +98,7 @@ function createIncidentSeries(
   return {
     seriesName: 'Incident Line',
     type: 'line',
-    markLine: MarkLine({
+    markLine: markLine({
       silent: false,
       lineStyle: {color: lineColor, type: 'solid'},
       data: [

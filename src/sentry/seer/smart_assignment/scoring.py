@@ -31,14 +31,25 @@ class RunUpdates(TypedDict, total=False):
     """The mirrored fields we write onto a run's ``extras`` before scoring."""
 
     predicted_assignee_user_ids: list[int | None]
+    selected_assignee_user_id: int | None
     actual_assignee_user_id: int | None
     actual_assignee_team_id: int | None
     ground_truth_source: str
 
 
-def record_prediction(run: SeerAgentRun, predicted_assignee_user_ids: list[int | None]) -> None:
+def record_prediction(
+    run: SeerAgentRun,
+    predicted_assignee_user_ids: list[int | None],
+    selected_assignee_user_id: int | None,
+) -> None:
     """Record the predicted assignee user IDs on the run."""
-    _apply(run.id, {"predicted_assignee_user_ids": predicted_assignee_user_ids})
+    _apply(
+        run.id,
+        {
+            "predicted_assignee_user_ids": predicted_assignee_user_ids,
+            "selected_assignee_user_id": selected_assignee_user_id,
+        },
+    )
 
 
 def record_ground_truth(
@@ -171,9 +182,14 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
             return False
         extras.update(updates)
         # Score the prediction against the ground truth if it's already landed.
+        predicted_user_ids = extras.get("predicted_assignee_user_ids") or []
         result, hit_rank = _score(
             run.run.organization_id,
-            predicted_user_ids=extras.get("predicted_assignee_user_ids") or [],
+            predicted_user_ids=predicted_user_ids,
+            selected_user_id=extras.get(
+                "selected_assignee_user_id",
+                next((user_id for user_id in predicted_user_ids if user_id is not None), None),
+            ),
             actual_user_id=extras.get("actual_assignee_user_id"),
             actual_team_id=extras.get("actual_assignee_team_id"),
         )
@@ -200,14 +216,18 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
 def _score(
     organization_id: int,
     predicted_user_ids: list[int | None],
+    selected_user_id: int | None,
     actual_user_id: int | None,
     actual_team_id: int | None,
 ) -> tuple[SmartAssignmentScore | None, int | None]:
     """Score the prediction against the ground truth if we have both.
-    The top-predicted user is scored with EXACT if it's a match, TEAM if the prediction shares
-    a team with the ground truth, or MISS otherwise (including when we couldn't resolve the prediction to an org user).
+    The selected user is scored with EXACT if it's a match, TEAM if the issue went to a
+    team the selected user belongs to, SHARED_TEAM if the selected user shares a team with
+    the actual assignee, or MISS otherwise (including when we couldn't resolve any
+    candidate to an org user).
     hit_rank records the rank of the top-predicted user that matched the ground truth,
-    so we can track how often #2 or #3 was correct too.
+    so we can track how often #2 or #3 was correct too. It is the rank as delivered, so a
+    selected user found at #2 scores exact at rank 2.
     """
     if not predicted_user_ids:
         # No prediction; do nothing.
@@ -224,15 +244,13 @@ def _score(
                 hit_rank = rank
                 break
 
-    # A top pick we couldn't resolve to an org user (None) can't be EXACT or TEAM, so
-    # it's a miss -- but a lower-ranked candidate may still have named the assignee,
-    # which `hit_rank` records.
-    predicted_user_id = predicted_user_ids[0]
-    if predicted_user_id is not None:
-        if predicted_user_id == actual_user_id:
+    if selected_user_id is not None:
+        if selected_user_id == actual_user_id:
             return SmartAssignmentScore.EXACT, hit_rank
-        if _is_team_match(organization_id, predicted_user_id, actual_user_id, actual_team_id):
-            return SmartAssignmentScore.TEAM, hit_rank
+        if _is_team_match(organization_id, selected_user_id, actual_user_id, actual_team_id):
+            if actual_team_id is not None:
+                return SmartAssignmentScore.TEAM, hit_rank
+            return SmartAssignmentScore.SHARED_TEAM, hit_rank
     return SmartAssignmentScore.MISS, hit_rank
 
 

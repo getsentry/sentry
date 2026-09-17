@@ -116,6 +116,9 @@ export type TracingEventParameters = {
     value: string | number;
   };
   'trace.trace_layout.ai_tab_clicked': Record<string, unknown>;
+  'trace.trace_layout.attribute_pin_changed': {
+    action: 'added' | 'removed';
+  };
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -208,6 +211,9 @@ export type TracingEventParameters = {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
   };
+  'trace_explorer.toggle_span_details': {
+    expanded: boolean;
+  };
   'trace_explorer.toggle_trace_details': {
     expanded: boolean;
     source: 'trace explorer' | 'new explore';
@@ -234,6 +240,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_drawer_details.gen_ai_span_details_viewed':
     'Viewed Gen AI Span Details in Trace',
   'trace.trace_layout.ai_tab_clicked': 'Clicked AI Tab in Trace',
+  'trace.trace_layout.attribute_pin_changed': 'Trace Waterfall: Attribute Pin Changed',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',
@@ -275,6 +282,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
   'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span',
   'trace_explorer.toggle_trace_details': 'Trace Explorer: Toggle Trace Details in Table',
+  'trace_explorer.toggle_span_details': 'Trace Explorer: Toggle Span Details in Table',
   'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',

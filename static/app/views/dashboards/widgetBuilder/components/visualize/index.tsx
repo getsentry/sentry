@@ -23,7 +23,6 @@ import {defined} from 'sentry/utils/defined';
 import {
   DEPRECATED_FIELDS,
   generateFieldAsString,
-  parseFunction,
   type QueryFieldValue,
   type ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
@@ -62,6 +61,7 @@ import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
 import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
+import {withBaseConditionalAggregateField} from 'sentry/views/explore/utils/conditionalAggregate';
 
 export const NONE = 'none';
 
@@ -154,9 +154,15 @@ export function getColumnOptions(
   filterOutIncompatibleResults?: boolean
 ) {
   const fieldValues = Object.values(fieldOptions);
+  // Explore-style `_if` fields explode with names like `count_unique_if`. Use the
+  // base aggregate when looking up parameter metadata and filtering columns.
+  const fieldForColumnFiltering =
+    dataset === WidgetType.SPANS
+      ? withBaseConditionalAggregateField(selectedField)
+      : selectedField;
 
   if (
-    selectedField.kind !== FieldValueKind.FUNCTION ||
+    fieldForColumnFiltering.kind !== FieldValueKind.FUNCTION ||
     dataset === WidgetType.SPANS ||
     dataset === WidgetType.LOGS
   ) {
@@ -164,11 +170,11 @@ export function getColumnOptions(
     // generic columns. Functions like performance_score and opportunity_score
     // define restricted dropdown options that must be respected.
     if (
-      selectedField.kind === FieldValueKind.FUNCTION &&
+      fieldForColumnFiltering.kind === FieldValueKind.FUNCTION &&
       (dataset === WidgetType.SPANS || dataset === WidgetType.LOGS)
     ) {
       const fnData = fieldValues.find(
-        option => option.value.meta.name === selectedField.function[0]
+        option => option.value.meta.name === fieldForColumnFiltering.function[0]
       )?.value;
       if (
         fnData?.kind === FieldValueKind.FUNCTION &&
@@ -178,13 +184,18 @@ export function getColumnOptions(
         return fnData.meta.parameters[0].options;
       }
     }
-    return formatColumnOptions(dataset, fieldValues, columnFilterMethod, selectedField)
+    return formatColumnOptions(
+      dataset,
+      fieldValues,
+      columnFilterMethod,
+      fieldForColumnFiltering
+    )
       .filter(option => (filterOutIncompatibleResults ? !option.disabled : true))
       .sort(_sortFn);
   }
 
   const fieldData = fieldValues.find(
-    option => option.value.meta.name === selectedField.function[0]
+    option => option.value.meta.name === fieldForColumnFiltering.function[0]
   )?.value;
 
   if (
@@ -249,6 +260,17 @@ function canDeleteField(
     return (
       selectedFields.filter(
         selectedField => selectedField.kind === FieldValueKind.FUNCTION
+      ).length > 1 || field.kind === FieldValueKind.FIELD
+    );
+  }
+  if (dataset === WidgetType.TRACEMETRICS) {
+    // Trace metric tables only support aggregates. Keep the last aggregate so
+    // a table cannot become a samples-only query.
+    return (
+      selectedFields.filter(
+        selectedField =>
+          selectedField.kind === FieldValueKind.FUNCTION ||
+          selectedField.kind === FieldValueKind.EQUATION
       ).length > 1 || field.kind === FieldValueKind.FIELD
     );
   }
@@ -627,6 +649,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
       {canShowTraceMetricEquations && (
         <Container paddingBottom="md">
           <SegmentedControl
+            aria-label={t('Visualization mode')}
             value={isEquationMode ? 'equation' : 'series'}
             onChange={value => handleModeToggle(value === 'equation')}
             size="sm"
@@ -741,10 +764,16 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       fields[index]!.kind === FieldValueKind.FUNCTION &&
                       FieldValueKind.FUNCTION in fields[index]!
                     ) {
+                      const fieldForMatch =
+                        state.dataset === WidgetType.SPANS
+                          ? withBaseConditionalAggregateField(fields[index]!)
+                          : fields[index]!;
                       matchingAggregate = aggregates.find(
                         option =>
                           option.value.meta.name ===
-                          parseFunction(stringFields?.[index] ?? '')?.name
+                          (fieldForMatch.kind === FieldValueKind.FUNCTION
+                            ? fieldForMatch.function[0]
+                            : undefined)
                       );
                     }
 
@@ -878,6 +907,29 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                         disableTransactionWidget || isHeatmapWidget
                                       }
                                       field={field}
+                                      fieldSelector={autoSelectFirstColumn =>
+                                        field.kind === FieldValueKind.FIELD ? (
+                                          <SelectRow
+                                            autoSelectFirstColumn={autoSelectFirstColumn}
+                                            showAggregateSelector={false}
+                                            field={field}
+                                            index={index}
+                                            hasColumnParameter={hasColumnParameter}
+                                            columnOptions={columnOptions}
+                                            aggregateOptions={aggregateOptions}
+                                            stringFields={stringFields}
+                                            error={error}
+                                            setError={setError}
+                                            fields={fields}
+                                            source={source}
+                                            isEditing={isEditing}
+                                            fieldOptions={fieldOptions}
+                                            columnFilterMethod={columnFilterMethod}
+                                            aggregates={aggregates}
+                                            disabled={disableTransactionWidget}
+                                          />
+                                        ) : undefined
+                                      }
                                       index={index}
                                     />
                                   ) : (
@@ -988,19 +1040,16 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                         type: updateAction,
                                         payload: newFields,
                                       },
-                                      {updateUrl: false}
+                                      {debounceUrl: true}
                                     );
                                   }}
                                   onBlur={e => {
                                     const newFields = cloneDeep(fields);
                                     newFields[index]!.alias = e.target.value;
-                                    dispatch(
-                                      {
-                                        type: updateAction,
-                                        payload: newFields,
-                                      },
-                                      {updateUrl: true}
-                                    );
+                                    dispatch({
+                                      type: updateAction,
+                                      payload: newFields,
+                                    });
                                     trackAnalytics(
                                       'dashboards_views.widget_builder.change',
                                       {
@@ -1211,10 +1260,20 @@ export const FieldBar = styled('div')`
 
 export const PrimarySelectRow = styled('div')<{
   hasColumnParameter: boolean;
+  elevated?: boolean;
 }>`
   display: flex;
   width: 100%;
   min-width: 0;
+  /* Raise above the same-row filter bar while a non-portaled CompactSelect is open.
+     Do not put z-index on the sortable visualize wrapper — that regresses sibling
+     row stacking (later series text painting over earlier dropdowns). */
+  ${p =>
+    p.elevated &&
+    css`
+      position: relative;
+      z-index: ${p.theme.zIndex.dropdown};
+    `}
 
   & ${ColumnCompactSelect} button {
     border-top-left-radius: 0;

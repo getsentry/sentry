@@ -256,6 +256,48 @@ describe('useTraceItemDetails', () => {
     await waitFor(() => expect(traceItemDetailsMock).toHaveBeenCalledTimes(1));
   });
 
+  it('reports pending only while the prefetched details request is in flight', async () => {
+    initializePageFilters({
+      period: '14d',
+      start: null,
+      end: null,
+      utc: false,
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/projects/${organization.slug}/${project.slug}/trace-items/item-id/`,
+      asyncDelay: 100,
+      body: {
+        itemId: 'item-id',
+        links: null,
+        meta: {},
+        timestamp: '2025-04-03T15:50:10.000Z',
+        attributes: [],
+      },
+    });
+
+    const {result} = renderHookWithProviders(usePrefetchTraceItemDetailsOnHover, {
+      organization,
+      initialProps: {
+        projectId: project.id,
+        traceItemId: 'item-id',
+        traceId: '1234567890abcdef1234567890abcdef',
+        traceItemType: TraceItemDataset.LOGS,
+        referrer: 'api.explore.log-item-details',
+        timestamp: 123,
+        sharedHoverTimeoutRef: {current: null},
+        timeout: 0,
+      },
+    });
+
+    await waitFor(() => expect(ProjectsStore.getState().projects).toHaveLength(1));
+    expect(result.current.isTraceItemDetailsPending).toBe(false);
+
+    act(() => result.current.prefetch());
+    await waitFor(() => expect(result.current.isTraceItemDetailsPending).toBe(true));
+    await waitFor(() => expect(result.current.isTraceItemDetailsPending).toBe(false));
+  });
+
   it('does not fetch details when the hovered element unmounts before the hover timeout elapses', async () => {
     jest.useFakeTimers();
     initializePageFilters({

@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import type {BrowserClientReplayOptions} from '@sentry/core';
+import type {BrowserClientReplayOptions} from '@sentry/core/browser';
 import type {replayIntegration} from '@sentry/react';
 import {getClient} from '@sentry/react';
 
@@ -32,6 +32,7 @@ export function useReplayReady(): boolean {
   useEffect(() => {
     if (replayRef) {
       // Integration was registered before this subscriber mounted; flip now.
+      // oxlint-disable-next-line react/set-state-in-effect
       setReady(true);
       return;
     }

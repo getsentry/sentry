@@ -1,16 +1,15 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
-import {LoadingError} from 'sentry/components/loadingError';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -33,6 +32,13 @@ type FetchOrgAuthTokensParameters = {
 type RevokeTokenQueryVariables = {
   token: OrgAuthToken;
 };
+
+const TOKEN_COLUMNS: TableColumnConfig[] = [
+  {key: 'token', width: {zero: '1fr', xl: 'auto'}},
+  {key: 'created', visible: {xl: true}, width: 'auto'},
+  {key: 'lastAccess', visible: {xl: true}, width: 'auto'},
+  {key: 'actions', width: {zero: '1fr', xl: 'auto'}},
+];
 
 export const makeFetchOrgAuthTokensForOrgQueryKey = ({
   orgSlug,
@@ -120,7 +126,9 @@ function OrganizationAuthTokensIndex() {
   >({
     mutationFn: ({token}) =>
       api.requestPromise(
-        `/organizations/${organization.slug}/org-auth-tokens/${token.id}/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+          path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
+        }),
         {
           method: 'DELETE',
         }
@@ -190,20 +198,35 @@ function OrganizationAuthTokensIndex() {
             }
           />
 
-          <ResponsivePanelTable
-            isLoading={isPending || isError}
-            isEmpty={!isPending && !tokenList?.length}
-            loader={
-              isError ? (
-                <LoadingError
-                  message={t('Failed to load organization tokens.')}
-                  onRetry={refetchTokenList}
-                />
-              ) : undefined
+          <SimpleTable
+            columns={TOKEN_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell columnKey="token">
+                  {t('Token')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell columnKey="created">
+                  {t('Created')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell columnKey="lastAccess">
+                  {t('Last access')}
+                </SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell columnKey="actions" />
+              </SimpleTable.HeaderRow>
             }
-            emptyMessage={t("You haven't created any authentication tokens yet.")}
-            headers={[t('Token'), t('Created'), t('Last access'), '']}
           >
+            {isError && (
+              <SimpleTable.Error
+                message={t('Failed to load organization tokens.')}
+                onRetry={refetchTokenList}
+              />
+            )}
+            {!isError && isPending && <SimpleTable.Loading />}
+            {!isError && !isPending && !tokenList?.length && (
+              <SimpleTable.Empty>
+                {t("You haven't created any authentication tokens yet.")}
+              </SimpleTable.Empty>
+            )}
             {!isError && !isPending && !!tokenList?.length && (
               <TokenList
                 organization={organization}
@@ -212,7 +235,7 @@ function OrganizationAuthTokensIndex() {
                 revokeToken={hasAccess ? handleRevokeToken : undefined}
               />
             )}
-          </ResponsivePanelTable>
+          </SimpleTable>
         </Fragment>
       )}
     </Access>
@@ -222,16 +245,5 @@ function OrganizationAuthTokensIndex() {
 export function tokenPreview(tokenLastCharacters: string, tokenPrefix = '') {
   return `${tokenPrefix}************${tokenLastCharacters}`;
 }
-
-const ResponsivePanelTable = styled(PanelTable)`
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr 1fr;
-
-    > *:nth-child(4n + 2),
-    > *:nth-child(4n + 3) {
-      display: none;
-    }
-  }
-`;
 
 export default OrganizationAuthTokensIndex;

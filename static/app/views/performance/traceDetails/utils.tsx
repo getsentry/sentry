@@ -52,7 +52,6 @@ export function getTraceDetailsUrl({
   spanId,
   eventId,
   targetId,
-  demo,
   location,
   source,
   view,
@@ -62,7 +61,6 @@ export function getTraceDetailsUrl({
   location: Location;
   organization: Organization;
   traceSlug: string;
-  demo?: string;
   eventId?: string;
   source?: TraceViewSources;
   spanId?: string;
@@ -82,6 +80,12 @@ export function getTraceDetailsUrl({
       [PAGE_URL_PARAM.PAGE_END]: dateSelection.end,
     };
 
+  if (
+    normalizeUrl(location.pathname) !== normalizeUrl(`${baseUrl}/trace/${traceSlug}/`)
+  ) {
+    delete queryParams.pinnedAttribute;
+  }
+
   if (shouldForceRouteToOldView(organization, timestamp)) {
     return {
       pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),
@@ -98,7 +102,6 @@ export function getTraceDetailsUrl({
       timestamp: getTimeStampFromTableDateField(timestamp),
       eventId,
       targetId,
-      demo,
       source,
       tab,
     },

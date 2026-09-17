@@ -56,6 +56,16 @@ export function quoteFilterKey(key: string): string {
   return key;
 }
 
+/**
+ * Strips a trailing array-membership operator (`[`, `[*`, or `[*]`) from a filter
+ * key, returning the base attribute key. The `[*]` operator is query syntax, not
+ * part of the key's identity, so this normalizes the key for lookups/matching.
+ */
+export function stripArrayMembershipOperator(key: string): string {
+  const stripped = key.replace(/\[\*?\]?$/, '');
+  return stripped || key;
+}
+
 type TreeResultLocatorOpts<T> = {
   /**
    * The value to return when returnValue was never called and all nodes of the
@@ -135,6 +145,12 @@ export function treeResultLocator<T>({
       case Token.KEY_EXPLICIT_STRING_TAG:
         nodeVisitor(token.key);
         break;
+      case Token.KEY_EXPLICIT_ARRAY_TAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_ARRAY_INCLUDES:
+        nodeVisitor(token.key);
+        break;
       case Token.KEY_EXPLICIT_BOOLEAN_TAG:
         nodeVisitor(token.key);
         break;
@@ -191,12 +207,14 @@ export const getKeyName = (
     | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_ARRAY_TAG
+    | Token.KEY_ARRAY_INCLUDES
     | Token.KEY_EXPLICIT_FLAG
     | Token.KEY_EXPLICIT_NUMBER_FLAG
     | Token.KEY_EXPLICIT_STRING_FLAG
   >,
   options: GetKeyNameOpts = {}
-) => {
+): string => {
   const {aggregateWithArgs} = options;
   switch (key.type) {
     case Token.KEY_SIMPLE:
@@ -213,6 +231,12 @@ export const getKeyName = (
       return key.text;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return key.text;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
+      return key.text;
+    case Token.KEY_ARRAY_INCLUDES:
+      // Identity is the inner key's name (the backend key form); only the `[*]`
+      // membership suffix is dropped here — stringifyToken re-adds it.
+      return getKeyName(key.key);
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:
@@ -238,11 +262,13 @@ export const getKeyLabel = (
     | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_ARRAY_TAG
+    | Token.KEY_ARRAY_INCLUDES
     | Token.KEY_EXPLICIT_FLAG
     | Token.KEY_EXPLICIT_NUMBER_FLAG
     | Token.KEY_EXPLICIT_STRING_FLAG
   >
-) => {
+): string => {
   switch (key.type) {
     case Token.KEY_SIMPLE:
       return key.value;
@@ -256,6 +282,10 @@ export const getKeyLabel = (
       return key.key.value;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return key.key.value;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
+      return key.key.value;
+    case Token.KEY_ARRAY_INCLUDES:
+      return getKeyLabel(key.key);
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:
@@ -342,6 +372,10 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `${token.prefix}[${stringifyToken(token.key)},number]`;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return `${token.prefix}[${stringifyToken(token.key)},string]`;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
+      return `${token.prefix}[${stringifyToken(token.key)},array]`;
+    case Token.KEY_ARRAY_INCLUDES:
+      return `${stringifyToken(token.key)}[${token.index}]`;
     case Token.KEY_EXPLICIT_FLAG:
       return `flags[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:

@@ -6,7 +6,6 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {useCustomMeasurementsConfig} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -71,10 +70,6 @@ function useEventsSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
-  const {customMeasurements} = useCustomMeasurementsConfig({
-    organization,
-    selection: pageFilters,
-  });
   const eventView = eventViewFromWidget(
     '',
     widgetQuery ?? DEFAULT_WIDGET_QUERY,
@@ -88,7 +83,6 @@ function useEventsSearchBarDataProvider(
     projectIds: eventView.project,
     dataset: DiscoverDatasets.ERRORS,
     fields,
-    customMeasurements,
   });
 }
 

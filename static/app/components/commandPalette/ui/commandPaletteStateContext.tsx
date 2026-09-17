@@ -3,6 +3,7 @@ import {createContext, useContext, useEffect, useReducer, useRef} from 'react';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 
 import {toggleCommandPalette} from 'sentry/actionCreators/modal';
+import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -154,6 +155,7 @@ export function CommandPaletteStateProvider({
   children,
 }: CommandPaletteStateProviderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  // oxlint-disable-next-line react/refs
   const [state, dispatch] = useReducer(commandPaletteReducer, {
     input: inputRef,
     query: '',
@@ -193,11 +195,12 @@ export function CommandPaletteHotkeys() {
       return;
     }
     dispatch({type: 'reset on open'});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.pathname, dispatch]);
 
   useHotkeys([
     {
-      match: ['mod+shift+p', 'mod+k'],
+      match: COMMAND_PALETTE_HOTKEYS,
       includeInputs: true,
       callback: () => {
         if (!organization) {

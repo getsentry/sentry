@@ -6,11 +6,38 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
-from sentry.tasks.auto_ongoing_issues import schedule_auto_transition_to_ongoing
+from sentry.tasks.auto_ongoing_issues import (
+    child_task_countdown,
+    schedule_auto_transition_to_ongoing,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+
+
+class ChildTaskCountdownTest(TestCase):
+    def test_endpoints(self) -> None:
+        assert child_task_countdown(0, 120, 250, 0) == 0
+        assert child_task_countdown(249, 120, 250, 0) == 120
+
+    def test_monotone_within_spread(self) -> None:
+        previous = -1
+        for batch_index in range(250):
+            countdown = child_task_countdown(batch_index, 120, 250, 0)
+            assert previous <= countdown <= 120
+            previous = countdown
+
+    def test_zero_spread_disables_stagger(self) -> None:
+        assert child_task_countdown(100, 0, 250, 0) == 0
+
+    def test_subtracts_elapsed_query_time(self) -> None:
+        # Target for batch 249 is 120s; 40s already spent iterating → 80s countdown.
+        assert child_task_countdown(249, 120, 250, 40) == 80
+
+    def test_elapsed_beyond_target_is_zero(self) -> None:
+        assert child_task_countdown(10, 120, 250, 999) == 0
 
 
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
@@ -177,19 +204,19 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 100},
+            tags={"hit_limit": "true"},
         )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 0},
+            tags={"hit_limit": "false"},
         )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 0},
+            tags={"hit_limit": "false"},
         )
 
     @freeze_time("2023-07-12 18:40:00Z")
@@ -330,19 +357,19 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 0},
+            tags={"hit_limit": "false"},
         )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 100},
+            tags={"hit_limit": "true"},
         )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 0},
+            tags={"hit_limit": "false"},
         )
 
     @freeze_time("2023-07-12 18:40:00Z")
@@ -495,17 +522,49 @@ class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_new_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 0},
+            tags={"hit_limit": "false"},
         )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_regressed_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 0},
+            tags={"hit_limit": "false"},
         )
 
         mock_metrics_incr.assert_any_call(
             "sentry.tasks.schedule_auto_transition_issues_escalating_to_ongoing.executed",
             sample_rate=1.0,
-            tags={"count": 100},
+            tags={"hit_limit": "true"},
         )
+
+
+class ScheduleChildTaskSpreadTest(TestCase):
+    @freeze_time("2023-07-12 18:40:00Z")
+    @mock.patch("sentry.tasks.auto_ongoing_issues.ITERATOR_CHUNK", new=2)
+    @mock.patch("sentry.tasks.auto_ongoing_issues.CHILD_TASK_COUNT", new=50)
+    @override_options({"issues.auto_ongoing_issues.child_task_spread_seconds": 120})
+    def test_new_to_ongoing_child_tasks_use_countdown(self) -> None:
+        now = datetime.now(tz=timezone.utc)
+        project = self.create_project()
+        for _ in range(6):
+            self.create_group(
+                project=project,
+                status=GroupStatus.UNRESOLVED,
+                substatus=GroupSubStatus.NEW,
+                first_seen=now - timedelta(days=TRANSITION_AFTER_DAYS, hours=1),
+            )
+
+        with (
+            self.tasks(),
+            mock.patch(
+                "sentry.tasks.auto_ongoing_issues.run_auto_transition_issues_new_to_ongoing.apply_async"
+            ) as mock_apply_async,
+        ):
+            schedule_auto_transition_to_ongoing()
+
+        assert mock_apply_async.call_count >= 3
+        countdowns = [call.kwargs["countdown"] for call in mock_apply_async.call_args_list]
+        # Fast test DB: elapsed ≈ 0, so countdowns match the pure target offsets.
+        assert countdowns == [child_task_countdown(i, 120, 50, 0) for i in range(len(countdowns))]
+        assert countdowns[0] == 0
+        assert countdowns[-1] > countdowns[0]

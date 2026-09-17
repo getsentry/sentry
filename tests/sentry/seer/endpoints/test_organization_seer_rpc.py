@@ -5,9 +5,11 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import APITestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils.samples import load_data
 
 
 class TestOrganizationSeerRpcEndpoint(APITestCase):
@@ -388,3 +390,50 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
         assert response.status_code == 200
         assert response.data == {"has_code_mappings": False, "project_slug_to_id": {}}
+
+
+class TestOrganizationSeerRpcGetEventDetailsWire(APITestCase, SnubaTestCase):
+    """End-to-end wire check: get_event_details' `formatted` field survives serialization
+    through the RPC endpoint and comes back in the JSON body."""
+
+    endpoint = "sentry-api-0-organization-seer-rpc"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.login_as(self.user)
+
+    def _get_path(self, method_name: str) -> str:
+        return reverse(
+            self.endpoint,
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "method_name": method_name,
+            },
+        )
+
+    @with_feature("organizations:seer-public-rpc")
+    @with_feature("organizations:issue-standardized-markdown-for-llm")
+    def test_formatted_survives_the_wire(self) -> None:
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["exception"] = {"values": [{"type": "Exception", "value": "boom"}]}
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        path = self._get_path("get_event_details")
+        response = self.client.post(
+            path,
+            data={
+                "args": {
+                    "event_id": event.event_id,
+                    "project_slug": self.project.slug,
+                    "format": "markdown",
+                }
+            },
+            format="json",
+        )
+
+        assert response.status_code == 200
+        body = response.json()
+        assert isinstance(body["formatted"], str)
+        assert "## Exception" in body["formatted"]

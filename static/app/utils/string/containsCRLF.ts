@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 const CRLF_REGEXP = /[\r\n]/;
 
 export function containsCRLF(value: string) {

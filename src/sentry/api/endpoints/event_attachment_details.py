@@ -1,7 +1,8 @@
 import posixpath
+from typing import Any
 
 import sentry_sdk
-from django.http import StreamingHttpResponse
+from django.http import HttpResponseRedirect, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +14,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
@@ -29,6 +31,7 @@ from sentry.issues.action_log import (
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.objectstore import parse_accept_encoding
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
@@ -49,7 +52,9 @@ DOWNLOAD_PARAM = OpenApiParameter(
     description=(
         "If this parameter is present, the response will be a binary file download "
         "instead of JSON metadata. The value does not matter — any value (including "
-        "empty) triggers the download."
+        "empty) triggers the download. Depending on where the attachment is stored, "
+        "the response may be a redirect to the storage service, so clients must follow "
+        "redirects."
     ),
 )
 
@@ -92,7 +97,19 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (EventAttachmentDetailsPermission,)
 
-    def download(self, attachment: EventAttachment, request: Request) -> StreamingHttpResponse:
+    def convert_args(
+        self, request: Request, attachment_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        kwargs["attachment_id"] = to_valid_int_id("attachment_id", attachment_id, raise_404=True)
+        return args, kwargs
+
+    def download(
+        self, attachment: EventAttachment, request: Request
+    ) -> HttpResponseRedirect | StreamingHttpResponse:
+        if attachment.uses_objectstore():
+            return HttpResponseRedirect(attachment.get_objectstore_presigned_url(request))
+
         name = posixpath.basename(" ".join(attachment.name.split()))
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
         blob_stream = attachment.get_blob_stream(accept_encoding)
@@ -131,11 +148,12 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         examples=EventAttachmentExamples.EVENT_ATTACHMENT_DETAILS,
     )
     def get(
-        self, request: Request, project, event_id, attachment_id
+        self, request: Request, project: Project, event_id: str, attachment_id: int
     ) -> (
         Response[EventAttachmentSerializerResponse]
         | Response[None]
         | Response[DetailResponse]
+        | HttpResponseRedirect
         | StreamingHttpResponse
     ):
         """
@@ -167,7 +185,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
 
         return self.respond(serialize(attachment, request.user))
 
-    def delete(self, request: Request, project, event_id, attachment_id) -> Response:
+    def delete(
+        self, request: Request, project: Project, event_id: str, attachment_id: int
+    ) -> Response:
         """
         Delete an Event Attachment by ID
         ````````````````````````````````

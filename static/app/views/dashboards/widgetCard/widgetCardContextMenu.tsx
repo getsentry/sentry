@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +12,6 @@ import {
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -39,6 +39,7 @@ import {
   widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
@@ -67,7 +68,10 @@ export const useTransactionsDeprecationWarning = ({
     return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
   }, [organization, widget.widgetType, widget.exploreUrls, selection]);
 
-  if (!exploreUrl) {
+  if (
+    !exploreUrl ||
+    !organization.features.includes('performance-transaction-deprecation-banner')
+  ) {
     return null;
   }
 
@@ -311,11 +315,14 @@ export function getMenuOptions(
         const {timeSeries, label, seriesName, widgetQuery} = transformed;
 
         const baseQuery =
-          applyDashboardFilters(
-            widgetQuery?.conditions,
-            dashboardFilters,
-            widget.widgetType
-          ) ?? '';
+          applyDashboardFilters({
+            baseQuery: widgetQuery?.conditions,
+            dashboardFilters: withGlobalFilterFallback(
+              dashboardFilters,
+              widgetQuery?.globalFilterFallback
+            ),
+            widgetType: widget.widgetType,
+          }) ?? '';
 
         // Add group-by values as filters to the alert query
         const search = new MutableSearch(baseQuery);

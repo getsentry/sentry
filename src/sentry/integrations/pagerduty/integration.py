@@ -235,6 +235,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
     metadata = metadata
     features = frozenset([IntegrationFeatures.ALERT_RULE, IntegrationFeatures.INCIDENT_MANAGEMENT])
     integration_cls = PagerDutyIntegration
+    overwrite_existing_integration = False
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [PagerDutyInstallationApiStep()]
@@ -247,7 +248,7 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         extra: dict[str, Any],
     ) -> None:
         with record_event(OnCallInteractionType.POST_INSTALL).capture():
-            services = integration.metadata["services"]
+            services = extra["services"]
             try:
                 org_integration = OrganizationIntegration.objects.get(
                     integration=integration, organization_id=organization.id
@@ -274,5 +275,6 @@ class PagerDutyIntegrationProvider(IntegrationProvider):
         return {
             "name": account["name"],
             "external_id": account["subdomain"],
-            "metadata": {"services": services, "domain_name": account["subdomain"]},
+            "metadata": {"domain_name": account["subdomain"]},
+            "post_install_data": {"services": services},
         }

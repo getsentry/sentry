@@ -6,7 +6,7 @@ import {useExperiment} from 'sentry/utils/useExperiment';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ONBOARDING_WELCOME_SCREEN_SOURCE} from 'sentry/views/onboarding/consts';
 
-export function useWelcomeAnalyticsEffect() {
+export function useWelcomeAnalyticsEffect({showAgentSetup}: {showAgentSetup: boolean}) {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const {inExperiment: hasScmOnboarding} = useExperiment({
@@ -20,17 +20,20 @@ export function useWelcomeAnalyticsEffect() {
   useEffect(() => {
     if (hasScmOnboarding) {
       trackAnalytics('onboarding.scm_welcome_step_viewed', {organization});
+      if (showAgentSetup) {
+        trackAnalytics('onboarding.scm_welcome_agentic_setup_viewed', {organization});
+      }
     } else {
       trackAnalytics('growth.onboarding_start_onboarding', {
         organization,
         source: ONBOARDING_WELCOME_SCREEN_SOURCE,
       });
     }
-  }, [organization, hasScmOnboarding]);
+  }, [organization, hasScmOnboarding, showAgentSetup]);
 
   useEffect(() => {
+    // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
     if (onboardingContext.selectedPlatform) {
-      // At this point the selectedSDK shall be undefined but just in case, cleaning this up here too
       onboardingContext.resetOnboarding();
     }
   }, [onboardingContext]);

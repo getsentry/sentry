@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
-import type {QueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -44,7 +43,6 @@ import type {
   OnDemandBudgets,
   Plan,
   PreviewData,
-  PromotionData,
   Subscription,
 } from 'getsentry/types';
 import {
@@ -55,9 +53,7 @@ import {
   isNewPayingCustomer,
   isTrial,
 } from 'getsentry/utils/billing';
-import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {withPromotions} from 'getsentry/utils/withPromotions';
 import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {CheckoutSuccess} from 'getsentry/views/amCheckout/components/checkoutSuccess';
 import {AddBillingInformation} from 'getsentry/views/amCheckout/steps/addBillingInfo';
@@ -74,13 +70,9 @@ import {
 
 type Props = {
   api: Client;
-  isError: boolean;
-  isLoading: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
-  queryClient: QueryClient;
   subscription: Subscription;
-  promotionData?: PromotionData;
 };
 
 export type State = {
@@ -97,7 +89,7 @@ export type State = {
 
 function AMCheckout(props: Props) {
   const organization = useOrganization();
-  const {api, isLoading, location, navigate, subscription, promotionData} = props;
+  const {api, location, navigate, subscription} = props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -194,7 +186,7 @@ function AMCheckout(props: Props) {
         );
       });
     },
-    [subscription?.planDetails?.billingInterval]
+    [subscription.planDetails.billingInterval]
   );
 
   /**
@@ -250,7 +242,7 @@ function AMCheckout(props: Props) {
     [
       subscription.plan,
       subscription.planDetails.name,
-      subscription.planDetails?.billingInterval,
+      subscription.planDetails.billingInterval,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -265,7 +257,7 @@ function AMCheckout(props: Props) {
         subscription.planDetails.billingInterval === initialPlan.billingInterval
       );
     },
-    [subscription?.planDetails]
+    [subscription.planDetails]
   );
 
   const getValidData = useCallback(
@@ -619,7 +611,7 @@ function AMCheckout(props: Props) {
     );
   }, [subscription]);
 
-  if (loading || isLoading) {
+  if (loading) {
     return <LoadingIndicator />;
   }
 
@@ -660,11 +652,6 @@ function AMCheckout(props: Props) {
     );
   }
 
-  const promotionClaimed = getCompletedOrActivePromotion(promotionData);
-  const promo = promotionClaimed?.promotion;
-
-  const discountInfo = promo?.discountInfo;
-
   const overviewProps = {
     formData,
     billingConfig,
@@ -672,19 +659,15 @@ function AMCheckout(props: Props) {
     onUpdate: handleUpdate,
     organization,
     subscription,
-    discountInfo: discountInfo ?? undefined,
   };
 
   const showAnnualTerms =
     subscription.billingInterval === ANNUAL || activePlan.billingInterval === ANNUAL;
 
-  const promotionDisclaimerText =
-    promotionData?.activePromotions?.[0]?.promotion.discountInfo.disclaimerText;
-
   const isOnSponsoredPartnerPlan =
     (subscription.partner?.isActive && subscription.isSponsored) || false;
 
-  const renderCheckoutContent = () => (
+  const checkoutContent = (
     <Fragment>
       <CheckoutBody>
         {renderPartnerAlert()}
@@ -779,11 +762,6 @@ function AMCheckout(props: Props) {
           </Alert>
         </Alert.Container>
       )}
-      {promotionDisclaimerText && (
-        <Alert.Container>
-          <Alert variant="info">{promotionDisclaimerText}</Alert>
-        </Alert.Container>
-      )}
       <CheckoutHeader>
         <Flex width="100%" align="center" maxWidth="82rem" gap="lg" padding="lg 2xl">
           <LogoSentry height="20px" />
@@ -815,7 +793,7 @@ function AMCheckout(props: Props) {
         align="start"
         paddingTop="3xl"
       >
-        {renderCheckoutContent()}
+        {checkoutContent}
       </Flex>
     </Stack>
   );
@@ -907,4 +885,4 @@ const CheckoutStepsContainer = styled('div')`
   }
 `;
 
-export default withPromotions(withApi(withSubscription(AMCheckout)));
+export default withApi(withSubscription(AMCheckout));

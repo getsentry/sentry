@@ -4,10 +4,15 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerPanel} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerPanel';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 import {
+  getSeerExplorerAnalyticsBrowserSize,
+  roundSeerExplorerAnalyticsPixels,
   SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY,
   useIsSeerExplorerSidebarEnabled,
   useSeerExplorerSidebarOrientation,
@@ -56,6 +61,7 @@ export function SeerExplorerSidebarLayout({children}: {children: React.ReactNode
  * resizes don't persist, so a saved size is never clobbered.
  */
 function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.ReactNode}) {
+  const organization = useOrganization({allowNull: true});
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
   const orientation = useSeerExplorerSidebarOrientation(sidebarPosition);
@@ -67,8 +73,9 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   const defaultSeerSize = isRight ? DEFAULT_SEER_WIDTH : DEFAULT_SEER_HEIGHT;
   const seerSizeKey = SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY[orientation];
 
-  const storedSeerSize = parseInt(localStorage.getItem(seerSizeKey) ?? '', 10);
-  const seerSize = storedSeerSize > 0 ? storedSeerSize : defaultSeerSize;
+  const [seerSize, setSeerSize] = useLocalStorageState<number>(seerSizeKey, value =>
+    typeof value === 'number' && value > 0 ? value : defaultSeerSize
+  );
 
   // The app (sized) pane size = available − Seer's size, floored at `minContent`
   // (so a persisted Seer size larger than the viewport can't make it negative).
@@ -95,8 +102,16 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
     if (available <= 0) {
       return;
     }
-    const seer = Math.max(minSeer, available - contentEndSize);
-    localStorage.setItem(seerSizeKey, String(Math.round(seer)));
+    const exactSeerSize = Math.round(Math.max(minSeer, available - contentEndSize));
+    setSeerSize(exactSeerSize);
+    trackAnalytics('seer.explorer.sidebar.resized', {
+      organization,
+      orientation,
+      // Persist exact size; analytics use coarse buckets for distribution cardinality.
+      seer_size: roundSeerExplorerAnalyticsPixels(exactSeerSize),
+      seer_size_percent: Math.round((exactSeerSize / available) * 100),
+      ...getSeerExplorerAnalyticsBrowserSize(),
+    });
   };
 
   // Let the routed app content scroll within its own pane instead of growing the

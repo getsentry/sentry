@@ -1,26 +1,35 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import moment from 'moment-timezone';
+
+import {useTimezone} from '@sentry/scraps/datetime';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {
+  LLMContextLocation,
+  LLMContextSnapshot,
+} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  Block,
-  RepoPRState,
-  SeerExplorerResponse,
-  SeerExplorerRunId,
+import {
+  normalizeBlocks,
+  type Block,
+  type RepoPRState,
+  type SeerExplorerResponse,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -44,7 +53,9 @@ type SeerExplorerUpdateResponse = {
  * prevent path traversal in the resulting same-origin POST.
  */
 const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null) =>
-  `/organizations/${orgSlug}/seer/explorer-update/${encodeURIComponent(String(runId))}/`;
+  getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+    path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
+  });
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([
@@ -72,9 +83,16 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/attachments/',
   '/issues/:groupId/distributions/',
   '/issues/:groupId/distributions/:tagKey/',
+  '/monitors/',
+  '/monitors/:detectorId/',
+  '/monitors/:detectorId/edit/',
+  '/monitors/crons/',
+  '/monitors/errors/',
+  '/monitors/metrics/',
+  '/monitors/mobile-builds/',
+  '/monitors/my-monitors/',
+  '/monitors/uptime/',
 ]);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
 
 function supportsStructuredContext(
   referrer: string,
@@ -83,11 +101,6 @@ function supportsStructuredContext(
   if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
     return (
       organization?.features.includes('seer-explorer-structured-context-rollout') === true
-    );
-  }
-  if (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('context-engine-structured-page-context') === true
     );
   }
   return false;
@@ -134,6 +147,7 @@ export const useSeerExplorer = () => {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getPageReferrer} = usePageReferrer();
   const {getLLMContext} = useLLMContext();
+  const timezone = useTimezone();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
     true
@@ -153,7 +167,11 @@ export const useSeerExplorer = () => {
         if (storedValue === false) {
           return 'off';
         }
-        return 'on'; // default
+        // Matches the server's own default for a flagged org. This value is sent on every
+        // request, so it is not really an override until someone picks one — leaving it at
+        // 'on' meant the server's default branch could never be reached from the UI, and
+        // flagged orgs kept getting Code Mode alongside the classic tools.
+        return 'only';
       }
     );
   const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
@@ -182,10 +200,12 @@ export const useSeerExplorer = () => {
       overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
+      pageLocation: LLMContextLocation | undefined;
       pageName: string;
       query: string;
       runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
+      sentAt: string[];
     }
   >({
     mutationFn: async params => {
@@ -200,6 +220,7 @@ export const useSeerExplorer = () => {
                 ...prev,
                 session: {
                   ...prev.session,
+                  failure_reason: null,
                   status: 'processing',
                   updated_at: new Date().toISOString(),
                 },
@@ -216,6 +237,8 @@ export const useSeerExplorer = () => {
           insert_index: params.insertIndex,
           on_page_context: params.screenshot,
           page_name: params.pageName,
+          page_location: params.pageLocation,
+          sent_at: params.sentAt,
           override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
@@ -277,6 +300,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },
@@ -339,6 +363,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },
@@ -462,21 +487,31 @@ export const useSeerExplorer = () => {
       // explicitRunId: undefined = use current runId, null = force new run, number = use that run
       const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
+      // The snapshot is the source of location for both branches below, so take it
+      // once here rather than only on the structured path.
+      let snapshot: LLMContextSnapshot | undefined;
+      try {
+        snapshot = getLLMContext();
+      } catch (e) {
+        Sentry.captureException(e);
+      }
+
       // Send structured LLMContext JSON on supported pages when the feature flag
       // is enabled; fall back to a coarse ASCII screenshot otherwise.
       let screenshot: string | undefined;
       if (
+        snapshot &&
         overrideCtxEngEnable &&
         supportsStructuredContext(getPageReferrer(), organization)
       ) {
         try {
-          screenshot = JSON.stringify(getLLMContext());
+          screenshot = JSON.stringify(snapshot);
         } catch (e) {
           Sentry.captureException(e);
-          screenshot = captureAsciiSnapshot?.();
+          screenshot = captureAsciiSnapshot?.(snapshot?.location);
         }
       } else {
-        screenshot = captureAsciiSnapshot?.();
+        screenshot = captureAsciiSnapshot?.(snapshot?.location);
       }
 
       const pageName = getPageReferrer();
@@ -521,6 +556,19 @@ export const useSeerExplorer = () => {
         runId: effectiveRunId,
         orgSlug,
         pageName,
+        pageLocation: snapshot?.location,
+        // Local time first, then the same instant in UTC. Both are display strings
+        // the agent reads directly — nothing downstream parses them, so the zone
+        // name travels in the string (RFC 9557) rather than as a separate field.
+        //
+        // The offset and the bracketed name must come from one source: ConfigStore
+        // calls moment.tz.setDefault with the account timezone preference, so a bare
+        // moment() would render that offset while the browser reported a different
+        // name. useTimezone() is that single source (preference, else browser).
+        sentAt: [
+          `${moment().tz(timezone).format()}[${timezone}]`,
+          moment().utc().format(),
+        ],
         screenshot,
         overrideBashModeEnabled,
         overrideCtxEngEnable,
@@ -540,6 +588,7 @@ export const useSeerExplorer = () => {
       overrideCodeModeEnable,
       sendMessageMutate,
       setLastSentMessage,
+      timezone,
     ]
   );
 
@@ -592,7 +641,13 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
 
-  const rawSessionData = apiData?.session ?? null;
+  const rawSessionData = useMemo(() => {
+    const session = apiData?.session ?? null;
+    if (!session) {
+      return null;
+    }
+    return {...session, blocks: normalizeBlocks(session.blocks)};
+  }, [apiData?.session]);
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {

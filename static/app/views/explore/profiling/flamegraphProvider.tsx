@@ -6,7 +6,7 @@ import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
-const LOADING_OR_FALLBACK_FLAMEGRAPH = Flamegraph.Empty();
+const LOADING_OR_FALLBACK_FLAMEGRAPH = Flamegraph.empty();
 
 const FlamegraphContext = createContext<Flamegraph | null>(null);
 

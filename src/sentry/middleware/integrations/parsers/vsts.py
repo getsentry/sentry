@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -37,7 +39,7 @@ class VstsRequestParser(BaseRequestParser):
             return self.get_response_from_control_silo()
 
         try:
-            integration = self.get_integration_from_request()
+            integration = self.integration_for_request()
             if not integration:
                 return self.get_default_missing_integration_response()
 
@@ -49,5 +51,13 @@ class VstsRequestParser(BaseRequestParser):
             return self.get_default_missing_integration_response()
 
         return self.get_response_from_webhookpayload(
-            cells=cells, identifier=integration.id, integration_id=integration.id
+            cells=cells,
+            mailbox=self.get_mailbox(integration, self.get_request_body()),
+            integration_id=integration.id,
         )
+
+    def mailbox_bucket_id(self, data: Mapping[str, Any]) -> int | None:
+        """The subscription is created for `workitem.updated` only, so the work item
+        is the only axis a VSTS mailbox can be split on.
+        """
+        return self.bucket_key_at(data, "resource", "workItemId")

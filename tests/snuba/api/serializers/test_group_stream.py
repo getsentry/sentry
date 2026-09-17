@@ -288,3 +288,19 @@ class StreamGroupSerializerTestCase(APITestCase, BaseMetricsTestCase):
             request=self.make_request(),
         )
         assert result[0]["id"] == str(group.id)
+
+    def test_error_has_continuous_profile_filter(self) -> None:
+        group = self.create_group()
+        result = serialize(
+            [group],
+            self.user,
+            serializer=StreamGroupSerializerSnuba(
+                stats_period="24h",
+                organization_id=group.project.organization_id,
+                search_filters=[
+                    SearchFilter(SearchKey("profiler.id"), "!=", SearchValue("")),
+                ],
+            ),
+            request=self.make_request(),
+        )
+        assert result[0]["id"] == str(group.id)

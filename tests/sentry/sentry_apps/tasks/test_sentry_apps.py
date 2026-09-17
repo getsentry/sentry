@@ -16,8 +16,10 @@ from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_t
 from sentry.constants import SentryAppStatus
 from sentry.eventstream.types import EventStreamEventType
 from sentry.exceptions import RestrictedIPAddress
+from sentry.feedback.usecases.ingest.create_feedback import fix_for_issue_platform
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.issues.grouptype import FeedbackGroup
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
 from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppWebhookHaltReason
@@ -63,6 +65,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.service_hook_manager import (
     create_or_update_service_hooks_for_installation,
 )
+from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -461,6 +464,9 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         assert data["data"]["event"]["occurrence"] == convert_dict_key_case(
             occurrence.to_dict(), snake_to_camel_case
         )
+        # The metadata.value backfill is feedback-only: non-feedback occurrence
+        # payloads must not gain a value derived from the occurrence subtitle.
+        assert "value" not in data["data"]["event"].get("metadata", {})
         assert kwargs["headers"].keys() >= {
             "Content-Type",
             "Request-ID",
@@ -484,6 +490,51 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         )
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=2
+        )
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    def test_feedback_alert_webhook_includes_message_in_metadata_value(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        raw = mock_feedback_event(self.project.id)
+        fixed = fix_for_issue_platform(raw)
+        # mock_feedback_event embeds project_id in the body; the store_event
+        # factory asserts zero normalization errors, so drop it first.
+        fixed.pop("project_id", None)
+        event = self.store_event(data=fixed, project_id=self.project.id)
+
+        occurrence_data = self.build_occurrence_data(
+            event_id=event.event_id,
+            project_id=self.project.id,
+            type=FeedbackGroup.type_id,
+            issue_title="User Feedback: Testing!!",
+            subtitle="Testing!!",
+            evidence_display=[{"name": "message", "value": "Testing!!", "important": True}],
+        )
+        occurrence, group_info = save_issue_occurrence(occurrence_data=occurrence_data, event=event)
+        assert group_info is not None
+
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+        rule_future = RuleFuture(rule=self.rule, kwargs={"sentry_app": self.sentry_app})
+
+        with self.tasks():
+            notify_sentry_app(group_event, [rule_future])
+
+        ((args, kwargs),) = safe_urlopen.call_args_list
+        payload = json.loads(kwargs["data"])
+        ev = payload["data"]["event"]
+
+        # The feedback message must land in metadata.value so consumers reading
+        # it see the feedback text.
+        assert ev["metadata"]["value"] == "Testing!!"
+
+        # Feedback text is also present in the standard event fields.
+        assert ev["message"] == "Testing!!"
+        assert ev["contexts"]["feedback"]["message"] == "Testing!!"
+        assert any(
+            row["name"] == "message" and row["value"] == "Testing!!"
+            for row in ev["occurrence"]["evidenceDisplay"]
         )
 
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponse404)
@@ -999,13 +1050,19 @@ class TestProcessResourceChange(TestCase):
             ServiceHookProject.objects.all().delete()
             ServiceHook.objects.all().delete()
 
+        # Sentry app hooks always have a NULL project_id in production; per-project
+        # filtering is expressed with ServiceHookProject rows, not the project_id column.
         self.create_service_hook(
-            project_ids=[self.project.id],  # matches project of issue
+            project_ids=[],
             installation=self.install,
             application=self.sentry_app,
             events=["issue.created"],
             org=self.organization,
             actor=self.install,
+        )
+        self.create_service_hook_project_for_installation(
+            project_id=self.project.id,  # matches project of issue
+            installation_id=self.install.id,
         )
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1063,13 +1120,19 @@ class TestProcessResourceChange(TestCase):
             name="Bar2", slug="bar2", teams=[self.team], fire_project_created=False
         )
 
+        # Sentry app hooks always have a NULL project_id in production; per-project
+        # filtering is expressed with ServiceHookProject rows, not the project_id column.
         self.create_service_hook(
-            project_ids=[project_2.id],  # no match
+            project_ids=[],
             installation=self.install,
             application=self.sentry_app,
             events=["issue.created"],
             org=self.organization,
             actor=self.install,
+        )
+        self.create_service_hook_project_for_installation(
+            project_id=project_2.id,  # no match
+            installation_id=self.install.id,
         )
 
         event = self.store_event(data={}, project_id=self.project.id)
@@ -1708,6 +1771,60 @@ class TestWorkflowNotification(TestCase):
             mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
         )
 
+    def test_repairs_service_hook_missing_organization_id(self, safe_urlopen: MagicMock) -> None:
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(organization_id=None)
+
+        workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+
+        ((_, kwargs),) = safe_urlopen.call_args_list
+        assert kwargs["url"] == self.sentry_app.webhook_url
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+        assert hook.organization_id == self.project.organization.id
+
+    def test_does_not_repair_when_multiple_hooks_missing_organization_id(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        self.create_service_hook(
+            actor=self.user,
+            org=self.project.organization,
+            project_ids=[],
+            events=["issue.resolved"],
+            installation_id=self.install.id,
+            application_id=self.sentry_app.application_id,
+            url=self.sentry_app.webhook_url,
+        )
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(organization_id=None)
+
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert not safe_urlopen.called
+
+        with assume_test_silo_mode_of(ServiceHook):
+            assert not ServiceHook.objects.filter(
+                installation_id=self.install.id, organization_id__isnull=False
+            ).exists()
+
+    def test_does_not_repair_hook_belonging_to_another_organization(
+        self, safe_urlopen: MagicMock
+    ) -> None:
+        other_org = self.create_organization()
+        with assume_test_silo_mode_of(ServiceHook):
+            ServiceHook.objects.filter(installation_id=self.install.id).update(
+                organization_id=other_org.id
+            )
+
+        with pytest.raises(SentryAppSentryError):
+            workflow_notification(self.install.id, self.issue.id, "resolved", self.user.id)
+        assert not safe_urlopen.called
+
+        with assume_test_silo_mode_of(ServiceHook):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+        assert hook.organization_id == other_org.id
+
 
 class TestWebhookRequests(TestCase):
     def setUp(self) -> None:
@@ -1748,6 +1865,74 @@ class TestWebhookRequests(TestCase):
         assert first_request["organization_id"] == self.install.organization_id
         assert first_request["error_id"] == "d5111da2c28645c5889d072017e3445d"
         assert first_request["project_id"] == 1
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.timeout_alarm")
+    def test_uses_installation_organization_specific_timeout_override(
+        self, timeout_alarm: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
+        installation_organization = self.create_organization()
+        installation = self.create_sentry_app_installation(
+            organization=installation_organization, slug=self.sentry_app.slug
+        )
+        assert installation.organization_id != self.sentry_app.owner_id
+
+        with override_options(
+            {
+                "sentry-apps.override.organization_ids.webhook.timeouts.sec": {
+                    str(installation.organization_id): {
+                        "webhook_timeout_override": 3.0,
+                        "hard_timeout_override": 8.0,
+                    }
+                },
+            }
+        ):
+            send_webhooks(
+                installation=installation,
+                event="issue.assigned",
+                data={"issue": serialize(self.issue)},
+                actor=self.user,
+            )
+
+        assert safe_urlopen.call_args.kwargs["timeout"] == 3.0
+        timeout_alarm.assert_called_once_with(8.0, ANY)
+
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
+    @patch("sentry.utils.sentry_apps.webhooks.timeout_alarm")
+    @patch("sentry.utils.sentry_apps.webhooks.logger.warning")
+    def test_uses_defaults_when_webhook_timeout_override_exceeds_hard_timeout(
+        self,
+        warning: MagicMock,
+        timeout_alarm: MagicMock,
+        safe_urlopen: MagicMock,
+    ) -> None:
+        with override_options(
+            {
+                "sentry-apps.override.organization_ids.webhook.timeouts.sec": {
+                    str(self.install.organization_id): {
+                        "webhook_timeout_override": 9.0,
+                        "hard_timeout_override": 8.0,
+                    }
+                },
+            }
+        ):
+            send_webhooks(
+                installation=self.install,
+                event="issue.assigned",
+                data={"issue": serialize(self.issue)},
+                actor=self.user,
+            )
+
+        warning.assert_called_once_with(
+            "sentry_app.webhook.invalid_timeout_overrides",
+            extra={
+                "organization_id": self.install.organization_id,
+                "webhook_timeout_override": 9.0,
+                "hard_timeout_override": 8.0,
+            },
+        )
+        assert safe_urlopen.call_args.kwargs["timeout"] == 1.0
+        timeout_alarm.assert_called_once_with(5.0, ANY)
 
 
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
@@ -1849,8 +2034,29 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+
+    def test_regenerate_missing_service_hook_for_installation(self) -> None:
+        other_install = self.create_sentry_app_installation(
+            organization=self.organization, slug=self.sentry_app.slug
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            ServiceHook.objects.get(installation_id=self.install.id).delete()
+            assert ServiceHook.objects.filter(installation_id=other_install.id).exists()
+
+        with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
+            regenerate_service_hooks_for_installation(
+                installation_id=self.install.id,
+                webhook_url=self.sentry_app.webhook_url,
+                events=self.sentry_app.events,
+            )
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
+            assert hook.url == self.sentry_app.webhook_url
+            assert set(hook.events) == {"issue.created", "issue.resolved", "error.created"}
+            assert ServiceHook.objects.filter(installation_id=other_install.id).count() == 1
 
     def test_regenerate_service_hook_for_installation_event_not_in_app_events(self) -> None:
         with self.tasks(), assume_test_silo_mode(SiloMode.CONTROL):
@@ -1881,7 +2087,7 @@ class TestBackfillServiceHooksEvents(TestCase):
             )
 
         with assume_test_silo_mode(SiloMode.CELL):
-            hook.refresh_from_db()
+            hook = ServiceHook.objects.get(installation_id=self.install.id)
             assert hook.events == []
 
 

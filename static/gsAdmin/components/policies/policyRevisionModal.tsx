@@ -7,7 +7,6 @@ import type {Policy, PolicyRevision} from 'getsentry/types';
 type Props = ModalRenderProps & {
   onSuccess: (revision: PolicyRevision) => void;
   policy: Policy;
-  revision?: PolicyRevision;
 };
 
 const suggestedNextVersion = (version: string): string => {
@@ -16,22 +15,16 @@ const suggestedNextVersion = (version: string): string => {
   return v.join('.');
 };
 
-export function PolicyRevisionModal({policy, revision, ...props}: Props) {
+export function PolicyRevisionModal({policy, ...props}: Props) {
   return (
     <JsonFormModal
-      title={revision ? `Edit ${revision.version}` : 'Add Revision'}
-      initialData={
-        revision || {
-          version: policy.version ? suggestedNextVersion(policy.version) : '1.0.0',
-          current: true,
-        }
-      }
-      apiMethod={revision ? 'PUT' : 'POST'}
-      apiEndpoint={
-        revision
-          ? `/policies/${policy.slug}/revisions/${revision.version}/`
-          : `/policies/${policy.slug}/revisions/`
-      }
+      title="Add Revision"
+      initialData={{
+        version: policy.version ? suggestedNextVersion(policy.version) : '1.0.0',
+        current: true,
+      }}
+      apiMethod="POST"
+      apiEndpoint={`/policies/${policy.slug}/revisions/`}
       fields={PolicyRevisionSchema}
       {...props}
     />

@@ -270,19 +270,16 @@ export const getIntegrationSourceUrl = (
   }
 };
 
-export function getCodeOwnerIcon(
-  provider: CodeOwner['provider'],
-  iconSize: SVGIconProps['size'] = 'md'
-) {
+export function getCodeOwnerIcon(provider: CodeOwner['provider']) {
   switch (provider ?? '') {
     case 'github':
-      return <IconGithub size={iconSize} />;
+      return <IconGithub size="md" />;
     case 'gitlab':
-      return <IconGitlab size={iconSize} />;
+      return <IconGitlab size="md" />;
     case 'perforce':
-      return <IconPerforce size={iconSize} />;
+      return <IconPerforce size="md" />;
     default:
-      return <IconSentry size={iconSize} />;
+      return <IconSentry size="md" />;
   }
 }
 /**
@@ -292,13 +289,6 @@ export function getCodeOwnerIcon(
  */
 export const integrationRequiresUpgrade = (integration: Integration): boolean =>
   integration.outOfDate === true;
-
-/**
- * URL where a user can review and accept a GitHub App installation's updated
- * permissions. Mirrors `_build_permissions_update_url` on the backend.
- */
-export const getGithubPermissionsUpdateUrl = (installationId: string): string =>
-  `https://github.com/settings/installations/${installationId}/permissions/update`;
 
 export const canManageIntegrations = (organization: Organization): boolean =>
   isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});

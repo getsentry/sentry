@@ -8,14 +8,13 @@ and perform RPC calls to propagate changes to Control Silo.
 
 from __future__ import annotations
 
+import contextlib
 import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
 import logging
-from datetime import datetime
 from typing import Any, assert_never, cast
 
 from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
-from django.utils import timezone
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
@@ -52,6 +51,12 @@ from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_age
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
 from sentry.utils.env import in_test_environment
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -247,49 +252,70 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         _mark_seer_run_failed(run, "seer_run_create.invalid_payload", error=str(e))
         return
 
-    match run_type:
-        case SeerRunType.EXPLORER:
-            try:
-                organization = Organization.objects.get_from_cache(id=run.organization_id)
-                monitoring_provider_connections = get_monitoring_provider_connections(
-                    organization, run.user_id
-                )
-                if monitoring_provider_connections:
-                    body["monitoring_providers"] = [
-                        connection.dict() for connection in monitoring_provider_connections
-                    ]
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                organization_id=run.organization_id,
+                user_id=run.user_id,
+                actor_type=ActorType.USER if run.user_id is not None else ActorType.SYSTEM,
+            )
+        )
 
-                if run.user_id is not None:
-                    available_monitoring_providers = get_available_monitoring_providers(
+    with scope:
+        match run_type:
+            case SeerRunType.EXPLORER:
+                try:
+                    organization = Organization.objects.get_from_cache(id=run.organization_id)
+                    monitoring_provider_connections = get_monitoring_provider_connections(
                         organization, run.user_id
                     )
-                    if available_monitoring_providers:
-                        body["available_monitoring_providers"] = available_monitoring_providers
-            except Organization.DoesNotExist:
+                    if monitoring_provider_connections:
+                        body["monitoring_providers"] = [
+                            connection.dict() for connection in monitoring_provider_connections
+                        ]
+
+                    if run.user_id is not None:
+                        available_monitoring_providers = get_available_monitoring_providers(
+                            organization, run.user_id
+                        )
+                        if available_monitoring_providers:
+                            body["available_monitoring_providers"] = available_monitoring_providers
+                except Organization.DoesNotExist:
+                    logger.warning(
+                        "seer_run_create.organization_dne",
+                        extra={"organization_id": run.organization_id, "run_id": run.id},
+                    )
+                response = make_agent_chat_request(
+                    cast(AgentChatRequest, body), viewer_context=viewer_context
+                )
+            case SeerRunType.PR_REVIEW:
+                # TODO(telkins): support PR review runs. Until then, mark the
+                # run FAILED rather than raising — the failure is permanent and
+                # raising would stall the org's outbox shard on every drain.
+                _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
+                return
+            case SeerRunType.INVESTIGATION:
+                # Investigation orchestration runs are not started through this
+                # outbox. Seer creates its own run and Sentry adopts the id, so a
+                # SeerRun of this type is a mirror with nothing to dispatch. Nothing
+                # enqueues one today; log rather than drop it silently if that changes.
                 logger.warning(
-                    "seer_run_create.organization_dne",
+                    "seer_run_create.investigation_not_dispatched",
                     extra={"organization_id": run.organization_id, "run_id": run.id},
                 )
-            response = make_agent_chat_request(
-                cast(AgentChatRequest, body), viewer_context=viewer_context
-            )
-        case SeerRunType.PR_REVIEW:
-            # TODO(telkins): support PR review runs. Until then, mark the
-            # run FAILED rather than raising — the failure is permanent and
-            # raising would stall the org's outbox shard on every drain.
-            _mark_seer_run_failed(run, "seer_run_create.pr_review_unsupported")
-            return
-        case SeerRunType.ASSISTED_QUERY:
-            response = make_search_agent_start_request(
-                cast(SearchAgentStartRequest, body), viewer_context=viewer_context
-            )
-        case SeerRunType.FEATURE_RUN:
-            wire_body = {**body, "ref": str(run.uuid)}
-            response = make_feature_run_request(
-                cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
-            )
-        case unknown:
-            assert_never(unknown)
+                return
+            case SeerRunType.ASSISTED_QUERY:
+                response = make_search_agent_start_request(
+                    cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+                )
+            case SeerRunType.FEATURE_RUN:
+                wire_body = {**body, "ref": str(run.uuid)}
+                response = make_feature_run_request(
+                    cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
+                )
+            case unknown:
+                assert_never(unknown)
 
     if response.status >= 500:
         raise RuntimeError(f"Seer returned transient error {response.status}")
@@ -353,7 +379,6 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
 
         group_id = payload["group_id"]
         force_async_derived = payload["force_async_derived"]
-        date_added = payload.get("date_added")
 
         try:
             with transaction.atomic(using=using):
@@ -366,9 +391,6 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
                     source=payload["source"],
                     data=payload["data"],
                     idempotency_key=payload.get("idempotency_key"),
-                    date_added=(
-                        datetime.fromisoformat(date_added) if date_added else timezone.now()
-                    ),
                 )
         except IntegrityError:
             # Idempotency conflict; we treat this as a no-op.

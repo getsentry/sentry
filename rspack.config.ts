@@ -17,11 +17,8 @@ import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
 
@@ -294,8 +291,10 @@ const appConfig: Configuration = {
   incremental: DEV_MODE,
   watchOptions: {
     // StoryManifestPlugin owns these watches so it can update the virtual
-    // manifest before invalidating changed and removed story dependencies.
-    ignored: ['**/*.stories.tsx', '**/*.mdx'],
+    // manifest before invalidating changed and removed story dependencies. Its
+    // virtual module must also be ignored so the filesystem watcher does not
+    // repeatedly report the intentionally nonexistent file as removed.
+    ignored: ['**/*.stories.tsx', '**/*.mdx', `**/${StoryManifestPlugin.modulePath}`],
   },
   experiments: {
     futureDefaults: true,
@@ -390,7 +389,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpg|mp4)$/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
         type: 'asset',
       },
     ],
@@ -551,8 +550,8 @@ const appConfig: Configuration = {
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
-    chunkIds: IS_PRODUCTION ? 'deterministic' : 'named',
-    moduleIds: IS_PRODUCTION ? 'deterministic' : 'named',
+    chunkIds: IS_PRODUCTION ? 'compact-hashed' : 'named',
+    moduleIds: IS_PRODUCTION ? 'compact-hashed' : 'named',
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
@@ -991,4 +990,28 @@ if (env.WEBPACK_CACHE_PATH) {
 }
 
 const configs = [appConfig, workerConfig];
+
+// Configure JSON stats explicitly; the CLI defaults to errors and warnings.
+// Keep module detail for bundle analysis without embedding source text.
+if (env.RSPACK_STATS) {
+  for (const config of configs) {
+    config.stats = {
+      all: false,
+      modules: true,
+      nestedModules: true,
+      source: false,
+      assets: true,
+      chunks: true,
+      chunkRelations: true,
+      chunkGroups: true,
+      entrypoints: true,
+      hash: true,
+      timings: true,
+      version: true,
+      errors: true,
+      warnings: true,
+    };
+  }
+}
+
 export default configs;

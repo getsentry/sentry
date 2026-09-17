@@ -13,7 +13,6 @@ from .message_builder.discover import *  # noqa: F401,F403
 from .message_builder.help import *  # noqa: F401,F403
 from .message_builder.incidents import *  # noqa: F401,F403
 from .message_builder.issues import *  # noqa: F401,F403
-from .message_builder.metric_alerts import *  # noqa: F401,F403
 from .message_builder.notifications.base import *  # noqa: F401,F403
 from .message_builder.notifications.digest import *  # noqa: F401,F403
 from .message_builder.notifications.issues import *  # noqa: F401,F403

@@ -1,7 +1,83 @@
-import pytest
+from datetime import UTC, datetime
+from typing import Any
+from unittest import mock
 
-from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
+import pytest
+from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
+    TraceItemDetailsResponse,
+)
+
+from sentry.api.endpoints.project_trace_item_details import (
+    convert_rpc_attribute_to_json,
+    serialize_event,
+)
 from sentry.search.eap.types import SupportedTraceItemType
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.utils import json
+from sentry.utils.snuba_rpc import SnubaRPCBadRequest
+
+
+class ProjectTraceItemDetailsRoutingHintTest(APITestCase):
+    endpoint = "sentry-api-0-project-trace-item-details"
+
+    def test_routing_hint_is_forwarded_unchanged(self) -> None:
+        self.assert_routing_hint({"routing_hint": " opaque+/== "}, " opaque+/== ")
+
+    def test_omitted_routing_hint(self) -> None:
+        self.assert_routing_hint({}, "")
+
+    def test_blank_routing_hint(self) -> None:
+        self.assert_routing_hint({"routing_hint": ""}, "")
+
+    def assert_routing_hint(self, params: dict[str, str], expected_hint: str) -> None:
+        self.login_as(user=self.user)
+        organization, project = self.organization, self.project
+        item_id = "0123456789abcdef"
+        trace_id = "0123456789abcdef0123456789abcdef"
+        timestamp = before_now(minutes=1)
+        response = TraceItemDetailsResponse(item_id=item_id)
+        response.timestamp.FromDatetime(timestamp)
+        attribute = response.attributes.add()
+        attribute.name = "sentry.op"
+        attribute.value.val_str = "http.server"
+        with mock.patch(
+            "sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc",
+            return_value=response,
+        ) as rpc:
+            self.get_success_response(
+                organization.slug,
+                project.slug,
+                item_id,
+                item_type="spans",
+                trace_id=trace_id,
+                timestamp=timestamp.isoformat(),
+                **params,
+            )
+
+        request = rpc.call_args.args[0]
+        assert request.routing_hint == expected_hint
+        assert request.meta.organization_id == self.organization.id
+        assert list(request.meta.project_ids) == [self.project.id]
+
+    def test_rpc_bad_request_is_returned_as_400(self) -> None:
+        self.login_as(user=self.user)
+        organization, project = self.organization, self.project
+        with mock.patch(
+            "sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc",
+            side_effect=SnubaRPCBadRequest("invalid routing_hint"),
+        ):
+            response = self.get_error_response(
+                organization.slug,
+                project.slug,
+                "0123456789abcdef",
+                item_type="spans",
+                trace_id="0123456789abcdef0123456789abcdef",
+                routing_hint="invalid",
+                status_code=400,
+            )
+
+        assert response.data == {"detail": "Invalid trace item details request."}
 
 
 def test_convert_rpc_attribute_to_json_serializes_known_string_array_without_array_flag() -> None:
@@ -71,6 +147,86 @@ def test_convert_rpc_attribute_to_json_exposes_array_with_array_flag() -> None:
             "value": ["assistant output"],
         }
     ]
+
+
+class TestSerializeEvent:
+    def _breadcrumb_attribute(self, values: list[dict[str, Any]]) -> dict[str, Any]:
+        return {
+            "name": "sentry.event.serialized_breadcrumbs",
+            "value": {"valStr": json.dumps({"values": values})},
+        }
+
+    def test_returns_none_when_no_event_attributes(self) -> None:
+        assert serialize_event([{"name": "sentry.op", "value": {"valStr": "http"}}]) is None
+
+    def test_normalizes_numeric_breadcrumb_timestamp_to_datetime(self) -> None:
+        # Relay serializes breadcrumb timestamps as epoch-seconds floats.
+        result = serialize_event(
+            [self._breadcrumb_attribute([{"type": "default", "timestamp": 1785955938.308}])]
+        )
+
+        assert result is not None
+        crumb = result["breadcrumbs"]["values"][0]
+        assert crumb["timestamp"] == datetime(2026, 8, 5, 18, 52, 18, 308000, tzinfo=UTC)
+
+    def test_leaves_string_breadcrumb_timestamp_untouched(self) -> None:
+        result = serialize_event(
+            [
+                self._breadcrumb_attribute(
+                    [{"type": "default", "timestamp": "2026-08-05T18:52:18.308000Z"}]
+                )
+            ]
+        )
+
+        assert result is not None
+        crumb = result["breadcrumbs"]["values"][0]
+        assert crumb["timestamp"] == "2026-08-05T18:52:18.308000Z"
+
+    def test_handles_breadcrumb_without_timestamp(self) -> None:
+        result = serialize_event([self._breadcrumb_attribute([{"type": "default"}])])
+
+        assert result is not None
+        assert "timestamp" not in result["breadcrumbs"]["values"][0]
+
+    def test_does_not_coerce_boolean_timestamp(self) -> None:
+        # bool is a subclass of int; ensure we don't treat it as an epoch value.
+        result = serialize_event(
+            [self._breadcrumb_attribute([{"type": "default", "timestamp": True}])]
+        )
+
+        assert result is not None
+        assert result["breadcrumbs"]["values"][0]["timestamp"] is True
+
+    def test_leaves_out_of_range_timestamp_untouched(self) -> None:
+        # A millisecond-scale epoch is out of datetime's range; degrade to the
+        # raw value instead of 500ing the whole response.
+        result = serialize_event(
+            [self._breadcrumb_attribute([{"type": "default", "timestamp": 1785955938308.0}])]
+        )
+
+        assert result is not None
+        assert result["breadcrumbs"]["values"][0]["timestamp"] == 1785955938308.0
+
+    def test_passes_through_contexts_and_extra(self) -> None:
+        result = serialize_event(
+            [
+                {
+                    "name": "sentry.event.serialized_contexts",
+                    "value": {
+                        "valStr": json.dumps({"device": {"boot_time": "2018-02-08T12:52:12Z"}})
+                    },
+                },
+                {
+                    "name": "sentry.event.serialized_extra",
+                    "value": {"valStr": json.dumps({"foo": "bar"})},
+                },
+            ]
+        )
+
+        assert result == {
+            "contexts": {"device": {"boot_time": "2018-02-08T12:52:12Z"}},
+            "extra": {"foo": "bar"},
+        }
 
 
 class TestReplacementAttributeFiltering:

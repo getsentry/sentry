@@ -1,8 +1,11 @@
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 import {t, td} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {
+  CONDITIONS_ARGUMENTS,
+  EQUALITY_CONDITIONS_ARGUMENTS,
+  WEB_VITALS_QUALITY,
+} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
@@ -22,6 +25,7 @@ export enum FieldKind {
   METRICS = 'metric',
   NUMERIC_METRICS = 'numeric_metric',
   BOOLEAN = 'boolean',
+  ARRAY = 'array',
 }
 
 export enum FieldKey {
@@ -97,6 +101,7 @@ export enum FieldKey {
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -164,6 +169,7 @@ type SharedFieldKey =
   | FieldKey.PLATFORM
   | FieldKey.PLATFORM_NAME
   | FieldKey.PROFILE_ID
+  | FieldKey.PROFILER_ID
   | FieldKey.PROJECT
   | FieldKey.REPLAY_ID
   | FieldKey.TIMESTAMP
@@ -304,6 +310,7 @@ export enum FieldValueType {
   PERCENT_CHANGE = 'percent_change',
   SCORE = 'score',
   CURRENCY = 'currency',
+  ARRAY = 'array',
 }
 
 export enum WebVital {
@@ -394,6 +401,7 @@ export enum AggregationKey {
   P100 = 'p100',
   PERCENTILE = 'percentile',
   AVG = 'avg',
+  AVG_IF = 'avg_if',
   APDEX = 'apdex',
   USER_MISERY = 'user_misery',
   FAILURE_RATE = 'failure_rate',
@@ -456,6 +464,7 @@ type AggregateColumnParameter = {
   kind: 'column';
   name: string;
   required: boolean;
+  defaultLabel?: string;
   defaultValue?: string;
 };
 
@@ -996,6 +1005,47 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
     ],
   },
+  [AggregationKey.AVG_IF]: {
+    desc: t('Returns averages for a selected field, for events matching a condition'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'transaction',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '/',
+        required: true,
+      },
+    ],
+  },
   [AggregationKey.APDEX]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
@@ -1103,12 +1153,61 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.OPPORTUNITY_SCORE,
 ];
 
+/**
+ * Span aggregates that EAP generates an `_if` combinator for. Used by Explore series
+ * filters and equation builders. See `SPAN_AGGREGATE_COMBINATORS` in
+ * `src/sentry/search/eap/spans/aggregates.py`.
+ */
+export const EXPLORE_FILTERABLE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.SUM,
+  AggregationKey.AVG,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P90,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+];
+
+/**
+ * EAP conditional aggregates offered in the Explore equation builder
+ * (`avg_if(\`span.op:db\`,span.duration)`). The first argument is a backtick-wrapped
+ * search filter, followed by the base aggregate's parameters. Only included when
+ * `explore-conditional-aggregates` is enabled; see {@link getExploreEquationAggregates}.
+ */
+export const ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES: string[] =
+  EXPLORE_FILTERABLE_AGGREGATES.map(name => `${name}_if`);
+
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.AVG_IF,
   AggregationKey.COUNT_IF,
   AggregationKey.APDEX,
   AggregationKey.USER_MISERY,
 ];
+
+/**
+ * Aggregates offered in the Explore equation builder. When
+ * `explore-conditional-aggregates` is on, Discover `avg_if` / `count_if` are replaced by
+ * the EAP `_if` combinators (`avg_if`, `count_if`, `sum_if`, …).
+ */
+export function getExploreEquationAggregates(
+  hasConditionalAggregates: boolean
+): string[] {
+  if (!hasConditionalAggregates) {
+    return ALLOWED_EXPLORE_EQUATION_AGGREGATES;
+  }
+  return [
+    ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    ...ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES,
+    AggregationKey.APDEX,
+    AggregationKey.USER_MISERY,
+  ];
+}
 
 const LOG_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
@@ -1329,6 +1428,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
             (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
           );
         },
+        defaultLabel: 'spans',
         defaultValue: 'span.duration',
         required: false,
       },
@@ -1419,6 +1519,46 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG_IF],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'db',
         required: true,
       },
     ],
@@ -1606,6 +1746,35 @@ export const NO_ARGUMENT_SPAN_AGGREGATES: AggregationKey[] = Object.entries(
 )
   .filter(([_, field]) => field.parameters?.length === 0)
   .map(([key]) => key as AggregationKey);
+
+/**
+ * Prepend the EAP `_if` search filter argument to a base span aggregate definition.
+ * Empty backticks are the default so the tokenizer keeps a filter slot until the user
+ * fills it in: `avg_if(``,span.duration)`.
+ */
+function withConditionalFilterParameter(definition: FieldDefinition): FieldDefinition {
+  return {
+    ...definition,
+    parameters: [
+      {
+        name: 'filter',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '``',
+        required: true,
+      },
+      ...(definition.parameters ?? []),
+    ],
+  };
+}
+
+const SPAN_CONDITIONAL_AGGREGATION_FIELDS: Record<string, FieldDefinition> =
+  Object.fromEntries(
+    EXPLORE_FILTERABLE_AGGREGATES.map(name => [
+      `${name}_if`,
+      withConditionalFilterParameter(SPAN_AGGREGATION_FIELDS[name]),
+    ])
+  );
 
 export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
@@ -1899,6 +2068,12 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
   },
   [FieldKey.PROFILE_ID]: {
     desc: t('The ID of an associated profile'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [FieldKey.PROFILER_ID]: {
+    desc: t('The ID of an associated continuous profile'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
@@ -2197,7 +2372,7 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
 
 const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
   [FieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[FieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2880,6 +3055,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -2954,6 +3130,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>(
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -3075,6 +3252,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
+  FieldKey.PROFILER_ID,
 
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,
@@ -3097,7 +3275,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
-export enum ReplayFieldKey {
+enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -3128,7 +3306,7 @@ export enum ReplayFieldKey {
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
-export enum ReplayClickFieldKey {
+enum ReplayClickFieldKey {
   CLICK_ALT = 'click.alt',
   CLICK_CLASS = 'click.class',
   CLICK_ID = 'click.id',
@@ -3224,12 +3402,12 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     values: SMALL_INTEGER_VALUES,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[ReplayFieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[ReplayFieldKey.BROWSER_VERSION]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3538,7 +3716,7 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     allowWildcard: true,
   },
   [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
+    desc: td(ATTRIBUTE_SEARCH_METADATA[FeedbackFieldKey.BROWSER_NAME]!.brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -3664,6 +3842,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'log':
@@ -3686,6 +3868,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'tracemetric':
@@ -3706,6 +3892,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
       }
 
       return null;
@@ -3739,13 +3929,48 @@ export const getFieldDefinition = (
   return _getFieldFromMappings(type, key, kind) ?? null;
 };
 
-export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(fieldKey => [
-      fieldKey,
-      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
-    ])
-  );
+/**
+ * Span field definitions for the Explore equation builder. When
+ * `explore-conditional-aggregates` is on, `_if` combinators use the EAP filter-first
+ * signature (`avg_if(\`span.op:db\`,span.duration)`), including `count_if`.
+ *
+ * Existing Discover-style calls (`avg_if(span.duration,span.op,equals,db)`) keep the
+ * Discover definition so editing them does not reinterpret the first column as a filter.
+ * EAP-only `_if`s without a Discover definition keep the filter-first signature.
+ */
+export function getExploreEquationFieldDefinition(
+  key: string,
+  kind?: FieldKind,
+  hasConditionalAggregates = false,
+  attributeTexts?: readonly string[]
+): FieldDefinition | null {
+  if (hasConditionalAggregates) {
+    const conditionalDefinition = SPAN_CONDITIONAL_AGGREGATION_FIELDS[key];
+    if (conditionalDefinition) {
+      if (usesDiscoverStyleConditionalAggregateArgs(attributeTexts)) {
+        // Only Discover-defined `_if`s (`avg_if`/`count_if`) should stay on the Discover
+        // arity. EAP-only combinators (`sum_if`, …) have no Discover definition — keep
+        // the filter-first signature even when the first arg is not backtick-wrapped yet.
+        return getFieldDefinition(key, 'span', kind) ?? conditionalDefinition;
+      }
+      return conditionalDefinition;
+    }
+  }
+  return getFieldDefinition(key, 'span', kind);
+}
+
+/**
+ * Discover `_if` aggregates put a column first. EAP filter-first forms wrap the first
+ * argument in backticks (`\`span.op:db\`` or empty `` ` ` ``).
+ */
+function usesDiscoverStyleConditionalAggregateArgs(
+  attributeTexts: readonly string[] | undefined
+): boolean {
+  if (!attributeTexts?.length) {
+    return false;
+  }
+  const first = attributeTexts[0]!.trim();
+  return !(first.startsWith('`') && first.endsWith('`'));
 }
 
 export function isDeviceClass(key: any): boolean {
@@ -3768,6 +3993,24 @@ export function classifyTagKey(key: string): FieldKind {
   }
 
   return FieldKind.TAG;
+}
+
+/**
+ * The trace item attribute type a {@link FieldKind} corresponds to. Inverse of
+ * `fieldKindFromFieldType`.
+ */
+export function attributeTypeFromKind(
+  kind: FieldKind | undefined
+): 'string' | 'number' | 'boolean' {
+  if (kind === FieldKind.MEASUREMENT) {
+    return 'number';
+  }
+
+  if (kind === FieldKind.BOOLEAN) {
+    return 'boolean';
+  }
+
+  return 'string';
 }
 
 export function prettifyTagKey(key: string): string {

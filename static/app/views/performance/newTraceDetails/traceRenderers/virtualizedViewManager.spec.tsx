@@ -561,7 +561,155 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
+  describe('onZoomIntoSpace', () => {
+    it.each([
+      {
+        start: 500,
+        duration: 1,
+        physicalWidth: 1000,
+        padding: true,
+        x: 499.926,
+        width: 1.148,
+      },
+      {
+        start: 500,
+        duration: 0.2,
+        physicalWidth: 1000,
+        padding: true,
+        x: 499.526,
+        width: 1.148,
+      },
+      {
+        start: 500,
+        duration: 0,
+        physicalWidth: 1000,
+        padding: true,
+        x: 499.426,
+        width: 1.148,
+      },
+      {start: 0, duration: 1, physicalWidth: 1000, padding: true, x: 0, width: 1.148},
+      {
+        start: 999,
+        duration: 1,
+        physicalWidth: 1000,
+        padding: true,
+        x: 998.852,
+        width: 1.148,
+      },
+      {start: 500, duration: 1, physicalWidth: 300, padding: true, x: 500, width: 1},
+      {start: 500, duration: 1, physicalWidth: 1000, padding: false, x: 500, width: 1},
+    ])(
+      'preserves zoom bounds and repeated targets for %o',
+      ({start, duration, physicalWidth, padding, x, width}) => {
+        const scheduler = new TraceScheduler();
+        const manager = new VirtualizedViewManager(
+          {list: {width: 0.5}, span_list: {width: 0.5}},
+          scheduler,
+          new TraceView(),
+          ThemeFixture()
+        );
+        const origin = 10_000;
+        manager.view.setTraceSpace([origin, 0, 1000, 1]);
+        manager.view.setTracePhysicalSpace(
+          [0, 0, physicalWidth, 1],
+          [0, 0, physicalWidth, 1]
+        );
+        manager.setTimeCompression(
+          TraceTimeCompression.FromVisibleItems({
+            enabled: true,
+            traceSpace: [origin, 1000],
+            physicalWidth,
+            nodes: [
+              {type: 'transaction', space: [origin, 100]} as unknown as BaseNode,
+              {type: 'span', space: [origin + 500, 100]} as unknown as BaseNode,
+              {type: 'span', space: [origin + 900, 100]} as unknown as BaseNode,
+            ],
+            indicators: [],
+          })
+        );
+        manager.recomputeSpanToPXMatrix();
+        scheduler.on('set trace view', view => {
+          manager.view.setTraceView(view);
+          manager.recomputeSpanToPXMatrix();
+        });
+        const animationFrameSpy = jest
+          .spyOn(window, 'requestAnimationFrame')
+          .mockImplementation(callback => {
+            callback(performance.now() + 1000);
+            return 0;
+          });
+
+        manager.onZoomIntoSpace([origin + start, duration], {padding});
+        const firstView = manager.view.trace_view.serialize();
+        manager.onZoomIntoSpace([origin + start, duration], {padding});
+        animationFrameSpy.mockRestore();
+
+        expect(manager.view.trace_view.x).toBeCloseTo(x);
+        expect(manager.view.trace_view.width).toBeCloseTo(width);
+        expect(manager.view.trace_view.serialize()).toEqual(firstView);
+      }
+    );
+  });
+
   describe('horizontal scrolling', () => {
+    it('zooms to a fake span from the trace start to the vital timestamp', () => {
+      const scheduler = new TraceScheduler();
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        scheduler,
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([10_000, 0, 20_000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      scheduler.on('set trace view', view => manager.view.setTraceView(view));
+      const animationFrameSpy = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          callback(performance.now() + 1000);
+          return 0;
+        });
+
+      manager.onZoomToVital(26_000, 'lcp');
+      animationFrameSpy.mockRestore();
+
+      expect(manager.view.trace_view.x).toBe(0);
+      expect(manager.view.trace_view.width).toBe(16_800);
+    });
+
+    it('does not zoom again when already at the vital target', () => {
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0.5},
+          span_list: {width: 0.5},
+        },
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([10_000, 0, 20_000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      const animationFrameSpy = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          callback(performance.now() + 1000);
+          return 0;
+        });
+      const zoomSpy = jest.spyOn(manager, 'onZoomIntoSpace');
+
+      manager.onZoomToVital(26_000, 'lcp');
+      manager.onZoomToVital(26_000, 'lcp');
+      animationFrameSpy.mockRestore();
+
+      expect(zoomSpy).toHaveBeenCalledTimes(1);
+      expect(zoomSpy).toHaveBeenCalledWith([10_000, 16_800], {padding: false});
+    });
+
     it('uses compressed viewport width when the real viewport is at max zoom', () => {
       const manager = new VirtualizedViewManager(
         {
@@ -602,6 +750,43 @@ describe('VirtualizedViewManger', () => {
     });
 
     describe('onWheel (timeline/span durations)', () => {
+      it.each([{deltaX: -100}, {shiftKey: true, deltaY: -100}])(
+        'preserves compressed zoom at a boundary with %j',
+        wheelOptions => {
+          const scheduler = new TraceScheduler();
+          const manager = new VirtualizedViewManager(
+            {
+              list: {width: 0.5},
+              span_list: {width: 0.5},
+            },
+            scheduler,
+            new TraceView(),
+            ThemeFixture()
+          );
+          manager.view.setTraceSpace([0, 0, 1000, 1]);
+          manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+          manager.time_compression = TraceTimeCompression.FromVisibleItems({
+            enabled: true,
+            traceSpace: [0, 1000],
+            physicalWidth: 1000,
+            nodes: [
+              {type: 'span', space: [0, 100]} as BaseNode,
+              {type: 'span', space: [900, 100]} as BaseNode,
+            ],
+            indicators: [],
+          });
+          manager.view.setTraceView({x: 0, width: 500});
+          scheduler.on('set trace view', view => manager.view.setTraceView(view));
+          const compressedWidth = manager.getCompressedView().width;
+
+          manager.onWheel(new WheelEvent('wheel', wheelOptions));
+
+          expect(manager.view.trace_view.x).toBeCloseTo(0);
+          expect(manager.view.trace_view.width).toBeCloseTo(500);
+          expect(manager.getCompressedView().width).toBeCloseTo(compressedWidth);
+        }
+      );
+
       it('keeps the cursor anchored when zooming a compressed timeline', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(

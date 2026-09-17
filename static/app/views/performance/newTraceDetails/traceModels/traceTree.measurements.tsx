@@ -126,13 +126,23 @@ export function collectTraceMeasurements(
           )
         : undefined;
 
+    const timestamp = RENDERABLE_MEASUREMENTS[collectableMeasurement]
+      ? traceMeasurementToTimestamp(
+          start_timestamp,
+          measurement.value,
+          measurement.unit ?? 'millisecond'
+        )
+      : undefined;
+
     vitals.get(node)!.push({
       key: collectableMeasurement,
       measurement,
+      node,
       score,
+      timestamp,
     });
 
-    if (!RENDERABLE_MEASUREMENTS[collectableMeasurement]) {
+    if (timestamp === undefined) {
       continue;
     }
 
@@ -145,18 +155,11 @@ export function collectTraceMeasurements(
       continue;
     }
 
-    // Standalone spans should win over transaction-level measurements, but the
-    // measurement value is still applied relative to the provided timeline origin.
-    const timestamp = traceMeasurementToTimestamp(
-      start_timestamp,
-      measurement.value,
-      measurement.unit ?? 'millisecond'
-    );
-
     const indicator: TraceTree.Indicator = {
       start: timestamp,
       duration: 0,
       measurement,
+      node,
       poor: MEASUREMENT_THRESHOLDS[collectableMeasurement]
         ? measurement.value > MEASUREMENT_THRESHOLDS[collectableMeasurement]
         : false,

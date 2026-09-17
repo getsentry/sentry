@@ -1,5 +1,5 @@
 import type React from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -8,6 +8,12 @@ import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/c
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
@@ -28,6 +34,7 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {EXCLUDE_SPAN_METRICS_QUERY} from 'sentry/views/performance/newTraceDetails/traceMetricsSearch';
 import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
 
 type UseTraceViewMetricsDataProps = {
@@ -35,11 +42,43 @@ type UseTraceViewMetricsDataProps = {
   traceSlug: string;
 };
 
+const TRACE_METRICS_QUERY_KEY = 'metricsQuery';
+
 export function TraceViewMetricsProviderWrapper({
   children,
   traceSlug,
 }: UseTraceViewMetricsDataProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const queryParams = useTraceQueryParams();
+  const metricsQuery = decodeScalar(location.query[TRACE_METRICS_QUERY_KEY], '');
+  const metricsQueryParams = useMemo(
+    () =>
+      new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.SAMPLES,
+        query: metricsQuery,
+        cursor: '',
+        fields: ['id', 'timestamp'],
+        sortBys: [{field: 'timestamp', kind: 'desc'}],
+        aggregateCursor: '',
+        aggregateFields: [],
+        aggregateSortBys: [],
+      }),
+    [metricsQuery]
+  );
+  const setMetricsQueryParams = useCallback(
+    (newQueryParams: ReadableQueryParams) => {
+      const target = {...location, query: {...location.query}};
+      if (newQueryParams.query) {
+        updateNullableLocation(target, TRACE_METRICS_QUERY_KEY, newQueryParams.query);
+      } else {
+        delete target.query[TRACE_METRICS_QUERY_KEY];
+      }
+      navigateIfQueryChanged(navigate, location, target);
+    },
+    [location, navigate]
+  );
 
   const tracePeriod: TracePeriod | undefined = useMemo(() => {
     // If timestamp is available, create a +-3 hour window around it
@@ -73,20 +112,8 @@ export function TraceViewMetricsProviderWrapper({
 
   return (
     <MetricsQueryParamsProvider
-      queryParams={
-        new ReadableQueryParams({
-          extrapolate: true,
-          mode: Mode.SAMPLES,
-          query: '',
-          cursor: '',
-          fields: ['id', 'timestamp'],
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-          aggregateCursor: '',
-          aggregateFields: [],
-          aggregateSortBys: [],
-        })
-      }
-      setQueryParams={() => {}}
+      queryParams={metricsQueryParams}
+      setQueryParams={setMetricsQueryParams}
       traceMetric={{name: '', type: ''}}
       setTraceMetric={() => {}}
       removeMetric={() => {}}
@@ -94,7 +121,6 @@ export function TraceViewMetricsProviderWrapper({
         traceIds: [traceSlug],
         tracePeriod,
       }}
-      isStateBased
     >
       {children}
     </MetricsQueryParamsProvider>
@@ -110,14 +136,21 @@ export function TraceViewMetricsSection() {
 }
 
 function MetricsSectionContent() {
-  const setMetricsQuery = useSetQueryParamsQuery();
   const metricsSearch = useQueryParamsSearch();
+  const setMetricsQuery = useSetQueryParamsQuery();
   const frozenSearch = useMetricsFrozenSearch();
   const frozenTracePeriod = useMetricsFrozenTracePeriod();
   const {selection} = usePageFilters();
-  const initialQuery = metricsSearch.formatString();
+  const visibleQuery = metricsSearch.formatString();
   const placeholder = t('Search application metrics for this trace');
-  const attributeQuery = frozenSearch?.formatString();
+  const attributeQuery = useMemo(() => {
+    const search = frozenSearch?.copy();
+    if (!search) {
+      return;
+    }
+    search.tokens.push(...new MutableSearch(EXCLUDE_SPAN_METRICS_QUERY).tokens);
+    return search.formatString();
+  }, [frozenSearch]);
   const datetime = useMemo(
     () =>
       frozenTracePeriod
@@ -164,16 +197,16 @@ function MetricsSectionContent() {
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
-      initialQuery,
+      initialQuery: visibleQuery,
       placeholder,
       searchSource: 'tracemetrics',
-      onSearch: (query: string) => setMetricsQuery(query),
+      onSearch: setMetricsQuery,
       hiddenAttributeKeys: HiddenTraceMetricTraceViewSearchFields,
       attributeQuery,
       disableRecentSearches: true,
       datetime,
     };
-  }, [attributeQuery, datetime, initialQuery, placeholder, setMetricsQuery]);
+  }, [attributeQuery, datetime, placeholder, setMetricsQuery, visibleQuery]);
 
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps(
     traceMetricsSearchQueryBuilderProps
@@ -185,7 +218,10 @@ function MetricsSectionContent() {
         <TraceItemSearchQueryBuilder {...traceMetricsSearchQueryBuilderProps} />
       </SearchQueryBuilderProvider>
       <TableContainer>
-        <MetricsSamplesTable source="traceWaterfall" />
+        <MetricsSamplesTable
+          source="traceWaterfall"
+          requiredQuery={EXCLUDE_SPAN_METRICS_QUERY}
+        />
       </TableContainer>
     </Fragment>
   );

@@ -15,6 +15,7 @@ import {dataConditionNodesMap} from 'sentry/views/automations/components/dataCon
 import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/editConnectedMonitors';
 
 export interface AutomationFormData {
+  allProjects: boolean;
   detectorIds: string[];
   enabled: boolean;
   environment: string | null;
@@ -94,6 +95,7 @@ export function getAutomationFormData(
   automation: Automation
 ): Record<string, FieldValue> {
   return {
+    allProjects: false,
     detectorIds: automation.detectorIds,
     environment: automation.environment,
     frequency: automation.config.frequency ?? 0,
@@ -116,6 +118,7 @@ export function validateAutomationBuilderState(
 
   if (
     validateConnectedMonitors &&
+    !data.allProjects &&
     !data.detectorIds?.length &&
     !data.projectIds?.length
   ) {

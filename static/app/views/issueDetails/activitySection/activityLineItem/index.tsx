@@ -50,6 +50,7 @@ export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProp
       <ActivityLineHeadline
         title={activityItem.title}
         details={activityItem.details}
+        source={activityItem.source}
         timestamp={timestamp}
       />
     </ActivityLineRow>

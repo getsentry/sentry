@@ -21,12 +21,11 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import {GroupListHeader} from './groupListHeader';
 
@@ -48,7 +47,6 @@ type Props = {
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -75,7 +73,6 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
   staleTime?: number;
@@ -110,8 +107,6 @@ export function GroupList({
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
   renderEmptyMessage,
-  renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
   staleTime = 0,
@@ -181,7 +176,8 @@ export function GroupList({
     [computedQueryParams.query]
   );
 
-  // Issues API does not support AND/OR statements
+  // Issues API does not support AND/OR statements. The endpoint rejects them
+  // with a 400, so skipping the request spares a round trip we know will fail.
   const hasLogicBoolean = useMemo(
     () =>
       parsedQuery
@@ -213,10 +209,10 @@ export function GroupList({
   const {
     data,
     dataUpdatedAt,
+    error,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
-    error: queryError,
     refetch,
   } = useQuery({
     ...issuesQueryOptions,
@@ -274,19 +270,6 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
-  const errorDetail = hasLogicBoolean
-    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
-    : (() => {
-        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
-        if (typeof detail === 'string') {
-          return detail;
-        }
-        if (detail?.message) {
-          return detail.message;
-        }
-        return (queryError as RequestError | undefined)?.message ?? null;
-      })();
-  const errorData = errorDetail ? {detail: errorDetail} : null;
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
@@ -312,17 +295,24 @@ export function GroupList({
     isQuerySuccess,
     // Sometimes data is already cached, so we need to include this in order to
     // trigger onFetchSuccess when new data is shown
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataUpdatedAt,
   ]);
 
   const columns = withColumns;
 
   if (hasError) {
-    if (typeof renderErrorMessage === 'function' && errorData) {
-      return renderErrorMessage(errorData, refetch);
-    }
-
-    return <LoadingError onRetry={refetch} />;
+    // A retry only helps a failure that could land differently next time. The
+    // query here is fixed, so a boolean one the endpoint never accepts and a
+    // client error it already rejected both fail the same way on every press.
+    return hasLogicBoolean ? (
+      <LoadingError message={t('Search queries with AND or OR are not supported.')} />
+    ) : (
+      <LoadingError
+        message={getRequestErrorUserMessage(error, t('There was an error loading data.'))}
+        onRetry={isRetryableRequestError(error) ? refetch : undefined}
+      />
+    );
   }
 
   if (!loading && groups.length === 0) {
@@ -369,7 +359,6 @@ export function GroupList({
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

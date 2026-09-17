@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, waitFor, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {
+  MonitorCreateRedirect,
+  UptimeMonitorCreateRedirect,
   withAutomationDetailsRedirect,
-  withDetectorCreateRedirect,
   withDetectorDetailsRedirect,
   withDetectorEditRedirect,
   withMetricIssueRedirect,
@@ -210,19 +211,21 @@ describe('workflowEngineRedirects', () => {
     });
   });
 
-  describe('withDetectorCreateRedirect', () => {
+  describe('MonitorCreateRedirect', () => {
     it('redirects detector create with a detector type', async () => {
       const organization = OrganizationFixture({
         slug: 'org-slug',
       });
 
-      const Wrapped = withDetectorCreateRedirect(TestComponent);
       const initialRouterConfig: RouterConfig = {
         route: '/organizations/:orgId/alerts/create/:alertType/',
         location: {pathname: `/organizations/${organization.slug}/alerts/create/crons/`},
       };
 
-      const {router} = render(<Wrapped />, {organization, initialRouterConfig});
+      const {router} = render(<MonitorCreateRedirect />, {
+        organization,
+        initialRouterConfig,
+      });
 
       await waitFor(() => {
         expect(router.location.pathname).toBe(
@@ -231,6 +234,34 @@ describe('workflowEngineRedirects', () => {
       });
 
       expect(router.location.search).toBe('?detectorType=monitor_check_in_failure');
+    });
+  });
+
+  describe('UptimeMonitorCreateRedirect', () => {
+    it('redirects uptime existing-or-create to uptime monitor create', async () => {
+      const organization = OrganizationFixture({
+        slug: 'org-slug',
+      });
+
+      const initialRouterConfig: RouterConfig = {
+        route: '/organizations/:orgId/alerts/rules/uptime/existing-or-create/',
+        location: {
+          pathname: `/organizations/${organization.slug}/alerts/rules/uptime/existing-or-create/`,
+        },
+      };
+
+      const {router} = render(<UptimeMonitorCreateRedirect />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          makeMonitorCreatePathname(organization.slug)
+        );
+      });
+
+      expect(router.location.search).toBe('?detectorType=uptime_domain_failure');
     });
   });
 

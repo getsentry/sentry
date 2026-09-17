@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {isUUID} from 'sentry/utils/string/isUUID';
 
 describe('isUUID', () => {

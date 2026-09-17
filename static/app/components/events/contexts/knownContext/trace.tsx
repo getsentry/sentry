@@ -47,9 +47,9 @@ export function getTraceContextData({
   meta,
 }: {
   data: TraceContext;
-  event: Event;
   location: Location;
   organization: Organization;
+  event?: Event;
   meta?: Record<keyof TraceContext, any>;
 }): KeyValueListData {
   return getContextKeys({data})
@@ -66,7 +66,9 @@ export function getTraceContextData({
           const traceWasSampled = data?.sampled ?? true;
 
           if (traceWasSampled) {
-            const link = getTraceTargetFromEvent(event, organization, location);
+            const link = event
+              ? getTraceTargetFromEvent(event, organization, location)
+              : undefined;
             const hasPerformanceView = organization.features.includes('performance-view');
 
             return {
@@ -171,7 +173,7 @@ export function getTraceContextData({
           const link = transactionSummaryRouteWithQuery({
             organization,
             transaction: transactionName,
-            projectID: event.projectID,
+            projectID: event?.projectID,
             query: {},
           });
 

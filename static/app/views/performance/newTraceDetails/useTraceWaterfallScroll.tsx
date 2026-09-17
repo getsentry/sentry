@@ -35,11 +35,13 @@ export function useTraceWaterfallScroll({
   const traceState = useTraceState();
 
   const traceStateRef = useRef(traceState);
+  // oxlint-disable-next-line react/refs
   traceStateRef.current = traceState;
 
   const traceStatePreferencesRef = useRef<
     Pick<TraceReducerState['preferences'], 'autogroup' | 'missing_instrumentation'>
   >(traceState.preferences);
+  // oxlint-disable-next-line react/refs
   traceStatePreferencesRef.current = traceState.preferences;
 
   const scrollRowIntoView = useCallback(

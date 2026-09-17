@@ -36,10 +36,8 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule
 from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.silo.base import cell_silo_function
-from sentry.types.rules import NotificationRuleDetails
 from sentry.users.services.user import RpcUser
 from sentry.utils.committers import (
     AuthorCommitsSerialized,
@@ -124,20 +122,6 @@ def get_environment_for_deploy(deploy: Deploy | None) -> str:
         if environment and environment.name:
             return str(environment.name)
     return "Default Environment"
-
-
-def get_rules(
-    rules: Sequence[Rule], organization: Organization, project: Project
-) -> Sequence[NotificationRuleDetails]:
-    return [
-        NotificationRuleDetails(
-            rule.id,
-            rule.label,
-            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/",
-            f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule.id}/details/",
-        )
-        for rule in rules
-    ]
 
 
 def process_serialized_committers(

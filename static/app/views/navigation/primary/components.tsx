@@ -1,4 +1,4 @@
-import {Fragment, type MouseEventHandler, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -10,6 +10,7 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonBarProps, ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {
   Container,
   type ContainerProps,
@@ -23,7 +24,6 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {Overlay, type OverlayProps, PositionWrapper} from 'sentry/components/overlay';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -255,13 +255,12 @@ function PrimaryNavigationButton(props: PrimaryNavigationButtonProps) {
   );
 }
 
-interface PrimaryNavigationUnreadIndicatorProps extends React.HTMLAttributes<HTMLSpanElement> {
+interface PrimaryNavigationUnreadIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
 }
 
 function PrimaryNavigationUnreadIndicator({
   variant,
-  ...props
 }: PrimaryNavigationUnreadIndicatorProps) {
   const indicatorPosition: Pick<ContainerProps, 'top' | 'right' | 'left'> = {
     top: '0',
@@ -272,7 +271,7 @@ function PrimaryNavigationUnreadIndicator({
     <Container position="absolute" {...indicatorPosition}>
       {p => (
         <StatusIndicator
-          {...mergeProps(p, props)}
+          {...p}
           animationIterationCount={14}
           variant={variant}
           data-unread-indicator
@@ -288,7 +287,6 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   children?: React.ReactNode;
   icon?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
-  onOpen?: MouseEventHandler<HTMLButtonElement>;
 }
 
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
@@ -334,7 +332,6 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
                   });
                 }
                 triggerProps.onClick?.(event);
-                props.onOpen?.(event);
               }}
               icon={
                 props.indicator ? (

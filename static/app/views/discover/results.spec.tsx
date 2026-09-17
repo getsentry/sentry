@@ -2,7 +2,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import * as PageFilterPersistence from 'sentry/components/pageFilters/persistence';
@@ -71,12 +77,6 @@ function renderMockRequests() {
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/releases/stats/',
     body: [],
-  });
-
-  const measurementsMetaMock = MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/measurements-meta/',
-    method: 'GET',
-    body: {},
   });
 
   const eventsResultsMock = MockApiClient.addMockResponse({
@@ -225,7 +225,6 @@ function renderMockRequests() {
     mockVisit,
     mockSaved,
     eventFacetsMock,
-    measurementsMetaMock,
   };
 }
 
@@ -432,9 +431,7 @@ describe('Results', () => {
       });
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
-      await waitFor(() => {
-        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
-      });
+      await screen.findByRole('tab', {name: 'Errors'});
     });
 
     it('needs confirmation on long query with explicit projects', async () => {
@@ -462,9 +459,7 @@ describe('Results', () => {
       });
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
-      await waitFor(() => {
-        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
-      });
+      await screen.findByRole('tab', {name: 'Errors'});
     });
 
     it('does not need confirmation on short queries', async () => {
@@ -488,9 +483,8 @@ describe('Results', () => {
       });
 
       await waitFor(() => {
-        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+        expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
       });
-      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
     it('does not need confirmation with too few projects', async () => {
@@ -518,9 +512,8 @@ describe('Results', () => {
       });
 
       await waitFor(() => {
-        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+        expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
       });
-      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
     it('creates event view from saved query', async () => {
@@ -618,7 +611,7 @@ describe('Results', () => {
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
-      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
+      const {eventsStatsMock} = renderMockRequests();
 
       const {router} = render(<Results />, {
         initialRouterConfig: {
@@ -629,11 +622,6 @@ describe('Results', () => {
           route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
-      });
-
-      // Wait for initial load
-      await waitFor(() => {
-        expect(measurementsMetaMock).toHaveBeenCalled();
       });
 
       // Should load events once
@@ -676,7 +664,7 @@ describe('Results', () => {
         features,
       });
 
-      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
+      const {eventsStatsMock} = renderMockRequests();
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -689,11 +677,6 @@ describe('Results', () => {
           route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
-      });
-
-      // Wait for initial load
-      await waitFor(() => {
-        expect(measurementsMetaMock).toHaveBeenCalled();
       });
 
       // Should load events once
@@ -737,7 +720,7 @@ describe('Results', () => {
         features,
       });
 
-      const {eventsStatsMock, measurementsMetaMock} = renderMockRequests();
+      const {eventsStatsMock} = renderMockRequests();
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
 
@@ -750,11 +733,6 @@ describe('Results', () => {
           route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
-      });
-
-      // Wait for initial load
-      await waitFor(() => {
-        expect(measurementsMetaMock).toHaveBeenCalled();
       });
 
       // Should load events once
@@ -1137,7 +1115,7 @@ describe('Results', () => {
       });
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
-      const {measurementsMetaMock} = renderMockRequests();
+      renderMockRequests();
 
       render(<Results />, {
         initialRouterConfig: {
@@ -1150,16 +1128,20 @@ describe('Results', () => {
         organization,
       });
 
-      await waitFor(() => {
-        expect(measurementsMetaMock).toHaveBeenCalled();
-      });
+      const discoverCrumb = await screen.findByRole('link', {name: 'Discover'});
 
-      expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+      expect(discoverCrumb).toHaveAttribute(
         'href',
         expect.stringMatching(
           new RegExp('^/organizations/org-slug/explore/discover/homepage/')
         )
       );
+
+      // The query name heads the page, so it is not repeated in the trail.
+      expect(screen.getByRole('heading', {name: 'new', level: 1})).toBeInTheDocument();
+      expect(
+        within(discoverCrumb.closest('ol')!).queryByText('new')
+      ).not.toBeInTheDocument();
     });
 
     it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
@@ -1168,7 +1150,7 @@ describe('Results', () => {
       });
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
-      const {measurementsMetaMock} = renderMockRequests();
+      renderMockRequests();
 
       render(<Results />, {
         initialRouterConfig: {
@@ -1181,15 +1163,54 @@ describe('Results', () => {
         organization,
       });
 
-      await waitFor(() => {
-        expect(measurementsMetaMock).toHaveBeenCalled();
-      });
+      expect(await screen.findByRole('link', {name: 'Discover'})).toBeInTheDocument();
 
       expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
         'href',
         expect.stringMatching(
           new RegExp('^/organizations/org-slug/explore/discover/queries/')
         )
+      );
+    });
+
+    it('renames the saved query from the page title', async () => {
+      const organization = OrganizationFixture({
+        features: ['discover-basic', 'discover-query'],
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+      renderMockRequests();
+      const mockUpdate = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'PUT',
+        statusCode: 200,
+        body: {id: '1', name: 'Renamed query'},
+      });
+
+      render(<Results />, {
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            query: {id: '1'},
+          },
+          route: '/organizations/:orgId/explore/discover/results/',
+        },
+        organization,
+      });
+
+      const heading = await screen.findByRole('heading', {name: 'new', level: 1});
+      await userEvent.click(within(heading).getByText('new'));
+
+      const input = screen.getByRole('textbox', {name: 'Edit query name'});
+      expect(input).toHaveValue('new');
+
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Renamed query{enter}');
+
+      await waitFor(() => expect(mockUpdate).toHaveBeenCalled());
+      expect(mockUpdate).toHaveBeenCalledWith(
+        '/organizations/org-slug/discover/saved/1/',
+        expect.objectContaining({data: expect.objectContaining({name: 'Renamed query'})})
       );
     });
 
@@ -1204,7 +1225,7 @@ describe('Results', () => {
       ).generateQueryStringObject();
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
-      const {measurementsMetaMock} = renderMockRequests();
+      renderMockRequests();
 
       render(<Results />, {
         initialRouterConfig: {
@@ -1215,10 +1236,6 @@ describe('Results', () => {
           route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
-      });
-
-      await waitFor(() => {
-        expect(measurementsMetaMock).toHaveBeenCalled();
       });
 
       await userEvent.click(
@@ -1240,7 +1257,7 @@ describe('Results', () => {
       ).generateQueryStringObject();
 
       ProjectsStore.loadInitialData([ProjectFixture()]);
-      const {measurementsMetaMock} = renderMockRequests();
+      renderMockRequests();
 
       render(<Results />, {
         initialRouterConfig: {
@@ -1253,9 +1270,7 @@ describe('Results', () => {
         organization,
       });
 
-      await waitFor(() => {
-        expect(measurementsMetaMock).toHaveBeenCalled();
-      });
+      expect(await screen.findByRole('link', {name: 'Discover'})).toBeInTheDocument();
 
       expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
     });
@@ -1305,9 +1320,8 @@ describe('Results', () => {
       });
 
       await waitFor(() => {
-        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+        expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
       });
-      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
 
       expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
         'aria-selected',
@@ -1562,7 +1576,10 @@ describe('Results', () => {
       });
 
       const link = await screen.findByRole('link', {name: 'Explore Queries'});
-      expect(link).toHaveAttribute('href', '/explore/saved-queries/');
+      expect(link).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/explore/saved-queries/'
+      );
 
       expect(mockRequests.eventsResultsMock).not.toHaveBeenCalled();
       expect(mockRequests.eventsStatsMock).not.toHaveBeenCalled();

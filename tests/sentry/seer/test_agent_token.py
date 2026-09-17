@@ -17,9 +17,10 @@ from rest_framework.views import APIView
 
 from sentry.api.authentication import AgentTokenAuthentication, UserAuthTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission, OrganizationReleasesBaseEndpoint
-from sentry.auth.access import Access, from_auth
+from sentry.auth.access import DEFAULT, Access, from_auth, from_request, from_request_org_and_scopes
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import TestCase
@@ -128,15 +129,27 @@ class AgentTokenAuthAndGateTest(TestCase):
             with pytest.raises(jwt.DecodeError):
                 agent_token.decode_principal_subject(subject)
 
-    def test_valid_token_authenticates_as_non_user_actor(self) -> None:
-        # The agent is a non-user actor: the request user is anonymous and the credential
-        # records the delegating user it acts on behalf of.
+    def test_valid_token_supplies_compatibility_user_and_preserves_agent_auth(self) -> None:
         request = self._agent_request(self.owner, ["org:read"], method="GET")
-        assert request.user.is_anonymous
+        assert request.user.is_authenticated
+        assert request.user.id == self.owner.id
+        assert request.user.email == self.owner.email
         assert request.auth is not None
         assert request.auth.kind == agent_token.AGENT_TOKEN_KIND
         assert request.auth.user_id == self.owner.id
         assert request.auth.get_scopes() == ["org:read"]
+
+    def test_compatibility_user_strips_platform_elevation(self) -> None:
+        elevated_user = self.create_user(is_staff=True, is_superuser=True)
+        self.create_member(user=elevated_user, organization=self.org, role="owner")
+
+        request = self._agent_request(elevated_user, ["org:read"], method="GET")
+
+        assert request.user.id == elevated_user.id
+        assert not request.user.is_staff
+        assert not request.user.is_superuser
+        assert getattr(request.user, "permissions", None) == frozenset()
+        assert getattr(request.user, "roles", None) == frozenset()
 
     def _auth(self, bearer: str, *, feature_enabled: bool = True) -> tuple[Any, Any] | None:
         request = RequestFactory().get("/api/0/organizations/")
@@ -277,6 +290,23 @@ class AgentTokenAuthAndGateTest(TestCase):
         with pytest.raises(AuthenticationFailed):
             self._auth(token, feature_enabled=False)
 
+    def test_revoked_member_is_rejected_on_reauthentication(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.member.id,
+            organization_id=self.org.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+        assert self._auth(token) is not None
+
+        OrganizationMember.objects.get(
+            user_id=self.member.id,
+            organization=self.org,
+        ).delete()
+
+        with pytest.raises(AuthenticationFailed):
+            self._auth(token)
+
     def test_signed_but_malformed_claims_are_rejected(self) -> None:
         # Right key and audience but broken claims -> clean auth failure, not a 500.
         null_sub = self._typed_token(
@@ -336,6 +366,58 @@ class AgentTokenAuthAndGateTest(TestCase):
         # intersection in the access layer removes it -> denied at the object level.
         request = self._agent_request(self.member, ["org:read", "org:write"], method="PUT")
         assert self._has_object_perm(request) is False
+
+    def test_compatibility_user_does_not_bypass_readonly_scope(self) -> None:
+        request = self._agent_request(self.owner, ["org:read"], method="PUT")
+        permission = OrganizationPermission()
+
+        assert not permission.has_permission(request, APIView())
+        assert not permission.has_object_permission(request, APIView(), self.org)
+
+    def test_agent_access_rejects_context_for_different_user(self) -> None:
+        request = self._agent_request(self.member, ["org:admin"], method="DELETE")
+        owner_context = organization_service.get_organization_by_id(
+            id=self.org.id,
+            user_id=self.owner.id,
+            include_projects=False,
+            include_teams=False,
+        )
+        assert owner_context is not None
+
+        assert not OrganizationPermission().has_object_permission(request, APIView(), owner_context)
+        assert request.access is DEFAULT
+
+    def test_shared_request_access_factory_dispatches_by_agent_credential(self) -> None:
+        request = self._agent_request(self.owner, ["org:read"], method="GET")
+        org_context = organization_service.get_organization_by_id(
+            id=self.org.id,
+            user_id=self.owner.id,
+            include_projects=False,
+            include_teams=False,
+        )
+        assert org_context is not None
+
+        resolved_access = from_request_org_and_scopes(
+            request=request,
+            rpc_user_org_context=org_context,
+        )
+
+        assert resolved_access.has_scope("org:read")
+        assert not resolved_access.has_scope("org:write")
+
+    def test_shared_request_access_factory_denies_contextless_agent(self) -> None:
+        request = self._agent_request(self.owner, ["org:read"], method="GET")
+
+        assert from_request_org_and_scopes(request=request) is DEFAULT
+
+    def test_orm_request_access_factory_dispatches_by_agent_credential(self) -> None:
+        request = self._agent_request(self.owner, ["org:read"], method="GET")
+
+        resolved_access = from_request(request, organization=self.org)
+
+        assert resolved_access.has_scope("org:read")
+        assert not resolved_access.has_scope("org:write")
+        assert from_request(request) is DEFAULT
 
     def _access_for(self, request: Request) -> Access:
         OrganizationPermission().has_object_permission(request, APIView(), self.org)

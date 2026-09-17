@@ -5,7 +5,10 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {AutomationFormData} from 'sentry/views/automations/components/automationFormData';
-import {fetchIssueStreamDetectorIdsForProjects} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIdsForProjects';
+import {
+  fetchIssueStreamDetectorIdsForProjects,
+  fetchAllProjectsDetectorId,
+} from 'sentry/views/automations/utils/fetchIssueStreamDetectorIds';
 
 type ResolveDetectorIdsForProjectsParams = {
   formData: AutomationFormData;
@@ -27,6 +30,21 @@ export async function resolveDetectorIdsForProjects({
   projectIds,
   queryClient,
 }: ResolveDetectorIdsForProjectsParams): Promise<AutomationFormData | null> {
+  if (formData.allProjects) {
+    try {
+      const detectorId = await fetchAllProjectsDetectorId({queryClient, organization});
+      if (!detectorId) {
+        throw new Error('All Projects detector not available');
+      }
+      return {...formData, detectorIds: [detectorId]};
+    } catch (error) {
+      Sentry.captureException(error);
+      onSubmitError?.(error);
+      addErrorMessage(t('Something went wrong while saving to all projects'));
+      return null;
+    }
+  }
+
   if (!projectIds?.length) {
     return formData;
   }

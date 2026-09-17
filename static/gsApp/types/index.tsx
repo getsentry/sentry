@@ -2,7 +2,6 @@ import type {StripeConstructor} from '@stripe/stripe-js';
 
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
-import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
@@ -34,7 +33,8 @@ declare global {
 
   namespace React {
     interface DOMAttributes<T> {
-      'data-test-id'?: string;
+      // Keep T referenced because declaration merging requires this to exactly match React's generic.
+      'data-test-id'?: string | (T & never);
     }
   }
 }
@@ -401,49 +401,6 @@ export type Subscription = {
   stripeCustomerID?: string;
 };
 
-type DiscountInfo = {
-  amount: number;
-  billingInterval: 'monthly' | 'annual';
-  billingPeriods: number;
-  // TODO: better typing
-  creditCategory: InvoiceItemType | null;
-  disclaimerText: string;
-  discountType: 'percentPoints' | 'events';
-  durationText: string;
-  maxCentsPerPeriod: number;
-  modalDisclaimerText: string;
-  planRequirement: 'business' | 'paid' | null;
-  reminderText: string;
-};
-
-export type Promotion = {
-  autoOptIn: boolean;
-  discountInfo: DiscountInfo;
-  endDate: string;
-  name: string;
-  promptActivityTrigger: string | null;
-  showDiscountInfo: boolean;
-  slug: string;
-  startDate: string;
-  timeLimit: string;
-};
-
-export type PromotionClaimed = {
-  dateClaimed: string;
-  dateCompleted: string;
-  dateExpired: string;
-  freeEventCreditDaysLeft: number;
-  isLastCycleForFreeEvents: boolean;
-  promotion: Promotion;
-  claimant?: User;
-};
-
-export type PromotionData = {
-  activePromotions: PromotionClaimed[];
-  availablePromotions: Promotion[];
-  completedPromotions: PromotionClaimed[];
-};
-
 export type Feature = {
   description: string;
   name: string;
@@ -473,10 +430,6 @@ export type BillingStat = {
   ts: string;
   // TODO(chart-cleanup): Used by v1 only
   isProjected?: boolean;
-  /**
-   * Not present when user does not have the correct role
-   */
-  onDemandCostRunningTotal?: number;
 };
 export type BillingStats = BillingStat[];
 
@@ -560,7 +513,8 @@ export type Invoice = InvoiceBase & {
     | {
         id: string;
         isDeleted: boolean;
-        slug: string;
+        // Null when the organization row is gone and nothing denormalized its slug.
+        slug: string | null;
         name?: string;
       };
   defaultTaxName: string | null;
@@ -573,7 +527,6 @@ export type Invoice = InvoiceBase & {
     address: string[];
     name: string;
   };
-  stripeInvoiceID: string | null;
 };
 
 type BaseInvoiceItem = {
@@ -625,7 +578,9 @@ type CamelToSnake<
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "ondemand_monitor_seats"
  */
 type OnDemandInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `ondemand_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -639,7 +594,9 @@ type OnDemandInvoiceItemType = {
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "reserved_monitor_seats"
  */
 type ReservedInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `reserved_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -812,7 +769,9 @@ export type PreviewInvoiceItem = BaseInvoiceItem & {
  * Example: DATA_CATEGORY_INFO.LOG_BYTE (singular: "logByte") -> "log_byte"
  */
 type DynamicCreditType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['singular']>
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -947,15 +906,6 @@ export type ReservedBudget = {
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents
   reservedSpend: number;
-};
-
-export type ReservedBudgetForCategory = {
-  apiName: string;
-  freeBudget: number;
-  prepaidBudget: number;
-  reservedCpe: number; // in cents
-  reservedSpend: number;
-  totalReservedBudget: number;
 };
 
 type PolicyConsent = {

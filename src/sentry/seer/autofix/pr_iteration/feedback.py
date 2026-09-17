@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import Annotated, Any
 
@@ -35,6 +35,17 @@ class Feedback(BaseModel):
     timestamp: datetime = Field(default_factory=timezone.now)
     text: str = ""
     ui_text: str = ""
+
+    @property
+    def feedback_id(self) -> str:
+        """Names this one item in a log line, without carrying its payload.
+
+        Delegates to :attr:`FeedbackSourceBase.source_id`. Source types are not
+        comparable (a GitHub issue-comment id and a review-comment id can
+        collide), so pair this with ``source.type`` when uniqueness across
+        sources matters.
+        """
+        return self.source.source_id
 
     @root_validator
     def _populate(cls, values: dict[str, Any]) -> dict[str, Any]:
@@ -76,6 +87,37 @@ def serialize_feedback(items: Sequence[Feedback]) -> str:
     return json.dumps([item.dict() for item in items])
 
 
+def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
+    return [
+        feedback
+        for block in blocks
+        for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
+    ]
+
+
+def feedback_kind(items: Collection[Feedback]) -> str:
+    """Whether a batch is manual, automated, or both — the ``feedback_kind`` metrics tag."""
+    kinds = {item.source.is_automated for item in items}
+    if not kinds:
+        return "unknown"
+    if len(kinds) != 1:
+        return "mixed"
+    return "automated" if kinds.pop() else "manual"
+
+
+def latest_iteration_feedback_kind(run_state: SeerRunState) -> str:
+    """``feedback_kind`` for the run's most recent PR iteration."""
+    from sentry.seer.autofix.autofix_agent import get_iterations
+
+    try:
+        iterations = get_iterations(run_state)
+    except Exception:
+        return "unknown"
+    if not iterations:
+        return "unknown"
+    return feedback_kind(blocks_feedback(iterations[-1].blocks))
+
+
 def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     """Whether a PR iteration was driven *only* by automated feedback.
 
@@ -83,14 +125,9 @@ def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
     (and resets the streak); an iteration is automated only when every feedback
     item in it is automated (see ``FeedbackSourceBase.is_automated``).
     """
-    feedbacks = [
-        feedback
-        for block in iteration_blocks
-        for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
-    ]
     # An iteration with no parseable feedback isn't a human iteration, so treat it
     # as automated (don't let a metadata gap reset the streak).
-    return all(feedback.source.is_automated for feedback in feedbacks)
+    return all(feedback.source.is_automated for feedback in blocks_feedback(iteration_blocks))
 
 
 def automated_iteration_cap_reached(run_state: SeerRunState) -> bool:

@@ -3,6 +3,8 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {Container, Grid} from '@sentry/scraps/layout';
+
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -193,19 +195,30 @@ function EAPSummaryContentInner({
   return (
     <Fragment>
       <Layout.Main>
-        <FilterActions>
+        <Grid
+          columns={{
+            zero: 'auto',
+            xl: 'repeat(2, min-content)',
+            '5xl': 'auto auto 1fr',
+          }}
+          gap="xl"
+          marginBottom="xl"
+        >
           <SpanCategoryFilter segmentSpanName={transactionName} />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter {...datePageFilterProps} />
           </PageFilterBar>
-          <StyledSearchBarWrapper>
+          <Container
+            order={{zero: 0, xl: 1, '5xl': 0}}
+            column={{zero: 'auto', xl: '1 / 4', '5xl': 'auto'}}
+          >
             <TraceItemSearchQueryBuilder
               {...spanSearchQueryBuilderProps}
               disallowFreeText
             />
-          </StyledSearchBarWrapper>
-        </FilterActions>
+          </Container>
+        </Grid>
         <EAPChartsWidgetContainer>
           <EAPChartsWidget transactionName={transactionName} query={query} />
         </EAPChartsWidgetContainer>
@@ -249,32 +262,6 @@ function EAPSummaryContentInner({
     </Fragment>
   );
 }
-
-const FilterActions = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(2, min-content);
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: auto auto 1fr;
-  }
-`;
-
-const StyledSearchBarWrapper = styled('div')`
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    order: 1;
-    grid-column: 1/4;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    order: initial;
-    grid-column: auto;
-  }
-`;
 
 const EAPChartsWidgetContainer = styled('div')`
   height: 300px;

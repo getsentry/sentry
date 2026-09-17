@@ -6,8 +6,8 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getStylingSliceName} from 'sentry/views/explore/tables/tracesTable/utils';
-import {getTraceMetaTransactionChildCountMap} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {isBrowserRequestNode} from 'sentry/views/performance/newTraceDetails/traceApi/utils';
 import {TransactionNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
@@ -42,7 +42,7 @@ export class TransactionNode extends BaseNode<TraceTree.Transaction> {
     this.type = 'txn';
 
     this.extra = extra;
-    const spanChildrenCount = getTraceMetaTransactionChildCountMap(extra.meta)?.[this.id];
+    const spanChildrenCount = extra.meta?.transactionChildCountMap[this.id];
 
     // We check for >1 events, as the first one is the transaction node itself
     this.canFetchChildren =
@@ -528,6 +528,15 @@ function fetchTransactionSpans(
   event_id: string
 ): Promise<EventTransaction> {
   return api.requestPromise(
-    `/organizations/${organization.slug}/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`
+    `${getApiUrl(
+      '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project_slug,
+          eventId: event_id,
+        },
+      }
+    )}?averageColumn=span.self_time&averageColumn=span.duration`
   );
 }

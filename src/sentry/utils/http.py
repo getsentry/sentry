@@ -14,9 +14,25 @@ from sentry import options
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
+from ipaddress import ip_address, ip_interface, ip_network
+
 # User-agent prefix set by the official Sentry MCP server (source of truth:
 # getsentry/sentry-mcp). Used to attribute requests originating from the MCP.
 MCP_USER_AGENT_PREFIX = "sentry-mcp/"
+
+MCP_CLIENT_FAMILY_HEADER = "HTTP_X_SENTRY_MCP_CLIENT_FAMILY"
+
+# Standardized client families the MCP buckets its callers into and forwards via
+# X-Sentry-MCP-Client-Family (source of truth: client-family.ts in getsentry/sentry-mcp).
+KNOWN_MCP_CLIENT_FAMILIES = frozenset(
+    {"claude-code", "cursor", "copilot", "opencode", "claude-desktop", "codex"}
+)
+MCP_CATCHALL_CLIENT_FAMILIES = frozenset({"other", "unknown"})
+
+# Header Seer sets on the API calls it makes on a user's behalf. Shared so that
+# every caller-attribution site keys off the same signal (see `sentry.api.client_kind`
+# and `sentry.issues.action_log`).
+SEER_REFERRER_HEADER = "HTTP_X_SEER_REFERRER"
 
 
 class ParsedUriMatch(NamedTuple):
@@ -225,6 +241,21 @@ def is_mcp_request(request: HttpRequest | Request) -> bool:
     return request.META.get("HTTP_USER_AGENT", "").startswith(MCP_USER_AGENT_PREFIX)
 
 
+def get_mcp_client_family(request: HttpRequest | Request) -> str | None:
+    """The client family (`claude-code`, `cursor`, ...) the MCP server declares for its caller.
+
+    Returns None when the header is absent or the MCP bucketed the caller into a catch-all.
+    A value outside `KNOWN_MCP_CLIENT_FAMILIES` is still returned: this set can lag
+    client-family.ts upstream, so callers decide whether to log the unrecognized value.
+
+    Declared by the client, so untrusted -- unlike `is_mcp_request`, which is derived.
+    """
+    family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
+    if not family or family in MCP_CATCHALL_CLIENT_FAMILIES:
+        return None
+    return family
+
+
 def percent_encode(val: str) -> str:
     # see https://en.wikipedia.org/wiki/Percent-encoding
     return quote(val).replace("%7E", "~").replace("/", "%2F")
@@ -238,6 +269,25 @@ class _HttpRequestWithSubdomain(HttpRequest):
 
 def is_using_customer_domain(request: HttpRequest) -> TypeGuard[_HttpRequestWithSubdomain]:
     return bool(hasattr(request, "subdomain") and request.subdomain)
+
+
+def is_valid_ip(maybe_ip_str: str) -> bool:
+    # Validate the string by attempting to pass it to the three built-in factory functions for
+    # creating different types of ip address objects. If any of them succeeds, it's a valid IP. If
+    # all three raise an error, it's not.
+    for fn, kwargs in (
+        (ip_address, {}),
+        (ip_interface, {}),
+        (ip_network, {"strict": False}),  # `strict: False` allows host bits
+    ):
+        try:
+            fn(maybe_ip_str, **kwargs)
+        except ValueError:
+            pass
+        else:
+            return True
+
+    return False
 
 
 class BodyAsyncWrapper:

@@ -68,11 +68,13 @@ except in mobile */
   }
 
   /* This should not exists. The callers should just wrap the bar in an inline-block element */
-  ${p.condensed &&
-  css`
-    max-width: 100%;
-    width: max-content;
-  `}
+  ${
+    p.condensed &&
+    css`
+      max-width: 100%;
+      width: max-content;
+    `
+  }
 
   display: flex;
   position: relative;

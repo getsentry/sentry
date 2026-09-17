@@ -285,9 +285,6 @@ function SortActions({
     organization.features.includes('issue-stream-recommended-sort') ||
     organization.features.includes('issue-stream-recommended-sort-default') ||
     sort === IssueSortOptions.RECOMMENDED;
-  const hasProgressSort =
-    organization.features.includes('issue-stream-progress-sort') ||
-    sort === IssueSortOptions.PROGRESS;
   const sortKeys = [
     ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(FOR_REVIEW_QUERIES.includes(query) ? [IssueSortOptions.INBOX] : []),
@@ -296,7 +293,6 @@ function SortActions({
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
-    ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
   return (

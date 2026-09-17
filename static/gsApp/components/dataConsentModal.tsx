@@ -14,6 +14,7 @@ import {IconClose, IconFix, IconLock} from 'sentry/icons';
 import {IconGraphBar} from 'sentry/icons/iconGraphBar';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -24,10 +25,15 @@ export default function DataConsentModal({closeModal}: ModalRenderProps) {
 
   const {mutate: updateOrganizationOption, isPending} = useMutation<Organization>({
     mutationFn: () =>
-      api.requestPromise(`/organizations/${organization.slug}/data-consent/`, {
-        method: 'PUT',
-        data: {aggregatedDataConsent: true},
-      }),
+      api.requestPromise(
+        getApiUrl('/organizations/$organizationIdOrSlug/data-consent/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        {
+          method: 'PUT',
+          data: {aggregatedDataConsent: true},
+        }
+      ),
     onSuccess: () => {
       closeModal();
       addSuccessMessage(t('Updated data consent settings.'));

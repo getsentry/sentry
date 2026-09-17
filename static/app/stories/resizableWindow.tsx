@@ -1,4 +1,5 @@
 import {type Ref, type ReactNode, useCallback, useRef, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -13,19 +14,13 @@ type Edge = 'right' | 'bottom' | 'corner';
 interface ResizableWindowProps {
   children?: ReactNode;
   className?: string;
-  onResize?: (size: {height: number; width: number}) => void;
   ref?: Ref<HTMLDivElement>;
 }
 
-export function ResizableWindow({
-  children,
-  className,
-  onResize,
-  ref,
-}: ResizableWindowProps) {
+export function ResizableWindow({children, className, ref}: ResizableWindowProps) {
   const innerRef = useRef<HTMLDivElement>(null);
   const getMergedRef = useStableMergeRef(innerRef);
-  const {handlePointerDown, dragging} = useDragResize(innerRef, onResize);
+  const {handlePointerDown, dragging} = useDragResize(innerRef);
 
   return (
     <WindowRoot
@@ -40,20 +35,21 @@ export function ResizableWindow({
       <Handle data-edge="bottom" onPointerDown={e => handlePointerDown(e, 'bottom')} />
       <Handle data-edge="corner" onPointerDown={e => handlePointerDown(e, 'corner')} />
       {/* -2 offsets the parent's top border so children align flush */}
-      <Container height="inherit" flex="1" overflow="hidden" style={{marginTop: -2}}>
+      <Container
+        css={allowOpenOverlayOverflowCss}
+        height="inherit"
+        flex="1"
+        overflow="hidden"
+        style={{marginTop: -2}}
+      >
         {children}
       </Container>
     </WindowRoot>
   );
 }
 
-function useDragResize(
-  containerRef: React.RefObject<HTMLElement | null>,
-  onResize?: (size: {height: number; width: number}) => void
-) {
+function useDragResize(containerRef: React.RefObject<HTMLElement | null>) {
   const [dragging, setDragging] = useState<Edge | false>(false);
-  const onResizeRef = useRef(onResize);
-  onResizeRef.current = onResize;
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent, edge: Edge) => {
@@ -78,7 +74,6 @@ function useDragResize(
         if (edge === 'bottom' || edge === 'corner') {
           el.style.height = `${Math.max(MIN_HEIGHT, startH + dy)}px`;
         }
-        onResizeRef.current?.({width: el.offsetWidth, height: el.offsetHeight});
       };
 
       const onPointerUp = () => {
@@ -108,6 +103,12 @@ const WindowRoot = styled(Container)`
     user-select: none;
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     border-color: ${p => p.theme.tokens.graphics.neutral.moderate};
+  }
+`;
+
+export const allowOpenOverlayOverflowCss = css`
+  &:has([aria-haspopup][aria-expanded='true']) {
+    overflow: visible;
   }
 `;
 

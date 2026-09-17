@@ -40,7 +40,6 @@ function WrappedComponent({data, ...rest}: any) {
               PerformanceWidgetSetting.USER_MISERY_AREA,
             ]}
             rowChartSettings={[]}
-            forceDefaultChartSetting
             {...data}
             {...rest}
           />

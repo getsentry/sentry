@@ -17,11 +17,8 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static Loading(
-    metadata: TraceTree.Metadata,
-    organization: Organization
-  ): IssuesTraceTree {
-    const t = makeExampleTrace(metadata, organization);
+  static Loading(organization: Organization): IssuesTraceTree {
+    const t = makeExampleTrace(organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'loading';
@@ -29,11 +26,8 @@ export class IssuesTraceTree extends TraceTree {
     return tree;
   }
 
-  static ErrorState(
-    metadata: TraceTree.Metadata,
-    organization: Organization
-  ): IssuesTraceTree {
-    const t = makeExampleTrace(metadata, organization);
+  static ErrorState(organization: Organization): IssuesTraceTree {
+    const t = makeExampleTrace(organization);
     const tree = new IssuesTraceTree();
     tree.root = t.root;
     tree.type = 'error';

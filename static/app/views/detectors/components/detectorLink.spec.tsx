@@ -1,3 +1,4 @@
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -101,10 +102,11 @@ describe('DetectorLink', () => {
   });
 
   it('renders disabled detector without link for issue_stream type', () => {
-    const issueStreamDetector = {
-      ...mockDetector,
-      type: 'issue_stream' as const,
-    };
+    const issueStreamDetector = IssueStreamDetectorFixture({
+      id: mockDetector.id,
+      name: mockDetector.name,
+      projectId: mockDetector.projectId,
+    });
 
     render(<DetectorLink detector={issueStreamDetector} />, {
       organization,

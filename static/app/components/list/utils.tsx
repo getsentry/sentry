@@ -10,15 +10,10 @@ const bulletStyle = (theme: Theme) => css`
 `;
 
 type Options = {
-  // setting initialCounterValue to 0 means the first visible step is 1
-  initialCounterValue?: number;
   isSolid?: boolean;
 };
 
-const numericStyle = (
-  theme: Theme,
-  {isSolid = false, initialCounterValue = 0}: Options
-) => css`
+const numericStyle = (theme: Theme, {isSolid = false}: Options) => css`
   & > li {
     padding-left: ${theme.space['3xl']};
     :before {
@@ -32,26 +27,28 @@ const numericStyle = (
       text-align: center;
       left: 0;
       line-height: 1;
-      ${isSolid
-        ? css`
-            width: 24px;
-            height: 24px;
-            font-weight: ${theme.font.weight.sans.regular};
-            font-size: ${theme.font.size.sm};
-            background-color: ${theme.tokens.background.warning.vibrant};
-            color: ${theme.tokens.content.onVibrant.dark};
-          `
-        : css`
-            top: 3px;
-            width: 18px;
-            height: 18px;
-            font-weight: ${theme.font.weight.sans.medium};
-            font-size: 10px;
-            border: 1px solid ${theme.tokens.border.primary};
-          `}
+      ${
+        isSolid
+          ? css`
+              width: 24px;
+              height: 24px;
+              font-weight: ${theme.font.weight.sans.regular};
+              font-size: ${theme.font.size.sm};
+              background-color: ${theme.tokens.background.warning.vibrant};
+              color: ${theme.tokens.content.onVibrant.dark};
+            `
+          : css`
+              top: 3px;
+              width: 18px;
+              height: 18px;
+              font-weight: ${theme.font.weight.sans.medium};
+              font-size: 10px;
+              border: 1px solid ${theme.tokens.border.primary};
+            `
+      }
     }
   }
-  counter-reset: numberedList ${initialCounterValue};
+  counter-reset: numberedList 0;
 `;
 
 export const listSymbol = {
@@ -60,16 +57,12 @@ export const listSymbol = {
   bullet: 'bullet',
 };
 
-export function getListSymbolStyle(
-  theme: Theme,
-  symbol: keyof typeof listSymbol,
-  initialCounterValue?: number
-) {
+export function getListSymbolStyle(theme: Theme, symbol: keyof typeof listSymbol) {
   switch (symbol) {
     case 'numeric':
-      return numericStyle(theme, {initialCounterValue});
+      return numericStyle(theme, {});
     case 'colored-numeric':
-      return numericStyle(theme, {isSolid: true, initialCounterValue});
+      return numericStyle(theme, {isSolid: true});
     default:
       return bulletStyle(theme);
   }

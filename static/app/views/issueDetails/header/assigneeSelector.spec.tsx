@@ -118,6 +118,29 @@ describe('GroupHeaderAssigneeSelector', () => {
     expect(screen.queryByText('Suggested')).not.toBeInTheDocument();
   });
 
+  it('uses group owners when no event is available', async () => {
+    const owner = UserFixture({id: '91', email: 'frodo@sentry.io', name: 'Frodo'});
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [MemberFixture({user: owner})],
+    });
+
+    render(
+      <GroupHeaderAssigneeSelector
+        group={GroupFixture({
+          owners: [{type: 'ownershipRule', owner: `user:${owner.id}`, date_added: ''}],
+        })}
+        project={project}
+        event={null}
+      />
+    );
+
+    await userEvent.click(await screen.findByLabelText('Modify issue assignee'));
+    expect(await screen.findByText(owner.name)).toBeInTheDocument();
+    expect(screen.getByText('Ownership Rule')).toBeInTheDocument();
+    expect(screen.getByText('Suggested')).toBeInTheDocument();
+  });
+
   it('uses assignment activity for self-assignment tooltip details', async () => {
     const assignedUser = UserFixture({
       id: '91',

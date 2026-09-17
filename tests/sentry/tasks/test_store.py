@@ -15,6 +15,7 @@ from sentry.tasks.store import (
     should_process,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.viewer_context import ActorType, get_viewer_context
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -280,6 +281,32 @@ def test_hash_discarded_raised(default_project, mock_refund) -> None:
     with mock.patch.object(EventManager, "save", mock_save):
         save_event(data=data, start_time=now)
         # should be caught
+
+
+@django_db_all
+def test_save_event_sets_viewer_context(default_project) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    captured_vc = None
+
+    def capture_vc(*args, **kwargs):
+        nonlocal captured_vc
+        captured_vc = get_viewer_context()
+        raise HashDiscarded("stop after capturing")
+
+    with mock.patch.object(EventManager, "save", side_effect=capture_vc):
+        save_event(data=data, start_time=time())
+
+    assert captured_vc is not None
+    assert captured_vc.organization_id == default_project.organization_id
+    assert captured_vc.project_id == default_project.id
+    assert captured_vc.actor_type == ActorType.SYSTEM
 
 
 @pytest.fixture(params=["org", "project"])

@@ -181,6 +181,9 @@ export interface ProjectSeerPreferences {
 
 export const AUTOFIX_TTL_IN_DAYS = 30;
 
+// Keep in sync with USER_CONTEXT_MAX_LENGTH in src/sentry/seer/endpoints/group_ai_autofix.py.
+export const AUTOFIX_USER_CONTEXT_MAX_LENGTH = 10000;
+
 export function getCodingAgentName(provider: string | undefined): string {
   switch (provider) {
     case CodingAgentProvider.CURSOR_BACKGROUND_AGENT:

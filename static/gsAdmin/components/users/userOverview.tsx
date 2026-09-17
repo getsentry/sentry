@@ -4,8 +4,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconNot} from 'sentry/icons';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
@@ -25,6 +26,13 @@ type Props = {
   tokens: InternalAppApiToken[];
   user: User;
 };
+
+const USER_TOKEN_COLUMNS: TableColumnConfig[] = [
+  {key: 'token', width: 'auto'},
+  {key: 'created', width: 'auto'},
+  {key: 'scopes', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 function identityLabel(identity: UserIdentityConfig) {
   if (identity.category === UserIdentityCategory.ORG_IDENTITY) {
@@ -174,7 +182,17 @@ export function UserOverview({
         )}
         <h6>Auth Tokens</h6>
         {tokens.length ? (
-          <PanelTable headers={['Token', 'Created On', 'Scopes', '']}>
+          <SimpleTable
+            columns={USER_TOKEN_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>Token</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>Created On</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>Scopes</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell />
+              </SimpleTable.HeaderRow>
+            }
+          >
             {tokens.map(token => (
               <ApiTokenRow
                 key={token.id}
@@ -183,7 +201,7 @@ export function UserOverview({
                 onRemoveConfirmMessage="Are you sure you want to revoke this user's token? Doing so may break user's applications, and should usually only be done if the token has been leaked."
               />
             ))}
-          </PanelTable>
+          </SimpleTable>
         ) : (
           <p>
             <em>

@@ -1,4 +1,3 @@
-import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import type {FieldKind} from 'sentry/utils/fields';
 
 export enum ItemType {
@@ -70,17 +69,3 @@ export enum ShortcutType {
   NEXT = 'next',
   PREVIOUS = 'previous',
 }
-
-export type Shortcut = {
-  canRunShortcut: (
-    token: TokenResult<Token> | null | undefined,
-    filterTokenCount: number
-  ) => boolean;
-  icon: React.ReactNode;
-  shortcutType: ShortcutType;
-  text: string;
-  hotkeys?: {
-    actual: string[] | string;
-    display?: string[] | string;
-  };
-};

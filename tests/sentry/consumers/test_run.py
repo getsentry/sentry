@@ -31,15 +31,12 @@ def test_dlq(consumer_def) -> None:
     ]
     consumers_that_should_have_dlq_but_dont = [
         "process-spans",
-        "process-segments",
         "ingest-monitors",
         "monitors-clock-tick",
         "monitors-clock-tasks",
         "monitors-incident-occurrences",
         "uptime-results",
         "metrics-last-seen-updater",
-        "generic-metrics-last-seen-updater",
-        "billing-metrics-consumer",
         "ingest-occurrences",
     ]
 

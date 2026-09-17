@@ -22,7 +22,7 @@ from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
-from sentry.replays.models import ReplayDeletionJobModel
+from sentry.replays.models import DeletionJobStatus, ReplayDeletionJobModel
 from sentry.replays.permissions import has_replay_permission
 from sentry.replays.tasks import run_bulk_replay_delete_job
 
@@ -177,7 +177,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
             organization_id=project.organization_id,
             project_id=project.id,
             query=data["query"] or "",
-            status="pending",
+            status=DeletionJobStatus.PENDING,
         )
 
         # We don't check Seer features because an org may have previously had them on, then turned them off.

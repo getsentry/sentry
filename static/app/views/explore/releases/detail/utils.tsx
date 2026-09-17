@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
@@ -80,13 +80,12 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  perPage?: number;
 };
 
-export function getQuery({location, perPage = 40}: GetQueryProps) {
+export function getQuery({location}: GetQueryProps) {
   const query = {
     ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-    per_page: perPage,
+    per_page: 40,
   };
 
   return query;
@@ -175,7 +174,7 @@ function generateReleaseMarkLine(
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
     color: theme.colors.gray400,
-    markLine: MarkLine({
+    markLine: markLine({
       silent: true,
       lineStyle: {color: theme.colors.gray400, type: 'solid'},
       label: {

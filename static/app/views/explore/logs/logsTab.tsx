@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -28,6 +28,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -53,6 +54,7 @@ import {
 } from 'sentry/views/explore/logs/constants';
 import {LogsAggregateExportModalButton} from 'sentry/views/explore/logs/exports/logsAggregateExportModalButton';
 import {LogsDirectExportModalButton} from 'sentry/views/explore/logs/exports/logsDirectExportModalButton';
+import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBysForAggregateMode';
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
@@ -87,6 +89,7 @@ import {
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
+  useSetQueryParamsGroupBys,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -94,6 +97,10 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 // eslint-disable-next-line boundaries/dependencies
 import QuotaExceededAlert from 'getsentry/components/performance/quotaExceededAlert';
@@ -139,27 +146,32 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
     sortBys: aggregateSortBys,
   });
 
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   const {attributes: stringAttributes, secondaryAliases: stringSecondaryAliases} =
     useLogItemAttributes({}, 'string', HiddenLogSearchFields);
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useLogItemAttributes({}, 'number', HiddenLogSearchFields);
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useLogItemAttributes({}, 'boolean', HiddenLogSearchFields);
+  const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
+    useLogItemAttributes({enabled: supportsArrays}, 'array', HiddenLogSearchFields);
 
   const {data: validatedSearchQueryData} = useValidateLogsTab();
 
   const {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps} =
     useLogsSearchQueryBuilderProps({
+      arrayAttributes,
       booleanAttributes,
       numberAttributes,
       stringAttributes,
+      arraySecondaryAliases,
       booleanSecondaryAliases,
       numberSecondaryAliases,
       stringSecondaryAliases,
       validatedSearchQueryData,
     });
 
-  const organization = useOrganization();
   const hasTranslateEndpoint = organization.features.includes(
     'gen-ai-search-agent-translate'
   );
@@ -167,7 +179,6 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   return (
     <SearchQueryBuilderProvider
       enableAISearch={hasTranslateEndpoint}
-      aiSearchBadgeType="beta"
       {...searchQueryBuilderProviderProps}
     >
       <ExploreBodySearch>
@@ -251,6 +262,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const organization = useOrganization();
 
   const pageFilters = usePageFilters();
+  const selectedProjects = useSelectedProjectsForLLMContext();
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
   const groupBys = useQueryParamsGroupBys();
@@ -259,6 +271,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
+  const setGroupBys = useSetQueryParamsGroupBys();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
@@ -267,7 +280,9 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   useLLMContext({
     contextHint:
       'Sentry logs explorer page. Users search log entries by attributes and view samples or aggregates. ' +
-      'You can search live telemetry for logs, get detailed log attributes by trace ID, and discover attribute names via the telemetry index.',
+      'You can search live telemetry for logs, get detailed log attributes by trace ID, and discover attribute names via the telemetry index. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery,
     mode,
     fields,
@@ -275,6 +290,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     groupBys: groupBys.filter(g => g !== ''),
     visualizes: visualizes.map(v => v.yAxis),
     currentSelectedDateRange: pageFilters.selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
@@ -289,6 +305,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 
   useEffect(() => {
     if (autorefreshEnabled) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     }
   }, [autorefreshEnabled]);
@@ -315,6 +332,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       boolean: validatedBooleanAttributes,
       number: validatedNumberAttributes,
       string: validatedStringAttributes,
+      array: validatedArrayAttributes,
     },
     fieldTypes: validatedFieldTypes,
     fields: validatedFields,
@@ -362,6 +380,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
           stringTags={validatedStringAttributes}
           numberTags={validatedNumberAttributes}
           booleanTags={validatedBooleanAttributes}
+          arrayTags={validatedArrayAttributes}
           validatedFieldTypes={validatedFieldTypes}
           hiddenKeys={HiddenColumnEditorLogFields}
           traceItemType={TraceItemDataset.LOGS}
@@ -380,7 +399,16 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     trackAnalytics('logs.explorer.table_tab_changed', {organization, tab});
     if (tab === 'aggregates') {
       setSidebarOpen(true);
-      setMode(Mode.AGGREGATE);
+      const aggregateGroupBys = getGroupBysForAggregateMode({
+        fields,
+        groupBys,
+        visualizes,
+      });
+      if (aggregateGroupBys) {
+        setGroupBys(aggregateGroupBys, Mode.AGGREGATE);
+      } else {
+        setMode(Mode.AGGREGATE);
+      }
     } else {
       setMode(Mode.SAMPLES);
     }
@@ -453,7 +481,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
           </Container>
           <ExploreContentSection gap="md">
             <OverChartButtonGroup>
-              <Container display={{zero: 'none', '4xl': 'inline-flex'}}>
+              <Container display={{zero: 'none', '3xl': 'inline-flex'}}>
                 <LogsSidebarCollapseButton
                   sidebarOpen={sidebarOpen}
                   aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
@@ -470,20 +498,23 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   {sidebarOpen ? null : t('Advanced')}
                 </LogsSidebarCollapseButton>
               </Container>
-              {mode === Mode.AGGREGATE ? (
-                <LogsAggregateExportModalButton
-                  isLoading={aggregatesTableResult.isPending}
-                  tableData={aggregatesTableResult.data?.data ?? []}
-                  error={aggregatesTableResult.error}
-                  pageLinks={aggregatesTableResult.pageLinks}
-                />
-              ) : (
-                <LogsDirectExportModalButton
-                  isLoading={tableData.isPending}
-                  tableData={tableData.data}
-                  error={tableData.error}
-                />
-              )}
+              <Flex gap="xs">
+                <ExploreShareButton traceItemDataset={TraceItemDataset.LOGS} />
+                {mode === Mode.AGGREGATE ? (
+                  <LogsAggregateExportModalButton
+                    isLoading={aggregatesTableResult.isPending}
+                    tableData={aggregatesTableResult.data?.data ?? []}
+                    error={aggregatesTableResult.error}
+                    pageLinks={aggregatesTableResult.pageLinks}
+                  />
+                ) : (
+                  <LogsDirectExportModalButton
+                    isLoading={tableData.isPending}
+                    tableData={tableData.data}
+                    error={tableData.error}
+                  />
+                )}
+              </Flex>
             </OverChartButtonGroup>
             <QuotaExceededAlert referrer="logs-explore" traceItemDataset="logs" />
             <LogsDownSamplingAlert

@@ -6,6 +6,7 @@ import logging
 from rest_framework import status
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.metrics import (
@@ -50,7 +51,9 @@ def update_project_webhook(integration_id: int, organization_id: int, repository
     This task is spawned by update_all_project_webhooks for each repository.
     """
     integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if not integration:
         logger.warning(
@@ -135,7 +138,9 @@ def update_all_project_webhooks(integration_id: int, organization_id: int) -> No
     This is triggered when sync settings are changed to ensure all webhooks have the correct permissions.
     """
     integration = integration_service.get_integration(
-        integration_id=integration_id, status=ObjectStatus.ACTIVE
+        integration_id=integration_id,
+        status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if not integration:
         logger.warning(

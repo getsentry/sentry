@@ -40,6 +40,7 @@ import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
+import {ScmMessaging, SCM_MESSAGING_TITLE} from './scmMessaging';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
@@ -48,6 +49,13 @@ import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 // only reach /onboarding via stale links + login replay and are far older than
 // this window, so gating exposure on org age keeps them out of the experiment.
 const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+
+/**
+ * On now that the messaging experiment has a rollout segment. Keep this as the
+ * one place to turn reporting off again if the rollout is pulled, so the
+ * experiment population does not fill with rows from a control-only config.
+ */
+const SCM_MESSAGING_EXPOSURE_ENABLED = true;
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -99,15 +107,19 @@ function ScmConnectAdapter({onComplete, genBackButton}: StepProps) {
   );
 }
 
-function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
+function ScmPlatformFeaturesAdapter({
+  deferProjectCreation,
+  genBackButton,
+  onComplete,
+}: StepProps & {deferProjectCreation: boolean}) {
   const {
     selectedRepository,
     selectedPlatform,
     setSelectedPlatform,
     selectedFeatures,
     setSelectedFeatures,
-    createdProjectSlug,
-    setCreatedProjectSlug,
+    createdProject,
+    setCreatedProject,
   } = useOnboardingContext();
 
   return (
@@ -115,17 +127,59 @@ function ScmPlatformFeaturesAdapter({onComplete, genBackButton}: StepProps) {
       selectedRepository={selectedRepository}
       selectedPlatform={selectedPlatform}
       selectedFeatures={selectedFeatures}
-      createdProjectSlug={createdProjectSlug}
+      createdProject={createdProject}
+      deferProjectCreation={deferProjectCreation}
       onPlatformChange={setSelectedPlatform}
       onFeaturesChange={setSelectedFeatures}
-      onProjectCreated={setCreatedProjectSlug}
+      onCreatedProjectChange={setCreatedProject}
       onComplete={onComplete}
       genBackButton={genBackButton}
     />
   );
 }
 
-const scmOnboardingSteps: StepDescriptor[] = [
+function ScmPlatformFeaturesControlAdapter(props: StepProps) {
+  return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation={false} />;
+}
+
+function ScmPlatformFeaturesTreatmentAdapter(props: StepProps) {
+  return <ScmPlatformFeaturesAdapter {...props} deferProjectCreation />;
+}
+
+function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
+  const {
+    createdProject,
+    messagingSetup,
+    selectedFeatures,
+    selectedPlatform,
+    selectedRepository,
+    setCreatedProject,
+    setMessagingSetup,
+  } = useOnboardingContext();
+
+  // Type-narrowing only. `isInvalidMessagingStep` below redirects away from
+  // this step before it renders without a platform, so this is unreachable —
+  // it is not an empty state and should not grow into one.
+  if (!selectedPlatform) {
+    return null;
+  }
+
+  return (
+    <ScmMessaging
+      createdProject={createdProject}
+      messagingSetup={messagingSetup}
+      onCreatedProjectChange={setCreatedProject}
+      onMessagingSetupChange={setMessagingSetup}
+      onComplete={onComplete}
+      selectedFeatures={selectedFeatures}
+      selectedPlatform={selectedPlatform}
+      selectedRepository={selectedRepository}
+      genBackButton={genBackButton}
+    />
+  );
+}
+
+const scmOnboardingSharedSteps: StepDescriptor[] = [
   {
     id: OnboardingStepId.WELCOME,
     title: t('Welcome'),
@@ -138,10 +192,14 @@ const scmOnboardingSteps: StepDescriptor[] = [
     Component: ScmConnectAdapter,
     cornerVariant: 'top-left',
   },
+];
+
+const scmOnboardingSteps: StepDescriptor[] = [
+  ...scmOnboardingSharedSteps,
   {
     id: OnboardingStepId.SCM_PLATFORM_FEATURES,
     title: t('Create your first project'),
-    Component: ScmPlatformFeaturesAdapter,
+    Component: ScmPlatformFeaturesControlAdapter,
     cornerVariant: 'top-left',
   },
   {
@@ -152,6 +210,42 @@ const scmOnboardingSteps: StepDescriptor[] = [
     cornerVariant: 'top-left',
   },
 ];
+
+const scmMessagingOnboardingSteps: StepDescriptor[] = [
+  ...scmOnboardingSharedSteps,
+  {
+    id: OnboardingStepId.SCM_PLATFORM_FEATURES,
+    title: t('Create your first project'),
+    Component: ScmPlatformFeaturesTreatmentAdapter,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SCM_MESSAGING,
+    title: SCM_MESSAGING_TITLE,
+    Component: ScmMessagingAdapter,
+    cornerVariant: 'top-left',
+  },
+  {
+    id: OnboardingStepId.SETUP_DOCS,
+    title: t('Install the Sentry SDK'),
+    Component: SetupDocs,
+    hasFooter: true,
+    cornerVariant: 'top-left',
+  },
+];
+
+function getOnboardingSteps({
+  hasScmOnboarding,
+  hasScmMessaging,
+}: {
+  hasScmMessaging: boolean;
+  hasScmOnboarding: boolean;
+}): StepDescriptor[] {
+  if (!hasScmOnboarding) {
+    return legacyOnboardingSteps;
+  }
+  return hasScmMessaging ? scmMessagingOnboardingSteps : scmOnboardingSteps;
+}
 
 interface ContainerVariableProps {
   hasFooter: boolean;
@@ -214,7 +308,7 @@ export function OnboardingWithoutContext() {
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
   const selectedProjectSlug =
-    onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
+    onboardingContext.createdProject?.slug ?? onboardingContext.selectedPlatform?.key;
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
@@ -232,7 +326,29 @@ export function OnboardingWithoutContext() {
     reportExposure: isNewOrgOnboarding,
   });
 
-  const onboardingSteps = hasScmOnboarding ? scmOnboardingSteps : legacyOnboardingSteps;
+  // The arms first differ after platform/features: treatment continues to the
+  // messaging step, control to SDK setup. Exposure is reported once the user
+  // is past that fork, from the route rather than the step list because the
+  // list itself depends on this assignment.
+  //
+  // The route alone is not enough: the invalid-state guards below redirect off
+  // both of these steps, and the redirect runs in an effect, so a bare route
+  // check reports exposure for a user who is sent back before either arm
+  // renders. Repeat the same staged-state conditions here.
+  const isPastPlatformFeatures =
+    (stepId === OnboardingStepId.SCM_MESSAGING &&
+      defined(onboardingContext.selectedPlatform)) ||
+    (stepId === OnboardingStepId.SETUP_DOCS && defined(selectedProjectSlug));
+  const {inExperiment: hasScmMessaging} = useExperiment({
+    feature: 'onboarding-scm-messaging-experiment',
+    reportExposure:
+      SCM_MESSAGING_EXPOSURE_ENABLED &&
+      isNewOrgOnboarding &&
+      hasScmOnboarding &&
+      isPastPlatformFeatures,
+  });
+
+  const onboardingSteps = getOnboardingSteps({hasScmOnboarding, hasScmMessaging});
 
   useReplayForCriticalFlow({
     flowName: 'scm_onboarding',
@@ -388,12 +504,19 @@ export function OnboardingWithoutContext() {
   };
 
   // Redirect to the first step if we end up in an invalid state
-  const isInvalidDocsStep = stepId === 'setup-docs' && !projectSlug;
-  if (!stepObj || stepIndex === -1 || isInvalidDocsStep) {
+  const isInvalidDocsStep = stepId === OnboardingStepId.SETUP_DOCS && !projectSlug;
+  // Keyed off `stepObj` rather than the experiment flag so the fallback below is
+  // always a step in the active list: `scm-messaging` only exists alongside
+  // `scm-platform-features`. Testing the flag instead would send a flow whose
+  // step list has neither on a second redirect to reach the first step.
+  const isInvalidMessagingStep =
+    stepObj?.id === OnboardingStepId.SCM_MESSAGING && !onboardingContext.selectedPlatform;
+  if (!stepObj || stepIndex === -1 || isInvalidDocsStep || isInvalidMessagingStep) {
+    const fallbackStep = isInvalidMessagingStep
+      ? OnboardingStepId.SCM_PLATFORM_FEATURES
+      : onboardingSteps[0]!.id;
     return (
-      <Redirect
-        to={normalizeUrl(`/onboarding/${organization.slug}/${onboardingSteps[0]!.id}/`)}
-      />
+      <Redirect to={normalizeUrl(`/onboarding/${organization.slug}/${fallbackStep}/`)} />
     );
   }
 
@@ -554,10 +677,9 @@ const OnboardingContainer = styled('div')<{
 
 const Header = styled(Grid)`
   background: ${p => p.theme.tokens.background.primary};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space['3xl']};
+  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
   position: sticky;
-  height: 80px;
+  min-height: 60px;
   align-items: center;
   top: 0;
   z-index: 100;
@@ -565,7 +687,7 @@ const Header = styled(Grid)`
 `;
 
 const LogoSvg = styled(LogoSentry)`
-  height: 30px;
+  height: 24px;
   color: ${p => p.theme.tokens.content.primary};
 `;
 

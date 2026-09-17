@@ -1,7 +1,11 @@
 import {useSearchParams} from 'react-router-dom';
+import {useQuery} from '@tanstack/react-query';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {Badge} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
+import {Text} from '@sentry/scraps/text';
 
 import {
   CrumbContainer,
@@ -14,17 +18,21 @@ import {
   ShortId,
 } from 'sentry/components/events/eventDrawer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 interface ActivityDrawerProps {
   project: Project;
 }
+
+const GROUP_ACTIVITY_LIMIT = 100;
 
 export function ActivityDrawer({project}: ActivityDrawerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -36,9 +44,27 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
   // (e.g. comment create/delete). The drawer's render function is captured in
   // a closure by openDrawer, so the group in context or props would go stale.
   const {data: group} = useGroup({groupId});
+  const activityComments = group?.activity.filter(isActivityNote) ?? [];
+  const shouldFetchComments =
+    filter === 'comments' &&
+    group !== undefined &&
+    group.numComments > 0 &&
+    group.activity.length >= GROUP_ACTIVITY_LIMIT;
+  const commentsQuery = useQuery({
+    ...issueCommentsQueryOptions({
+      organizationSlug: organization.slug,
+      groupId,
+    }),
+    enabled: shouldFetchComments,
+  });
+
   if (!group) {
     return <LoadingIndicator />;
   }
+
+  const comments = shouldFetchComments
+    ? (commentsQuery.data ?? activityComments)
+    : activityComments;
 
   return (
     <EventDrawerContainer>
@@ -81,20 +107,38 @@ export function ActivityDrawer({project}: ActivityDrawerProps) {
             );
           }}
         >
-          <SegmentedControl.Item key="comments">
-            {t('Comments Only')}
+          <SegmentedControl.Item key="comments" textValue={t('Comments')}>
+            <Flex as="span" align="center" gap="sm">
+              {t('Comments')}
+              {group.numComments > 0 ? (
+                <Badge
+                  aria-label={tn('%s comment', '%s comments', group.numComments)}
+                  variant="muted"
+                >
+                  {group.numComments}
+                </Badge>
+              ) : null}
+            </Flex>
           </SegmentedControl.Item>
-          <SegmentedControl.Item key="all">{t('All Activity')}</SegmentedControl.Item>
+          <SegmentedControl.Item key="all">{t('All activity')}</SegmentedControl.Item>
         </SegmentedControl>
       </EventNavigator>
       <EventDrawerBody>
-        <ActivitySection
-          group={group}
-          variant="standalone"
-          filterComments={filter === 'comments'}
-          minHeight={72}
-          placeholder={t('Add a comment. Tag users with @, or teams with #')}
-        />
+        {shouldFetchComments && commentsQuery.isError ? (
+          <Text variant="muted">{t('Unable to load comments.')}</Text>
+        ) : null}
+        {shouldFetchComments && commentsQuery.isPending ? (
+          <LoadingIndicator />
+        ) : (
+          <ActivitySection
+            group={group}
+            activities={filter === 'comments' ? comments : group.activity}
+            variant="standalone"
+            filterComments={filter === 'comments'}
+            minHeight={72}
+            placeholder={t('Add a comment. Tag users with @, or teams with #')}
+          />
+        )}
       </EventDrawerBody>
     </EventDrawerContainer>
   );

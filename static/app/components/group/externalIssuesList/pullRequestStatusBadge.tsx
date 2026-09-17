@@ -1,9 +1,10 @@
 import {Badge} from '@sentry/scraps/badge';
 import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {
   IconCheckmark,
-  IconClock,
+  IconCircle,
   IconClose,
   IconMerge,
   IconPullRequest,
@@ -21,6 +22,12 @@ type PullRequestBadgeConfig = {
   icon: React.ComponentType<SVGIconProps>;
   label: () => string;
   variant: React.ComponentProps<typeof Badge>['variant'];
+};
+
+type PullRequestDetailConfig = {
+  icon: React.ComponentType<SVGIconProps>;
+  label: () => string;
+  variant: SVGIconProps['variant'];
 };
 
 const STATUS_CONFIG = {
@@ -58,16 +65,16 @@ const CHECKS_CONFIG = {
     variant: 'danger',
   },
   pending: {
-    icon: IconClock,
+    icon: IconCircle,
     label: () => t('Checks running'),
-    variant: 'muted',
+    variant: 'warning',
   },
   success: {
     icon: IconCheckmark,
     label: () => t('Checks passed'),
     variant: 'success',
   },
-} satisfies Record<PullRequestChecksStatus, PullRequestBadgeConfig>;
+} satisfies Record<PullRequestChecksStatus, PullRequestDetailConfig>;
 
 const REVIEW_CONFIG = {
   approved: {
@@ -81,11 +88,11 @@ const REVIEW_CONFIG = {
     variant: 'danger',
   },
   review_required: {
-    icon: IconClock,
+    icon: IconCircle,
     label: () => t('Review required'),
-    variant: 'muted',
+    variant: 'warning',
   },
-} satisfies Record<PullRequestReviewStatus, PullRequestBadgeConfig>;
+} satisfies Record<PullRequestReviewStatus, PullRequestDetailConfig>;
 
 function PullRequestBadge({
   ariaLabel,
@@ -106,6 +113,19 @@ function PullRequestBadge({
   );
 }
 
+function PullRequestDetail({config}: {config: PullRequestDetailConfig}) {
+  const {icon: StatusIcon, label, variant} = config;
+
+  return (
+    <Grid as="span" align="center" columns="max-content max-content" gap="xs">
+      <StatusIcon aria-hidden size="xs" variant={variant} />
+      <Text as="span" variant="muted" size="sm">
+        {label()}
+      </Text>
+    </Grid>
+  );
+}
+
 export function getPullRequestStatusLabel(status: PullRequestStatus) {
   return STATUS_CONFIG[status].label();
 }
@@ -122,9 +142,9 @@ export function PullRequestStatusBadge({status}: {status: PullRequestStatus}) {
 }
 
 export function PullRequestChecksBadge({status}: {status: PullRequestChecksStatus}) {
-  return <PullRequestBadge config={CHECKS_CONFIG[status]} />;
+  return <PullRequestDetail config={CHECKS_CONFIG[status]} />;
 }
 
 export function PullRequestReviewBadge({status}: {status: PullRequestReviewStatus}) {
-  return <PullRequestBadge config={REVIEW_CONFIG[status]} />;
+  return <PullRequestDetail config={REVIEW_CONFIG[status]} />;
 }

@@ -1,12 +1,12 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
@@ -19,13 +19,18 @@ import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {StickyFooter} from 'sentry/components/workflowEngine/ui/footer';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
-import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
+import {
+  DataConditionGroupLogicType,
+  DataConditionType,
+  type DataConditionGroup,
+} from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {
+  createCondition,
   AutomationBuilderContext,
   useAutomationBuilderReducer,
 } from 'sentry/views/automations/components/automationBuilderContext';
@@ -60,15 +65,23 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const organization = useOrganization();
   return (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug),
-        },
-        {label: <EditableAutomationName />},
-      ]}
-    />
+    <Fragment>
+      <TopBar.Slot name="breadcrumbs">
+        <BreadcrumbList
+          items={[
+            {
+              type: 'link',
+              label: t('Alerts'),
+              to: makeAutomationBasePathname(organization.slug),
+            },
+          ]}
+        />
+      </TopBar.Slot>
+
+      <TopBar.Slot name="title">
+        <EditableAutomationName />
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 
@@ -106,21 +119,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     return getAutomationFormData(automation);
   }, [automation]);
 
-  const initialState = useMemo((): AutomationBuilderState | undefined => {
-    if (!automation) {
-      return undefined;
-    }
-    return {
-      triggers: automation.triggers
-        ? automation.triggers
-        : {
-            id: 'when',
-            logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-            conditions: [],
-          },
-      actionFilters: assignSubfilterIds(automation.actionFilters),
-    };
-  }, [automation]);
+  const initialState = useMemo(() => getInitialState(automation), [automation]);
 
   const model = useMemo(() => new FormModel(), []);
   const {state, actions} = useAutomationBuilderReducer(initialState);
@@ -223,9 +222,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       <AutomationFormProvider automation={automation}>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <TopBar.Slot name="title">
-            <AutomationBreadcrumbs />
-          </TopBar.Slot>
+          <AutomationBreadcrumbs />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">
@@ -265,4 +262,34 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       </AutomationFormProvider>
     </FullHeightFormDeprecated>
   );
+}
+
+function getInitialState(automation: Automation): AutomationBuilderState | undefined {
+  if (!automation) {
+    return undefined;
+  }
+
+  return {
+    triggers: getInitialTriggers(automation.triggers),
+    actionFilters: assignSubfilterIds(automation.actionFilters),
+  };
+}
+
+function getInitialTriggers(triggers: DataConditionGroup | null): DataConditionGroup {
+  if (!triggers) {
+    return {
+      id: 'when',
+      logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
+      conditions: [createCondition(DataConditionType.EVERY_EVENT)],
+    };
+  }
+
+  if (triggers.conditions.length === 0) {
+    return {
+      ...triggers,
+      conditions: [createCondition(DataConditionType.EVERY_EVENT)],
+    };
+  }
+
+  return triggers;
 }

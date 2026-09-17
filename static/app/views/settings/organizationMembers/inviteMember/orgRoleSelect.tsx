@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
@@ -8,7 +9,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {OrgRole} from 'sentry/types/organization';
 
@@ -43,7 +43,7 @@ export function OrganizationRoleSelect({
     <Panel>
       <StyledPanelHeader>
         <div>{t('Organization Role')}</div>
-        {disabled && helpText && <QuestionTooltip size="sm" title={helpText} />}
+        {disabled && helpText && <InfoTip size="sm" title={helpText} />}
       </StyledPanelHeader>
 
       <PanelBody>

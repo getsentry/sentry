@@ -542,10 +542,12 @@ function ProjectSeer({
   organization: Organization;
   project: DetailedProject;
 }) {
-  const {billing, isLoading} = useOrganizationSeerSetup();
+  const {billing, hasFreeAutofixAccess, isLoading} = useOrganizationSeerSetup();
 
   const needsSetup =
-    !billing.hasAutofixQuota && organization.features.includes('seer-billing');
+    !hasFreeAutofixAccess &&
+    !billing.hasAutofixQuota &&
+    organization.features.includes('seer-billing');
 
   if (organization.hideAiFeatures) {
     return <NoAccess />;

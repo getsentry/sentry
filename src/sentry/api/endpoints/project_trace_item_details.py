@@ -41,7 +41,8 @@ from sentry.search.eap.utils import (
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json
-from sentry.utils.snuba_rpc import trace_item_details_rpc
+from sentry.utils.dates import to_datetime
+from sentry.utils.snuba_rpc import SnubaRPCBadRequest, trace_item_details_rpc
 
 _NUMERIC_COERCIONS: dict[str, type] = {"valFloat": float, "valDouble": float}
 _VAL_TYPE_TO_COLUMN_TYPE: dict[str, ColumnType] = {
@@ -259,6 +260,61 @@ def serialize_meta(
     return meta_result
 
 
+# Attribute name -> `event` field name
+_SERIALIZED_EVENT_ATTRIBUTES: dict[str, str] = {
+    "sentry.event.serialized_contexts": "contexts",
+    "sentry.event.serialized_extra": "extra",
+    "sentry.event.serialized_breadcrumbs": "breadcrumbs",
+}
+
+
+def _normalize_breadcrumbs(breadcrumbs: Any) -> None:
+    """Convert breadcrumb timestamps to datetimes so they serialize as strings.
+    Matches the event endpoint's breadcrumb serialization (see
+    Breadcrumbs.get_api_context)."""
+    if not isinstance(breadcrumbs, dict):
+        return
+
+    for crumb in breadcrumbs.get("values") or []:
+        if not isinstance(crumb, dict):
+            continue
+        timestamp = crumb.get("timestamp")
+        if isinstance(timestamp, (int, float)) and not isinstance(timestamp, bool):
+            try:
+                crumb["timestamp"] = to_datetime(timestamp)
+            except Exception as e:
+                sentry_sdk.capture_exception(e)
+
+
+def serialize_event(attributes: list[dict]) -> dict[str, Any] | None:
+    """A few event fields (contexts, extra, breadcrumbs) are stored as
+    JSON-serialized strings under internal `sentry.event.serialized_*`
+    attributes. Parse any that are present back into JSON and return them,
+    wrapped in a single `event` dict."""
+    result: dict[str, Any] = {}
+    for attribute in attributes:
+        event_key = _SERIALIZED_EVENT_ATTRIBUTES.get(attribute["name"])
+        if event_key is None:
+            continue
+
+        value = attribute.get("value", {}).get("valStr", None)
+        if value is None:
+            continue
+
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError as e:
+            sentry_sdk.capture_exception(e)
+            continue
+
+        if event_key == "breadcrumbs":
+            _normalize_breadcrumbs(parsed)
+
+        result[event_key] = parsed
+
+    return result or None
+
+
 def serialize_links(attributes: list[dict]) -> list[dict] | None:
     """Links are temporarily stored in `sentry.links` so lets parse that back out and return separately"""
     link_attribute = None
@@ -331,6 +387,12 @@ class ProjectTraceItemDetailsEndpointSerializer(serializers.Serializer):
     trace_id = serializers.UUIDField(format="hex", required=True)
     item_type = serializers.ChoiceField([e.value for e in SupportedTraceItemType], required=True)
     referrer = serializers.CharField(required=False)
+    routing_hint = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        trim_whitespace=False,
+        help_text="Opaque routingHint from the events response containing this item.",
+    )
 
 
 @cell_silo_endpoint
@@ -346,6 +408,10 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
         Retrieve a Trace Item for a project.
 
         For example, you might ask 'give me all the details about the span/log with id 01234567'
+
+        Pass the events response's meta.routingHint as routing_hint to look up an item
+        using the same storage. Omitted or empty hints use the default storage;
+        invalid hints return 400. Treat the hint as opaque and pass it unchanged.
         """
         serializer = ProjectTraceItemDetailsEndpointSerializer(data=request.GET)
         if not serializer.is_valid():
@@ -416,9 +482,13 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
                 request_id=str(uuid.uuid4()),
             ),
             trace_id=trace_id,
+            routing_hint=serialized.get("routing_hint", ""),
         )
 
-        resp = MessageToDict(trace_item_details_rpc(req, debug=debug))
+        try:
+            resp = MessageToDict(trace_item_details_rpc(req, debug=debug))
+        except SnubaRPCBadRequest as error:
+            raise BadRequest(detail="Invalid trace item details request.") from error
 
         include_arrays = features.has(
             "organizations:trace-item-details-array-fields",
@@ -440,6 +510,10 @@ class ProjectTraceItemDetailsEndpoint(ProjectEndpoint):
             "meta": serialize_meta(resp["attributes"], item_type),
             "links": serialize_links(resp["attributes"]),
         }
+
+        event = serialize_event(resp["attributes"])
+        if event is not None:
+            resp_dict["event"] = event
 
         if debug:
             resp_dict["meta"]["debug_info"] = {

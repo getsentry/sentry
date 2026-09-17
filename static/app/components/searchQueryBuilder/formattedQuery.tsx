@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {Chip} from '@sentry/scraps/chip';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -79,11 +80,7 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
 
 function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
   const label = token.text.toUpperCase();
-  return (
-    <FilterWrapper aria-label={label}>
-      <Text variant="muted">{label}</Text>
-    </FilterWrapper>
-  );
+  return <Chip size="sm" value={label} aria-label={label} />;
 }
 
 function QueryToken({token}: TokenProps) {

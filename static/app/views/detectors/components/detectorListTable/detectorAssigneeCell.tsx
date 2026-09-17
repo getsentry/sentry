@@ -14,7 +14,7 @@ function AssigneeContent({assignee}: {assignee: Actor | null}) {
     return '—';
   }
 
-  return <ActorAvatar actor={assignee} size={24} />;
+  return <ActorAvatar actor={assignee} />;
 }
 
 export function DetectorAssigneeCell({assignee, className}: DetectorAssigneeCellProps) {

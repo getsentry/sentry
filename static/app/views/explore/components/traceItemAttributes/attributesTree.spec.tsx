@@ -4,7 +4,8 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {
   AttributesTree,
@@ -155,7 +156,8 @@ describe('attributesTree', () => {
         expect(row?.textContent).toBe('some-inner-thing');
         continue;
       }
-      await userEvent.click(actionsButton);
+      // jsdom does not evaluate :hover styles, so bypass the hidden action's pointer-events check.
+      await userEvent.click(actionsButton, {pointerEventsCheck: 0});
       expect(await within(row).findByText('Visible Action')).toBeInTheDocument();
       expect(await within(row).findByText('Disabled Action')).toBeInTheDocument();
       expect(within(row).queryByText('Hidden Action')).not.toBeInTheDocument();

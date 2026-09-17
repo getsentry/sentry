@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -8,31 +10,14 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 
 
-@cell_silo_model
-class SeerNightShiftRun(DefaultFieldsModel):
-    """
-    Records each night shift invocation for an organization.
-    One row is created per org each time run_night_shift_for_org executes.
-    """
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
-    workflow_config = FlexibleForeignKey(
-        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
-    )
-    extras = models.JSONField(db_default={}, default=dict)
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_nightshiftrun"
-        indexes = [
-            models.Index(fields=["organization", "date_added"]),
-            models.Index(fields=["date_added"]),
-            models.Index(fields=["workflow_config", "date_added"]),
-        ]
-
-    __repr__ = sane_repr("organization_id", "workflow_config_id", "date_added")
+class SeerNightShiftRunErrorType(StrEnum):
+    NO_QUOTA = "no_quota"
+    ELIGIBLE_PROJECTS_FAILED = "eligible_projects_failed"
+    NO_SEER_ACCESS = "no_seer_access"
+    INVALID_SHARD_PLAN = "invalid_shard_plan"
+    SHARD_DISPATCH_FAILED = "shard_dispatch_failed"
+    SHARD_DELIVERY_FAILED = "shard_delivery_failed"
+    UNKNOWN = "unknown"
 
 
 @cell_silo_model
@@ -42,7 +27,7 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     run = FlexibleForeignKey(
-        "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="results"
+        "seer.SeerWorkflowRun", on_delete=models.CASCADE, related_name="results"
     )
     kind = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
     group = FlexibleForeignKey(
@@ -74,26 +59,3 @@ class SeerNightShiftRunResult(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("run_id", "kind", "group_id")
-
-
-@cell_silo_model
-class SeerNightShiftRunShard(DefaultFieldsModel):
-    """One shard of a night shift run, owning the SeerRun for a single
-    dispatched Seer feature run. A run fans out its work into one or more shards
-    dispatched as independent feature runs."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    run = FlexibleForeignKey(
-        "seer.SeerNightShiftRun", on_delete=models.CASCADE, related_name="shards"
-    )
-    seer_run = models.OneToOneField(
-        "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="night_shift_shard"
-    )
-    extras = models.JSONField(db_default={}, default=dict)
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_nightshiftrunshard"
-
-    __repr__ = sane_repr("run_id", "seer_run_id")

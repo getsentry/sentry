@@ -1,3 +1,4 @@
+import {ThemeFixture} from 'sentry-fixture/theme';
 import {
   createTraceMetricFixtures,
   initializeTraceMetricsTest,
@@ -124,6 +125,39 @@ describe('MetricSelector', () => {
       expect(await screen.findByRole('listbox')).toBeInTheDocument();
     });
 
+    it('renders the dropdown below sticky headers', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+
+      const positionWrapper = (await screen.findByRole('listbox')).closest(
+        '[style*="z-index"]'
+      );
+      expect(positionWrapper).toHaveStyle({zIndex: ThemeFixture().zIndex.dropdown});
+    });
+
+    it('renders a portaled dropdown above the widget builder', async () => {
+      render(
+        <MetricSelector
+          usePortal
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+
+      const positionWrapper = (await screen.findByRole('listbox')).closest(
+        '[style*="z-index"]'
+      );
+      expect(positionWrapper).toHaveStyle({
+        zIndex: ThemeFixture().zIndex.widgetBuilderDrawer + 1,
+      });
+    });
+
     it('opens dropdown when trigger receives ArrowDown', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
@@ -178,6 +212,25 @@ describe('MetricSelector', () => {
         expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
       });
       expect(onChange).toHaveBeenCalledWith(expect.objectContaining({name: 'foo'}));
+    });
+
+    it('selects the field option without synthesizing a metric', async () => {
+      const onChange = jest.fn();
+      const onSelectField = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          fieldOption={{isSelected: false, onSelect: onSelectField}}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'field'}));
+
+      expect(onSelectField).toHaveBeenCalledTimes(1);
+      expect(onChange).not.toHaveBeenCalled();
     });
 
     describe('empty state', () => {
@@ -567,6 +620,24 @@ describe('MetricSelector', () => {
       expect(await screen.findByText('Times seen')).toBeInTheDocument();
     });
 
+    it('does not render the side panel when hovering the field option', async () => {
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={jest.fn()}
+          fieldOption={{isSelected: false, onSelect: jest.fn()}}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.hover(await screen.findByRole('option', {name: 'field'}));
+
+      expect(screen.queryByText('Type')).not.toBeInTheDocument();
+      expect(screen.queryByText('Last seen')).not.toBeInTheDocument();
+      expect(screen.queryByText('Times seen')).not.toBeInTheDocument();
+    });
+
     it('side panel defaults to current metric when no option is hovered', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,
@@ -579,7 +650,7 @@ describe('MetricSelector', () => {
       expect((await screen.findAllByText('bar')).length).toBeGreaterThan(0);
     });
 
-    it('does not render side panel when no metric is selected', async () => {
+    it('renders the side panel when hovering a metric without a selected metric', async () => {
       render(<MetricSelector traceMetric={{name: '', type: ''}} onChange={jest.fn()} />, {
         organization,
       });
@@ -587,9 +658,27 @@ describe('MetricSelector', () => {
       await userEvent.click(await screen.findByRole('button', {name: 'None'}));
       await userEvent.hover(await screen.findByRole('option', {name: 'bar'}));
 
-      expect(screen.queryByText('Type')).not.toBeInTheDocument();
-      expect(screen.queryByText('Last seen')).not.toBeInTheDocument();
-      expect(screen.queryByText('Times seen')).not.toBeInTheDocument();
+      expect(await screen.findByText('Type')).toBeInTheDocument();
+      expect(await screen.findByText('Last seen')).toBeInTheDocument();
+      expect(await screen.findByText('Times seen')).toBeInTheDocument();
+    });
+
+    it('renders the side panel when hovering a metric with field selected', async () => {
+      render(
+        <MetricSelector
+          traceMetric={{name: '', type: ''}}
+          onChange={jest.fn()}
+          fieldOption={{isSelected: true, onSelect: jest.fn()}}
+        />,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'field'}));
+      await userEvent.hover(await screen.findByRole('option', {name: 'bar'}));
+
+      expect(await screen.findByText('Type')).toBeInTheDocument();
+      expect(await screen.findByText('Last seen')).toBeInTheDocument();
+      expect(await screen.findByText('Times seen')).toBeInTheDocument();
     });
 
     it('shows attributes section in side panel', async () => {

@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -11,7 +12,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Accordion} from 'sentry/components/container/accordion';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
@@ -189,31 +189,26 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
     },
   ];
 
-  function renderCTA() {
-    if (primaryAction === 'setup') {
-      return (
-        <Tooltip
-          title={
-            <span data-test-id="setup-replays-tooltip">
-              {t('Select a supported project from the projects dropdown.')}
-            </span>
-          }
-          disabled={!disabled} // we only want to show the tooltip when the button is disabled
+  const cta =
+    primaryAction === 'setup' ? (
+      <Tooltip
+        title={
+          <span data-test-id="setup-replays-tooltip">
+            {t('Select a supported project from the projects dropdown.')}
+          </span>
+        }
+        disabled={!disabled} // we only want to show the tooltip when the button is disabled
+      >
+        <Button
+          data-test-id="setup-replays-btn"
+          onClick={() => activateSidebar()}
+          variant="primary"
+          disabled={disabled}
         >
-          <Button
-            data-test-id="setup-replays-btn"
-            type="button"
-            onClick={() => activateSidebar()}
-            variant="primary"
-            disabled={disabled}
-          >
-            {t('Set Up Replays')}
-          </Button>
-        </Tooltip>
-      );
-    }
-
-    return (
+          {t('Set Up Replays')}
+        </Button>
+      </Tooltip>
+    ) : (
       <Tooltip
         title={
           <span data-test-id="create-project-tooltip">
@@ -235,7 +230,6 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         </LinkButton>
       </Tooltip>
     );
-  }
 
   return (
     <Container padding="2xl">
@@ -246,7 +240,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         )}
       </p>
       <ButtonList>
-        {renderCTA()}
+        {cta}
         <LinkButton
           href={
             allMobileProj
@@ -261,9 +255,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
       <StyledWidgetContainer>
         <StyledHeaderContainer>
           {t('FAQ')}
-          <QuestionTooltip
+          <InfoTip
             size="xs"
-            isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
                 <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />

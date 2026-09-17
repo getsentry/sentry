@@ -1,17 +1,7 @@
-import type {IssueAlertRule} from 'sentry/types/alerts';
 import type {User} from 'sentry/types/user';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import type {UptimeRule} from 'sentry/views/alerts/rules/uptime/types';
-import type {Monitor} from 'sentry/views/insights/crons/types';
 
 type Data = Array<[number, Array<{count: number}>]>;
-
-export enum AlertRuleType {
-  METRIC = 'metric',
-  ISSUE = 'issue',
-  UPTIME = 'uptime',
-  CRONS = 'crons',
-}
 
 export type Incident = {
   alertRule: MetricRule;
@@ -34,15 +24,6 @@ export type Incident = {
   statusMethod: IncidentStatusMethod;
   title: string;
   activities?: ActivityType[];
-};
-
-/** @internal exported for tests */
-export type IncidentStats = {
-  eventStats: {
-    data: Data;
-  };
-  totalEvents: number;
-  uniqueUsers: number;
 };
 
 type ActivityTypeDraft = {
@@ -75,16 +56,10 @@ export enum IncidentStatus {
   CRITICAL = 20,
 }
 
-export enum IncidentStatusMethod {
+enum IncidentStatusMethod {
   MANUAL = 1,
   RULE_UPDATED = 2,
   RULE_TRIGGERED = 3,
-}
-
-export enum AlertRuleStatus {
-  PENDING = 0,
-  SNAPSHOT = 4,
-  DISABLED = 5,
 }
 
 export enum CombinedAlertType {
@@ -93,27 +68,6 @@ export enum CombinedAlertType {
   UPTIME = 'uptime',
   CRONS = 'monitor',
 }
-
-export interface IssueAlert extends IssueAlertRule {
-  type: CombinedAlertType.ISSUE;
-  latestIncident?: Incident | null;
-}
-
-export interface MetricAlert extends MetricRule {
-  type: CombinedAlertType.METRIC;
-}
-
-export interface UptimeAlert extends UptimeRule {
-  type: CombinedAlertType.UPTIME;
-}
-
-export interface CronRule extends Monitor {
-  type: CombinedAlertType.CRONS;
-}
-
-export type CombinedMetricIssueAlerts = IssueAlert | MetricAlert;
-
-export type CombinedAlerts = CombinedMetricIssueAlerts | UptimeAlert | CronRule;
 
 export type Anomaly = {
   anomaly: {anomaly_score: number; anomaly_type: AnomalyType};

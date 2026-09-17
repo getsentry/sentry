@@ -249,6 +249,23 @@ class ProjectStacktraceLinkGithubTest(BaseStacktraceLinkTest):
             "defaultBranch": "master",
         }
 
+    def test_percent_encoded_source_url(self) -> None:
+        # URLs copied from GitHub encode characters that are legal in a filename,
+        # e.g. the leading `+` of a SvelteKit route file
+        source_url = "https://github.com/getsentry/sentry/blob/master/src/routes/%2Bpage.svelte"
+        stack_path = "routes/+page.svelte"
+        resp = self.make_post(source_url, stack_path)
+        assert resp.status_code == 200, resp.content
+
+        assert resp.data == {
+            "integrationId": self.integration.id,
+            "repositoryId": self.repo.id,
+            "provider": "github",
+            "stackRoot": "routes/",
+            "sourceRoot": "src/routes/",
+            "defaultBranch": "master",
+        }
+
     def test_java_path(self) -> None:
         src_file = "src/com/example/foo/Bar.kt"
         source_url = f"https://github.com/getsentry/sentry/blob/master/{src_file}"

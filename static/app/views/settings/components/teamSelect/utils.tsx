@@ -57,7 +57,6 @@ export function DropdownAddTeam({
   organization: Organization;
   selectedTeams: string[];
   teams: Team[];
-  canCreateTeam?: boolean;
   isAddingTeamToMember?: boolean;
   onCreateTeam?: (team: Team) => void;
   project?: Project;

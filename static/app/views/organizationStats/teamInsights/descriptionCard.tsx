@@ -1,4 +1,5 @@
-import styled from '@emotion/styled';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 type Props = {
   children: React.ReactNode;
@@ -8,49 +9,24 @@ type Props = {
 
 export function DescriptionCard({title, description, children}: Props) {
   return (
-    <Wrapper>
-      <LeftPanel>
-        <Title>{title}</Title>
-        <Description>{description}</Description>
-      </LeftPanel>
-      <RightPanel>{children}</RightPanel>
-    </Wrapper>
+    <Flex
+      border="primary"
+      direction={{zero: 'column', '3xl': 'row'}}
+      marginBottom="2xl"
+      radius="md"
+    >
+      <Container
+        borderBottom={{zero: 'primary', '3xl': 'none'}}
+        borderRight={{zero: 'none', '3xl': 'primary'}}
+        maxWidth={{zero: 'none', '3xl': '250px'}}
+        padding="xl"
+      >
+        <Stack gap="xs">
+          <Text size="lg">{title}</Text>
+          <Text variant="muted">{description}</Text>
+        </Stack>
+      </Container>
+      <Container flexGrow={1}>{children}</Container>
+    </Flex>
   );
 }
-
-const Wrapper = styled('div')`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  display: flex;
-  margin-bottom: ${p => p.theme.space['2xl']};
-  flex-direction: column;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    flex-direction: row;
-  }
-`;
-
-const LeftPanel = styled('div')`
-  padding: ${p => p.theme.space.xl} ${p => p.theme.space.xl};
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 250px;
-    border-right: 1px solid ${p => p.theme.tokens.border.primary};
-    border-bottom: 0;
-  }
-`;
-
-const Title = styled('div')`
-  font-size: ${p => p.theme.font.size.lg};
-  margin: 0 0 ${p => p.theme.space.xs};
-`;
-
-const Description = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-const RightPanel = styled('div')`
-  flex-grow: 1;
-`;

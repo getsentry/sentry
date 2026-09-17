@@ -10,23 +10,10 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';
+import {useTranslation} from '@sentry/scraps/translationContext';
 
-import type {
-  GroupedOptionsType,
-  OptionsType,
-  OptionTypeBase,
-  Props as ReactSelectProps,
-  StylesConfig as ReactSelectStylesConfig,
-} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {
-  createFilter,
-  mergeStyles,
-  ReactSelect,
-  components as selectComponents,
-} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import type {Choices} from 'sentry/types/core';
 import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices';
 import {defined} from 'sentry/utils/defined';
@@ -34,6 +21,20 @@ import {PanelProvider} from 'sentry/utils/panelProvider';
 import type {FormSize, Theme} from 'sentry/utils/theme';
 
 import {SelectOption} from './option';
+import type {
+  GroupedOptionsType,
+  OptionsType,
+  OptionTypeBase,
+  Props as ReactSelectProps,
+  StylesConfig as ReactSelectStylesConfig,
+  ValueType,
+} from './reactSelectWrapper';
+import {
+  createFilter,
+  mergeStyles,
+  ReactSelect,
+  components as selectComponents,
+} from './reactSelectWrapper';
 
 // We don't care about any options for the styles config
 export type StylesConfig = ReactSelectStylesConfig<any, boolean>;
@@ -278,6 +279,8 @@ const getStylesConfig = ({
 function ClearIndicator(
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
 ) {
+  const {t} = useTranslation();
+
   // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
   // now we manually add aria labels to these interactive elements to help with
   // testing
@@ -324,17 +327,21 @@ export const CheckWrap = styled('div')<{
           border-radius: 2px;
           height: 1em;
           margin-top: 2px;
-          ${p.isSelected &&
-          css`
-            background: ${p.theme.tokens.background.accent.vibrant};
-            border-color: ${p.theme.tokens.border.accent};
-          `}
+          ${
+            p.isSelected &&
+            css`
+              background: ${p.theme.tokens.background.accent.vibrant};
+              border-color: ${p.theme.tokens.border.accent};
+            `
+          }
         `
       : css`
-          ${p.isSelected &&
-          css`
-            color: ${p.theme.tokens.content.accent};
-          `}
+          ${
+            p.isSelected &&
+            css`
+              color: ${p.theme.tokens.content.accent};
+            `
+          }
         `}
 `;
 
@@ -354,6 +361,8 @@ function isGroupedOptions<OptionType extends OptionTypeBase>(
 function MultiValueRemove(
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) {
+  const {t} = useTranslation();
+
   // XXX(epurkhiser): In react-selct 5 accessibility is greatly improved, for
   // now we manually add aria labels to these interactive elements to help with
   // testing
@@ -408,18 +417,21 @@ type MultipleProps<OptionType extends OptionTypeBase> = {
   multiple: true;
   clearable?: boolean;
   onChange?: (option: OptionType[]) => void;
+  value?: Array<OptionType['value']>;
 };
 
 type SingleProps<OptionType extends OptionTypeBase> = {
   clearable?: false;
   multiple?: false;
   onChange?: (option: OptionType) => void;
+  value?: OptionType['value'] | null;
 };
 
 type SingleClearableProps<OptionType extends OptionTypeBase> = {
   clearable: true;
   multiple?: false;
   onChange?: (option: OptionType | null) => void;
+  value?: OptionType['value'] | null;
 };
 
 type SelectProps<OptionType extends OptionTypeBase> =
@@ -480,14 +492,6 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
        */
       showDividers?: boolean;
       size?: FormSize;
-
-      /**
-       * Unlike react-select which expects an OptionType as its value
-       * we accept the option.value and resolve the option object.
-       * Because this type is embedded in the OptionType generic we
-       * can't have a good type here.
-       */
-      value?: unknown;
     };
 
 // TODO(ts) The exported component uses forwardRef.
@@ -549,15 +553,14 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
     convertFromSelect2Choices(typeof choices === 'function' ? choices(props) : choices) ||
     options;
 
-  // It's possible that `choicesOrOptions` does not exist (e.g. in the case of AsyncSelect)
-  // When isValueEqual is provided, the value is a raw domain object (e.g.
-  // {id, name}) that react-select can't handle directly — it would call
-  // callbacks like getOptionValue on it expecting a full option shape. In that
-  // case, fall back to null instead of passing the raw object through.
-  // Otherwise the value is a primitive or option-shaped object that
-  // react-select can handle directly.
-  const noMatchFallback = props.isValueEqual ? (props.multiple ? [] : null) : value;
-  let mappedValue = noMatchFallback;
+  let mappedValue: ValueType<OptionType, boolean> | undefined;
+  if (value === undefined) {
+    mappedValue = undefined;
+  } else if (props.multiple) {
+    mappedValue = [];
+  } else {
+    mappedValue = null;
+  }
 
   if (choicesOrOptions) {
     /**
@@ -566,9 +569,11 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
      * because the select component fetches the options finding the mappedValue will fail
      * and the component won't work
      */
-    const flatOptions = isGroupedOptions(choicesOrOptions)
-      ? choicesOrOptions.flatMap(option => option.options)
-      : choicesOrOptions.flatMap(option => option);
+    const flatOptions = (
+      isGroupedOptions(choicesOrOptions)
+        ? choicesOrOptions.flatMap(option => option.options)
+        : choicesOrOptions.flatMap(option => option)
+    ) as OptionType[];
 
     const compare = (
       a: OptionType['value'] | null | undefined,
@@ -580,14 +585,26 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       return a === b;
     };
 
-    mappedValue =
-      props.multiple && Array.isArray(value)
-        ? value.map((val: OptionType['value'] | null | undefined) =>
+    const toOption = (val: OptionType['value']) =>
+      creatable && defined(val)
+        ? ({value: val, label: String(val)} as OptionType)
+        : undefined;
+
+    if (props.multiple && Array.isArray(props.value)) {
+      mappedValue = props.value
+        .map(
+          val =>
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            flatOptions.find(option => compare(option.value, val))
-          )
-        : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          flatOptions.find(opt => compare(opt.value, value)) || noMatchFallback;
+            flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
+        )
+        .filter(defined);
+    } else {
+      mappedValue =
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        flatOptions.find(option => compare(option.value, props.value)) ??
+        toOption(props.value) ??
+        mappedValue;
+    }
   }
 
   // Override the default style with in-field labels if they are provided
@@ -658,12 +675,19 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
   );
 }
 
+type SelectPickerProps<OptionType extends OptionTypeBase> = Omit<
+  ControlProps<OptionType>,
+  'value'
+> & {
+  value?: ValueType<OptionType, boolean>;
+};
+
 function SelectPicker<OptionType extends OptionTypeBase>({
   async,
   creatable,
   ref,
   ...props
-}: ControlProps<OptionType>) {
+}: SelectPickerProps<OptionType>) {
   // Pick the right component to use
   // Using any here as react-select types also use any
   let Component: React.ComponentType<any> | undefined;

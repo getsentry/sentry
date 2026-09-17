@@ -2,7 +2,6 @@ import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {ApiResult} from 'sentry/types/api';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
@@ -12,7 +11,6 @@ import type {
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
@@ -20,10 +18,7 @@ import type {
 } from 'sentry/utils/discover/discoverQuery';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -60,8 +55,6 @@ export function useTransactionsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
-    onDemandControlContext,
     widgetInterval,
   } = params;
 
@@ -75,14 +68,6 @@ export function useTransactionsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const useOnDemandMetrics = shouldUseOnDemandMetrics(
-    organization,
-    filteredWidget,
-    onDemandControlContext
-  );
-
-  // Check if organization has the async queue feature
   const queryResults = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -90,18 +75,10 @@ export function useTransactionsSeriesQuery(
         queryIndex,
         organization,
         pageFilters,
-        isMEPEnabled ? DiscoverDatasets.METRICS_ENHANCED : DiscoverDatasets.TRANSACTIONS,
+        DiscoverDatasets.SPANS,
         getReferrer(filteredWidget.displayType),
         widgetInterval
       );
-
-      // Handle on-demand metrics
-      if (useOnDemandMetrics) {
-        requestData.queryExtras = {
-          ...requestData.queryExtras,
-          dataset: DiscoverDatasets.METRICS_ENHANCED,
-        };
-      }
 
       // Transform requestData into proper query params
       const {
@@ -136,54 +113,6 @@ export function useTransactionsSeriesQuery(
           }
         ),
         queryFn: (context): Promise<ApiResponse<TransactionsSeriesResponse>> => {
-          // For on-demand metrics, we need to use a special request function
-          if (useOnDemandMetrics) {
-            const onDemandRequestData = getSeriesRequestData(
-              filteredWidget,
-              queryIndex,
-              organization,
-              pageFilters,
-              DiscoverDatasets.METRICS_ENHANCED,
-              getReferrer(filteredWidget.displayType),
-              widgetInterval
-            );
-
-            onDemandRequestData.queryExtras = {
-              ...onDemandRequestData.queryExtras,
-              dataset: DiscoverDatasets.METRICS_ENHANCED,
-            };
-
-            const toApiResponse = (
-              result: ApiResult<TransactionsSeriesResponse>
-            ): ApiResponse<TransactionsSeriesResponse> => ({
-              json: result[0],
-              headers: {},
-            });
-
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    doOnDemandMetricsRequest(
-                      context.meta?.api,
-                      onDemandRequestData,
-                      filteredWidget.widgetType
-                    )
-                      .then(toApiResponse)
-                      .then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-
-            return doOnDemandMetricsRequest(
-              context.meta?.api,
-              onDemandRequestData,
-              filteredWidget.widgetType
-            ).then(toApiResponse);
-          }
-
-          // Standard request flow
           if (queue) {
             return new Promise((resolve, reject) => {
               const fetchFnRef = {
@@ -243,15 +172,20 @@ export function useTransactionsSeriesQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
     // Store current rawData for next comparison
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 
@@ -283,8 +217,6 @@ export function useTransactionsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
-    mepSetting,
-    onDemandControlContext,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -296,14 +228,6 @@ export function useTransactionsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
-  const useOnDemandMetrics = shouldUseOnDemandMetrics(
-    organization,
-    filteredWidget,
-    onDemandControlContext
-  );
-
-  // Check if organization has the async queue feature
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
@@ -328,18 +252,11 @@ export function useTransactionsTableQuery(
 
       const eventView = eventViewFromWidget('', modifiedQuery, pageFilters);
 
-      const queryExtras = useOnDemandMetrics
-        ? {useOnDemandMetrics: true, onDemandType: 'dynamic_query'}
-        : {};
-
       const requestParams: DiscoverQueryRequestParams = {
         per_page: limit,
         cursor,
         referrer: getReferrer(filteredWidget.displayType),
-        dataset: isMEPEnabled
-          ? DiscoverDatasets.METRICS_ENHANCED
-          : DiscoverDatasets.TRANSACTIONS,
-        ...queryExtras,
+        dataset: DiscoverDatasets.SPANS,
       };
 
       if (modifiedQuery.orderby) {
@@ -428,15 +345,20 @@ export function useTransactionsTableQuery(
 
     // Check if rawData is the same as before to prevent unnecessary rerenders
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
     // Store current rawData for next comparison
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 

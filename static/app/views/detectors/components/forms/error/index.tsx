@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
+import {LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -23,6 +24,7 @@ import {AutomateSection} from 'sentry/views/detectors/components/forms/automateS
 import {useSubmitEditDetector} from 'sentry/views/detectors/hooks/useSubmitEditDetector';
 import {
   makeMonitorBasePathname,
+  makeMonitorDetailsPathname,
   makeMonitorTypePathname,
 } from 'sentry/views/detectors/pathnames';
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
@@ -181,6 +183,13 @@ export function EditExistingErrorDetectorForm({
         </EditLayout.Body>
 
         <EditLayout.Footer maxWidth={maxWidth}>
+          <LinkButton
+            variant="secondary"
+            size="sm"
+            to={makeMonitorDetailsPathname(organization.slug, detector.id)}
+          >
+            {t('Cancel')}
+          </LinkButton>
           <form.SubmitButton
             size="sm"
             disabled={!canEditWorkflowConnections}

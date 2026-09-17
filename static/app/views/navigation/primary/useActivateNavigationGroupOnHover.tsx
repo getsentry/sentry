@@ -45,11 +45,11 @@ export function useActivateNavigationGroupOnHover({
   return function makeNavigationItemProps(
     group: ReturnType<typeof usePrimaryNavigation>['activeGroup'],
     to: string,
-    activeTo?: string
+    activeTo?: string | string[]
   ): Omit<Partial<LinkProps>, 'to'> {
-    const isActive = isPrimaryNavigationLinkActive(
-      normalizeUrl(activeTo ?? to),
-      location.pathname
+    const activePaths = Array.isArray(activeTo) ? activeTo : [activeTo ?? to];
+    const isActive = activePaths.some(path =>
+      isPrimaryNavigationLinkActive(normalizeUrl(path), location.pathname)
     );
 
     const onMouseEnter = (e: React.MouseEvent<HTMLAnchorElement>) => {

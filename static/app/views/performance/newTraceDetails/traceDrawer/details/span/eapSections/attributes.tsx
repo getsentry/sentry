@@ -11,12 +11,14 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {UnixTimestamp} from 'sentry/components/unixTimestamp';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {FieldKey} from 'sentry/utils/fields';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {formatDollars} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
@@ -24,7 +26,7 @@ import {looksLikeAJSONArray} from 'sentry/utils/string/looksLikeAJSONArray';
 import {looksLikeAJSONObject} from 'sentry/utils/string/looksLikeAJSONObject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {AssertionFailureTree} from 'sentry/views/alerts/rules/uptime/assertions/assertionFailure/assertionFailureTree';
+import {AssertionFailureTree} from 'sentry/views/detectors/components/uptime/assertions/assertionFailure/assertionFailureTree';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTree} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -34,13 +36,14 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {
-  findSpanAttributeValue,
   getTraceAttributesTreeActions,
   sortAttributes,
   tryParseJsonRecursive,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
+import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
 import type {UptimeCheckNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/uptimeCheckNode';
+import {usePinnedAttribute} from 'sentry/views/performance/newTraceDetails/tracePinnedAttribute';
 import {useTraceState} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -60,6 +63,10 @@ const truncatedTextRenderer = (props: CustomRenderersProps) => {
   }
   return ellipsize(props.item.value, 100);
 };
+
+const preciseTimestampRenderer = (props: CustomRenderersProps) => (
+  <UnixTimestamp value={props.item.value} fallback={props.basicRendered} />
+);
 
 interface AttributesProps {
   attributes: TraceItemResponseAttribute[];
@@ -97,6 +104,7 @@ export function AttributesContent({
   organization,
   project,
 }: AttributesProps) {
+  const pin = usePinnedAttribute();
   const [searchQuery, setSearchQuery] = useState('');
   const {selection} = usePageFilters();
   const currentLocation = useLocation();
@@ -196,6 +204,8 @@ export function AttributesContent({
     [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: (props: CustomRenderersProps) => {
       return formatDollars(+Number(props.item.value).toFixed(10));
     },
+    [SpanFields.PRECISE_START_TS]: preciseTimestampRenderer,
+    [SpanFields.PRECISE_FINISH_TS]: preciseTimestampRenderer,
     assertion_failure_data: (props: CustomRenderersProps) => {
       if (props.item.value === null) {
         return <Text variant="muted">null</Text>;
@@ -240,6 +250,7 @@ export function AttributesContent({
           <AttributesTree
             columnCount={columnCount}
             attributes={sortedAndFilteredAttributes}
+            pinnedAttribute={pin?.enabled && isEAPSpanNode(node) ? pin.attribute : null}
             renderers={customRenderers}
             rendererExtra={{
               theme,
@@ -247,11 +258,23 @@ export function AttributesContent({
               navigate,
               organization,
             }}
-            getCustomActions={getTraceAttributesTreeActions({
-              location,
-              organization,
-              projectIds: findSpanAttributeValue(attributes, 'project_id'),
-            })}
+            getCustomActions={content => {
+              const actions = getTraceAttributesTreeActions({
+                location,
+                organization,
+                projectIds: getAttributeValue(attributes, 'project_id')?.toString(),
+              })(content);
+              const name = content.originalAttribute?.original_attribute_key;
+              if (pin?.enabled && isEAPSpanNode(node) && name) {
+                const pinned = pin.attribute === name;
+                actions.push({
+                  key: 'pin-to-waterfall',
+                  label: pinned ? t('Unpin from waterfall') : t('Pin to waterfall'),
+                  onAction: () => pin.setAttribute(pinned ? null : name),
+                });
+              }
+              return actions;
+            }}
           />
         </div>
       ) : (

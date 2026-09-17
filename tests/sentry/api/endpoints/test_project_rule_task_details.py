@@ -11,7 +11,7 @@ class ProjectRuleTaskDetailsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.project = self.create_project(fire_project_created=True)
-        self.rule = self.project.rule_set.order_by("id")[0]
+        self.rule = self.create_project_rule(project=self.project)
         self.uuid = uuid4().hex
 
     @patch("sentry.integrations.slack.utils.rule_status.RedisRuleStatus.get_value")
@@ -20,6 +20,14 @@ class ProjectRuleTaskDetailsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, self.project.slug, self.uuid)
         assert response.data["status"] == "pending"
         assert response.data["rule"] is None
+
+    def test_deprecated_api_disabled(self) -> None:
+        with self.feature({"organizations:legacy-alerts-api": False}):
+            response = self.get_error_response(
+                self.organization.slug, self.project.slug, self.uuid, status_code=410
+            )
+
+        assert response.data == {"detail": "This API no longer exists."}
 
     @patch("sentry.integrations.slack.utils.rule_status.RedisRuleStatus.get_value")
     def test_status_failed(self, mock_get_value: MagicMock) -> None:

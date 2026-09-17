@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
@@ -19,28 +19,33 @@ import {
   GridEditable,
   type GridColumnHeader,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
-import {useStateBasedColumnResize} from 'sentry/components/tables/gridEditable/useStateBasedColumnResize';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconFire, IconUser} from 'sentry/icons';
+import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
+  CONVERSATION_FIELDS,
   useConversations,
   type Conversation,
+  type ConversationSortField,
   type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {ErrorCell} from 'sentry/views/insights/pages/agents/utils/cells';
 
 // Tool tags wrap across at most this many rows; anything that doesn't fit
 // collapses into a trailing "+N" overflow tag.
@@ -90,6 +95,21 @@ const COLUMN_DEFAULTS: Record<ColumnKey, {name: string; width: number}> = {
 
 const RIGHT_ALIGNED_COLUMNS = new Set<ColumnKey>(['age']);
 
+const SORT_FIELD_BY_COLUMN: Partial<Record<ColumnKey, ConversationSortField>> = {
+  duration: CONVERSATION_FIELDS.generationDuration.key,
+  messages: CONVERSATION_FIELDS.messages.key,
+  errors: CONVERSATION_FIELDS.errors.key,
+  cost: CONVERSATION_FIELDS.totalCost.key,
+  age: CONVERSATION_FIELDS.age.key,
+};
+
+// Persisted per-column widths. Only the widths are stored, keyed by column:
+// names are translated, and keying by column (rather than storing the whole
+// column array) keeps a stored layout usable when columns change.
+const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
+
+type ColumnWidths = Partial<Record<ColumnKey, number>>;
+
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
 
@@ -105,6 +125,7 @@ export function getUserDisplayName(user: ConversationUser): string | null {
     normalizeUserField(user.email) ||
     normalizeUserField(user.username) ||
     normalizeUserField(user.ip_address) ||
+    normalizeUserField(user.id) ||
     null
   );
 }
@@ -147,25 +168,73 @@ export function collapseToolsColumnWhenUnused(
   );
 }
 
+/**
+ * Reads the persisted column widths, dropping anything that isn't a width we
+ * would have written: unknown columns, and values below the grid's own resize
+ * floor (which includes a persisted COL_WIDTH_UNDEFINED). Dropped columns fall
+ * back to their default width.
+ */
+export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
+  if (typeof value !== 'object' || value === null) {
+    return {};
+  }
+  const stored = value as Record<string, unknown>;
+  const widths: ColumnWidths = {};
+  for (const key of COLUMN_ORDER) {
+    const width = stored[key];
+    if (
+      typeof width === 'number' &&
+      Number.isFinite(width) &&
+      width >= COL_WIDTH_MINIMUM
+    ) {
+      widths[key] = width;
+    }
+  }
+  return widths;
+}
+
 export function ConversationsTable() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
+  const {
+    data,
+    isFetching,
+    error,
+    pageLinks,
+    setCursor,
+    unsetCursor,
+    isDirectHit,
+    sort,
+    setSort,
+  } = useConversations();
   useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
-  const {columns: columnOrder, handleResizeColumn} = useStateBasedColumnResize<
-    GridColumnOrder<ColumnKey>
-  >({
-    columns: () =>
+  const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
+    COLUMN_WIDTHS_STORAGE_KEY,
+    parseStoredColumnWidths
+  );
+
+  const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
+    () =>
       COLUMN_ORDER.map(key => ({
         key,
         name: COLUMN_DEFAULTS[key].name,
-        width: COLUMN_DEFAULTS[key].width,
+        width: storedWidths[key] ?? COLUMN_DEFAULTS[key].width,
       })),
-  });
+    [storedWidths]
+  );
+
+  const handleResizeColumn = useCallback(
+    (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
+      // Keyed by column rather than by index so a stored width survives a
+      // change to the column order.
+      setStoredWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
+    },
+    [setStoredWidths]
+  );
 
   const hasNoTools = useMemo(
     () =>
@@ -177,6 +246,14 @@ export function ConversationsTable() {
     () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
     [columnOrder, hasNoTools]
   );
+  const staticColumnWidths = useMemo(
+    () =>
+      storedWidths.conversation === undefined ||
+      storedWidths.conversation === COL_WIDTH_UNDEFINED
+        ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
+        : undefined,
+    [storedWidths.conversation]
+  );
 
   const handlePaginate: typeof setCursor = (cursor, path, query, pageDelta) => {
     trackAnalytics('conversations.table.paginate', {
@@ -187,8 +264,24 @@ export function ConversationsTable() {
   };
 
   const handleRowClick = useCallback(
-    (dataRow: Conversation) => {
-      navigate(getConversationDetailUrl(organization.slug, dataRow, selection.projects));
+    (dataRow: Conversation, _key: number, event: React.MouseEvent) => {
+      const url = getConversationDetailUrl(
+        organization.slug,
+        dataRow,
+        selection.projects
+      );
+      // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
+      // opens a new tab (no features string) and Shift+click opens a new window
+      // (a features string makes browsers open a window rather than a tab).
+      if (event.shiftKey) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      if (isCtrlKeyPressed(event)) {
+        window.open(url, '_blank');
+        return;
+      }
+      navigate(url);
     },
     [navigate, organization.slug, selection.projects]
   );
@@ -202,12 +295,30 @@ export function ConversationsTable() {
         justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
       >
         {column.name}
-        {/* Raise the conversation column's growth-limit so it absorbs the
-            leftover width instead of the last column stretching. */}
-        {column.key === 'conversation' && <Container width="100vw" />}
       </Flex>
     ),
     []
+  );
+
+  const getColumnSort = useCallback(
+    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
+      const field = SORT_FIELD_BY_COLUMN[column.key];
+      if (!field) {
+        return undefined;
+      }
+
+      const direction =
+        sort === field ? 'asc' : sort === `-${field}` ? 'desc' : undefined;
+      return {
+        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        direction,
+        onSort: () => {
+          setSort(direction === 'desc' ? field : `-${field}`);
+          unsetCursor();
+        },
+      };
+    },
+    [setSort, sort, unsetCursor]
   );
 
   const renderBodyCell = useCallback(
@@ -225,15 +336,16 @@ export function ConversationsTable() {
           error={error}
           data={data}
           columnOrder={displayedColumns}
-          columnSortBy={[]}
           stickyHeader
           // GridEditable's Panel body has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{
+            getColumnSort,
             renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
+            staticColumnWidths,
           }}
           onRowClick={handleRowClick}
           isRowClickable={() => true}
@@ -275,7 +387,7 @@ function BodyCell({
         </Text>
       );
     case 'errors':
-      return <ErrorsCell errors={conversation.errors} />;
+      return <ErrorCell value={conversation.errors} />;
     case 'cost':
       return (
         <Text tabular>
@@ -376,7 +488,7 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
   }
 
   return (
-    <Tooltip title={<UserNotInstrumentedTooltip />} isHoverable skipWrapper>
+    <Tooltip title={<UserNotInstrumentedTooltip />} skipWrapper>
       <Flex align="center" gap="xs">
         <UserIcon size="xs" />
         <Text size="sm" variant="muted">
@@ -384,24 +496,6 @@ function ConversationUserLabel({user}: {user: Conversation['user']}) {
         </Text>
       </Flex>
     </Tooltip>
-  );
-}
-
-function ErrorsCell({errors}: {errors: number}) {
-  if (errors === 0) {
-    return (
-      <Text tabular variant="muted">
-        0
-      </Text>
-    );
-  }
-  return (
-    <Flex align="center" gap="xs">
-      <Text tabular variant="danger">
-        <Count value={errors} />
-      </Text>
-      <IconFire size="xs" variant="danger" />
-    </Flex>
   );
 }
 
@@ -497,6 +591,7 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
       badgeWidth: badgeEl?.getBoundingClientRect().width ?? 0,
       rowHeight: badgeEl?.getBoundingClientRect().height ?? 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [toolsKey]);
 
   const visibleCount = useMemo(() => {

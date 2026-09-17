@@ -1,8 +1,6 @@
-import {mutationOptions} from '@tanstack/react-query';
-import {useQueryClient} from '@tanstack/react-query';
+import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Container, Stack} from '@sentry/scraps/layout';
 
@@ -11,9 +9,11 @@ import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {fetchMutation, getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 const schema = z.object({
   enabledCodeReview: z.boolean(),
@@ -43,7 +43,9 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
     ) => {
       return fetchMutation<RepositoryWithSettings[]>({
         method: 'PUT',
-        url: `/organizations/${organization.slug}/repos/settings/`,
+        url: getApiUrl('/organizations/$organizationIdOrSlug/repos/settings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         data: {...data, repositoryIds: [repoWithSettings.id]},
       });
     },
@@ -84,13 +86,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
 
   return (
     <Stack gap="lg">
-      {canWrite ? null : (
-        <Alert data-test-id="org-permission-alert" variant="warning">
-          {t(
-            'These settings can only be edited by users with the organization owner or manager role.'
-          )}
-        </Alert>
-      )}
+      {canWrite ? null : <OrganizationPermissionAlert />}
       <FieldGroup>
         <AutoSaveForm
           name="enabledCodeReview"

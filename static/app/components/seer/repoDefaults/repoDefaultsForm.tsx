@@ -1,7 +1,6 @@
 import {mutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Alert} from '@sentry/scraps/alert';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 
@@ -9,8 +8,10 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {t, tct} from 'sentry/locale';
 import {DEFAULT_CODE_REVIEW_TRIGGERS} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
+import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 const schema = z.object({
   autoEnableCodeReview: z.boolean(),
@@ -24,7 +25,9 @@ interface Props {
 export function RepoDefaultsForm({organization}: Props) {
   const canWrite = useCanWriteSettings();
 
-  const orgEndpoint = `/organizations/${organization.slug}/`;
+  const orgEndpoint = getApiUrl('/organizations/$organizationIdOrSlug/', {
+    path: {organizationIdOrSlug: organization.slug},
+  });
   const orgMutationOpts = mutationOptions({
     mutationFn: (data: Partial<Organization>) =>
       fetchMutation<Organization>({method: 'PUT', url: orgEndpoint, data}),
@@ -33,13 +36,7 @@ export function RepoDefaultsForm({organization}: Props) {
 
   return (
     <Stack gap="lg">
-      {canWrite ? null : (
-        <Alert variant="warning">
-          {t(
-            'These settings can only be edited by users with the organization owner or manager role.'
-          )}
-        </Alert>
-      )}
+      {canWrite ? null : <OrganizationPermissionAlert />}
       <FieldGroup>
         <AutoSaveForm
           name="autoEnableCodeReview"

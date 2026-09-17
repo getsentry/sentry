@@ -1,9 +1,6 @@
-import {lazy} from 'react';
+import {
+  AutomationsListRedirect,
+  withAutomationDetailsRedirect,
+} from 'sentry/views/alerts/workflowEngineRedirects';
 
-import {withAutomationDetailsRedirect} from 'sentry/views/alerts/workflowEngineRedirects';
-
-const IssueAlertRuleDetails = lazy(
-  () => import('sentry/views/alerts/rules/issue/details/ruleDetails')
-);
-
-export default withAutomationDetailsRedirect(IssueAlertRuleDetails);
+export default withAutomationDetailsRedirect(AutomationsListRedirect);

@@ -11,7 +11,7 @@ import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {isEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';

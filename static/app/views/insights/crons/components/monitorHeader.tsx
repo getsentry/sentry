@@ -3,7 +3,7 @@ import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -19,8 +19,8 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
   const organization = useOrganization();
   const crumbs = [
     {
-      label: t('Alerts'),
-      to: makeAlertsPathname({path: '/rules/', organization}),
+      label: t('Monitors'),
+      to: makeMonitorBasePathname(organization.slug),
       preservePageFilters: true,
     },
     {

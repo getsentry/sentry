@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.utils.safe import get_path
@@ -26,6 +27,16 @@ _JAVA_CLASS_IN_TEXT_RE = re.compile(
     re.X,
 )
 
+# R8 can flatten packages, leaving class names without one. Those are only
+# unambiguous in a complete "<source> cannot be cast to <target>" value. Either
+# operand may still be dotted, since a keep rule can preserve one of the two.
+# Array suffixes are captured separately so Symbolicator receives only the base
+# class names, then reattached when rebuilding the message.
+_CLASS_CAST_MESSAGE_RE = re.compile(
+    r"(?P<from_class>[A-Za-z_$][\w$.]*)(?P<from_array_suffix>(?:\[\])*) cannot be cast to "
+    r"(?P<to_class>[A-Za-z_$][\w$.]*)(?P<to_array_suffix>(?:\[\])*)"
+)
+
 
 class Exceptions:
     def __init__(self, data: Any):
@@ -36,7 +47,10 @@ class Exceptions:
             if exc.get("type", None):
                 self._processable_exceptions.append(exc)
             if value := exc.get("value", None):
-                class_matches = _JAVA_CLASS_IN_TEXT_RE.findall(value)
+                if match := _CLASS_CAST_MESSAGE_RE.fullmatch(value):
+                    class_matches = list(match.group("from_class", "to_class"))
+                else:
+                    class_matches = _JAVA_CLASS_IN_TEXT_RE.findall(value)
                 if class_matches:
                     self._processable_exceptions_with_values.append((exc, class_matches))
 
@@ -75,6 +89,12 @@ class Exceptions:
         if classes:
             for exc, class_names in self._processable_exceptions_with_values:
                 original_value = exc["value"]
+
+                if mapped_value := _deobfuscate_class_cast_message(original_value, classes):
+                    exc["raw_value"] = original_value
+                    exc["value"] = mapped_value
+                    continue
+
                 new_value = original_value
 
                 # Preserve order but ensure uniqueness, then sort by stripped length desc
@@ -99,6 +119,24 @@ class Exceptions:
 
                 if performed_replacement:
                     exc["value"] = new_value
+
+
+def _deobfuscate_class_cast_message(value: str, classes: Mapping[str, str]) -> str | None:
+    match = _CLASS_CAST_MESSAGE_RE.fullmatch(value)
+    if not match:
+        return None
+
+    from_class = match["from_class"]
+    to_class = match["to_class"]
+    mapped_from_class = classes.get(from_class)
+    mapped_to_class = classes.get(to_class)
+    if not mapped_from_class and not mapped_to_class:
+        return None
+
+    return (
+        f"{mapped_from_class or from_class}{match['from_array_suffix']} cannot be cast to "
+        f"{mapped_to_class or to_class}{match['to_array_suffix']}"
+    )
 
 
 def _is_quoted(token: str) -> bool:

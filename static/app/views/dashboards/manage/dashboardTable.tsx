@@ -19,8 +19,8 @@ import {
   COL_WIDTH_UNDEFINED,
   GridEditable,
   type GridColumnOrder,
+  type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCopy, IconDelete, IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -93,6 +93,70 @@ function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
   );
 }
 
+function DashboardRowActions({
+  dashboard,
+  onDelete,
+  onDuplicate,
+}: {
+  dashboard: DashboardListItem;
+  onDelete: ReturnType<typeof useDeleteDashboard>;
+  onDuplicate: ReturnType<typeof useDuplicateDashboard>;
+}) {
+  return (
+    <Flex gap="xs">
+      <DashboardCreateLimitWrapper>
+        {({
+          hasReachedDashboardLimit,
+          isLoading: isLoadingDashboardsLimit,
+          limitMessage,
+        }) => (
+          <StyledButton
+            onClick={e => {
+              e.stopPropagation();
+              openConfirmModal({
+                message: t('Are you sure you want to duplicate this dashboard?'),
+                onConfirm: () => onDuplicate(dashboard, 'table'),
+              });
+            }}
+            variant="transparent"
+            aria-label={t('Duplicate Dashboard')}
+            data-test-id="dashboard-duplicate"
+            icon={<IconCopy />}
+            size="sm"
+            disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+            tooltipProps={{
+              title: limitMessage,
+            }}
+          />
+        )}
+      </DashboardCreateLimitWrapper>
+      <StyledButton
+        onClick={e => {
+          e.stopPropagation();
+          openConfirmModal({
+            message: t('Are you sure you want to delete this dashboard?'),
+            priority: 'danger',
+            onConfirm: () => onDelete(dashboard, 'table'),
+          });
+        }}
+        variant="transparent"
+        aria-label={t('Delete Dashboard')}
+        data-test-id="dashboard-delete"
+        icon={<IconDelete />}
+        size="sm"
+        disabled={defined(dashboard.prebuiltId)}
+        tooltipProps={{
+          title: defined(dashboard.prebuiltId)
+            ? tct('[label] dashboards cannot be deleted', {
+                label: PREBUILT_DASHBOARD_LABEL,
+              })
+            : undefined,
+        }}
+      />
+    </Flex>
+  );
+}
+
 function DashboardTable({
   api,
   organization,
@@ -114,7 +178,7 @@ function DashboardTable({
 
   // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
   // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
-  // special case in `renderHeadCell`, and the `mydashboards` default/fallback.
+  // special case in `getColumnSort`, and the `mydashboards` default/fallback.
   const columnOrder: Array<GridColumnOrder<ResponseKeys>> = hasUserLastVisited
     ? [
         {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
@@ -154,94 +218,32 @@ function DashboardTable({
         {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
       ];
 
-  const renderActions = (dataRow: DashboardListItem) => {
-    return (
-      <Flex gap="xs">
-        <DashboardCreateLimitWrapper>
-          {({
-            hasReachedDashboardLimit,
-            isLoading: isLoadingDashboardsLimit,
-            limitMessage,
-          }) => (
-            <StyledButton
-              onClick={e => {
-                e.stopPropagation();
-                openConfirmModal({
-                  message: t('Are you sure you want to duplicate this dashboard?'),
-                  priority: 'primary',
-                  onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
-                });
-              }}
-              variant="transparent"
-              aria-label={t('Duplicate Dashboard')}
-              data-test-id="dashboard-duplicate"
-              icon={<IconCopy />}
-              size="sm"
-              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              tooltipProps={{
-                title: limitMessage,
-              }}
-            />
-          )}
-        </DashboardCreateLimitWrapper>
-        <StyledButton
-          onClick={e => {
-            e.stopPropagation();
-            openConfirmModal({
-              message: t('Are you sure you want to delete this dashboard?'),
-              priority: 'danger',
-              onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
-            });
-          }}
-          variant="transparent"
-          aria-label={t('Delete Dashboard')}
-          data-test-id="dashboard-delete"
-          icon={<IconDelete />}
-          size="sm"
-          disabled={defined(dataRow.prebuiltId)}
-          tooltipProps={{
-            title: defined(dataRow.prebuiltId)
-              ? tct('[label] dashboards cannot be deleted', {
-                  label: PREBUILT_DASHBOARD_LABEL,
-                })
-              : undefined,
-          }}
-        />
-      </Flex>
-    );
-  };
-
-  function renderHeadCell(column: GridColumnOrder<string>) {
-    if (column.key in SortKeys) {
-      const sortKey = SortKeys[column.key as keyof typeof SortKeys];
-      const urlSort = decodeScalar(
-        location.query.sort,
-        hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
-      );
-      const currentDirection =
-        urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
-      const isCurrentSort = currentDirection !== undefined;
-      const sortDirection =
-        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection;
-
-      return (
-        <SortLink
-          align="left"
-          title={column.name}
-          direction={sortDirection}
-          canSort
-          generateSortLink={() => {
-            const newSort =
-              isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc;
-            return {
-              ...location,
-              query: {...location.query, sort: newSort},
-            };
-          }}
-        />
-      );
+  function getColumnSort(column: GridColumnOrder<string>): GridColumnSort | undefined {
+    if (!(column.key in SortKeys)) {
+      return;
     }
-    return column.name;
+
+    const sortKey = SortKeys[column.key as keyof typeof SortKeys];
+    const urlSort = decodeScalar(
+      location.query.sort,
+      hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
+    );
+    const currentDirection =
+      urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
+    const isCurrentSort = currentDirection !== undefined;
+
+    return {
+      align: 'left',
+      direction:
+        !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection,
+      to: {
+        ...location,
+        query: {
+          ...location.query,
+          sort: isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc,
+        },
+      },
+    };
   }
 
   const renderBodyCell = (
@@ -325,7 +327,13 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          {hasUserLastVisited ? undefined : renderActions(dataRow)}
+          {hasUserLastVisited ? undefined : (
+            <DashboardRowActions
+              dashboard={dataRow}
+              onDelete={handleDeleteDashboard}
+              onDuplicate={handleDuplicateDashboard}
+            />
+          )}
         </Flex>
       );
     }
@@ -342,7 +350,11 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          {renderActions(dataRow)}
+          <DashboardRowActions
+            dashboard={dataRow}
+            onDelete={handleDeleteDashboard}
+            onDuplicate={handleDuplicateDashboard}
+          />
         </Flex>
       );
     }
@@ -359,10 +371,9 @@ function DashboardTable({
     <GridEditable
       data={dashboards ?? []}
       columnOrder={columnOrder}
-      columnSortBy={[]}
       grid={{
         renderBodyCell,
-        renderHeadCell: column => renderHeadCell(column),
+        getColumnSort,
         // favorite column
         renderPrependColumns: (isHeader: boolean, dataRow?: any) => {
           const favoriteColumn = {

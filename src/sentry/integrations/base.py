@@ -125,7 +125,7 @@ class IntegrationFeatures(StrEnum):
     CODEOWNERS = "codeowners"
     USER_MAPPING = "user-mapping"
     CODING_AGENT = "coding-agent"
-    MONITORING = "monitoring"
+    SEER_CONTEXT = "seer-context"
 
     # features currently only existing on plugins:
     DATA_FORWARDING = "data-forwarding"
@@ -161,6 +161,7 @@ INTEGRATION_TYPE_TO_PROVIDER = {
         IntegrationProviderSlug.BITBUCKET_SERVER,
         IntegrationProviderSlug.AZURE_DEVOPS,
         IntegrationProviderSlug.PERFORCE,
+        IntegrationProviderSlug.CURSOR_ORIGIN,
     ],
     IntegrationDomain.ON_CALL_SCHEDULING: [
         IntegrationProviderSlug.PAGERDUTY,
@@ -243,6 +244,9 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
 
     allow_multiple = True
     """whether multiple installations of this integration are allowed per organization"""
+
+    overwrite_existing_integration = True
+    """whether installation refreshes an existing Integration's global fields"""
 
     can_disable = False
     """

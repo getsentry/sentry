@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from concurrent.futures import Future
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from sentry.replays.tasks import delete_replays_script_async
@@ -63,9 +64,10 @@ class TestDeleteReplaysScriptAsync(TestCase):
     @patch("sentry.replays.usecases.delete._delete_if_exists")
     @patch("sentry.replays.usecases.delete.ContextPropagatingThreadPoolExecutor")
     def test_thread_pool_is_bounded_by_segment_count(
-        self, mock_pool: object, mock_delete: object
+        self, mock_pool: MagicMock, mock_delete: object
     ) -> None:
         # A single-segment replay must not open the full pool.
+        _stub_pool_futures(mock_pool)
         replay_id = uuid4().hex
 
         with patch("sentry.replays.tasks.make_recording_filename", side_effect=lambda s: str(s)):
@@ -76,12 +78,15 @@ class TestDeleteReplaysScriptAsync(TestCase):
                 max_segment_id=0,
             )
 
-        mock_pool.assert_called_once_with(max_workers=1)  # type: ignore[attr-defined]
+        mock_pool.assert_called_once_with(max_workers=1)
 
     @patch("sentry.replays.usecases.delete._delete_if_exists")
     @patch("sentry.replays.usecases.delete.ContextPropagatingThreadPoolExecutor")
-    def test_thread_pool_is_capped_at_the_max(self, mock_pool: object, mock_delete: object) -> None:
+    def test_thread_pool_is_capped_at_the_max(
+        self, mock_pool: MagicMock, mock_delete: object
+    ) -> None:
         # A replay with more segments than the cap opens at most N threads.
+        _stub_pool_futures(mock_pool)
         replay_id = uuid4().hex
 
         with patch("sentry.replays.tasks.make_recording_filename", side_effect=lambda s: str(s)):
@@ -92,4 +97,20 @@ class TestDeleteReplaysScriptAsync(TestCase):
                 max_segment_id=DELETE_THREAD_POOL_SIZE + 50,
             )
 
-        mock_pool.assert_called_once_with(max_workers=DELETE_THREAD_POOL_SIZE)  # type: ignore[attr-defined]
+        mock_pool.assert_called_once_with(max_workers=DELETE_THREAD_POOL_SIZE)
+
+
+def _stub_pool_futures(mock_pool: MagicMock) -> None:
+    """Make the patched executor hand back the futures a real pool would.
+
+    `submit` on a bare MagicMock returns another MagicMock, whose `exception()` is a MagicMock rather
+    than None -- so the caller reads every delete as failed and tries to raise a mock. These two tests
+    only care about `max_workers`, but the double still has to honour the contract around it.
+    """
+
+    def submit(function: object, argument: object) -> Future[None]:
+        future: Future[None] = Future()
+        future.set_result(None)
+        return future
+
+    mock_pool.return_value.__enter__.return_value.submit.side_effect = submit

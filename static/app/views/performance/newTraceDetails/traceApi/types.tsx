@@ -86,31 +86,6 @@ export type TraceSplitResults<U extends TraceFull | TraceFullDetailed | EventLit
   transactions: U[];
 };
 
-export type TraceMeta = {
-  errors: number;
-  performance_issues: number;
-  projects: number;
-  span_count: number;
-  span_count_map: Record<string, number>;
-  transaction_child_count_map: Record<string, number>;
-  transactions: number;
-};
-
-type ResponseTraceMetaTransactionChildCount = {
-  count: number;
-  'transaction.id': string;
-};
-
-export type ResponseTraceMeta = {
-  errors: number;
-  performance_issues: number;
-  projects: number;
-  span_count: number;
-  span_count_map: Record<string, number>;
-  transaction_child_count_map: ResponseTraceMetaTransactionChildCount[];
-  transactions: number;
-};
-
 export type EAPTraceMeta = {
   errorsCount: number;
   logsCount: number;

@@ -45,6 +45,7 @@ export interface TraceRowProps<T extends TraceTree.Node> {
   theme: Theme;
   trace_id: string | undefined;
   virtualized_index: number;
+  pinnedAttributeCell?: React.ReactNode;
 }
 
 export function maybeFocusTraceRow(
@@ -68,10 +69,11 @@ export function TraceRowConnectors(props: {
   node: BaseNode;
 }) {
   const hasChildren = props.node.hasDirectVisibleChildren();
-  const nodeDepth = TraceTree.Depth(props.node);
+  const nodeDepth = TraceTree.depth(props.node);
 
   return (
     <Fragment>
+      {/* oxlint-disable-next-line react/capitalized-calls -- Static method on TraceTree, not a component. */}
       {TraceTree.ConnectorsTo(props.node).map((c, i) => {
         return (
           <span
@@ -86,6 +88,7 @@ export function TraceRowConnectors(props: {
         );
       })}
       {hasChildren ? <span className="TraceExpandedVerticalConnector" /> : null}
+      {/* oxlint-disable-next-line react/capitalized-calls -- Static method on TraceTree, not a component. */}
       {TraceTree.IsLastVisibleChild(props.node) ? (
         <span className="TraceVerticalLastChildConnector" />
       ) : null}

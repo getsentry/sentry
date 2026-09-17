@@ -20,7 +20,7 @@ const MOCK_CLOUD_RESOURCE: CloudResourceContext = {
 };
 
 const MOCK_REDACTION = {
-  ['host.id']: {
+  'host.id': {
     '': {
       chunks: [
         {
@@ -81,7 +81,7 @@ describe('CloudResourceContext', () => {
         event={event}
         type="cloud_resource"
         alias="cloud_resource"
-        value={{...MOCK_CLOUD_RESOURCE, ['host.id']: ''}}
+        value={{...MOCK_CLOUD_RESOURCE, 'host.id': ''}}
       />
     );
 

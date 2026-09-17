@@ -9,6 +9,7 @@ import {
   collectPatches,
   getOrderedAutofixSections,
   getPollInterval,
+  hideErroredPrIteration,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
   isLastStepPrIteration,
@@ -51,10 +52,10 @@ describe('getPollInterval', () => {
     'org/repo': {pr_creation_status: 'completed'} as any,
   };
 
-  it('polls when pollPR is set and a PR has been created, even when idle', () => {
+  it('polls slowly when pollPR is set and a PR has been created, even when idle', () => {
     const state = makeState({status: 'completed', repo_pr_states: completedPr});
     expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
-      1000
+      10000
     );
   });
 
@@ -70,12 +71,26 @@ describe('getPollInterval', () => {
     expect(getPollInterval({autofixState: state, runStarted: false})).toBe(false);
   });
 
-  it('polls while processing regardless of pollPR', () => {
+  it('polls faster while processing regardless of pollPR', () => {
     const state = makeState({status: 'processing'});
     expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
     expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
       1000
     );
+  });
+
+  it('polls faster while processing even when a PR has been created', () => {
+    const state = makeState({status: 'processing', repo_pr_states: completedPr});
+    expect(getPollInterval({autofixState: state, runStarted: false, pollPR: true})).toBe(
+      1000
+    );
+  });
+
+  it('polls faster while feedback is queued', () => {
+    const state = makeState({
+      queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+    });
+    expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
   });
 });
 
@@ -705,8 +720,173 @@ describe('isLastStepPrIteration', () => {
   });
 });
 
+describe('hideErroredPrIteration', () => {
+  let blockId = 0;
+  function block(step?: string, feedback?: Record<PropertyKey, unknown>): Block {
+    return {
+      id: `hide-block-${blockId++}`,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {
+        content: 'hello',
+        role: 'assistant',
+        metadata: step
+          ? {
+              step,
+              ...(feedback ? {feedback: JSON.stringify(feedback)} : {}),
+            }
+          : undefined,
+      },
+    };
+  }
+  function state(
+    blocks: Block[],
+    status: ExplorerAutofixState['status']
+  ): ExplorerAutofixState {
+    return {
+      run_id: 1,
+      status,
+      updated_at: '2026-01-01T00:00:00Z',
+      blocks,
+    };
+  }
+
+  it('leaves a failed bot-review pr_iteration untouched', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {
+        text: 'coverage dropped',
+        source: {type: 'github-pr-review-body', author_is_bot: true, review_id: 1},
+      }),
+    ];
+    const runState = state(blocks, 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('leaves a failed manual pr_iteration untouched', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {text: 'please fix', source: {type: 'user-ui'}}),
+      block(undefined),
+    ];
+    const runState = state(blocks, 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('drops a failed automated pr_iteration', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {
+        text: 'CI failed',
+        source: {
+          type: 'check-suite',
+          app_name: 'GitHub Actions',
+          event: {
+            check_suite: {head_sha: 'abc', id: 1},
+            repository: {html_url: 'https://github.com/org/repo'},
+          },
+        },
+      }),
+      block(undefined),
+    ];
+    expect(hideErroredPrIteration(state(blocks, 'error'))).toEqual(
+      state([blocks[0]!], 'completed')
+    );
+  });
+
+  it('keeps an errored iteration whose pull request failed to push', () => {
+    const runState = {
+      ...state([block('code_changes'), block('pr_iteration')], 'error'),
+      repo_pr_states: {
+        'org/repo': {
+          repo_name: 'org/repo',
+          pr_number: 2,
+          pr_url: 'https://github.com/org/repo/pull/2',
+          pr_creation_status: 'error' as const,
+          pr_creation_error: 'remote rejected',
+        },
+      },
+    } as unknown as ExplorerAutofixState;
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('hides a failed automated iteration whose earlier pull request pushed fine', () => {
+    const blocks = [
+      block('code_changes'),
+      block('pr_iteration', {
+        text: 'CI failed',
+        source: {
+          type: 'check-suite',
+          app_name: 'GitHub Actions',
+          event: {
+            check_suite: {head_sha: 'abc', id: 1},
+            repository: {html_url: 'https://github.com/org/repo'},
+          },
+        },
+      }),
+    ];
+    const runState = {
+      ...state(blocks, 'error'),
+      repo_pr_states: {
+        'org/repo': {
+          repo_name: 'org/repo',
+          pr_number: 2,
+          pr_url: 'https://github.com/org/repo/pull/2',
+          pr_creation_status: 'completed' as const,
+          pr_creation_error: null,
+        },
+      },
+    } as unknown as ExplorerAutofixState;
+    const hidden = hideErroredPrIteration(runState)!;
+    expect(hidden.status).toBe('completed');
+    expect(hidden.blocks).toEqual([blocks[0]]);
+    expect(hidden.repo_pr_states).toEqual(runState.repo_pr_states);
+  });
+
+  it('leaves an errored code_changes run untouched', () => {
+    const runState = state([block('code_changes'), block(undefined)], 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('leaves a pr_iteration that did not error untouched', () => {
+    const runState = state([block('code_changes'), block('pr_iteration')], 'completed');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+  });
+
+  it('keeps a run whose only step is a failed pr_iteration', () => {
+    const runState = state([block('pr_iteration')], 'error');
+    expect(hideErroredPrIteration(runState)).toBe(runState);
+    expect(hideErroredPrIteration(null)).toBeNull();
+  });
+});
+
 const GROUP_ID = '123';
 const MOCK_GROUP = GroupFixture({id: GROUP_ID});
+
+describe('useExplorerAutofix - polling state', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+
+  it('polls for queued feedback without reporting user-initiated processing', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          run_id: 42,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    expect(result.current.isPolling).toBe(true);
+    expect(result.current.isProcessing).toBe(false);
+  });
+});
 
 describe('useExplorerAutofix - createPR', () => {
   const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
@@ -1069,5 +1249,206 @@ describe('useExplorerAutofix - codingAgentErrors', () => {
     const bId = result.current.codingAgentErrors[1]!.id;
     act(() => result.current.dismissCodingAgentError(bId));
     expect(result.current.codingAgentErrors.map(e => e.message)).toEqual(['a', 'c']);
+  });
+});
+
+describe('useExplorerAutofix - startStep errors', () => {
+  const AUTOFIX_URL = `/organizations/org-slug/issues/${GROUP_ID}/autofix/`;
+  const existingRun = {
+    run_id: 42,
+    blocks: [
+      {
+        id: 'block-1',
+        message: {
+          role: 'assistant',
+          content: 'Here is the root cause',
+          metadata: {step: 'root_cause'},
+        },
+        timestamp: '2026-01-01T00:00:00Z',
+        loading: false,
+      },
+    ],
+    status: 'completed' as const,
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('keeps the existing run and shows an error message when a step fails', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Something went wrong'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    await expect(
+      act(() => result.current.startStep('pr_iteration', {runId: 42}))
+    ).rejects.toThrow();
+
+    expect(addErrorMessage).toHaveBeenCalledWith('Something went wrong');
+    expect(result.current.runState).toEqual(existingRun);
+  });
+
+  it('does not surface a serializer validation error', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 400,
+      body: {userContext: ['Ensure this field has no more than 1000 characters.']},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    await expect(
+      act(() =>
+        result.current.startStep('pr_iteration', {
+          runId: 42,
+          userContext: 'x'.repeat(1001),
+        })
+      )
+    ).rejects.toThrow();
+
+    expect(addErrorMessage).toHaveBeenCalledWith('An error occurred');
+    expect(result.current.runState).toEqual(existingRun);
+  });
+
+  it('recovers quietly when a step loses the race to a run already in flight', async () => {
+    const getMock = MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 409,
+      body: {
+        detail: 'A step is already running for this autofix run',
+        code: 'run_in_flight',
+        run_id: 42,
+        sentry_run_id: null,
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+    getMock.mockClear();
+
+    // Resolves with the live run instead of throwing, so an awaiting caller stays
+    // on its success path and does not undo the UI it just put into loading.
+    await act(async () => {
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+    });
+
+    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(result.current.runState).toEqual(existingRun);
+    // Refetched, so the live run takes the view over.
+    expect(getMock).toHaveBeenCalled();
+  });
+
+  it('does not replace a missing run with the error state on an in-flight 409', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 409,
+      body: {
+        detail: 'A step is already running for this autofix run',
+        code: 'run_in_flight',
+        run_id: 42,
+        sentry_run_id: null,
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await act(async () => {
+      await expect(result.current.startStep('solution', {runId: 42})).resolves.toBe(42);
+    });
+
+    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(result.current.runState?.status).not.toBe('error');
+  });
+
+  it('still surfaces the re-run 409, which carries no recovery code', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: existingRun},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 409,
+      body: {
+        detail: 'Cannot re-run a step after a pull request or coding agent has started',
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    await act(async () => {
+      await expect(
+        result.current.startStep('solution', {runId: 42, insertIndex: 0})
+      ).rejects.toThrow();
+    });
+
+    expect(addErrorMessage).toHaveBeenCalledWith(
+      'Cannot re-run a step after a pull request or coding agent has started'
+    );
+  });
+
+  it('falls back to the error state when a kickoff fails with no existing run', async () => {
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Something went wrong'},
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    await expect(act(() => result.current.startStep('root_cause'))).rejects.toThrow();
+
+    await waitFor(() => expect(result.current.runState?.status).toBe('error'));
+    expect(result.current.runState?.blocks[0]?.message.content).toBe(
+      'Error: Something went wrong'
+    );
+    expect(addErrorMessage).not.toHaveBeenCalled();
   });
 });

@@ -12,15 +12,16 @@ interface ScmReposResult {
 export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
   const organization = useOrganization();
 
-  const reposQuery = useQuery(
-    apiOptions.as<ScmReposResult>()(
+  const reposQuery = useQuery({
+    ...apiOptions.as<ScmReposResult>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
       {
         path: {organizationIdOrSlug: organization.slug, integrationId},
-        staleTime: 60_000,
+        staleTime: 0,
       }
-    )
-  );
+    ),
+    refetchOnWindowFocus: true,
+  });
 
   const selectedRepoSlug = selectedRepo?.externalSlug;
 
@@ -30,6 +31,7 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
         dropdownItems: Array<{
           disabled: boolean;
           label: string;
+          textValue: string;
           value: string;
         }>;
         reposByIdentifier: Map<string, IntegrationRepository>;
@@ -39,6 +41,9 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
           acc.dropdownItems.push({
             value: repo.identifier,
             label: repo.name,
+            // The identifier includes the organization slug, which is not
+            // visible in the selector and should not affect search results.
+            textValue: repo.name,
             disabled: repo.identifier === selectedRepoSlug,
           });
           return acc;
@@ -55,6 +60,8 @@ export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
     reposByIdentifier,
     dropdownItems,
     isFetching: reposQuery.isFetching,
-    isError: reposQuery.isError,
+    // Loading errors only: a failed focus refetch keeps cached repos, which
+    // are still worth showing over the error message.
+    isError: reposQuery.isLoadingError,
   };
 }

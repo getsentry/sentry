@@ -1,91 +1,75 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment} from 'react';
+import {skipToken, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Heading, Text} from '@sentry/scraps/text';
 
-import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {EmailField} from 'sentry/components/forms/fields/emailField';
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import type {User} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {PageHeader} from 'admin/components/pageHeader';
 
-type ResultQuery = {
-  email: string;
-  orgSlug: string;
+type EventResult = {
+  groupID: string;
+  id: string;
+  title: string;
 };
 
+type Result = {data: EventResult; type: 'event'} | {data: User; type: 'user'};
+
+const schema = z.object({
+  orgSlug: z.string().trim(),
+  email: z.email('Enter a valid email address'),
+});
+
 export function DataRequests() {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{orgSlug, email}, setSearchParams] = useQueryStates({
+    orgSlug: parseAsString.withDefault(''),
+    email: parseAsString.withDefault(''),
+  });
+  const hasQuery = Boolean(orgSlug || email);
+  const isEventSearch = Boolean(orgSlug);
 
-  const initialOrgSlug = (location.query.orgSlug as string | undefined) || '';
-  const initialEmail = (location.query.email as string | undefined) || '';
-
-  const [orgSlug, setOrgSlug] = useState(initialOrgSlug);
-  const [email, setEmail] = useState(initialEmail);
-  const queryFromRouterOrgSlug = (location.query.orgSlug as string | undefined) || '';
-  const queryFromRouterEmail = (location.query.email as string | undefined) || '';
-  const hasQuery = Boolean(queryFromRouterOrgSlug || queryFromRouterEmail);
-  const isEventSearch = Boolean(queryFromRouterOrgSlug);
-
-  const resultsQuery = useMemo<ResultQuery | undefined>(() => {
-    if (!hasQuery) {
-      return;
-    }
-    return {orgSlug: queryFromRouterOrgSlug, email: queryFromRouterEmail};
-  }, [hasQuery, queryFromRouterOrgSlug, queryFromRouterEmail]);
-
-  const {data: eventsData = [], isLoading: isLoadingEvents} = useApiQuery<any[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: queryFromRouterOrgSlug},
-      }),
-      {query: {query: 'user.email:' + queryFromRouterEmail}},
-    ],
-    {
+  const {data: eventsData = [], isLoading: isLoadingEvents} = useQuery(
+    apiOptions.as<EventResult[]>()('/organizations/$organizationIdOrSlug/events/', {
+      path: hasQuery && isEventSearch ? {organizationIdOrSlug: orgSlug} : skipToken,
+      query: {query: 'user.email:' + email},
       staleTime: 0,
-      enabled: hasQuery && isEventSearch,
-    }
+    })
   );
 
-  const {data: usersData = [], isLoading: isLoadingUsers} = useApiQuery<any[]>(
-    [getApiUrl('/users/'), {query: {query: 'email:' + queryFromRouterEmail}}],
-    {
+  const {data: usersData = [], isLoading: isLoadingUsers} = useQuery({
+    ...apiOptions.as<User[]>()('/users/', {
+      query: {query: 'email:' + email},
       staleTime: 0,
-      enabled: hasQuery && !isEventSearch,
-    }
-  );
+    }),
+    enabled: hasQuery && !isEventSearch,
+  });
 
   const isLoading = isLoadingEvents || isLoadingUsers;
 
-  const results = hasQuery
-    ? (isEventSearch ? eventsData : usersData).map(r => ({
-        type: isEventSearch ? 'event' : 'user',
-        data: r,
-      }))
+  const results: Result[] | null = hasQuery
+    ? isEventSearch
+      ? eventsData.map(data => ({type: 'event', data}))
+      : usersData.map(data => ({type: 'user', data}))
     : null;
 
-  const onSubmit = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        orgSlug,
-        email,
-      },
-    });
-  };
-
-  const renderLoading = () => {
-    return <LoadingIndicator>Searching...</LoadingIndicator>;
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {orgSlug, email},
+    validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      setSearchParams(schema.parse(value), {history: 'push'});
+    },
+  });
 
   const renderResults = () => {
     if (!results) {
@@ -94,47 +78,70 @@ export function DataRequests() {
 
     if (results.length === 0) {
       return (
-        <EmptyMessage title="No Results">
-          There are no results within Sentry data matching this email address.
-        </EmptyMessage>
+        <EmptyState
+          title="No Results"
+          description="There are no results within Sentry data matching this email address."
+        />
       );
     }
 
     return (
-      <Fragment>
-        <h2>Results</h2>
-        <p>{results.length} match found</p>
-        <ul>
+      <Stack gap="md">
+        <Heading as="h2">Results</Heading>
+        <Text as="p">
+          {results.length} {results.length === 1 ? 'match' : 'matches'} found
+        </Text>
+        <Stack as="ul" gap="sm" padding="0" style={{listStyle: 'none'}}>
           {results.map(result => {
             switch (result.type) {
               case 'user':
                 // eslint-disable-next-line no-case-declarations
                 const user = result.data;
                 return (
-                  <li key={`user-${user.id}`}>
-                    <Link to={`/_admin/users/${user.id}/`}>
-                      {user.name} &lt;{user.email}&gt;
-                    </Link>
-                  </li>
+                  <Stack
+                    as="li"
+                    key={`user-${user.id}`}
+                    gap="2xs"
+                    padding="md"
+                    border="primary"
+                    radius="md"
+                    background="primary"
+                  >
+                    <Link to={`/_admin/users/${user.id}/`}>{user.name}</Link>
+                    <Text size="sm" variant="muted">
+                      {user.email}
+                    </Text>
+                  </Stack>
                 );
               case 'event':
                 // eslint-disable-next-line no-case-declarations
                 const event = result.data;
                 return (
-                  <li key={`event-${event.id}`}>
+                  <Stack
+                    as="li"
+                    key={`event-${event.id}`}
+                    gap="2xs"
+                    padding="md"
+                    border="primary"
+                    radius="md"
+                    background="primary"
+                  >
                     <ExternalLink
-                      href={`/organizations/${resultsQuery?.orgSlug}/issues/${event.groupID}/`}
+                      href={`/organizations/${orgSlug}/issues/${event.groupID}/`}
                     >
                       {event.id} - {event.title.substring(0, 128)}
                     </ExternalLink>
-                  </li>
+                    <Text size="sm" variant="muted">
+                      Event
+                    </Text>
+                  </Stack>
                 );
               default:
                 throw new Error('Unknown result type');
             }
           })}
-        </ul>
-      </Fragment>
+        </Stack>
+      </Stack>
     );
   };
 
@@ -148,33 +155,60 @@ export function DataRequests() {
         </Alert>
       </Alert.Container>
 
-      <Panel>
-        <PanelHeader>Data lookup</PanelHeader>
+      <form.AppForm form={form}>
+        <Panel>
+          <Flex
+            align="center"
+            padding="xl"
+            borderBottom="primary"
+            background="secondary"
+            radius="md md 0 0"
+          >
+            <Text size="sm" bold uppercase density="compressed">
+              Data lookup
+            </Text>
+          </Flex>
+          <Container padding="xl">
+            <Stack gap="xl">
+              <form.AppField name="orgSlug">
+                {field => (
+                  <field.Layout.Stack
+                    label="Organization Slug"
+                    hintText="If a specific customer submitted a request (on behalf of one of their users), enter the organization slug."
+                  >
+                    <field.Input
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      placeholder="orgSlug"
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+              <form.AppField name="email">
+                {field => (
+                  <field.Layout.Stack
+                    label="Email Address"
+                    hintText="Enter the email address which the request is acting upon."
+                    required
+                  >
+                    <field.Input
+                      type="email"
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      placeholder="user@email.com"
+                    />
+                  </field.Layout.Stack>
+                )}
+              </form.AppField>
+            </Stack>
+          </Container>
+          <Flex justify="end" padding="xl" borderTop="primary">
+            <form.SubmitButton>Search</form.SubmitButton>
+          </Flex>
+        </Panel>
+      </form.AppForm>
 
-        <Form onSubmit={onSubmit} submitLabel="Continue">
-          <TextField
-            name="orgSlug"
-            label="Organization Slug"
-            value={orgSlug}
-            defaultValue={initialOrgSlug}
-            onChange={(value: string) => setOrgSlug(value)}
-            help="If a specificcustomer submitted a request (on behalf of one of their users), enter the organization slug."
-            placeholder="orgSlug"
-          />
-          <EmailField
-            name="email"
-            label="Email Address"
-            required
-            value={email}
-            defaultValue={initialEmail}
-            onChange={(value: string) => setEmail(value)}
-            help="Enter the email address which the request is acting upon."
-            placeholder="user@email.com"
-          />
-        </Form>
-      </Panel>
-
-      {isLoading ? renderLoading() : renderResults()}
+      {isLoading ? <LoadingIndicator>Searching...</LoadingIndicator> : renderResults()}
     </Fragment>
   );
 }

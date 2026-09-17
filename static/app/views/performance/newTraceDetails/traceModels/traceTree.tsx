@@ -304,17 +304,6 @@ export declare namespace TraceTree {
     | 'root';
   type NodePath = `${NodeType}-${string}`;
 
-  type Metadata = {
-    event_id: string | undefined;
-    project_slug: string | undefined;
-    // This is used to track the traceslug associated with a trace in a replay.
-    // This is necessary because a replay has multiple traces and the current ui requires
-    // us to merge them into one trace. We still need to keep track of the original traceSlug
-    // to be able to fetch the correct trace-item details from EAP, in the trace drawer.
-    replayTraceSlug?: string;
-    spans?: number;
-  };
-
   type OpsBreakdown = Array<{
     count: number;
     op: string;
@@ -324,13 +313,20 @@ export declare namespace TraceTree {
     duration: number;
     label: string;
     measurement: Measurement;
+    node: BaseNode;
     poor: boolean;
     start: number;
     type: keyof typeof RENDERABLE_MEASUREMENTS;
     score?: number;
   };
 
-  type CollectedVital = {key: string; measurement: Measurement; score?: number};
+  type CollectedVital = {
+    key: string;
+    measurement: Measurement;
+    node: BaseNode;
+    score?: number;
+    timestamp?: number;
+  };
 }
 
 export enum TraceShape {
@@ -349,13 +345,10 @@ function fetchTrace(
     orgSlug: string;
     query: string;
     traceId: string;
-  },
-  type: 'eap' | 'non-eap'
+  }
 ): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
   return api.requestPromise(
-    type === 'eap'
-      ? `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
-      : `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+    `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
   );
 }
 
@@ -383,15 +376,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
     return tree;
   }
 
-  static Loading(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const trace = makeExampleTrace(metadata, organization);
+  static Loading(organization: Organization): TraceTree {
+    const trace = makeExampleTrace(organization);
     trace.type = 'loading';
     trace.build();
     return trace;
   }
 
-  static ErrorState(metadata: TraceTree.Metadata, organization: Organization): TraceTree {
-    const trace = makeExampleTrace(metadata, organization);
+  static ErrorState(organization: Organization): TraceTree {
+    const trace = makeExampleTrace(organization);
     trace.type = 'error';
     trace.build();
     return trace;
@@ -413,7 +406,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (options?.preferences?.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(root, {organization: options.organization});
+      TraceTree.AutogroupSiblingSpanNodes(root, {
+        organization: options.organization,
+      });
     }
   }
 
@@ -453,7 +448,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       const nodeId = 'event_id' in value ? value.event_id : undefined;
       if (nodeId && visitedIds.has(nodeId)) {
-        Sentry.logger.warn('Cycle detected in trace tree structure', {nodeId});
+        Sentry.logger.warn('Cycle detected in trace tree structure', {
+          nodeId,
+        });
         return;
       }
       if (nodeId) {
@@ -554,7 +551,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
         const parent = c.parent.parent;
-        TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
+        TraceTree.Swap({
+          parent: c.parent,
+          child: c,
+          reason: 'pageload server handler',
+        });
         parent!.invalidate();
         parent!.forEachChild(child => {
           child.invalidate();
@@ -1209,13 +1210,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
    * Return a lazily calculated depth of the node in the tree.
    * Root node has a value of -1 as it is abstract.
    */
-  static Depth(node: BaseNode): number {
+  static depth(node: BaseNode): number {
     if (node.depth !== undefined) {
       return node.depth;
     }
 
     const visibleParent = TraceTree.VisibleParent(node);
-    node.depth = visibleParent ? TraceTree.Depth(visibleParent) + 1 : 0;
+    node.depth = visibleParent ? TraceTree.depth(visibleParent) + 1 : 0;
     return node.depth;
   }
 
@@ -1262,12 +1263,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     let start = TraceTree.VisibleParent(node);
 
     if (start?.isRootNodeChild() && !TraceTree.IsLastVisibleChild(node)) {
-      node.connectors = [-TraceTree.Depth(node)];
+      node.connectors = [-TraceTree.depth(node)];
       return node.connectors;
     }
 
     if (!TraceTree.IsLastVisibleChild(node)) {
-      connectors.push(TraceTree.Depth(node));
+      connectors.push(TraceTree.depth(node));
     }
 
     while (start) {
@@ -1286,7 +1287,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
       }
 
       connectors.push(
-        visibleParent.isRootNodeChild() ? -TraceTree.Depth(start) : TraceTree.Depth(start)
+        visibleParent.isRootNodeChild() ? -TraceTree.depth(start) : TraceTree.depth(start)
       );
       start = visibleParent;
     }
@@ -1437,7 +1438,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
-    type: 'eap' | 'non-eap';
     urlParams: Location['query'];
     preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
@@ -1454,19 +1454,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(
-              api,
-              {
-                orgSlug: organization.slug,
-                query: qs.stringify(
-                  getTraceQueryParams(options.type, urlParams, filters.selection, {
-                    timestamp: batchTraceData.timestamp,
-                  })
-                ),
-                traceId: batchTraceData.traceSlug,
-              },
-              options.type
-            );
+            return fetchTrace(api, {
+              orgSlug: organization.slug,
+              query: qs.stringify(
+                getTraceQueryParams(urlParams, filters.selection, {
+                  timestamp: batchTraceData.timestamp,
+                })
+              ),
+              traceId: batchTraceData.traceSlug,
+            });
           })
         );
 
@@ -1524,7 +1520,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
 function printTraceTreeNode(node: BaseNode, offset: number): string {
   // +1 because we may be printing from the root which is -1 indexed
-  const padding = '  '.repeat(TraceTree.Depth(node) + offset);
+  const padding = '  '.repeat(TraceTree.depth(node) + offset);
   return padding + node.printNode();
 }
 

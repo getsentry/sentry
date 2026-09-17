@@ -14,6 +14,7 @@ from sentry.api.permissions import SentryIsAuthenticated
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.types import IntegrationProviderSlug
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -32,7 +33,9 @@ class GitHubIntegrationsInstallationEndpoint(Endpoint):
     def get(self, request: Request, installation_id):
         try:
             integration = Integration.objects.get(
-                external_id=installation_id, status=ObjectStatus.ACTIVE
+                provider=IntegrationProviderSlug.GITHUB.value,
+                external_id=installation_id,
+                status=ObjectStatus.ACTIVE,
             )
             OrganizationIntegration.objects.get(integration_id=integration.id)
             return HttpResponse(status=404)

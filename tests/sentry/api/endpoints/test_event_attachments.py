@@ -52,7 +52,7 @@ class EventAttachmentsTest(APITestCase):
         assert response.data[0]["name"] == "hello.png"
         assert response.data[0]["mimetype"] == "image/png"
         assert response.data[0]["size"] == 18
-        assert response.data[0]["sha1"] == "d3f299af02d6abbe92dd8368bab781824a9702ed"
+        assert response.data[0]["sha1"] is None
         assert response.data[0]["headers"] == {"Content-Type": "image/png"}
 
         path = f"/api/0/projects/{event2.project.organization.slug}/{event2.project.slug}/events/{event2.event_id}/attachments/"
@@ -68,7 +68,7 @@ class EventAttachmentsTest(APITestCase):
         assert response.data[0]["name"] == "hello.png"
         assert response.data[0]["mimetype"] == "image/png"
         assert response.data[0]["size"] == 1234
-        assert response.data[0]["sha1"] == "1234"
+        assert response.data[0]["sha1"] is None
         assert response.data[0]["headers"] == {"Content-Type": "image/png"}
 
     def test_is_screenshot(self) -> None:

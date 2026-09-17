@@ -1,10 +1,11 @@
 import {useCallback, useMemo} from 'react';
 
+import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {defined} from 'sentry/utils/defined';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
@@ -21,6 +22,7 @@ import {
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {computeVisualizeSampleTotals} from 'sentry/views/explore/utils';
+import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   useSortedTimeSeries,
   type SortedTimeSeries,
@@ -29,6 +31,7 @@ import {
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
   query: string;
+  includeAnnotations?: boolean;
   queryExtras?: RPCQueryExtras;
 }
 
@@ -40,6 +43,7 @@ export const useExploreTimeseries = ({
   query,
   enabled,
   queryExtras,
+  includeAnnotations,
 }: UseExploreTimeseriesOptions) => {
   const visualizes = useQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
@@ -55,7 +59,7 @@ export const useExploreTimeseries = ({
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl,
-    queryHookArgs: {query, enabled, queryExtras},
+    queryHookArgs: {query, enabled, queryExtras, includeAnnotations},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
@@ -67,11 +71,13 @@ function useExploreTimeseriesImpl({
   enabled,
   query,
   queryExtras,
+  includeAnnotations,
 }: UseExploreTimeseriesOptions): UseExploreTimeseriesResults {
   const dataset = useSpansDataset();
   const groupBys = useQueryParamsGroupBys();
   const sortBys = useQueryParamsAggregateSortBys();
   const visualizes = useQueryParamsVisualizes({validate: true});
+  const unvalidatedVisualizes = useQueryParamsVisualizes();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
 
@@ -83,13 +89,20 @@ function useExploreTimeseriesImpl({
     return [...groupBys, ...validYAxes].filter(Boolean);
   }, [groupBys, validYAxes]);
 
+  // Drop orderbys for series removed by validation so the remaining query still works.
   const orderby: string | string[] | undefined = useMemo(() => {
     if (!sortBys.length) {
       return;
     }
 
-    return sortBys.map(formatSort);
-  }, [sortBys]);
+    const allowedFields = new Set(fields);
+    const validSortBys = sortBys.filter(sort => allowedFields.has(sort.field));
+    if (validSortBys.length) {
+      return validSortBys.map(formatSort);
+    }
+
+    return defaultAggregateSortBys(validYAxes).map(formatSort);
+  }, [fields, sortBys, validYAxes]);
 
   const yAxes = useMemo(() => {
     const allYAxes = [...validYAxes];
@@ -101,6 +114,11 @@ function useExploreTimeseriesImpl({
     return dedupeArray(allYAxes).sort();
   }, [validYAxes]);
 
+  const skippedForInvalidConditionalFilter = useMemo(
+    () => areAllVisualizesInvalidConditionalFilters(unvalidatedVisualizes),
+    [unvalidatedVisualizes]
+  );
+
   const options = useMemo(() => {
     const search = new MutableSearch(query);
 
@@ -111,10 +129,27 @@ function useExploreTimeseriesImpl({
       fields,
       orderby,
       topEvents,
-      enabled,
+      includeAnnotations,
+      // Skip only when every series failed an `_if` filter. Invalid equations still
+      // query with DEFAULT_VISUALIZATION as a fallback (prior behavior).
+      enabled: enabled && !skippedForInvalidConditionalFilter,
+      // Mark buckets incomplete from the measured ingestion delay rather than a
+      // static assumption. No-op if the org doesn't have the backend flag enabled.
+      includeMeasuredIngestionDelayMetadata: true,
       ...queryExtras,
     };
-  }, [enabled, fields, interval, orderby, query, queryExtras, topEvents, yAxes]);
+  }, [
+    enabled,
+    fields,
+    includeAnnotations,
+    interval,
+    orderby,
+    query,
+    queryExtras,
+    skippedForInvalidConditionalFilter,
+    topEvents,
+    yAxes,
+  ]);
 
   const timeseriesResult = useSortedTimeSeries(
     options,

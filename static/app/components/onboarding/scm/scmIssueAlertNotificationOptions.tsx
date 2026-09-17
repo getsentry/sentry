@@ -4,13 +4,13 @@ import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
-} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
+} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,

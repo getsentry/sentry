@@ -1,8 +1,8 @@
 __all__ = [
     "BaseDetectorHandler",
+    "DetectorHandler",
     "DataPacketEvaluationType",
     "DataPacketType",
-    "DetectorHandler",
     "DetectorOccurrence",
     "DetectorStateData",
     "GroupedDetectorEvaluationResult",

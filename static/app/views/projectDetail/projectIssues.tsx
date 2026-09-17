@@ -6,7 +6,7 @@ import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -119,6 +119,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
     projectId,
   ]);
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchIssuesCount();
   }, [fetchIssuesCount]);
 
@@ -244,7 +245,13 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
             </SegmentedControl.Item>
           ))}
         </SegmentedControl>
-        <OpenInButtonBar>
+        <Grid
+          flow="column"
+          align="center"
+          gap="md"
+          marginTop="md"
+          width={{zero: '100%', xl: 'auto'}}
+        >
           <LinkButton
             data-test-id="issues-open"
             size="xs"
@@ -263,7 +270,7 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
               : t('Open in Discover')}
           </DiscoverButton>
           <StyledPagination pageLinks={pageLinks} onCursor={onCursor} size="xs" />
-        </OpenInButtonBar>
+        </Grid>
       </Flex>
 
       <GroupList
@@ -279,16 +286,6 @@ export function ProjectIssues({organization, location, projectId, query, api}: P
     </Fragment>
   );
 }
-
-const OpenInButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  margin-top: ${p => p.theme.space.md};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    width: 100%;
-  }
-`;
 
 const StyledPagination = styled(Pagination)`
   margin: 0;

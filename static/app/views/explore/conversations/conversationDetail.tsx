@@ -60,6 +60,7 @@ function ConversationDetailPage() {
     trackAnalytics('conversations.detail.page-view', {
       organization,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
   const handleSelectSpan = useCallback(
@@ -79,13 +80,14 @@ function ConversationDetailPage() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
+      <ConversationsBreadcrumbs conversationId={conversationId} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
           nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
           title={title}
+          project={project}
           isLoading={isLoading}
         />
       </Container>

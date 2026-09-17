@@ -1,6 +1,7 @@
 import logging
-from collections.abc import MutableMapping
+from collections.abc import MutableMapping, Sequence
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 import sentry_kafka_schemas
@@ -14,20 +15,15 @@ from sentry.sentry_metrics.aggregation_option_registry import (
     get_aggregation_options,
 )
 from sentry.sentry_metrics.configuration import (
-    GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME,
     RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME,
 )
 from sentry.sentry_metrics.consumers.indexer.batch import IndexerBatch
-from sentry.sentry_metrics.consumers.indexer.common import BrokerMeta
 from sentry.sentry_metrics.consumers.indexer.processing import INGEST_CODEC
 from sentry.sentry_metrics.consumers.indexer.schema_validator import MetricsSchemaValidator
-from sentry.sentry_metrics.consumers.indexer.tags_validator import (
-    GenericMetricsTagsValidator,
-    ReleaseHealthTagsValidator,
-)
+from sentry.sentry_metrics.consumers.indexer.tags_validator import ReleaseHealthTagsValidator
 from sentry.sentry_metrics.indexer.base import FetchType, FetchTypeExt, Metadata
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
@@ -36,7 +32,6 @@ MOCK_METRIC_ID_AGG_OPTION = {
     "d:transactions/measurements.lcp@millisecond": {AggregationOption.HIST: TimeWindow.NINETY_DAYS},
     "d:transactions/alert@none": {AggregationOption.TEN_SECOND: TimeWindow.NINETY_DAYS},
 }
-
 
 pytestmark = pytest.mark.sentry_metrics
 BROKER_TIMESTAMP = datetime.now(tz=timezone.utc)
@@ -103,7 +98,9 @@ extracted_string_output = {
 }
 
 
-def _construct_messages(payloads):
+def _construct_messages(
+    payloads: Sequence[tuple[Any, Any]],
+) -> list[Message[KafkaPayload]]:
     message_batch = []
     for i, (payload, headers) in enumerate(payloads):
         message_batch.append(
@@ -120,7 +117,9 @@ def _construct_messages(payloads):
     return message_batch
 
 
-def _construct_outer_message(payloads):
+def _construct_outer_message(
+    payloads: Sequence[tuple[Any, Any]],
+) -> Message[list[Message[KafkaPayload]]]:
     message_batch = _construct_messages(payloads)
 
     # the outer message uses the last message's partition, offset, and timestamp
@@ -129,7 +128,9 @@ def _construct_outer_message(payloads):
     return outer_message
 
 
-def _deconstruct_messages(snuba_messages, kafka_logical_topic="snuba-metrics"):
+def _deconstruct_messages(
+    snuba_messages: Sequence[Any], kafka_logical_topic: str = "snuba-metrics"
+) -> list[Any]:
     """
     Convert a list of messages returned by `reconstruct_messages` into python
     primitives, to run assertions on:
@@ -154,7 +155,7 @@ def _deconstruct_messages(snuba_messages, kafka_logical_topic="snuba-metrics"):
     return rv
 
 
-def _deconstruct_routing_messages(snuba_messages):
+def _deconstruct_routing_messages(snuba_messages: Sequence[Any]) -> list[Any]:
     """
     Similar to `_deconstruct_messages`, but for routing messages.
     """
@@ -171,7 +172,7 @@ def _deconstruct_routing_messages(snuba_messages):
     return all_messages
 
 
-def _get_string_indexer_log_records(caplog):
+def _get_string_indexer_log_records(caplog: pytest.LogCaptureFixture) -> list[Any]:
     """
     Get all log records and relevant extra arguments for easy snapshotting.
     """
@@ -196,49 +197,9 @@ def _get_string_indexer_log_records(caplog):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "should_index_tag_values, expected",
-    [
-        pytest.param(
-            True,
-            {
-                UseCaseID.SESSIONS: {
-                    1: {
-                        "c:sessions/session@none",
-                        "d:sessions/duration@second",
-                        "environment",
-                        "errored",
-                        "healthy",
-                        "init",
-                        "production",
-                        "s:sessions/error@none",
-                        "session.status",
-                    },
-                }
-            },
-            id="index tag values true",
-        ),
-        pytest.param(
-            False,
-            {
-                UseCaseID.SESSIONS: {
-                    1: {
-                        "c:sessions/session@none",
-                        "d:sessions/duration@second",
-                        "environment",
-                        "s:sessions/error@none",
-                        "session.status",
-                    },
-                }
-            },
-            id="index tag values false",
-        ),
-    ],
-)
-def test_extract_strings_with_rollout(should_index_tag_values, expected) -> None:
+def test_extract_strings() -> None:
     """
-    Test that the indexer batch extracts the correct strings from the messages
-    based on whether tag values should be indexed or not.
+    Test that the indexer batch extracts metric names, tag keys, and tag values.
     """
     outer_message = _construct_outer_message(
         [
@@ -249,464 +210,33 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected) -> None
     )
     batch = IndexerBatch(
         outer_message,
-        should_index_tag_values,
-        False,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
         schema_validator=MetricsSchemaValidator(
             INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
         ).validate,
     )
 
-    assert batch.extract_strings() == expected
-    assert not batch.invalid_msg_meta
-
-
-@pytest.mark.django_db
-def test_extract_strings_with_multiple_use_case_ids() -> None:
-    """
-    Verify that the extract string method can handle payloads that has multiple
-    (generic) uses cases
-    """
-    counter_payload = {
-        "name": "c:spans/session@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "init",
-        },
-        "timestamp": ts,
-        "type": "c",
-        "value": 1,
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    distribution_payload = {
-        "name": "d:profiles/duration@second",
-        "tags": {
-            "environment": "production",
-            "session.status": "healthy",
-        },
-        "timestamp": ts,
-        "type": "d",
-        "value": [4, 5, 6],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    set_payload = {
-        "name": "s:profiles/error@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "errored",
-        },
-        "timestamp": ts,
-        "type": "s",
-        "value": [3],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    outer_message = _construct_outer_message(
-        [
-            (counter_payload, [("namespace", b"spans")]),
-            (distribution_payload, [("namespace", b"profiles")]),
-            (set_payload, [("namespace", b"profiles")]),
-        ]
-    )
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        False,
-        tags_validator=GenericMetricsTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
     assert batch.extract_strings() == {
-        UseCaseID.SPANS: {
+        UseCaseID.SESSIONS: {
             1: {
-                "c:spans/session@none",
+                "c:sessions/session@none",
+                "d:sessions/duration@second",
                 "environment",
-                "production",
-                "session.status",
-                "init",
-            }
-        },
-        UseCaseID.PROFILES: {
-            1: {
-                "d:profiles/duration@second",
-                "environment",
-                "production",
-                "session.status",
-                "healthy",
-                "s:profiles/error@none",
-                "environment",
-                "production",
-                "session.status",
                 "errored",
-            }
-        },
-    }
-
-
-@pytest.mark.django_db
-@override_options({"sentry-metrics.indexer.disabled-namespaces": ["profiles"]})
-def test_extract_strings_with_single_use_case_ids_blocked() -> None:
-    """
-    Verify that the extract string method will work normally when a single use case ID is blocked
-    """
-    counter_payload = {
-        "name": "c:spans/session@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "init",
-        },
-        "timestamp": ts,
-        "type": "c",
-        "value": 1,
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    distribution_payload = {
-        "name": "d:profiles/duration@second",
-        "tags": {
-            "environment": "production",
-            "session.status": "healthy",
-        },
-        "timestamp": ts,
-        "type": "d",
-        "value": [4, 5, 6],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    set_payload = {
-        "name": "s:profiles/error@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "errored",
-        },
-        "timestamp": ts,
-        "type": "s",
-        "value": [3],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    outer_message = _construct_outer_message(
-        [
-            (counter_payload, [("namespace", b"spans")]),
-            (distribution_payload, [("namespace", b"profiles")]),
-            (set_payload, [("namespace", b"profiles")]),
-        ]
-    )
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        False,
-        tags_validator=GenericMetricsTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
-    assert batch.extract_strings() == {
-        UseCaseID.SPANS: {
-            1: {
-                "c:spans/session@none",
-                "environment",
-                "production",
-                "session.status",
+                "healthy",
                 "init",
-            }
+                "production",
+                "s:sessions/error@none",
+                "session.status",
+            },
         }
     }
     assert not batch.invalid_msg_meta
 
 
 @pytest.mark.django_db
-@override_options({"sentry-metrics.indexer.disabled-namespaces": ["spans", "profiles"]})
-def test_extract_strings_with_multiple_use_case_ids_blocked() -> None:
-    """
-    Verify that the extract string method will work normally when multiple use case IDs are blocked
-    """
-    custom_uc_counter_payload = {
-        "name": "c:spans/session@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "init",
-        },
-        "timestamp": ts,
-        "type": "c",
-        "value": 1,
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-    perf_distribution_payload = {
-        "name": TransactionMRI.MEASUREMENTS_FCP.value,
-        "tags": {
-            "environment": "production",
-            "session.status": "healthy",
-        },
-        "timestamp": ts,
-        "type": "d",
-        "value": [4, 5, 6],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-    custom_uc_set_payload = {
-        "name": "s:profiles/error@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "errored",
-        },
-        "timestamp": ts,
-        "type": "s",
-        "value": [3],
-        "org_id": 2,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    outer_message = _construct_outer_message(
-        [
-            (custom_uc_counter_payload, [("namespace", b"spans")]),
-            (perf_distribution_payload, [("namespace", b"transactions")]),
-            (custom_uc_set_payload, [("namespace", b"profiles")]),
-        ]
-    )
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        False,
-        tags_validator=GenericMetricsTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
-    assert batch.extract_strings() == {
-        UseCaseID.TRANSACTIONS: {
-            1: {
-                TransactionMRI.MEASUREMENTS_FCP.value,
-                "environment",
-                "production",
-                "session.status",
-                "healthy",
-            }
-        },
-    }
-    assert not batch.invalid_msg_meta
-
-
-@pytest.mark.django_db
-def test_extract_strings_with_invalid_mri() -> None:
-    """
-    Verify that extract strings will drop payload that has invalid MRI in name field but continue processing the rest
-    """
-    bad_counter_payload = {
-        "name": "invalid_MRI",
-        "tags": {
-            "environment": "production",
-            "session.status": "init",
-        },
-        "timestamp": ts,
-        "type": "c",
-        "value": 1,
-        "org_id": 100,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-    counter_payload = {
-        "name": "c:spans/session@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "init",
-        },
-        "timestamp": ts,
-        "type": "c",
-        "value": 1,
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    distribution_payload = {
-        "name": "d:profiles/duration@second",
-        "tags": {
-            "environment": "production",
-            "session.status": "healthy",
-        },
-        "timestamp": ts,
-        "type": "d",
-        "value": [4, 5, 6],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    set_payload = {
-        "name": "s:profiles/error@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "errored",
-        },
-        "timestamp": ts,
-        "type": "s",
-        "value": [3],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    outer_message = _construct_outer_message(
-        [
-            (bad_counter_payload, [("namespace", b"")]),
-            (counter_payload, [("namespace", b"spans")]),
-            (distribution_payload, [("namespace", b"profiles")]),
-            (set_payload, [("namespace", b"profiles")]),
-        ]
-    )
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        False,
-        tags_validator=GenericMetricsTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
-    assert batch.extract_strings() == {
-        UseCaseID.SPANS: {
-            1: {
-                "c:spans/session@none",
-                "environment",
-                "production",
-                "session.status",
-                "init",
-            }
-        },
-        UseCaseID.PROFILES: {
-            1: {
-                "d:profiles/duration@second",
-                "environment",
-                "production",
-                "session.status",
-                "healthy",
-                "s:profiles/error@none",
-                "environment",
-                "production",
-                "session.status",
-                "errored",
-            }
-        },
-    }
-    assert batch.invalid_msg_meta == {BrokerMeta(Partition(Topic("topic"), 0), 0)}
-
-
-@pytest.mark.django_db
-def test_extract_strings_with_multiple_use_case_ids_and_org_ids() -> None:
-    """
-    Verify that the extract string method can handle payloads that has multiple
-    (generic) uses cases and from different orgs
-    """
-
-    custom_uc_counter_payload = {
-        "name": "c:spans/session@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "init",
-        },
-        "timestamp": ts,
-        "type": "c",
-        "value": 1,
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-    perf_distribution_payload = {
-        "name": TransactionMRI.MEASUREMENTS_FCP.value,
-        "tags": {
-            "environment": "production",
-            "session.status": "healthy",
-        },
-        "timestamp": ts,
-        "type": "d",
-        "value": [4, 5, 6],
-        "org_id": 1,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-    custom_uc_set_payload = {
-        "name": "s:spans/error@none",
-        "tags": {
-            "environment": "production",
-            "session.status": "errored",
-        },
-        "timestamp": ts,
-        "type": "s",
-        "value": [3],
-        "org_id": 2,
-        "retention_days": 90,
-        "project_id": 3,
-    }
-
-    outer_message = _construct_outer_message(
-        [
-            (custom_uc_counter_payload, [("namespace", b"spans")]),
-            (perf_distribution_payload, [("namespace", b"transactions")]),
-            (custom_uc_set_payload, [("namespace", b"spans")]),
-        ]
-    )
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        False,
-        tags_validator=GenericMetricsTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, GENERIC_METRICS_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
-    assert batch.extract_strings() == {
-        UseCaseID.SPANS: {
-            1: {
-                "c:spans/session@none",
-                "environment",
-                "production",
-                "session.status",
-                "init",
-            },
-            2: {
-                "s:spans/error@none",
-                "environment",
-                "production",
-                "session.status",
-                "errored",
-            },
-        },
-        UseCaseID.TRANSACTIONS: {
-            1: {
-                TransactionMRI.MEASUREMENTS_FCP.value,
-                "environment",
-                "production",
-                "session.status",
-                "healthy",
-            }
-        },
-    }
-    assert not batch.invalid_msg_meta
-
-
-@pytest.mark.django_db
 @override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_all_resolved(caplog) -> None:
+def test_all_resolved(caplog: pytest.LogCaptureFixture) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -717,8 +247,6 @@ def test_all_resolved(caplog) -> None:
 
     batch = IndexerBatch(
         outer_message,
-        True,
-        False,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
         schema_validator=MetricsSchemaValidator(
             INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
@@ -857,163 +385,7 @@ def test_all_resolved(caplog) -> None:
 
 @pytest.mark.django_db
 @override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_all_resolved_with_routing_information(caplog) -> None:
-    outer_message = _construct_outer_message(
-        [
-            (counter_payload, counter_headers),
-            (distribution_payload, distribution_headers),
-            (set_payload, set_headers),
-        ]
-    )
-
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        True,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
-    assert batch.extract_strings() == (
-        {
-            UseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "errored",
-                    "healthy",
-                    "init",
-                    "production",
-                    "s:sessions/error@none",
-                    "session.status",
-                }
-            }
-        }
-    )
-
-    caplog.set_level(logging.ERROR)
-    snuba_payloads = batch.reconstruct_messages(
-        {
-            UseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": 3,
-                    "errored": 4,
-                    "healthy": 5,
-                    "init": 6,
-                    "production": 7,
-                    "s:sessions/error@none": 8,
-                    "session.status": 9,
-                }
-            }
-        },
-        {
-            UseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
-                    "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
-                    "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
-                    "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
-                }
-            }
-        },
-    ).data
-
-    assert _get_string_indexer_log_records(caplog) == []
-    assert _deconstruct_routing_messages(snuba_payloads) == [
-        (
-            {"org_id": 1},
-            {
-                "mapping_meta": {
-                    "c": {
-                        "1": "c:sessions/session@none",
-                        "3": "environment",
-                        "7": "production",
-                        "9": "session.status",
-                    },
-                    "h": {"6": "init"},
-                },
-                "metric_id": 1,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": 7, "9": 6},
-                "timestamp": ts,
-                "type": "c",
-                "use_case_id": "sessions",
-                "value": 1.0,
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-            },
-            [*counter_headers, ("mapping_sources", b"ch"), ("metric_type", "c")],
-        ),
-        (
-            {"org_id": 1},
-            {
-                "mapping_meta": {
-                    "c": {
-                        "2": "d:sessions/duration@second",
-                        "3": "environment",
-                        "7": "production",
-                        "9": "session.status",
-                    },
-                    "h": {"5": "healthy"},
-                },
-                "metric_id": 2,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": 7, "9": 5},
-                "timestamp": ts,
-                "type": "d",
-                "use_case_id": "sessions",
-                "value": [4, 5, 6],
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-            },
-            [
-                *distribution_headers,
-                ("mapping_sources", b"ch"),
-                ("metric_type", "d"),
-            ],
-        ),
-        (
-            {"org_id": 1},
-            {
-                "mapping_meta": {
-                    "c": {
-                        "3": "environment",
-                        "7": "production",
-                        "8": "s:sessions/error@none",
-                        "9": "session.status",
-                    },
-                    "d": {"4": "errored"},
-                },
-                "metric_id": 8,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": 7, "9": 4},
-                "timestamp": ts,
-                "type": "s",
-                "use_case_id": "sessions",
-                "value": [3],
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-            },
-            [*set_headers, ("mapping_sources", b"cd"), ("metric_type", "s")],
-        ),
-    ]
-
-
-@pytest.mark.django_db
-@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_all_resolved_retention_days_honored(caplog) -> None:
+def test_all_resolved_retention_days_honored(caplog: pytest.LogCaptureFixture) -> None:
     """
     Tests that the indexer batch honors the incoming retention_days values
     from Relay or falls back to 90.
@@ -1031,8 +403,6 @@ def test_all_resolved_retention_days_honored(caplog) -> None:
 
     batch = IndexerBatch(
         outer_message,
-        True,
-        False,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
         schema_validator=MetricsSchemaValidator(
             INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
@@ -1170,16 +540,7 @@ def test_all_resolved_retention_days_honored(caplog) -> None:
 
 @pytest.mark.django_db
 @override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_batch_resolve_with_values_not_indexed(caplog) -> None:
-    """
-    Tests that the indexer batch skips resolving tag values for indexing and
-    sends the raw tag value to Snuba.
-
-    The difference between this test and test_all_resolved is that the tag values are
-    strings instead of integers. Because of that indexed tag keys are
-    different and mapping_meta is smaller. The payload also contains the
-    version field to specify that the tag values are not indexed.
-    """
+def test_metric_id_rate_limited(caplog: pytest.LogCaptureFixture) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1190,151 +551,6 @@ def test_batch_resolve_with_values_not_indexed(caplog) -> None:
 
     batch = IndexerBatch(
         outer_message,
-        False,
-        False,
-        tags_validator=ReleaseHealthTagsValidator().is_allowed,
-        schema_validator=MetricsSchemaValidator(
-            INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
-        ).validate,
-    )
-    assert batch.extract_strings() == (
-        {
-            UseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none",
-                    "d:sessions/duration@second",
-                    "environment",
-                    "s:sessions/error@none",
-                    "session.status",
-                }
-            }
-        }
-    )
-    assert not batch.invalid_msg_meta
-
-    caplog.set_level(logging.ERROR)
-    snuba_payloads = batch.reconstruct_messages(
-        {
-            UseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": 1,
-                    "d:sessions/duration@second": 2,
-                    "environment": 3,
-                    "s:sessions/error@none": 4,
-                    "session.status": 5,
-                }
-            }
-        },
-        {
-            UseCaseID.SESSIONS: {
-                1: {
-                    "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
-                    "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
-                    "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
-                    "s:sessions/error@none": Metadata(id=4, fetch_type=FetchType.CACHE_HIT),
-                    "session.status": Metadata(id=5, fetch_type=FetchType.CACHE_HIT),
-                }
-            }
-        },
-    ).data
-
-    assert _get_string_indexer_log_records(caplog) == []
-    assert _deconstruct_messages(snuba_payloads, kafka_logical_topic="snuba-generic-metrics") == [
-        (
-            {
-                "version": 2,
-                "mapping_meta": {
-                    "c": {
-                        "1": "c:sessions/session@none",
-                        "3": "environment",
-                        "5": "session.status",
-                    },
-                },
-                "metric_id": 1,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": "production", "5": "init"},
-                "timestamp": ts,
-                "type": "c",
-                "use_case_id": "sessions",
-                "value": 1.0,
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-            },
-            [*counter_headers, ("mapping_sources", b"c"), ("metric_type", "c")],
-        ),
-        (
-            {
-                "version": 2,
-                "mapping_meta": {
-                    "c": {
-                        "2": "d:sessions/duration@second",
-                        "3": "environment",
-                        "5": "session.status",
-                    },
-                },
-                "metric_id": 2,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": "production", "5": "healthy"},
-                "timestamp": ts,
-                "type": "d",
-                "use_case_id": "sessions",
-                "value": [4, 5, 6],
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-            },
-            [
-                *distribution_headers,
-                ("mapping_sources", b"c"),
-                ("metric_type", "d"),
-            ],
-        ),
-        (
-            {
-                "version": 2,
-                "mapping_meta": {
-                    "c": {
-                        "3": "environment",
-                        "4": "s:sessions/error@none",
-                        "5": "session.status",
-                    },
-                },
-                "metric_id": 4,
-                "org_id": 1,
-                "project_id": 3,
-                "retention_days": 90,
-                "tags": {"3": "production", "5": "errored"},
-                "timestamp": ts,
-                "type": "s",
-                "use_case_id": "sessions",
-                "value": [3],
-                "sentry_received_timestamp": BROKER_TIMESTAMP.timestamp(),
-            },
-            [
-                *set_headers,
-                ("mapping_sources", b"c"),
-                ("metric_type", "s"),
-            ],
-        ),
-    ]
-
-
-@pytest.mark.django_db
-@override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_metric_id_rate_limited(caplog) -> None:
-    outer_message = _construct_outer_message(
-        [
-            (counter_payload, counter_headers),
-            (distribution_payload, distribution_headers),
-            (set_payload, set_headers),
-        ]
-    )
-
-    batch = IndexerBatch(
-        outer_message,
-        True,
-        False,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
         schema_validator=MetricsSchemaValidator(
             INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
@@ -1439,7 +655,7 @@ def test_metric_id_rate_limited(caplog) -> None:
 
 @pytest.mark.django_db
 @override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_tag_key_rate_limited(caplog) -> None:
+def test_tag_key_rate_limited(caplog: pytest.LogCaptureFixture) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1450,8 +666,6 @@ def test_tag_key_rate_limited(caplog) -> None:
 
     batch = IndexerBatch(
         outer_message,
-        True,
-        False,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
         schema_validator=MetricsSchemaValidator(
             INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
@@ -1533,7 +747,7 @@ def test_tag_key_rate_limited(caplog) -> None:
 
 @pytest.mark.django_db
 @override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_tag_value_rate_limited(caplog) -> None:
+def test_tag_value_rate_limited(caplog: pytest.LogCaptureFixture) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1544,8 +758,6 @@ def test_tag_value_rate_limited(caplog) -> None:
 
     batch = IndexerBatch(
         outer_message,
-        True,
-        False,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
         schema_validator=MetricsSchemaValidator(
             INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME
@@ -1676,7 +888,7 @@ def test_tag_value_rate_limited(caplog) -> None:
 
 @pytest.mark.django_db
 @override_settings(SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE=1.0)
-def test_one_org_limited(caplog) -> None:
+def test_one_org_limited(caplog: pytest.LogCaptureFixture) -> None:
     outer_message = _construct_outer_message(
         [
             (counter_payload, counter_headers),
@@ -1686,8 +898,6 @@ def test_one_org_limited(caplog) -> None:
 
     batch = IndexerBatch(
         outer_message,
-        True,
-        False,
         tags_validator=ReleaseHealthTagsValidator().is_allowed,
         schema_validator=MetricsSchemaValidator(
             INGEST_CODEC, RELEASE_HEALTH_SCHEMA_VALIDATION_RULES_OPTION_NAME

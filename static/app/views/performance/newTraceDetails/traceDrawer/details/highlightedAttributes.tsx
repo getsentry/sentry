@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -21,6 +22,7 @@ import {
   NegativeCostInfo,
   TOKEN_TROUBLESHOOTING_URL,
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
+import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getIsAiAgentSpan,
@@ -145,9 +147,14 @@ function getAISpanAttributes({
   }
 
   const inputTokens = attributes['gen_ai.usage.input_tokens'];
-  const cachedTokens =
-    attributes['gen_ai.usage.cache_read.input_tokens'] ??
-    attributes['gen_ai.usage.input_tokens.cached'];
+  const cachedTokens = getTokenAttribute(
+    attributes,
+    'gen_ai.usage.cache_read.input_tokens'
+  );
+  const cacheWriteTokens = getTokenAttribute(
+    attributes,
+    'gen_ai.usage.cache_creation.input_tokens'
+  );
   const outputTokens = attributes['gen_ai.usage.output_tokens'];
   const reasoningTokens =
     attributes['gen_ai.usage.reasoning.output_tokens'] ??
@@ -161,8 +168,9 @@ function getAISpanAttributes({
         <HighlightedTokenAttributes
           inputTokens={Number(inputTokens)}
           cachedTokens={Number(cachedTokens)}
+          cacheWriteTokens={Number(cacheWriteTokens)}
           outputTokens={Number(outputTokens)}
-          reasoningTokens={Number(reasoningTokens)}
+          reasoningTokens={Number(reasoningTokens ?? 0)}
           totalTokens={Number(totalTokens)}
         />
       ),
@@ -257,7 +265,7 @@ function getAISpanAttributes({
 function getMCPAttributes(attributes: Record<string, string | number | boolean>) {
   const highlightedAttributes = [];
 
-  const toolName = attributes['mcp.tool.name'];
+  const toolName = attributes['gen_ai.tool.name'];
   if (toolName) {
     highlightedAttributes.push({
       name: t('Tool Name'),
@@ -273,7 +281,7 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
     });
   }
 
-  const promptName = attributes['mcp.prompt.name'];
+  const promptName = attributes['gen_ai.prompt.name'];
   if (promptName) {
     highlightedAttributes.push({
       name: t('Prompt Name'),
@@ -281,7 +289,7 @@ function getMCPAttributes(attributes: Record<string, string | number | boolean>)
     });
   }
 
-  const transport = attributes['mcp.transport'];
+  const transport = attributes['network.transport'];
   if (transport) {
     highlightedAttributes.push({
       name: t('Transport'),
@@ -353,13 +361,27 @@ function HighlightedTools({
   );
 }
 
+function getTokenAttribute(
+  attributes: Record<string, string | number | boolean>,
+  key: 'gen_ai.usage.cache_creation.input_tokens' | 'gen_ai.usage.cache_read.input_tokens'
+) {
+  for (const candidate of ATTRIBUTE_SEARCH_METADATA[key]?.deprecationChain ?? [key]) {
+    if (attributes[candidate] !== undefined) {
+      return attributes[candidate];
+    }
+  }
+  return;
+}
+
 function HighlightedTokenAttributes({
   inputTokens,
   cachedTokens,
+  cacheWriteTokens,
   outputTokens,
   reasoningTokens,
   totalTokens,
 }: {
+  cacheWriteTokens: number;
   cachedTokens: number;
   inputTokens: number;
   outputTokens: number;
@@ -369,6 +391,7 @@ function HighlightedTokenAttributes({
   const tokenArgs = {
     inputTokens,
     cachedTokens,
+    cacheWriteTokens,
     outputTokens,
     reasoningTokens,
     totalTokens,
@@ -376,26 +399,25 @@ function HighlightedTokenAttributes({
   const breakdown = getTokenBreakdown(tokenArgs);
   const mismatch = hasTokenMismatch(tokenArgs);
 
-  const hasCached = breakdown.cached > 0;
+  const input = breakdown.netNewInput + breakdown.cached + breakdown.cacheWrite;
 
   const abbr = formatAbbreviatedNumber;
-  const tokenSummary = `${abbr(breakdown.netNewInput)} ${t('in')}${hasCached ? ` + ${abbr(breakdown.cached)} ${t('cached')}` : ''} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
+  const tokenSummary = `${abbr(input)} ${t('in')} + ${abbr(breakdown.output)} ${t('out')} = ${abbr(breakdown.total)} ${t('total')}`;
 
   const breakdownTooltip = (
-    <TokensTooltipTitle>
-      <span>{t('Input')}</span>
-      <span>{breakdown.netNewInput.toLocaleString()}</span>
-      {hasCached && (
-        <Fragment>
-          <span>{t('Cached')}</span>
-          <span>{breakdown.cached.toLocaleString()}</span>
-        </Fragment>
-      )}
-      <span>{t('Output')}</span>
-      <span>{breakdown.output.toLocaleString()}</span>
-      <span>{t('Total')}</span>
-      <span>{breakdown.total.toLocaleString()}</span>
-    </TokensTooltipTitle>
+    <TokenBreakdownTooltip
+      breakdowns={[
+        {
+          cacheRead: breakdown.cached,
+          cacheWrite: breakdown.cacheWrite,
+          input,
+          isComplete: true,
+          output: breakdown.output,
+          reasoning: reasoningTokens,
+          total: breakdown.total,
+        },
+      ]}
+    />
   );
 
   if (mismatch) {
@@ -407,12 +429,16 @@ function HighlightedTokenAttributes({
           {link: <ExternalLink href={TOKEN_TROUBLESHOOTING_URL} />}
         )}
       >
-        {tokenSummary}
+        <TokenSummary>{tokenSummary}</TokenSummary>
       </InfoText>
     );
   }
 
-  return <InfoText title={breakdownTooltip}>{tokenSummary}</InfoText>;
+  return (
+    <InfoText title={breakdownTooltip}>
+      <TokenSummary>{tokenSummary}</TokenSummary>
+    </InfoText>
+  );
 }
 
 function HighlightedContextUtilization({
@@ -454,6 +480,10 @@ function HighlightedContextUtilization({
 
   return <InfoText title={tooltipContent}>{inlineText}</InfoText>;
 }
+
+const TokenSummary = styled('span')`
+  white-space: nowrap;
+`;
 
 const TokensTooltipTitle = styled('div')`
   display: grid;

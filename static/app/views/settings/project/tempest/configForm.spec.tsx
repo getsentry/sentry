@@ -64,6 +64,11 @@ describe('ConfigForm', () => {
       method: 'PUT',
       body: updatedProject,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
+      body: updatedProject,
+    });
 
     render(<ConfigForm organization={organization} project={project} />);
 
@@ -79,6 +84,8 @@ describe('ConfigForm', () => {
         })
       );
     });
+    await waitFor(() => expect(switchInput).toBeEnabled());
+    expect(switchInput).toBeChecked();
   });
 
   it('updates ProjectsStore on successful save', async () => {
@@ -88,6 +95,11 @@ describe('ConfigForm', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
+      body: updatedProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'GET',
       body: updatedProject,
     });
 

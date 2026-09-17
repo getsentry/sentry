@@ -43,7 +43,7 @@ const CONVERSATION_BODY = [
 
 function mockConversation() {
   MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/ai-conversations/${CONVERSATION_ID}/`,
+    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
     body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
   });
   // The detail pane fetches full attributes per span; keep it empty.
@@ -113,6 +113,15 @@ describe('ConversationViewContent', () => {
     renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+  });
+
+  it('shows the span ID of the open span', async () => {
+    renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
+
+    expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
+
+    expect(screen.getByText('ID: span-a')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Copy to clipboard'})).toBeInTheDocument();
   });
 
   it('writes a sticky selection when the user picks a span', async () => {

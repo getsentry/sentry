@@ -8,7 +8,6 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
-from django.utils import timezone
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
 from urllib3.connectionpool import HTTPConnectionPool
@@ -23,17 +22,15 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
 from sentry.seer.autofix.autofix import get_trace_tree_for_event
-from sentry.seer.autofix.autofix_agent import (
-    AutofixStep,
-    NoSeerQuotaException,
-    trigger_autofix_agent,
-)
+from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixReferrer,
     FixabilityScoreThresholds,
     SeerAutomationSource,
 )
+from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_autotriggered_autofix_rate_limited,
@@ -184,7 +181,6 @@ def _trigger_autofix_task(
         )
 
         run: SeerRun | None = None
-        triggered_at = timezone.now()
         try:
             run = trigger_autofix_agent(
                 group=group,
@@ -199,7 +195,6 @@ def _trigger_autofix_task(
                     ActivityType.TRIGGER_AUTOFIX,
                     data={"referrer": referrer.value},
                     send_notification=False,
-                    datetime=triggered_at,
                 )
         except NoSeerQuotaException:
             pass

@@ -6,9 +6,9 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
@@ -128,6 +128,7 @@ function SidebarContent() {
         projectsForOnboarding.includes(project)
       );
       if (maybeProject) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setCurrentProject(maybeProject);
         return;
       }
@@ -152,6 +153,7 @@ function SidebarContent() {
     // Otherwise, pick a first project that has not sent a first transaction event.
     setCurrentProject(projectsWithoutFirstTransactionEvent[0]);
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     selection.projects,
     projects,
     projectsForOnboarding,

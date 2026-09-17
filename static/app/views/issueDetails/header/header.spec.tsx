@@ -103,16 +103,13 @@ describe('GroupHeader', () => {
       expect(screen.getByRole('button', {name: 'Archive'})).toBeInTheDocument();
     });
 
-    it('renders the short-id crumb with an always-visible copy button (flag on)', async () => {
-      const flaggedOrg = OrganizationFixture({
-        features: ['ui-migration-breadcrumbs'],
-      });
+    it('renders the short-id crumb with an always-visible copy button', async () => {
       render(
         <GroupDataContextProvider group={group} project={group.project}>
           <GroupHeader {...defaultProps} group={group} project={project} event={null} />
         </GroupDataContextProvider>,
         {
-          organization: flaggedOrg,
+          organization,
         }
       );
 

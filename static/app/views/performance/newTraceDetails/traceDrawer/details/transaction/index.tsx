@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -12,17 +12,15 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
+import {
+  EntryType,
+  type EntryBreadcrumbs,
+  type EventTransaction,
+} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanQueryFilters, SpanResponse} from 'sentry/views/insights/types';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {getCustomInstrumentationLink} from 'sentry/views/performance/newTraceDetails/traceConfigurations';
@@ -37,16 +35,8 @@ import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceD
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
-import {AdditionalData, hasAdditionalData} from './sections/additionalData';
 import {BreadCrumbs} from './sections/breadCrumbs';
-import {BuiltIn} from './sections/builtIn';
-import {Entries} from './sections/entries';
-import {GeneralInfo} from './sections/generalInfo';
-import {TransactionHighlights} from './sections/highlights';
-import {hasMeasurements, Measurements} from './sections/measurements';
 import {getEventTimestampMs, ReplayPreview} from './sections/replayPreview';
-import {Request} from './sections/request';
-import {hasSDKContext} from './sections/sdk';
 
 type TransactionNodeDetailHeaderProps = {
   event: EventTransaction;
@@ -95,7 +85,6 @@ export function TransactionNodeDetails({
   node,
   organization,
   onTabScrollToNode,
-  onParentClick,
   replay,
   hideNodeActions,
 }: TraceTreeNodeDetailsProps<TransactionNode>) {
@@ -112,25 +101,23 @@ export function TransactionNodeDetails({
     project_slug: node.value.project_slug,
     organization,
   });
-  const {data: cacheMetrics} = useSpans(
-    {
-      search: MutableSearch.fromQueryObject({
-        transaction: node.value.transaction,
-      } satisfies SpanQueryFilters),
-      fields: ['avg(cache.item_size)', 'cache_miss_rate()'],
-    },
-    Referrer.TRACE_DRAWER_TRANSACTION_CACHE_METRICS
-  );
-
   if (isPending) {
     return <LoadingIndicator />;
   }
 
-  if (isError) {
+  if (isError || !event) {
     return <LoadingError message={t('Failed to fetch transaction details')} />;
   }
 
-  const project = projects.find(proj => proj.slug === event?.projectSlug);
+  const project = projects.find(proj => proj.slug === event.projectSlug);
+
+  const breadcrumbEntryIndex = event.entries.findIndex(
+    entry => entry.type === EntryType.BREADCRUMBS
+  );
+  const breadcrumbs = (
+    event.entries[breadcrumbEntryIndex] as EntryBreadcrumbs | undefined
+  )?.data;
+  const breadcrumbMeta = event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -164,31 +151,11 @@ export function TransactionNodeDetails({
 
         <IssueList node={node} organization={organization} issues={issues} />
 
-        <TransactionHighlights
-          event={event}
-          node={node}
-          project={project}
-          organization={organization}
-          hideNodeActions={hideNodeActions}
-        />
-
         <AIIOAlert node={node} event={event} />
         <AIInputSection node={node} event={event} />
         <AIOutputSection node={node} event={event} />
         <MCPInputSection node={node} event={event} />
         <MCPOutputSection node={node} event={event} />
-
-        <TransactionSpecificSections
-          event={event}
-          node={node}
-          onParentClick={onParentClick}
-          organization={organization}
-          cacheMetrics={cacheMetrics}
-        />
-
-        {event.projectSlug ? (
-          <Entries definedEvent={event} projectSlug={event.projectSlug} />
-        ) : null}
 
         <TraceDrawerComponents.EventTags
           projectSlug={node.value.project_slug}
@@ -210,7 +177,9 @@ export function TransactionNodeDetails({
           />
         )}
 
-        <BreadCrumbs event={event} />
+        {breadcrumbs ? (
+          <BreadCrumbs breadcrumbs={breadcrumbs} meta={breadcrumbMeta} />
+        ) : null}
 
         {project ? (
           <EventAttachments event={event} project={project} group={undefined} />
@@ -234,44 +203,6 @@ export function TransactionNodeDetails({
         ) : null}
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>
-  );
-}
-
-type TransactionSpecificSectionsProps = {
-  cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
-  event: EventTransaction;
-  node: TransactionNode;
-  onParentClick: (node: BaseNode) => void;
-  organization: Organization;
-};
-
-function TransactionSpecificSections(props: TransactionSpecificSectionsProps) {
-  const location = useLocation();
-  const {event, node, onParentClick, organization, cacheMetrics} = props;
-
-  return (
-    <Fragment>
-      <GeneralInfo node={node} onParentClick={onParentClick} />
-      <FoldSection
-        sectionKey="transaction_specifc"
-        title={t('Transaction Specific')}
-        disableCollapsePersistence
-      >
-        <TraceDrawerComponents.SectionCardGroup>
-          {hasSDKContext(event) || cacheMetrics.length > 0 ? (
-            <BuiltIn event={event} cacheMetrics={cacheMetrics} />
-          ) : null}
-          {hasAdditionalData(event) ? <AdditionalData event={event} /> : null}
-          {hasMeasurements(event) ? (
-            <Measurements event={event} location={location} organization={organization} />
-          ) : null}
-          {event.contexts.trace?.data ? (
-            <TraceDrawerComponents.TraceDataSection event={event} />
-          ) : null}
-        </TraceDrawerComponents.SectionCardGroup>
-        <Request event={event} />
-      </FoldSection>
-    </Fragment>
   );
 }
 

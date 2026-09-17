@@ -30,7 +30,7 @@ class OrganizationEventsStatsPreprodSizeEndpointTest(OrganizationEventsEndpointT
             features = {}
         features.update(self.features)
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_max_install_size_aggregate(self) -> None:
         """Test that max(install_size) aggregate returns correct values."""

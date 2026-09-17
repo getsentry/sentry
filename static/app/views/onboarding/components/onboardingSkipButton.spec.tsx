@@ -30,6 +30,11 @@ const MAPPED_CASES: MappedCase[] = [
     referrer: 'onboarding-scm-platform-features-skip',
   },
   {
+    stepId: OnboardingStepId.SCM_MESSAGING,
+    sidebarSource: 'onboarding_sidebar',
+    referrer: 'onboarding-scm-messaging-skip',
+  },
+  {
     stepId: OnboardingStepId.SETUP_DOCS,
     sidebarSource: 'targeted_onboarding_first_event_footer_skip',
     referrer: 'onboarding-first-event-footer-skip',

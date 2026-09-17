@@ -280,7 +280,7 @@ describe('contentBlockToMarkdown', () => {
     expect(result).not.toContain('yarn');
   });
 
-  it('converts tabbed CodeBlock with selectedTabValue option', () => {
+  it('converts tabbed CodeBlock with tabSelectionsMap', () => {
     const block: ContentBlock = {
       type: 'code',
       tabs: [
@@ -289,13 +289,15 @@ describe('contentBlockToMarkdown', () => {
         {code: 'pnpm add @sentry/node', language: 'bash', label: 'pnpm'},
       ],
     };
-    const result = contentBlockToMarkdown(block, {selectedTabValue: 'yarn'});
+    const result = contentBlockToMarkdown(block, {
+      tabSelectionsMap: new Map([[deriveTabKey(block.tabs), 'yarn']]),
+    });
     expect(result).toBe('```bash\nyarn add @sentry/node\n```');
     expect(result).not.toContain('npm install');
     expect(result).not.toContain('pnpm');
   });
 
-  it('falls back to first tab when selectedTabValue does not match', () => {
+  it('falls back to first tab when tabSelectionsMap value does not match', () => {
     const block: ContentBlock = {
       type: 'code',
       tabs: [
@@ -303,7 +305,9 @@ describe('contentBlockToMarkdown', () => {
         {code: 'yarn add @sentry/node', language: 'bash', label: 'yarn'},
       ],
     };
-    const result = contentBlockToMarkdown(block, {selectedTabValue: 'bun'});
+    const result = contentBlockToMarkdown(block, {
+      tabSelectionsMap: new Map([[deriveTabKey(block.tabs), 'bun']]),
+    });
     expect(result).toBe('```bash\nnpm install @sentry/node\n```');
   });
 
@@ -325,7 +329,9 @@ describe('contentBlockToMarkdown', () => {
         },
       ],
     };
-    const result = contentBlockToMarkdown(block, {selectedTabValue: 'CJS'});
+    const result = contentBlockToMarkdown(block, {
+      tabSelectionsMap: new Map([[deriveTabKey(block.tabs), 'CJS']]),
+    });
     expect(result).toContain('// app.cjs');
     expect(result).toContain('const sentry = require("@sentry/node")');
   });

@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {formatDollars} from 'sentry/utils/formatters';
 
 export function formatLLMCosts(cost: string | number | null) {

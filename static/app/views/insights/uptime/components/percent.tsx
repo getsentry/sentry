@@ -5,8 +5,11 @@ import type {TextProps} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {CheckIndicator} from 'sentry/views/alerts/rules/uptime/checkIndicator';
-import {CheckStatus, type UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndicator';
+import {
+  CheckStatus,
+  type UptimeSummary,
+} from 'sentry/views/detectors/components/uptime/types';
 
 type UptimePercentProps = {
   summary: UptimeSummary;

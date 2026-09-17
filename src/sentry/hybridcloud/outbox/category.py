@@ -43,7 +43,7 @@ class OutboxCategory(IntEnum):
 
     AUTH_PROVIDER_UPDATE = 24
     AUTH_IDENTITY_UPDATE = 25
-    ORGANIZATION_MEMBER_TEAM_UPDATE = 26
+    UNUSED_EIGHT = 26  # was ORGANIZATION_MEMBER_TEAM_UPDATE, no longer in use
     ORGANIZATION_SLUG_RESERVATION_UPDATE = 27
     API_KEY_UPDATE = 28
     PARTNER_ACCOUNT_UPDATE = 29
@@ -74,6 +74,10 @@ class OutboxCategory(IntEnum):
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
+
+    def is_non_coalescing(self) -> bool:
+        """True if messages in this category must not be coalesced."""
+        return self in {OutboxCategory.GROUP_ACTION_LOG_EVENT}
 
     def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
@@ -279,7 +283,7 @@ class OutboxScope(IntEnum):
             OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE,
             OutboxCategory.TEAM_UPDATE,
             OutboxCategory.AUTH_PROVIDER_UPDATE,
-            OutboxCategory.ORGANIZATION_MEMBER_TEAM_UPDATE,
+            OutboxCategory.UNUSED_EIGHT,
             OutboxCategory.API_KEY_UPDATE,
             OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE,
             OutboxCategory.ORG_AUTH_TOKEN_UPDATE,

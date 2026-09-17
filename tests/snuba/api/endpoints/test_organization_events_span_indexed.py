@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 import urllib3
+from django.urls import reverse
 from django.utils.timezone import now
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
@@ -25,6 +26,48 @@ KNOWN_PREFLIGHT_ID = "ca056dd858a24299"
 class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
     def do_request(self, query, features=None, **kwargs):
         return super().do_request(query, features, **kwargs)
+
+    def test_routing_hint_round_trip_for_older_span(self) -> None:
+        timestamp = before_now(days=40)
+        span = self.create_span(
+            {"span_id": KNOWN_PREFLIGHT_ID, "description": "older span"}, start_ts=timestamp
+        )
+        self.store_spans([span])
+        response = self.do_request(
+            {
+                "field": ["id", "trace", "timestamp"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "90d",
+                "sampling": "NORMAL",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        row = response.data["data"][0]
+        assert row["id"] == span["span_id"]
+        hint = response.data["meta"]["routingHint"]
+        assert isinstance(hint, str) and hint
+        details_url = reverse(
+            "sentry-api-0-project-trace-item-details",
+            args=[self.organization.slug, self.project.slug, row["id"]],
+        )
+        details = self.client_get(
+            details_url,
+            {
+                "item_type": "spans",
+                "trace_id": row["trace"],
+                "timestamp": row["timestamp"],
+                "routing_hint": hint,
+            },
+        )
+
+        assert details.status_code == 200, details.content
+        assert details.data["itemId"] == row["id"]
+        assert {"name": "span.description", "type": "str", "value": "older span"} in details.data[
+            "attributes"
+        ]
 
     @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
     def test_spm(self) -> None:
@@ -777,6 +820,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert response.status_code == 200, response.content
             expected = {
                 "bytesScanned": mock.ANY,
+                "routingHint": mock.ANY,
                 "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
@@ -1215,7 +1259,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "true"
 
         assert links["next"]["href"] is not None
-        response = self.client.get(links["next"]["href"], format="json")
+        response = self.client_get(links["next"]["href"], format="json")
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
@@ -1234,7 +1278,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         assert links["next"]["results"] == "false"
 
         assert links["previous"]["href"] is not None
-        response = self.client.get(links["previous"]["href"], format="json")
+        response = self.client_get(links["previous"]["href"], format="json")
         assert response.status_code == 200, response.content
         assert response.data["data"] == [
             {
@@ -2104,6 +2148,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         expected = {
             "bytesScanned": mock.ANY,
+            "routingHint": mock.ANY,
             "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
@@ -5904,6 +5949,54 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_semver_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test@3.0.1")
+        release_2 = self.create_release(version="test@3.0.2")
+        release_3 = self.create_release(version="test@3.0.3")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.version:[3.0.1, 3.0.3]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.1",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.3",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.version:[3.0.1, 3.0.3]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.2",
+            },
+        ]
+
     def test_semver_package(self) -> None:
         release_1 = self.create_release(version="test1@1.2.1")
         release_2 = self.create_release(version="test2@1.2.1")
@@ -6027,6 +6120,54 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "id": span2["span_id"],
                 "project.name": self.project.slug,
                 "release": "test@1.2.3+122",
+            },
+        ]
+
+    def test_semver_build_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test@3.0.0+501")
+        release_2 = self.create_release(version="test@3.0.0+502")
+        release_3 = self.create_release(version="test@3.0.0+503")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.build:[501, 503]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+501",
+            },
+            {
+                "id": span3["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+503",
+            },
+        ]
+
+        response = self.do_request({**request, "query": "!release.build:[501, 503]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test@3.0.0+502",
             },
         ]
 

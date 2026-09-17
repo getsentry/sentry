@@ -4,22 +4,15 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
+import {KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {DetailsTimeline} from 'sentry/views/alerts/rules/uptime/detailsTimeline';
-import {DetailsTimelineLegend} from 'sentry/views/alerts/rules/uptime/detailsTimelineLegend';
-import {
-  CheckStatus,
-  type CheckStatusBucket,
-} from 'sentry/views/alerts/rules/uptime/types';
-import {UptimeChecksTable} from 'sentry/views/alerts/rules/uptime/uptimeChecksTable';
 import {
   DisableDetectorAction,
   EditDetectorAction,
@@ -31,6 +24,13 @@ import {DisabledAlert} from 'sentry/views/detectors/components/details/common/di
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOngoingIssues} from 'sentry/views/detectors/components/details/common/ongoingIssues';
+import {DetailsTimeline} from 'sentry/views/detectors/components/uptime/detailsTimeline';
+import {DetailsTimelineLegend} from 'sentry/views/detectors/components/uptime/detailsTimelineLegend';
+import {
+  CheckStatus,
+  type CheckStatusBucket,
+} from 'sentry/views/detectors/components/uptime/types';
+import {UptimeChecksTable} from 'sentry/views/detectors/components/uptime/uptimeChecksTable';
 import {UptimeDuration} from 'sentry/views/insights/uptime/components/duration';
 import {UptimePercent} from 'sentry/views/insights/uptime/components/percent';
 import {useUptimeMonitorSummaries} from 'sentry/views/insights/uptime/utils/useUptimeMonitorSummary';

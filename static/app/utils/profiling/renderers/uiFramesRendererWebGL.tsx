@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import * as Sentry from '@sentry/react';
 import {mat3} from 'gl-matrix';
 

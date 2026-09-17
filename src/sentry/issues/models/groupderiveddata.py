@@ -27,11 +27,23 @@ class GroupDerivedData(DefaultFieldsModel):
     Materialized state derived from GroupActionLogEntry entries.
     One row per group (enforced by ``unique=True`` on the FK).
 
+    High level
+    ~~~~~~~~~~~~~
+    Incrementally accumulated feature values from the group action log.
+    ``pipeline_hash`` tracks the code version when we started processing
+    the group; ``generated_at`` is a timestamp telling us the log state.
+    If the code changes or history was rewritten, these tell us a regen
+    is needed. If we're changing history ourselves, we can be explicit
+    and set ``pipeline_hash`` to null and ``generated_at`` to now to say
+    "this is invalid as of now".
+
+    Outside of those, we're just a deterministic log summary, so concurrent
+    updates are safe: whoever has seen more of the log wins, and
+    ``(cursor_date, cursor_id)`` tracks that progress.
+
     Update safety
     ~~~~~~~~~~~~~
-    The pipeline is deterministic: replaying the same log produces the same
-    state. However, the log is not strictly append-only — historical entries
-    may be inserted, which is a primary reason generations are triggered.
+    Precise rules for the markers above:
 
     * **generated_at** — timestamp of when the generation that produced
       this row's current state *started* processing. This is a CAS version:
@@ -47,6 +59,15 @@ class GroupDerivedData(DefaultFieldsModel):
     * **pipeline_hash** — stamped at row creation, incremental writes only
       succeed if the pipeline version hasn't changed since the row was
       read. A pipeline upgrade invalidates in-flight incremental work.
+      A NULL value is the canonical "known stale, needs regen" marker:
+      the row is readable but not authoritative and should be replaced.
+
+    Invalidation (via ``invalidate_group_derived_data``) either nulls
+    ``pipeline_hash`` and bumps ``generated_at`` (soft) or deletes the row
+    (hard). Under soft invalidation, a placeholder row with
+    ``pipeline_hash=None`` is inserted when none exists, so a missing row
+    unambiguously means "no derived data computed yet" while a null-hash
+    row means "known stale."
 
     See ``processing.py`` for the full lifecycle.
     """

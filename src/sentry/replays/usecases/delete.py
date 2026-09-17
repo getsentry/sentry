@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Iterator
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
 from google.cloud.exceptions import NotFound
@@ -44,6 +44,7 @@ from sentry.utils.snuba import (
     RateLimitExceeded,
     SnubaError,
     UnexpectedResponseError,
+    parse_snuba_datetime,
 )
 
 SNUBA_RETRY_EXCEPTIONS = (
@@ -121,18 +122,26 @@ def delete_matched_rows(project_id: int, rows: list[MatchedRow]) -> int | None:
         return None
 
     delete_filenames_concurrently(list(_make_recording_filenames(project_id, rows)))
-    delete_replays(project_id, [row["replay_id"] for row in rows])
+    delete_replays(project_id, rows)
     return None
 
 
-def delete_replays(project_id: int, replay_ids: list[str]) -> None:
-    """Set the archived bit flag to true on each replay."""
-    for replay_id in replay_ids:
-        publish_replay_event(archive_event(project_id, replay_id))
+def delete_replays(project_id: int, rows: list[MatchedRow]) -> None:
+    """Set the archived bit flag to true on each replay.
+
+    Each archive event is stamped with the replay's own timestamp rather than "now" so it lands in
+    the same date range the replay does and hides it there.
+    """
+    for row in rows:
+        publish_replay_event(archive_event(project_id, row["replay_id"], row["timestamp"]))
 
 
 #  Keeping this small bounds threads-per-task so `worker_concurrency x N` stays under pod memory limit
 DELETE_THREAD_POOL_SIZE = 32
+
+
+class BlobDeleteFailed(Exception):
+    """A recording blob could not be deleted."""
 
 
 def delete_filenames_concurrently(filenames: list[str]) -> None:
@@ -145,13 +154,27 @@ def delete_filenames_concurrently(filenames: list[str]) -> None:
 
     max_workers = min(len(filenames), DELETE_THREAD_POOL_SIZE)
     with ContextPropagatingThreadPoolExecutor(max_workers=max_workers) as pool:
-        pool.map(_delete_if_exists, filenames)
+        # Keep the futures. `pool.map` returns a lazy iterator, so dropping its return value never
+        # retrieved a worker exception, which is why a failed blob delete has never been visible.
+        futures = [pool.submit(_delete_if_exists, filename) for filename in filenames]
+
+    failed = sum(1 for future in futures if future.exception() is not None)
+    if failed:
+        raise BlobDeleteFailed(f"{failed} of {len(filenames)} recording blobs were not deleted")
+
+
+_BLOB_DELETE_ATTEMPTS = 2
+_BLOB_DELETE_RETRY = ConditionalRetryPolicy(
+    test_function=lambda attempt, error: attempt < _BLOB_DELETE_ATTEMPTS
+    and not isinstance(error, NotFound),
+    delay_function=exponential_delay(0.5),
+)
 
 
 def _delete_if_exists(filename: str) -> None:
     """Delete the blob if it exists or silence the 404."""
     try:
-        storage_kv.delete(filename)
+        _BLOB_DELETE_RETRY(lambda: storage_kv.delete(filename))
     except NotFound:
         pass
 
@@ -179,8 +202,11 @@ def _make_recording_filenames(project_id: int, rows: list[MatchedRow]) -> Iterat
 
 class MatchedRow(TypedDict):
     retention_days: int
+    # Replay ID with dashes
     replay_id: str
     max_segment_id: int | None
+    # The Replay's last segment within the queried window
+    timestamp: datetime
 
 
 class MatchedRows(TypedDict):
@@ -225,6 +251,7 @@ def fetch_rows_matching_pattern(
             Function("any", parameters=[Column("retention_days")], alias="retention_days"),
             Column("replay_id"),
             Function("max", parameters=[Column("segment_id")], alias="max_segment_id"),
+            Function("max", parameters=[Column("timestamp")], alias="finished_at"),
             replay_id_hash_column,
         ],
         where=[
@@ -250,7 +277,7 @@ def fetch_rows_matching_pattern(
     # because our most likely failure is rate limit related. Blasting Snuba with more queries will
     # increase the chance of failure not reduce it.
     policy = ConditionalRetryPolicy(
-        test_function=lambda a, e: a < 5 and e in SNUBA_RETRY_EXCEPTIONS,
+        test_function=lambda a, e: a < 5 and isinstance(e, SNUBA_RETRY_EXCEPTIONS),
         delay_function=exponential_delay(1.0),
     )
     response = policy(
@@ -275,54 +302,55 @@ def fetch_rows_matching_pattern(
                 "max_segment_id": row["max_segment_id"],
                 "replay_id": row["replay_id"],
                 "retention_days": row["retention_days"],
+                "timestamp": snuba_timestamp_as_utc(row["finished_at"]),
             }
             for row in rows
         ],
     }
 
 
-def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> bool:
-    """
-    Delete replay data from Seer.
+def snuba_timestamp_as_utc(value: str) -> datetime:
+    """Parse a timestamp Snuba returned, as UTC.
 
-    Returns True if the request was successful, False otherwise.
+    Snuba renders datetimes with a zone sometimes and without one others. They are UTC either way,
+    and an unzoned one has to be told so before anything reads it as an instant -- `.timestamp()`
+    treats a naive datetime as local time, which would shift it by the host's offset.
     """
-    seer_request = ReplayDeleteSeerDataRequest(
-        replay_ids=replay_ids,
-        organization_id=organization_id,
-        project_id=project_id,
+    parsed = parse_snuba_datetime(value)
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+SEER_DELETE_RETRY = Retry(
+    total=1,
+    backoff_factor=1,
+    allowed_methods=None,  # Allow retry on POST, since deletion is idempotent
+    status_forcelist=[429, 500, 502, 503, 504],
+)
+
+SEER_DELETE_TIMEOUT = 30
+
+
+class SeerDeleteFailed(Exception):
+    """Seer refused to delete a set of replay summaries."""
+
+
+def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: list[str]) -> None:
+    """Delete these replays' summaries from Seer, raising if it will not.
+
+    A summary is derived from the replay's contents, so one left behind is PII left behind. Failures
+    propagate rather than being reported, so a caller cannot accidentally treat a refused deletion as
+    a completed one. The replay ids are already on the caller's Sentry scope.
+    """
+    response = make_replay_delete_request(
+        ReplayDeleteSeerDataRequest(
+            replay_ids=replay_ids,
+            organization_id=organization_id,
+            project_id=project_id,
+        ),
+        timeout=SEER_DELETE_TIMEOUT,
+        retries=SEER_DELETE_RETRY,
+        viewer_context=SeerViewerContext(organization_id=organization_id),
     )
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-
-    try:
-        response = make_replay_delete_request(
-            seer_request,
-            timeout=5,
-            retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
-            viewer_context=viewer_context,
-        )
-    except Exception:
-        logger.exception(
-            "Failed to delete replay data from Seer",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "replay_ids": replay_ids,
-            },
-        )
-        return False
-
-    response_status_ok = response.status >= 200 and response.status < 300
-    if not response_status_ok:
-        logger.error(
-            "Failed to delete replay data from Seer",
-            extra={
-                "organization_id": organization_id,
-                "project_id": project_id,
-                "replay_ids": replay_ids,
-                "status_code": response.status,
-                "response": response.data,
-            },
-        )
-    return response_status_ok
+    if not 200 <= response.status < 300:
+        raise SeerDeleteFailed(f"Seer returned {response.status} for {len(replay_ids)} replays")

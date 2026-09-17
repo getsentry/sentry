@@ -1,11 +1,6 @@
-import {useMemo} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {skipToken} from '@tanstack/react-query';
 
-import {t} from 'sentry/locale';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {IntegrationChannel} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 type Response = {
@@ -14,56 +9,26 @@ type Response = {
 };
 
 /**
- * Checks whether a manually entered integration channel (e.g., Slack channel, Discord server) is valid.
+ * Returns the query options for checking whether a manually entered integration
+ * channel (e.g., Slack channel, Discord server) is valid.
  */
-export function useValidateChannel({
+export function validateChannelQueryOptions({
+  organizationSlug,
   channel,
   integrationId,
-  enabled,
 }: {
-  enabled: boolean;
+  organizationSlug: string;
   channel?: IntegrationChannel;
   integrationId?: string;
 }) {
-  const organization = useOrganization();
-  const queryClient = useQueryClient();
-
-  const queryKey: ApiQueryKey = useMemo(
-    () => [
-      getApiUrl(
-        '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            integrationId: integrationId!,
-          },
-        }
-      ),
-      {
-        query: {
-          channel: channel?.label,
-        },
-      },
-    ],
-    [organization.slug, integrationId, channel?.label]
+  return apiOptions.as<Response>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
+    {
+      path: integrationId
+        ? {organizationIdOrSlug: organizationSlug, integrationId}
+        : skipToken,
+      query: {channel: channel?.label},
+      staleTime: 0,
+    }
   );
-
-  const {isFetching, data, error} = useApiQuery<Response>(queryKey, {
-    staleTime: 0,
-    enabled,
-  });
-
-  return {
-    isFetching,
-    clear: () =>
-      queryClient.removeQueries({
-        queryKey,
-      }),
-    error:
-      data?.valid === false
-        ? (data.detail ?? t('Channel not found or restricted'))
-        : error
-          ? t('Unexpected integration channel validation error')
-          : undefined,
-  };
 }

@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {useId, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -19,6 +18,7 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
+import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
@@ -311,6 +311,9 @@ const seerActivities = [
   seerActivity(GroupActivityType.SEER_PR_CREATED, {
     pull_requests: [seerPullRequest],
   }),
+  seerActivity(GroupActivityType.SEER_PR_READY_FOR_REVIEW, {
+    pull_requests: [seerPullRequest],
+  }),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
     referrer: 'github.pr_comment',
@@ -353,6 +356,9 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
     }),
     user,
   },
+  seerActivityAt(GroupActivityType.SEER_PR_READY_FOR_REVIEW, '2025-01-01T00:45:00Z', {
+    pull_requests: [seerPullRequest],
+  }),
 ]);
 
 export default Storybook.story('Issue Activity', story => {
@@ -467,15 +473,15 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
-    <ActivityList gap="md">
+    <ActivityLineList>
       {items.map((item, index) =>
         item.type === 'activity' && isActivityNote(item.activity) ? (
           <ActivityLineNote
             key={`${item.activity.id}-${index}`}
             activity={item.activity}
-            group={group}
             inputVariant="compact"
             onDelete={async () => {}}
+            onUpdate={async () => {}}
           />
         ) : (
           <ActivityLine
@@ -486,7 +492,7 @@ function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
           />
         )
       )}
-    </ActivityList>
+    </ActivityLineList>
   );
 }
 
@@ -498,28 +504,13 @@ function CommentExample() {
   }
 
   return (
-    <ActivityList gap="md">
+    <ActivityLineList>
       <ActivityLineNote
         activity={{...note, user: activeUser}}
-        group={group}
         inputVariant="full"
         onDelete={async () => {}}
+        onUpdate={async () => {}}
       />
-    </ActivityList>
+    </ActivityLineList>
   );
 }
-
-const ActivityList = styled(Stack)`
-  position: relative;
-  container-name: activity-list;
-  container-type: inline-size;
-
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    top: 11px;
-    bottom: 0;
-    border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
-  }
-`;

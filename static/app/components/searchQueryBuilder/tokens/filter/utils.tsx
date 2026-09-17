@@ -112,9 +112,8 @@ function shouldEscapeTagValue(
   value: string,
   options: EscapeTagValueOptions = {}
 ): boolean {
-  const {allowArrayValue = true, forceQuote = false} = options;
+  const {allowArrayValue = true} = options;
   return (
-    forceQuote ||
     SHOULD_ESCAPE_REGEX.test(value) ||
     (allowArrayValue && value.startsWith('[') && value.endsWith(']'))
   );
@@ -122,19 +121,15 @@ function shouldEscapeTagValue(
 
 interface EscapeTagValueOptions {
   allowArrayValue?: boolean;
-  forceQuote?: boolean;
 }
 
-export function escapeTagValue(
-  value: string,
-  options: EscapeTagValueOptions = {}
-): string {
+export function escapeTagValue(value: string): string {
   if (!value) {
     return '';
   }
 
   // Wrap in quotes if there is a space or parens
-  const shouldEscape = shouldEscapeTagValue(value, options);
+  const shouldEscape = shouldEscapeTagValue(value);
   return shouldEscape ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 

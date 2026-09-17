@@ -45,19 +45,44 @@ class CreateSeerRunCodingAgentHandoffTest(TestCase):
         )
 
     def test_creates_row_for_state(self) -> None:
-        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state())
+        create_seer_run_coding_agent_handoff(
+            self.organization, RUN_STATE_ID, _state(), repo_external_id="28"
+        )
 
         handoff = SeerRunCodingAgentHandoff.objects.get(seer_run=self.seer_run)
         assert handoff.agent_id == "agent-1"
         assert handoff.provider == "github_copilot_agent"
         assert handoff.status == "running"
 
+    def test_records_launch_repo_the_agent_will_not_report_back(self) -> None:
+        """The agent names its repo, and a name can't resolve one. The id it was launched
+        against is the only exact identity, and this is the last point that has it."""
+        create_seer_run_coding_agent_handoff(
+            self.organization, RUN_STATE_ID, _state(), repo_external_id="28"
+        )
+
+        handoff = SeerRunCodingAgentHandoff.objects.get(seer_run=self.seer_run)
+        assert handoff.extras["repo_external_id"] == "28"
+
+    def test_omits_repo_external_id_when_the_repo_has_none(self) -> None:
+        """An empty id must not be stored -- resolution treats it as absent either way,
+        and a stored empty reads as "we recorded one"."""
+        create_seer_run_coding_agent_handoff(
+            self.organization, RUN_STATE_ID, _state(), repo_external_id=""
+        )
+
+        handoff = SeerRunCodingAgentHandoff.objects.get(seer_run=self.seer_run)
+        assert "repo_external_id" not in handoff.extras
+
     def test_called_once_per_launched_state(self) -> None:
-        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state("agent-1"))
+        create_seer_run_coding_agent_handoff(
+            self.organization, RUN_STATE_ID, _state("agent-1"), repo_external_id="28"
+        )
         create_seer_run_coding_agent_handoff(
             self.organization,
             RUN_STATE_ID,
             _state("agent-2", provider=CodingAgentProviderType.CLAUDE_CODE_AGENT),
+            repo_external_id="28",
         )
 
         handoffs = SeerRunCodingAgentHandoff.objects.filter(seer_run=self.seer_run).order_by(
@@ -68,7 +93,9 @@ class CreateSeerRunCodingAgentHandoffTest(TestCase):
 
     @patch("sentry.seer.autofix.coding_agent_handoffs.logger")
     def test_noop_when_run_not_found(self, mock_logger: Mock) -> None:
-        create_seer_run_coding_agent_handoff(self.organization, 999, _state())
+        create_seer_run_coding_agent_handoff(
+            self.organization, 999, _state(), repo_external_id="28"
+        )
 
         assert not SeerRunCodingAgentHandoff.objects.exists()
         mock_logger.info.assert_called_once_with(
@@ -173,6 +200,64 @@ class SyncCodingAgentStatusTest(TestCase):
         assert SeerRunMilestone.objects.filter(
             seer_run=self.seer_run, milestone=SeerRunMilestoneType.HAS_PULL_REQUEST
         ).exists()
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_links_gitlab_pull_request_the_reported_name_cannot_resolve(
+        self, mock_update_state: Mock
+    ) -> None:
+        """GitLab repos are stored under `name_with_namespace` but handed out (and so
+        reported back) as `path_with_namespace`, which matches no row. The external id
+        recorded at launch is what links the PR."""
+        mock_update_state.return_value = True
+        gitlab_repo = self.create_repo(
+            self.project,
+            name="My Group / My Project",
+            provider="integrations:gitlab",
+            external_id="28",
+        )
+        handoff = self.create_seer_run_coding_agent_handoff(
+            self.seer_run,
+            agent_id="agent-gitlab",
+            provider="cursor_background_agent",
+            extras={"repo_external_id": "28"},
+        )
+
+        sync_coding_agent_status(
+            agent_id="agent-gitlab",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=CodingAgentResult(
+                description="Fixed the bug",
+                repo_provider="gitlab",
+                repo_full_name="my-group/my-project",
+                pr_url="https://gitlab.com/my-group/my-project/-/merge_requests/42",
+            ),
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=gitlab_repo.id, key="42")
+        assert list(handoff.pull_requests) == [pull_request]
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_links_by_name_when_launch_recorded_no_external_id(
+        self, mock_update_state: Mock
+    ) -> None:
+        """Handoffs launched before the id was recorded keep resolving by name."""
+        mock_update_state.return_value = True
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=CodingAgentResult(
+                description="Fixed the bug",
+                repo_provider="github",
+                repo_full_name=REPO_NAME,
+                pr_url="https://github.com/getsentry/sentry/pull/42",
+            ),
+        )
+
+        assert "repo_external_id" not in self.handoff.extras
+        assert PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_no_pull_request_milestone_for_branch_without_pr(self, mock_update_state: Mock) -> None:

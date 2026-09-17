@@ -21,6 +21,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import type {TraceFullDetailed} from 'sentry/views/performance/newTraceDetails/traceApi/types';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {
+  makeEAPError,
+  makeEAPOccurrence,
+  makeEAPSpan,
+} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
 
 const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
 
@@ -196,10 +202,51 @@ const mockGroupApis = (
   });
 
   MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
+    url: `/organizations/${organization.slug}/trace/${TRACE_ID}/`,
     body: trace
-      ? {transactions: [trace], orphan_errors: []}
-      : {transactions: [], orphan_errors: []},
+      ? ([
+          makeEAPSpan({
+            event_id: trace.event_id,
+            name: trace.transaction,
+            op: trace['transaction.op'],
+            transaction: trace.transaction,
+            transaction_id: trace.event_id,
+            project_id: trace.project_id,
+            project_slug: trace.project_slug,
+            start_timestamp: trace.start_timestamp,
+            end_timestamp: trace.timestamp,
+            duration: (trace.timestamp ?? 0) - (trace.start_timestamp ?? 0),
+            is_transaction: true,
+            parent_span_id: trace.parent_span_id ?? null,
+            errors: (trace.errors ?? []).map(error =>
+              makeEAPError({
+                event_id: error.event_id,
+                description: error.message,
+                issue_id: error.issue_id,
+                level: error.level,
+                project_id: error.project_id,
+                project_slug: error.project_slug,
+                start_timestamp: trace.start_timestamp,
+                transaction: trace.transaction,
+              })
+            ),
+            occurrences: (trace.performance_issues ?? []).map(issue =>
+              makeEAPOccurrence({
+                culprit: issue.culprit,
+                description: issue.message,
+                event_id: issue.event_id,
+                issue_id: issue.issue_id,
+                issue_type: issue.type,
+                level: issue.level,
+                project_id: issue.project_id,
+                project_slug: issue.project_slug,
+                start_timestamp: trace.start_timestamp,
+                transaction: trace.transaction,
+              })
+            ),
+          }),
+        ] satisfies TraceTree.EAPTrace)
+      : [],
   });
 
   MockApiClient.addMockResponse({
@@ -219,7 +266,7 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/prompts-activity/`,
-    body: {data: {}, features: {['issue_feedback_hidden']: {}}},
+    body: {data: {}, features: {issue_feedback_hidden: {}}},
   });
 
   MockApiClient.addMockResponse({

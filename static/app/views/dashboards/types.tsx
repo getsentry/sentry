@@ -36,6 +36,7 @@ export const MAX_CATEGORICAL_BAR_LIMIT = 25;
 
 export const DEFAULT_WIDGET_NAME = t('Custom Widget');
 export const PREBUILT_DASHBOARD_LABEL = t('Sentry Built');
+export const CUSTOM_DASHBOARD_LABEL = t('Custom Dashboards');
 
 export enum DisplayType {
   AREA = 'area',
@@ -130,6 +131,9 @@ export type WidgetQuery = {
   // is currently used to track column order on table
   // widgets.
   fields?: string[];
+  // Also match `fallbackAttribute` when a global filter is applied to `attribute`.
+  // Frontend-only (prebuilt dashboards). Not stored in the backend.
+  globalFilterFallback?: {attribute: string; fallbackAttribute: string};
   isHidden?: boolean | null;
   linkedDashboards?: LinkedDashboard[];
   // Contains the on-demand entries for the widget query.

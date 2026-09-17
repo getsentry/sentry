@@ -49,7 +49,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
@@ -82,7 +81,6 @@ const COLUMNS: GroupListColumn[] = [
 type Props = {
   group: Group;
   canSelect?: boolean;
-  customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
   hasGuideAnchor?: boolean;
   memberList?: User[];
@@ -91,7 +89,6 @@ type Props = {
   progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
-  showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
@@ -199,14 +196,13 @@ function GroupFirstSeen({group}: {group: Group}) {
 
 type LoadingSteamGroupProps = Pick<
   Props,
-  'displayReprocessingLayout' | 'withChart' | 'withColumns' | 'showLastTriggered'
+  'displayReprocessingLayout' | 'withChart' | 'withColumns'
 >;
 
 export function LoadingStreamGroup({
   displayReprocessingLayout,
   withChart = true,
   withColumns = COLUMNS,
-  showLastTriggered = false,
 }: LoadingSteamGroupProps) {
   const theme = useTheme();
 
@@ -282,17 +278,6 @@ export function LoadingStreamGroup({
         </Fragment>
       ) : (
         <Fragment>
-          {showLastTriggered && (
-            <Flex
-              justify="end"
-              alignSelf="center"
-              width="100px"
-              paddingRight="xl"
-              marginRight="xl"
-            >
-              <Placeholder height="18px" />
-            </Flex>
-          )}
           {withColumns.includes('event') && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
@@ -364,7 +349,6 @@ export function LoadingStreamGroup({
 
 export function StreamGroup({
   group,
-  customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
   memberList,
@@ -377,7 +361,6 @@ export function StreamGroup({
   withColumns = COLUMNS,
   useFilteredStats = false,
   useTintRow = true,
-  showLastTriggered = false,
   onPriorityChange,
   onAssigneeChange,
   progressState,
@@ -402,10 +385,9 @@ export function StreamGroup({
   const {period, start, end} = selection.datetime || {};
 
   const summary =
-    customStatsPeriod?.label?.toLowerCase() ??
-    (!!start && !!end
+    !!start && !!end
       ? 'time range'
-      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
   const sharedAnalytics = useMemo(() => {
     const owners = group?.owners ?? [];
@@ -502,7 +484,7 @@ export function StreamGroup({
     const commonQuery = {projects: [Number(group.project.id)]};
 
     if (hasDiscoverQuery) {
-      const stats = customStatsPeriod ?? (selection.datetime || {});
+      const stats = selection.datetime || {};
       const discoverQuery: NewQuery = {
         ...commonQuery,
         id: undefined,
@@ -602,6 +584,7 @@ export function StreamGroup({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
     // Original state had an inbox reason
+    // oxlint-disable-next-line react/refs
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
     !group.inbox &&
@@ -616,8 +599,6 @@ export function StreamGroup({
   const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
   const secondaryUserCount = group.filtered ? group.userCount : undefined;
   // preview stats
-  const lastTriggeredDate = group.lastTriggered;
-
   const showSecondaryPoints = Boolean(
     withChart && group?.filtered && statsPeriod && useFilteredStats
   );
@@ -625,7 +606,6 @@ export function StreamGroup({
   const groupCount = (
     <Tooltip
       disabled={!useFilteredStats}
-      isHoverable
       title={
         <CountTooltipContent>
           <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
@@ -663,7 +643,6 @@ export function StreamGroup({
 
   const groupUsersCount = (
     <Tooltip
-      isHoverable
       disabled={!usePageFilters}
       title={
         <CountTooltipContent>
@@ -698,17 +677,6 @@ export function StreamGroup({
         )}
       </Stack>
     </Tooltip>
-  );
-
-  const lastTriggered = defined(lastTriggeredDate) ? (
-    <PositionedTimeSince
-      tooltipPrefix={t('Last Triggered')}
-      date={lastTriggeredDate}
-      suffix={t('ago')}
-      unitStyle="short"
-    />
-  ) : (
-    <Placeholder height="18px" />
   );
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -804,12 +772,10 @@ export function StreamGroup({
         >
           {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
-              hideZeros
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-              showMarkLine
             />
           ) : issueTypeConfig.stats.enabled ? (
             <Placeholder height="36px" />
@@ -820,17 +786,6 @@ export function StreamGroup({
         renderReprocessingColumns()
       ) : (
         <Fragment>
-          {showLastTriggered && (
-            <Flex
-              justify="end"
-              alignSelf="center"
-              width="100px"
-              paddingRight="xl"
-              marginRight="xl"
-            >
-              {lastTriggered}
-            </Flex>
-          )}
           {withColumns.includes('event') && (
             <Flex
               display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}

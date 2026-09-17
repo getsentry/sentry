@@ -5,6 +5,7 @@ import {markedHighlight} from 'marked-highlight';
 import Prism from 'prismjs';
 
 import {extensions} from 'sentry/utils/marked/extensions';
+import type {TagToken} from 'sentry/utils/marked/extensions/tag';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 export {MarkedLexer};
@@ -16,6 +17,94 @@ marked.use({extensions: [...extensions]});
 
 const SAFE_LINK_PATTERN = /^(https?:|mailto:)/i;
 const INTERNAL_PATH_PATTERN = /^\/[^/]/;
+
+/** One piece of a source string: literal text, or a tag with its parsed body. */
+export type TagSegment =
+  | {type: 'text'; value: string}
+  | {
+      attrs: Record<string, string>;
+      data: unknown;
+      level: 'block' | 'inline';
+      name: string;
+      type: 'tag';
+    };
+
+/**
+ * A list keeps its content on `items`; everything else that nests keeps it on
+ * `tokens`. Table cells are neither -- marked gives them no `raw`, so there is
+ * nothing to locate them by, and a tag written in a table stays literal.
+ */
+function childTokens(token: Token): Token[] {
+  const nested = token as {items?: Token[]; tokens?: Token[]};
+  return nested.items ?? nested.tokens ?? [];
+}
+
+/**
+ * Walks a token list against the source it came from, emitting the text in
+ * between and a segment for each tag.
+ *
+ * Each token is located from where the previous one ended, inside its parent's
+ * source rather than the whole document. Searching globally would match the
+ * first identical string anywhere -- so a tag shown literally in a code fence
+ * would be taken for a later, real one.
+ */
+function walkSource(slice: string, tokens: Token[], out: TagSegment[]): void {
+  let cursor = 0;
+
+  for (const token of tokens) {
+    const raw = (token as {raw?: string}).raw;
+    if (raw === undefined) {
+      continue;
+    }
+
+    const at = slice.indexOf(raw, cursor);
+    if (at === -1) {
+      continue;
+    }
+    if (at > cursor) {
+      out.push({type: 'text', value: slice.slice(cursor, at)});
+    }
+
+    if (token.type === 'tag') {
+      const tag = token as unknown as TagToken;
+      out.push({
+        type: 'tag',
+        name: tag.name,
+        attrs: tag.attrs,
+        data: tag.data,
+        level: tag.level,
+      });
+    } else {
+      const children = childTokens(token);
+      if (children.length > 0) {
+        walkSource(raw, children, out);
+      } else {
+        // `code` and `codespan` land here, which is what keeps a tag written
+        // inside them literal.
+        out.push({type: 'text', value: raw});
+      }
+    }
+
+    cursor = at + raw.length;
+  }
+
+  if (cursor < slice.length) {
+    out.push({type: 'text', value: slice.slice(cursor)});
+  }
+}
+
+/**
+ * Splits a source string into its text and its tags, in document order.
+ *
+ * Lexed the way the document lexes it, so a tag only counts as one where the
+ * document would render it as one, and the text around them is returned exactly
+ * as written.
+ */
+export function splitTags(src: string): TagSegment[] {
+  const segments: TagSegment[] = [];
+  walkSource(src, MarkedLexer.lex(src), segments);
+  return segments;
+}
 
 export function isSafeHref(href: string): boolean {
   try {
@@ -95,7 +184,7 @@ const ALLOWED_TAGS = [
   'sup',
 ];
 
-const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'id', 'align'];
+const ALLOWED_ATTR = ['href', 'title', 'alt', 'class', 'align'];
 
 export function sanitizeHtml(html: string) {
   return dompurify.sanitize(html, {

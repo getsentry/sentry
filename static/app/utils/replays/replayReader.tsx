@@ -34,7 +34,6 @@ import type {
   RecordingFrame,
   ReplayFrame,
   serializedNodeWithId,
-  SlowClickFrame,
   SpanFrame,
   VideoEvent,
   WebVitalFrame,
@@ -49,6 +48,7 @@ import {
   isDeadRageClick,
   isMetaFrame,
   isPaintFrame,
+  isSlowClickFrame,
   isTouchEndFrame,
   isTouchMoveFrame,
   isTouchStartFrame,
@@ -135,6 +135,54 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
 // If a `navigation` crumb and `navigation.*` span happen within this timeframe,
 // we'll consider them duplicates.
 const DUPLICATE_NAV_THRESHOLD_MS = 2;
+
+/**
+ * How much of the replay to show when the event happened before it started.
+ */
+const EVENT_BEFORE_REPLAY_CLIP_MS = 10 * 1000;
+
+const UNUSABLE_CLIP_WINDOW_MESSAGES = {
+  invalid_timestamps:
+    'replay.clip_window.invalid_timestamps: Clip window is not a real time range, playing the whole replay instead',
+  outside_replay:
+    'replay.clip_window.outside_replay: Clip window does not overlap the replay, playing the whole replay instead',
+} as const;
+
+/**
+ * Report a clip window that could not be applied, so a caller passing a
+ * timestamp that has nothing to do with the replay is visible rather than
+ * silently widened to the whole recording.
+ */
+function reportUnusableClipWindow(
+  reason: keyof typeof UNUSABLE_CLIP_WINDOW_MESSAGES,
+  {
+    clipWindow,
+    eventTimestampMs,
+    replayEnd,
+    replayId,
+    replayStart,
+  }: {
+    clipWindow: ClipWindow;
+    replayEnd: number;
+    replayId: string;
+    replayStart: number;
+    eventTimestampMs?: number;
+  }
+) {
+  Sentry.logger.error(UNUSABLE_CLIP_WINDOW_MESSAGES[reason], {
+    replay_id: replayId,
+    event_timestamp_ms: eventTimestampMs,
+    requested_start_timestamp_ms: clipWindow.startTimestampMs,
+    requested_end_timestamp_ms: clipWindow.endTimestampMs,
+    replay_start_timestamp_ms: replayStart,
+    replay_end_timestamp_ms: replayEnd,
+    // How far outside the recording the window fell, to separate a window that
+    // just missed from one pointing at an unrelated time.
+    ms_after_replay_end: clipWindow.startTimestampMs - replayEnd,
+    ms_before_replay_start: replayStart - clipWindow.endTimestampMs,
+    url: window.location.href,
+  });
+}
 
 /**
  * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
@@ -347,12 +395,51 @@ export class ReplayReader {
     const replayStart = this._replayRecord.started_at.getTime();
     const replayEnd = this._replayRecord.finished_at.getTime();
 
-    // error event for this clip is before the replay started.
-    // use the start of the replay as the start of the clip.
-    // set the clip to be at most 10 seconds long.
-    if (eventTimestampMs && eventTimestampMs < replayStart) {
+    // An event before the replay started still describes a moment in it, so it
+    // keeps its own handling below rather than being treated as out of range.
+    const isEventBeforeReplayStart = Boolean(
+      eventTimestampMs && eventTimestampMs < replayStart
+    );
+
+    // Nothing guarantees the requested window has anything to do with this
+    // replay. Seer has the model supply the event timestamp as free text, and
+    // it has landed minutes past the end of the recording; a window that misses
+    // the replay entirely clamps both edges onto the same instant and leaves a
+    // zero-length clip. Downstream that reads as "nothing to play" — callers
+    // branch on `getDurationMs() <= 0` and render a static preview instead of
+    // the player — so the whole replay is both the honest answer and the useful
+    // one. A window that merely overhangs one end still clips to the overlap.
+    const isRealTimeRange =
+      Number.isFinite(clipWindow.startTimestampMs) &&
+      Number.isFinite(clipWindow.endTimestampMs);
+    const overlapsReplay =
+      clipWindow.startTimestampMs < replayEnd && clipWindow.endTimestampMs > replayStart;
+
+    if (!isEventBeforeReplayStart && !(isRealTimeRange && overlapsReplay)) {
+      // Only once the replay is loaded: `replayTimestamps()` widens these bounds
+      // as attachments arrive, so a window that misses a half-loaded replay can
+      // still turn out to be clippable.
+      if (!this._fetching) {
+        reportUnusableClipWindow(
+          isRealTimeRange ? 'outside_replay' : 'invalid_timestamps',
+          {
+            clipWindow,
+            eventTimestampMs,
+            replayEnd,
+            replayStart,
+            replayId: this._replayRecord.id,
+          }
+        );
+      }
+      return;
+    }
+
+    if (isEventBeforeReplayStart) {
+      // error event for this clip is before the replay started.
+      // use the start of the replay as the start of the clip.
+      // set the clip to be at most 10 seconds long.
       clipStartTimestampMs = replayStart;
-      clipEndTimestampMs = Math.min(replayStart + 10 * 1000, replayEnd);
+      clipEndTimestampMs = Math.min(replayStart + EVENT_BEFORE_REPLAY_CLIP_MS, replayEnd);
       this._errorBeforeReplayStart = true;
     } else {
       clipStartTimestampMs = clamp(clipWindow.startTimestampMs, replayStart, replayEnd);
@@ -364,7 +451,9 @@ export class ReplayReader {
     }
 
     const clipDuration = clipEndTimestampMs - clipStartTimestampMs;
-    this._duration = duration(clipDuration); // this value should not be 0
+    // Non-zero unless the replay itself has no duration, which the window
+    // check above cannot do anything about.
+    this._duration = duration(clipDuration);
 
     // For video replays, we need to bypass setting the global offset (_startOffsetMs)
     // because it messes with the playback time by causing it
@@ -466,6 +555,10 @@ export class ReplayReader {
       this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
         ? null
         : 'Missing Meta Frame',
+      this.isVideoReplay() ||
+      this.getRRWebFrames().some(frame => frame.type === EventType.FullSnapshot)
+        ? null
+        : 'Missing Full Snapshot Frame',
     ].filter(defined);
   });
   hasProcessingErrors = () => {
@@ -706,7 +799,7 @@ export class ReplayReader {
             frame =>
               !(
                 (frame.category === 'ui.slowClickDetected' &&
-                  !isDeadClick(frame as SlowClickFrame)) ||
+                  !(isSlowClickFrame(frame) && isDeadClick(frame))) ||
                 frame.category === 'ui.multiClick'
               )
           )
@@ -780,9 +873,7 @@ export class ReplayReader {
           ['navigation', 'ui.click', 'ui.tap', 'ui.swipe', 'ui.scroll'].includes(
             frame.category
           ) ||
-          (frame.category === 'ui.slowClickDetected' &&
-            (isDeadClick(frame as SlowClickFrame) ||
-              isDeadRageClick(frame as SlowClickFrame)))
+          (isSlowClickFrame(frame) && (isDeadClick(frame) || isDeadRageClick(frame)))
       )
     );
     const spans = this._sortedSpanFrames.filter(frame =>

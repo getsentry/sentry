@@ -12,7 +12,10 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.exploresavedquery import ExploreSavedQueryModelSerializer
+from sentry.api.serializers.models.exploresavedquery import (
+    ExploreSavedQueryModelSerializer,
+    ExploreSavedQueryResponse,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -21,6 +24,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.explore_saved_query_examples import ExploreExamples
 from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
@@ -49,9 +53,9 @@ class ExploreSavedQueryBase(OrganizationEndpoint):
 @cell_silo_endpoint
 class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
     def has_feature(self, organization, request):
@@ -73,7 +77,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERY_GET_RESPONSE,
     )
-    def get(self, request: Request, organization, query) -> Response:
+    def get(
+        self, request: Request, organization: Organization, query: ExploreSavedQuery
+    ) -> Response[ExploreSavedQueryResponse]:
         """
         Retrieve a saved query.
         """
@@ -82,7 +88,10 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        return Response(serialize(query, request.user), status=200)
+        return Response(
+            serialize(query, request.user, serializer=ExploreSavedQueryModelSerializer()),
+            status=200,
+        )
 
     @extend_schema(
         operation_id="Edit an Organization's Explore Saved Query",
@@ -96,7 +105,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         },
         examples=ExploreExamples.EXPLORE_SAVED_QUERY_GET_RESPONSE,
     )
-    def put(self, request: Request, organization: Organization, query) -> Response:
+    def put(
+        self, request: Request, organization: Organization, query: ExploreSavedQuery
+    ) -> Response[ExploreSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
         Modify a saved query.
         """
@@ -120,7 +131,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             context={"params": params, "organization": organization, "user": request.user},
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         data = serializer.validated_data
 
@@ -134,7 +145,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
 
         query.set_projects(data["project_ids"])
 
-        return Response(serialize(query), status=200)
+        return Response(serialize(query, serializer=ExploreSavedQueryModelSerializer()), status=200)
 
     @extend_schema(
         operation_id="Delete an Organization's Explore Saved Query",
@@ -145,7 +156,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, query) -> Response:
+    def delete(
+        self, request: Request, organization: Organization, query: ExploreSavedQuery
+    ) -> Response[None]:
         """
         Delete a saved query.
         """

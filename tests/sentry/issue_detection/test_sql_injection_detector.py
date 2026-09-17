@@ -112,6 +112,17 @@ class SQLInjectionDetectorTest(TestCase):
         injection_event = get_event("sql-injection/sql-injection-event-parameterized-query")
         assert len(self.find_problems(injection_event)) == 0
 
+    def test_sql_injection_with_null_request_field(self) -> None:
+        """Regression test: event with explicit 'request': None must not raise AttributeError."""
+        event: dict[str, Any] = {
+            "event_id": "a" * 32,
+            "type": "transaction",
+            "platform": "node",
+            "request": None,
+        }
+        # Should not raise AttributeError: 'NoneType' object has no attribute 'get'
+        assert len(self.find_problems(event)) == 0
+
     def test_sql_injection_on_otel_event(self) -> None:
         injection_event = get_event("sql-injection/sql-injection-event-otel")
         assert len(self.find_problems(injection_event)) == 0

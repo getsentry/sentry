@@ -3,15 +3,10 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {TableResizer} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {
-  GridBodyCell,
-  GridHead,
-  GridHeadCell,
-  GridResizer,
-  GridRow,
-} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -172,15 +167,15 @@ const StyledGridEditable = styled('div')`
     margin-bottom: 0;
   }
 
-  ${GridHead} {
+  ${DataTable.Head} {
     min-height: unset;
     font-size: ${p => p.theme.font.size.md};
-    ${GridResizer} {
+    ${TableResizer} {
       height: 36px;
     }
   }
 
-  ${GridHeadCell} {
+  ${DataTable.HeadCell} {
     height: 36px;
     padding: 0 ${p => p.theme.space.lg};
     white-space: nowrap;
@@ -206,7 +201,7 @@ const StyledGridEditable = styled('div')`
     }
   }
 
-  ${GridBodyCell} {
+  ${DataTable.Cell} {
     min-height: unset;
     padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
     font-size: ${p => p.theme.font.size.md};
@@ -215,7 +210,7 @@ const StyledGridEditable = styled('div')`
     white-space: nowrap;
   }
 
-  ${GridRow} {
+  ${DataTable.Row} {
     td:nth-child(2) {
       padding-left: ${p => p.theme.space.lg};
     }

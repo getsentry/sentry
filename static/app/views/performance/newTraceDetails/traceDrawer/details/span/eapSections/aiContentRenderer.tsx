@@ -76,7 +76,8 @@ function JsonTree({value}: {value: unknown}) {
 
 // Renders ```json code blocks as an interactive JSON tree, falling back to a
 // highlighted code block when the content isn't valid JSON. Only fenced code
-// blocks are handled; inline `code` spans are left untouched.
+// blocks are handled; inline `code` spans are left untouched. Unknown {% tag %}
+// tokens fall through to default Markdown, which echoes their original source.
 const markdownComponents: MarkdownProps['components'] = {
   CodeBlock: ({children, lang, Default}) => {
     if (lang?.toLowerCase() === 'json') {
@@ -104,9 +105,24 @@ interface AIContentRendererProps {
    * defaults to clipped and JSON defaults to flowing (matching prior behavior).
    */
   clip?: boolean;
-  collapsibleXmlTags?: boolean;
   inline?: boolean;
   maxJsonDepth?: number;
+}
+
+/**
+ * Tag names (case-insensitive, punctuation-insensitive) whose collapsible
+ * blocks start expanded because they contain the most useful context in a
+ * transcript.
+ */
+const EXPANDED_BY_DEFAULT_TAGS = new Set([
+  'currentinstruction',
+  'usermessage',
+  'usermsg',
+  'userinput',
+]);
+
+function isExpandedByDefaultTag(tagName: string): boolean {
+  return EXPANDED_BY_DEFAULT_TAGS.has(tagName.toLowerCase().replace(/[-_]/g, ''));
 }
 
 function XmlTagBlock({
@@ -114,11 +130,13 @@ function XmlTagBlock({
   attributes,
   content,
   collapsible,
+  defaultOpen,
 }: {
   attributes: string;
   content: string;
   tagName: string;
   collapsible?: boolean;
+  defaultOpen?: boolean;
 }) {
   const theme = useTheme();
   // Show the tag as it appears in the raw text (name + attributes), kept to a
@@ -143,7 +161,10 @@ function XmlTagBlock({
   if (collapsible) {
     return (
       <Container margin="sm 0">
-        <CollapsibleContent title={label}>
+        <CollapsibleContent
+          title={label}
+          defaultOpen={defaultOpen || isExpandedByDefaultTag(tagName)}
+        >
           <Container paddingTop="md" paddingLeft="md">
             {body}
           </Container>
@@ -167,14 +188,20 @@ function XmlTagBlock({
 function MarkdownWithXmlRenderer({
   text,
   collapsibleXmlTags,
+  expandOnlyTag,
 }: {
   text: string;
   collapsibleXmlTags?: boolean;
+  expandOnlyTag?: boolean;
 }) {
   const segments = useMemo(
     () => parseXmlTagSegments(preprocessInlineXmlTags(text)),
     [text]
   );
+  const onlyTag =
+    expandOnlyTag &&
+    segments.filter(segment => segment.type === 'xml-tag').length === 1 &&
+    segments.every(segment => segment.type === 'xml-tag' || !segment.content.trim());
 
   return (
     <Fragment>
@@ -186,6 +213,7 @@ function MarkdownWithXmlRenderer({
             attributes={segment.attributes}
             content={segment.content}
             collapsible={collapsibleXmlTags}
+            defaultOpen={onlyTag}
           />
         ) : (
           <FencedMarkdown key={i} raw={segment.content} />
@@ -201,7 +229,6 @@ export function AIContentRenderer({
   inline = false,
   maxJsonDepth = 2,
   autoCollapseLimit,
-  collapsibleXmlTags = true,
   clip,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
@@ -226,18 +253,13 @@ export function AIContentRenderer({
 
     case 'markdown-with-xml':
       if (inline) {
-        return (
-          <MarkdownWithXmlRenderer text={text} collapsibleXmlTags={collapsibleXmlTags} />
-        );
+        return <MarkdownWithXmlRenderer text={text} collapsibleXmlTags expandOnlyTag />;
       }
       return (
         <TraceDrawerComponents.MultilineText
           clip={clipText}
           renderFormatted={rawText => (
-            <MarkdownWithXmlRenderer
-              text={rawText}
-              collapsibleXmlTags={collapsibleXmlTags}
-            />
+            <MarkdownWithXmlRenderer text={rawText} collapsibleXmlTags expandOnlyTag />
           )}
         >
           {text}

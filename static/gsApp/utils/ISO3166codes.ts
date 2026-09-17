@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 type CountryCode = {
   code: string;
   'country-code': string;

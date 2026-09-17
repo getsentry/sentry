@@ -1,5 +1,5 @@
+import type {MessagingIntegrationAnalyticsView} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import type {IntegrationType, SentryAppStatus} from 'sentry/types/integrations';
-import type {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 
 import type {PlatformEventParameters} from './platformAnalyticsEvents';
 import {platformEventMap} from './platformAnalyticsEvents';

@@ -254,9 +254,6 @@ class Organization(ReplicatedCellModel):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
-        if self.pk is None:  # if org is new
-            self.flags.disable_member_project_creation = True
-
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
                 instance=self,

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
@@ -457,11 +457,13 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
 function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading} = props;
 
-  if (loading || !heatmapResults) {
+  const plottables = useMemo(() => {
+    return heatmapResults ? ([new HeatMap(heatmapResults)] as [HeatMap]) : null;
+  }, [heatmapResults]);
+
+  if (loading || plottables === null) {
     return <HeatMapWidgetVisualization.LoadingPlaceholder />;
   }
-
-  const plottables: [HeatMap] = [new HeatMap(heatmapResults)];
 
   if (!plottablesCanBeVisualized(plottables)) {
     return <HeatMapWidgetVisualization.NoData />;

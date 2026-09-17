@@ -10,7 +10,9 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
+import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {HiddenTraceMetricGroupByFields} from 'sentry/views/explore/metrics/constants';
+import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {
@@ -18,6 +20,7 @@ import {
   useSetQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {mergeValidatedGroupByTags} from 'sentry/views/explore/utils/groupByValidation';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 import {
   selectTraceItemTagCollection,
@@ -57,6 +60,20 @@ export function GroupBySelector({
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
   const isDisabled = disabledReason !== undefined;
+  const {
+    data: validatedSearchQueryData,
+    isFetching: validationFetching,
+    isLoading: validationLoading,
+    isPlaceholderData: validationIsPlaceholderData,
+  } = useValidateMetricsTab();
+  const validationIsPending =
+    validationFetching || validationLoading || validationIsPlaceholderData;
+  const {visibleGroupBys} = useValidatedGroupBys({
+    groupBys,
+    validationData: validatedSearchQueryData,
+    validationIsPending,
+    onGroupBysCleanup: setGroupBys,
+  });
 
   const traceMetricFilter = createTraceMetricFilter(traceMetric);
 
@@ -71,32 +88,44 @@ export function GroupBySelector({
     enabled: skipTraceMetricFilter || Boolean(traceMetricFilter),
   });
 
-  const {visibleBooleanTags, visibleNumberTags, visibleStringTags} = useMemo(
-    () => ({
-      visibleBooleanTags: Object.fromEntries(
-        Object.entries(data?.booleanAttributes ?? {}).filter(
-          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-        )
+  const {validatedBooleanTags, validatedNumberTags, validatedStringTags} = useMemo(() => {
+    const visibleBooleanTags = Object.fromEntries(
+      Object.entries(data?.booleanAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
+    );
+    const visibleNumberTags = Object.fromEntries(
+      Object.entries(data?.numberAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
+    );
+    const visibleStringTags = Object.fromEntries(
+      Object.entries(data?.stringAttributes ?? {}).filter(
+        ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
+      )
+    );
+
+    return mergeValidatedGroupByTags({
+      booleanTags: visibleBooleanTags,
+      numberTags: visibleNumberTags,
+      stringTags: visibleStringTags,
+      validatedFields: validatedSearchQueryData?.field.filter(
+        field => field.valid && groupBys.includes(field.name)
       ),
-      visibleNumberTags: Object.fromEntries(
-        Object.entries(data?.numberAttributes ?? {}).filter(
-          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-        )
-      ),
-      visibleStringTags: Object.fromEntries(
-        Object.entries(data?.stringAttributes ?? {}).filter(
-          ([key]) => !HiddenTraceMetricGroupByFields.includes(key)
-        )
-      ),
-    }),
-    [data?.booleanAttributes, data?.numberAttributes, data?.stringAttributes]
-  );
+    });
+  }, [
+    data?.booleanAttributes,
+    data?.numberAttributes,
+    data?.stringAttributes,
+    groupBys,
+    validatedSearchQueryData?.field,
+  ]);
 
   const enabledOptions = useGroupByFields({
-    groupBys,
-    numberTags: visibleNumberTags ?? {},
-    stringTags: visibleStringTags ?? {},
-    booleanTags: visibleBooleanTags ?? {},
+    groupBys: visibleGroupBys,
+    numberTags: validatedNumberTags,
+    stringTags: validatedStringTags,
+    booleanTags: validatedBooleanTags,
     traceItemType: TraceItemDataset.TRACEMETRICS,
     hideEmptyOption: true,
   });
@@ -139,9 +168,14 @@ export function GroupBySelector({
         />
       )}
       options={enabledOptions}
-      value={[...groupBys]}
-      loading={isLoading}
-      disabled={isDisabled || isLoading || (!skipTraceMetricFilter && !traceMetricFilter)}
+      value={visibleGroupBys}
+      loading={isLoading || validationIsPending}
+      disabled={
+        isDisabled ||
+        isLoading ||
+        validationIsPending ||
+        (!skipTraceMetricFilter && !traceMetricFilter)
+      }
       onChange={handleChange}
       style={{width: '100%'}}
     />

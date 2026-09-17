@@ -35,6 +35,34 @@ type Hotkey = {
   skipPreventDefault?: boolean;
 };
 
+function shouldIgnoreHotkeyEvent(event: KeyboardEvent): boolean {
+  return event.isComposing;
+}
+
+/**
+ * Returns whether an event should trigger one of the supplied hotkey matches.
+ * Uses the same platform-aware modifier and keyboard-layout behavior as
+ * useHotkeys, and never matches while an IME is composing text.
+ */
+export function matchesHotkey(match: string[] | string, event: KeyboardEvent): boolean {
+  if (shouldIgnoreHotkeyEvent(event)) {
+    return false;
+  }
+
+  return toArray(match).some(keyset => {
+    const keys = keyset
+      .toLowerCase()
+      .split('+')
+      .map(key => canonicalize(key));
+    const unusedModifiers = MODIFIER_KEYS.filter(modifier => !keys.includes(modifier));
+
+    return (
+      keys.every(key => matchesKey(key, event)) &&
+      unusedModifiers.every(modifier => !matchesKey(modifier, event))
+    );
+  });
+}
+
 /**
  * Pass in the hotkey combinations under match and the corresponding callback
  * function to be called. Separate key names with +. For example,
@@ -55,7 +83,7 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
     const onKeyDown = (evt: KeyboardEvent) => {
       // Skip IME composition events — event.key may be undefined or 'Process'
       // and hotkeys should never fire while the user is composing a character.
-      if (evt.isComposing) {
+      if (shouldIgnoreHotkeyEvent(evt)) {
         return;
       }
       for (const hotkey of hotkeysRef.current) {
@@ -63,30 +91,17 @@ export function useHotkeys(hotkeys: Hotkey[]): void {
           continue;
         }
         const preventDefault = !hotkey.skipPreventDefault;
-        const keysets = toArray(hotkey.match).map(keys => keys.toLowerCase());
+        const inputHasFocus =
+          !hotkey.includeInputs && evt.target instanceof HTMLElement
+            ? ['textarea', 'input'].includes(evt.target.tagName.toLowerCase())
+            : false;
 
-        for (const keyset of keysets) {
-          const keys = keyset.split('+').map(k => canonicalize(k));
-          const unusedModifiers = MODIFIER_KEYS.filter(
-            modifier => !keys.includes(modifier)
-          );
-
-          const allKeysPressed =
-            keys.every(key => matchesKey(key, evt)) &&
-            unusedModifiers.every(modifier => !matchesKey(modifier, evt));
-
-          const inputHasFocus =
-            !hotkey.includeInputs && evt.target instanceof HTMLElement
-              ? ['textarea', 'input'].includes(evt.target.tagName.toLowerCase())
-              : false;
-
-          if (allKeysPressed && !inputHasFocus) {
-            if (preventDefault) {
-              evt.preventDefault();
-            }
-            hotkey.callback(evt);
-            return;
+        if (matchesHotkey(hotkey.match, evt) && !inputHasFocus) {
+          if (preventDefault) {
+            evt.preventDefault();
           }
+          hotkey.callback(evt);
+          return;
         }
       }
     };

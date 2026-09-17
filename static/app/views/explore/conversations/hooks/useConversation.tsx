@@ -19,6 +19,13 @@ import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceMode
 export interface UseConversationsOptions {
   conversationId: string;
   endTimestamp?: number;
+  /**
+   * Projects to scope the span query to, overriding the page filters. A caller
+   * that is not the conversations route -- an embed rendered into some other
+   * page -- knows the conversation's own project and must not inherit whatever
+   * the host page happens to have selected.
+   */
+  projects?: number[];
   startTimestamp?: number;
 }
 
@@ -39,6 +46,7 @@ interface ConversationApiSpan {
   errors?: TraceTree.EAPError[];
   'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
+  'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
@@ -52,6 +60,14 @@ interface ConversationApiSpan {
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.tool.output'?: string;
+  'gen_ai.usage.cache_creation.input_tokens'?: number;
+  'gen_ai.usage.cache_read.input_tokens'?: number;
+  'gen_ai.usage.input_tokens'?: number;
+  'gen_ai.usage.input_tokens.cache_write'?: number;
+  'gen_ai.usage.input_tokens.cached'?: number;
+  'gen_ai.usage.output_tokens'?: number;
+  'gen_ai.usage.output_tokens.reasoning'?: number;
+  'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
@@ -72,7 +88,10 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
   if (span['gen_ai.operation.type']) {
     return true;
   }
-  return span['span.name']?.startsWith('gen_ai.') ?? false;
+  return (
+    (span['span.op']?.startsWith('gen_ai.') ?? false) ||
+    (span['span.name']?.startsWith('gen_ai.') ?? false)
+  );
 }
 
 interface UseConversationResult {
@@ -119,6 +138,11 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
+      // Preserve the raw span op so the transcript can recognize embeddings
+      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
+      // op-type path so the timeline still renders them as before.
+      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
+      [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
@@ -133,6 +157,24 @@ function createNodeFromApiSpan(
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
       'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
+      ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
+      }),
+      ...(apiSpan['gen_ai.usage.output_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS]: apiSpan['gen_ai.usage.output_tokens'],
+      }),
+      [SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]:
+        apiSpan['gen_ai.usage.cache_read.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cached'] ??
+        0,
+      'gen_ai.usage.cache_creation.input_tokens':
+        apiSpan['gen_ai.usage.cache_creation.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cache_write'] ??
+        0,
+      [SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]:
+        apiSpan['gen_ai.usage.reasoning.output_tokens'] ??
+        apiSpan['gen_ai.usage.output_tokens.reasoning'] ??
+        0,
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
@@ -209,6 +251,76 @@ function createNodeFromApiSpan(
   return node as unknown as AITraceSpanNode;
 }
 
+/**
+ * Orders the conversation's spans so that an agent is always followed by its own
+ * descendants, the way the trace drawer reads them off the trace tree. Sorting by
+ * start time alone interleaves agents that run in parallel, which separates each
+ * agent from the spans it produced.
+ *
+ * Spans whose parent is not part of the conversation become roots. Roots and
+ * siblings are ordered by start time, so reading order stays chronological at
+ * every level.
+ */
+function orderDepthFirst(
+  nodes: AITraceSpanNode[],
+  nodeMap: Map<string, AITraceSpanNode>
+): AITraceSpanNode[] {
+  const byStartTimestamp = (a: AITraceSpanNode, b: AITraceSpanNode) =>
+    (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0);
+
+  const roots: AITraceSpanNode[] = [];
+  const childrenByParentId = new Map<string, AITraceSpanNode[]>();
+
+  for (const node of nodes) {
+    const parentId = node.value?.parent_span_id;
+    const parent = parentId ? nodeMap.get(parentId) : undefined;
+    if (!parentId || !parent || parent === node) {
+      roots.push(node);
+      continue;
+    }
+    const siblings = childrenByParentId.get(parentId);
+    if (siblings) {
+      siblings.push(node);
+    } else {
+      childrenByParentId.set(parentId, [node]);
+    }
+  }
+
+  for (const siblings of childrenByParentId.values()) {
+    siblings.sort(byStartTimestamp);
+  }
+
+  const ordered: AITraceSpanNode[] = [];
+  const visited = new Set<string>();
+  const stack = roots.toSorted(byStartTimestamp).reverse();
+
+  while (stack.length > 0) {
+    const node = stack.pop()!;
+    if (visited.has(node.id)) {
+      continue;
+    }
+    visited.add(node.id);
+    ordered.push(node);
+
+    const children = childrenByParentId.get(node.id);
+    if (children) {
+      for (let i = children.length - 1; i >= 0; i--) {
+        stack.push(children[i]!);
+      }
+    }
+  }
+
+  // A cycle in the parent links leaves spans unreachable from any root. Keep them
+  // rather than dropping rows from the timeline.
+  for (const node of nodes) {
+    if (!visited.has(node.id)) {
+      ordered.push(node);
+    }
+  }
+
+  return ordered;
+}
+
 const MAX_PAGES = 10;
 
 export function useConversation(
@@ -218,25 +330,24 @@ export function useConversation(
   const {selection} = usePageFilters();
 
   const ONE_HOUR_MS = 60 * 60 * 1000;
-  const hasConversationTimestamps =
-    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
     selection.datetime.start !== null ||
     (selection.datetime.period !== null && selection.datetime.period !== defaultPeriod);
 
-  const datetimeParams = hasConversationTimestamps
-    ? {
-        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
-        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
-      }
-    : hasExplicitDatetime
-      ? normalizeDateTimeParams(selection.datetime)
-      : {};
+  const datetimeParams =
+    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
+      ? {
+          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
+          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
+        }
+      : hasExplicitDatetime
+        ? normalizeDateTimeParams(selection.datetime)
+        : {};
 
-  const project =
-    selection.projects.length > 0 ? selection.projects : [ALL_ACCESS_PROJECTS];
+  const selectedProjects = conversation.projects ?? selection.projects;
+  const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
   const queryParams = {
     project,
@@ -254,7 +365,7 @@ export function useConversation(
     isError,
   } = useInfiniteQuery(
     apiOptions.asInfinite<ConversationApiResponse>()(
-      '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/',
+      '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
       {
         path: conversation.conversationId
           ? {
@@ -269,12 +380,14 @@ export function useConversation(
   );
 
   const currentNumberPages = data?.pages.length ?? 0;
+  const canFetchNextPage = Boolean(hasNextPage && currentNumberPages < MAX_PAGES);
 
   useEffect(() => {
-    if (!isFetching && hasNextPage && currentNumberPages < MAX_PAGES) {
+    if (!isFetching && canFetchNextPage) {
       fetchNextPage();
     }
-  }, [isFetching, hasNextPage, fetchNextPage, currentNumberPages]);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
+  }, [data, isFetching, canFetchNextPage, fetchNextPage]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
@@ -301,9 +414,7 @@ export function useConversation(
       return node;
     });
 
-    transformedNodes.sort((a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0));
-
-    return {nodes: transformedNodes, nodeTraceMap: traceMap};
+    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
   }, [allSpans]);
 
   if (!conversation.conversationId) {
@@ -319,7 +430,7 @@ export function useConversation(
   return {
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || hasNextPage,
+    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
     error: isError,
     title,
   };

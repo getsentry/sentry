@@ -5,6 +5,7 @@ import re
 from datetime import timezone
 
 import pytest
+from snuba_sdk import Identifier, Lambda
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
@@ -718,6 +719,94 @@ class DiscoverQueryBuilderTest(TestCase):
             ],
         )
 
+    def test_fn_span_count_allowed_function(self) -> None:
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=['fn_span_count("db", sum)'],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function(
+                    "sum",
+                    [
+                        Function(
+                            "length",
+                            [
+                                Function(
+                                    "arrayFilter",
+                                    [
+                                        Lambda(
+                                            ["x"],
+                                            Function("equals", [Identifier("x"), "db"]),
+                                        ),
+                                        Column("spans.op"),
+                                    ],
+                                )
+                            ],
+                            "span_count",
+                        )
+                    ],
+                    "fn_span_count__db__sum",
+                )
+            ],
+        )
+
+    def test_fn_span_count_allowed_percentile(self) -> None:
+        query = DiscoverQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="",
+            selected_columns=['fn_span_count("db", quantile(0.95))'],
+        )
+        self.assertCountEqual(
+            query.columns,
+            [
+                Function(
+                    "quantile(0.95)",
+                    [
+                        Function(
+                            "length",
+                            [
+                                Function(
+                                    "arrayFilter",
+                                    [
+                                        Lambda(
+                                            ["x"],
+                                            Function("equals", [Identifier("x"), "db"]),
+                                        ),
+                                        Column("spans.op"),
+                                    ],
+                                )
+                            ],
+                            "span_count",
+                        )
+                    ],
+                    "fn_span_count__db__quantile_0_95",
+                )
+            ],
+        )
+
+    def test_fn_span_count_disallowed_percentile(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="fn argument invalid"):
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=['fn_span_count("db", quantile(0.42))'],
+            )
+
+    def test_fn_span_count_disallowed_function(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="fn argument invalid"):
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=['fn_span_count("db", hostName)'],
+            )
+
     def test_array_join_clause(self) -> None:
         query = DiscoverQueryBuilder(
             Dataset.Discover,
@@ -1110,6 +1199,20 @@ class TopEventsQueryBuilderTest(TestCase):
             "start": self.start,
             "end": self.end,
         }
+
+    @pytest.mark.querybuilder
+    def test_timestamp_condition_with_offset(self) -> None:
+        builder = TopEventsQueryBuilder(
+            Dataset.Discover,
+            self.params,
+            interval=3600,
+            top_events=[{"timestamp.to_hour": "2022-12-31T23:00:00-05:00"}],
+            selected_columns=["timestamp.to_hour", "count()"],
+        )
+        assert (
+            "`timestamp.to_hour` = toDateTime('2023-01-01T04:00:00')"
+            in builder.get_snql_query().query.serialize()
+        )
 
     @pytest.mark.querybuilder
     def test_resolve_top_event_conditions_duplicate_list_values(self) -> None:

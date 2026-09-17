@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -6,11 +6,11 @@ import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
 import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FormModel} from 'sentry/components/forms/model';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -45,6 +45,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -58,19 +59,28 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const organization = useOrganization();
   return (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug),
-        },
-        {label: <EditableAutomationName />},
-      ]}
-    />
+    <Fragment>
+      <TopBar.Slot name="breadcrumbs">
+        <BreadcrumbList
+          items={[
+            {
+              type: 'link',
+              label: t('Alerts'),
+              to: makeAutomationBasePathname(organization.slug),
+            },
+          ]}
+        />
+      </TopBar.Slot>
+
+      <TopBar.Slot name="title">
+        <EditableAutomationName />
+      </TopBar.Slot>
+    </Fragment>
   );
 }
 
 const INITIAL_FORM_DATA_DEFAULTS = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,
@@ -80,6 +90,7 @@ const INITIAL_FORM_DATA_DEFAULTS = {
 };
 
 function useInitialFormData() {
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const [connectedIds] = useQueryState(
     'connectedIds',
@@ -87,6 +98,9 @@ function useInitialFormData() {
   );
   const [projectId] = useQueryState('project', parseAsString);
   const {projects} = useProjects();
+  const writableProjects = projects.filter(project =>
+    hasAutomationWriteAccess({organization, project})
+  );
 
   // If URL params are passed, use them
   if (connectedIds.length > 0) {
@@ -95,7 +109,7 @@ function useInitialFormData() {
       detectorIds: connectedIds,
     };
   }
-  if (projectId) {
+  if (projectId && writableProjects.some(project => project.id === projectId)) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
       projectIds: [projectId],
@@ -103,17 +117,19 @@ function useInitialFormData() {
   }
 
   // If any specific projects are selected, use the first one
-  const intitialSelectedProject = selection.projects.find(p => p > 0);
-  if (intitialSelectedProject) {
+  const initialSelectedProject = writableProjects.find(project =>
+    selection.projects.includes(Number(project.id))
+  );
+  if (initialSelectedProject) {
     return {
       ...INITIAL_FORM_DATA_DEFAULTS,
-      projectIds: [String(intitialSelectedProject)],
+      projectIds: [initialSelectedProject.id],
     };
   }
 
-  // Otherwise use the first project that the user has access to
+  // Otherwise use the first project where the user can create an alert.
   const sortedUserProjects = orderBy(
-    projects,
+    writableProjects,
     ['isMember', 'isBookmarked'],
     ['desc', 'desc']
   );
@@ -231,9 +247,7 @@ export default function AutomationNewSettings() {
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <TopBar.Slot name="title">
-            <AutomationBreadcrumbs />
-          </TopBar.Slot>
+          <AutomationBreadcrumbs />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">

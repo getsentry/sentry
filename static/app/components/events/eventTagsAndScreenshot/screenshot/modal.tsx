@@ -11,8 +11,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewer';
-import {getImageAttachmentRenderer} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {webmMimeTypes} from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
+import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -97,8 +98,9 @@ export function ScreenshotModal({
     };
   }
 
-  const AttachmentComponent =
-    getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer;
+  const AttachmentComponent = webmMimeTypes.includes(currentEventAttachment.mimetype)
+    ? VideoViewer
+    : ImageViewer;
 
   return (
     <Fragment>
@@ -116,7 +118,7 @@ export function ScreenshotModal({
               eventId={currentEventAttachment.event_id}
             />
           </AttachmentComponentWrapper>
-          <KeyValueData.Card
+          <KeyValueTableCard
             title={currentEventAttachment.name}
             contentItems={[
               {

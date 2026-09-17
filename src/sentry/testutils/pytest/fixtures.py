@@ -329,7 +329,7 @@ def _print_custom_insta_diff(reference_file, diff_text):
 @pytest.fixture
 def call_snuba(settings):
     def inner(endpoint):
-        return requests.post(settings.SENTRY_SNUBA + endpoint)
+        return requests.post(settings.SENTRY_SNUBA + endpoint, timeout=30)
 
     return inner
 
@@ -343,7 +343,6 @@ def reset_snuba(call_snuba):
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
         "/tests/metrics/drop",
-        "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",
         "/tests/group_attributes/drop",
     ]

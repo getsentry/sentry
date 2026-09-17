@@ -34,6 +34,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.incidents.models.incident import Incident
         from sentry.integrations.models.external_issue import ExternalIssue
+        from sentry.investigations.models import Investigation
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
@@ -44,7 +45,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.repository import Repository
         from sentry.models.team import Team
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
-        from sentry.workflow_engine.models import Workflow
+        from sentry.workflow_engine.models import Detector, Workflow
 
         # Team must come first
         relations: list[BaseRelation] = [ModelRelation(Team, {"organization_id": instance.id})]
@@ -56,6 +57,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             Incident,
             AlertRule,
             Release,
+            Investigation,
             Project,
             Workflow,
         )
@@ -93,6 +95,14 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
                 DiscoverSavedQuery,
                 {"organization_id": instance.id},
                 task=DiscoverSavedQueryDeletionTask,
+            )
+        )
+        # The All Projects detector has project=NULL and stores org_id in config JSON.
+        # It must be deleted explicitly since it lacks a project FK cascade.
+        relations.append(
+            ModelRelation(
+                Detector,
+                {"project__isnull": True, "config__organization_id": instance.id},
             )
         )
 

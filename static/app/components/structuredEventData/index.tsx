@@ -75,7 +75,6 @@ interface StructuredDataProps extends BaseProps {
   maxDefaultDepth: NonNullable<BaseProps['maxDefaultDepth']>;
   withAnnotatedText: boolean;
   autoCollapseLimit?: BaseProps['autoCollapseLimit'];
-  objectKey?: string;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
@@ -88,7 +87,6 @@ export function StructuredData({
   maxDefaultDepth,
   autoCollapseLimit,
   meta,
-  objectKey,
   onToggleExpand,
   value = null,
   withAnnotatedText,
@@ -115,7 +113,6 @@ export function StructuredData({
       <RecursiveStructuredData
         config={config}
         meta={meta}
-        objectKey={objectKey}
         path="$"
         value={value}
         withAnnotatedText={withAnnotatedText}
@@ -131,7 +128,6 @@ export interface StructuredEventDataProps extends BaseProps {
   // TODO(TS): What possible types can `data` be?
   data?: any;
   'data-test-id'?: string;
-  onCopy?: (copiedCode: string) => void;
   showCopyButton?: boolean;
   withAnnotatedText?: boolean;
 }
@@ -145,7 +141,6 @@ export function StructuredEventData({
   maxDefaultDepth = 2,
   autoCollapseLimit,
   meta,
-  onCopy,
   onToggleExpand,
   showCopyButton,
   withAnnotatedText = false,
@@ -170,7 +165,6 @@ export function StructuredEventData({
         <StyledCopyButton
           aria-label={t('Copy to clipboard')}
           variant="transparent"
-          onCopy={onCopy}
           size="xs"
           text={JSON.stringify(data, null, '\t')}
         />

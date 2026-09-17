@@ -8,10 +8,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.models.project import Project
 from sentry.search.utils import parse_datetime_string
-from sentry.tasks.statistical_detectors import (
-    _detect_function_change_points,
-    _detect_transaction_change_points,
-)
+from sentry.tasks.statistical_detectors import _detect_function_change_points
 
 
 @cell_silo_endpoint
@@ -36,11 +33,6 @@ class ProjectStatisticalDetectors(ProjectEndpoint):
                 data={"details": "Invalid value for end"},
             )
 
-        transaction = request.GET.get("transaction")
-        if transaction is not None:
-            _detect_transaction_change_points([(project.id, transaction)], timestamp)
-            return Response(status=status.HTTP_202_ACCEPTED)
-
         fingerprint = request.GET.get("function")
         if fingerprint is not None:
             try:
@@ -55,5 +47,5 @@ class ProjectStatisticalDetectors(ProjectEndpoint):
 
         return Response(
             status=status.HTTP_400_BAD_REQUEST,
-            data={"details": "Missing transaction or fingerprint"},
+            data={"details": "Missing fingerprint"},
         )

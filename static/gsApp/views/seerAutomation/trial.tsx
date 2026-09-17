@@ -19,6 +19,7 @@ import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -60,21 +61,10 @@ export default function SeerAutomationTrial() {
   );
 
   useEffect(() => {
-    // If the org is on the old-seer plan then they shouldn't be here on this new settings page
-    // they need to goto the old settings page, or get downgraded off old seer.
-    if (!showNewSeer(organization)) {
+    if (!orgNeedsSeerTrial(organization)) {
       navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
-      return;
     }
-
-    // If you've already got Seer, then go to settings and you should see the new ones.
-    if (organization.features.includes('seat-based-seer-enabled')) {
-      navigate(normalizeUrl(`/settings/${organization.slug}/seer/`));
-      return;
-    }
-
-    // Else you don't yet have the new seer plan, then stay here and click to start a trial.
-  }, [navigate, organization.features, organization.slug, organization]);
+  }, [navigate, organization]);
 
   useRouteAnalyticsParams({
     showNewSeer: showNewSeer(organization),

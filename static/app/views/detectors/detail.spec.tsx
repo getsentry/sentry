@@ -25,9 +25,10 @@ import {
   EventTypes,
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
-import {CheckStatus} from 'sentry/views/alerts/rules/uptime/types';
+import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import DetectorDetails from 'sentry/views/detectors/detail';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 describe('DetectorDetails', () => {
   const organization = OrganizationFixture();
@@ -141,6 +142,27 @@ describe('DetectorDetails', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=9998m',
         body: [GroupFixture()],
+      });
+    });
+
+    it('publishes a monitor-detail node for Seer', async () => {
+      let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
+      function Component() {
+        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+        ({getLLMContext} = useLLMContext());
+        return <DetectorDetails />;
+      }
+
+      render(<Component />, {organization, initialRouterConfig});
+      await screen.findByRole('heading', {name: /detector1/});
+
+      // What only this test can prove: the node is registered and published for
+      // the monitor in view. The field mapping itself is covered by
+      // detectorLLMContext.spec.tsx.
+      await waitFor(() => {
+        expect(
+          getLLMContext!().nodes.find(node => node.nodeType === 'monitor-detail')?.data
+        ).toEqual(expect.objectContaining({id: '1', name: 'detector1'}));
       });
     });
 

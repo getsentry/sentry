@@ -520,13 +520,11 @@ interface TraceIdRendererProps {
   traceId: string;
   traceName: string | null;
   onClick?: React.ComponentProps<typeof Link>['onClick'];
-  transactionId?: string;
 }
 
 export function TraceIdRenderer({
   traceId,
   timestamp,
-  transactionId,
   location,
   onClick,
   traceName,
@@ -557,7 +555,6 @@ export function TraceIdRenderer({
     return (
       <Tooltip
         showUnderline
-        isHoverable
         title={
           <Text>
             {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
@@ -594,7 +591,6 @@ export function TraceIdRenderer({
     traceSlug: traceId,
     dateSelection: normalizeDateTimeParams(selection.datetime),
     timestamp: timestamp / 1000,
-    eventId: transactionId,
     location,
     source: TraceViewSources.TRACES,
   });

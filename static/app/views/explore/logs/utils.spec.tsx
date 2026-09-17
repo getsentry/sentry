@@ -1,7 +1,11 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Sort} from 'sentry/utils/discover/fields';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   OurLogKnownFieldKey,
@@ -12,9 +16,38 @@ import {
   createErrorLogRow,
   getLogsUrlFromSavedQueryUrl,
   type LogTableRowItem,
+  viewLogsSamplesTarget,
 } from 'sentry/views/explore/logs/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
+import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+
+describe('viewLogsSamplesTarget', () => {
+  it('does not add a filter for an empty group by', () => {
+    const location = LocationFixture({
+      query: {
+        [LOGS_GROUP_BY_KEY]: '',
+        aggregateField: JSON.stringify({groupBy: ''}),
+        logsAggregateSortBys: '-count(message)',
+      },
+    });
+    const target = viewLogsSamplesTarget({
+      location,
+      search: new MutableSearch(''),
+      fields: ['message'],
+      groupBys: [''],
+      visualizes: [new VisualizeFunction('count(message)')],
+      sorts: [{field: 'count(message)', kind: 'desc'}],
+      row: {},
+      projects: [ProjectFixture()],
+    });
+
+    expect(target.query[LOGS_GROUP_BY_KEY]).toBe('');
+    expect(target.query.aggregateField).toBe(location.query.aggregateField);
+    expect(target.query.logsAggregateSortBys).toBe('-count(message)');
+    expect(target.query.logsQuery).toBe('');
+  });
+});
 
 describe('getLogsUrlFromSavedQueryUrl', () => {
   const organization = OrganizationFixture();

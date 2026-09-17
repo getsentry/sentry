@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useCallback} from 'react';
 
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -531,7 +531,6 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         include_values_seen: bool = True,
         dataset: Dataset = Dataset.Events,
-        denylist: frozenset[int | str] | None = None,
         tenant_ids=None,
         **kwargs: Any,
     ) -> set[TagKey | GroupTagKey]:
@@ -553,7 +552,6 @@ class SnubaTagStorage(TagStorage):
             keys,
             include_values_seen=include_values_seen,
             dataset=dataset,
-            denylist=denylist,
             tenant_ids=tenant_ids,
             **optimize_kwargs,
         )
@@ -569,7 +567,6 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         include_values_seen: bool = True,
         use_cache=False,
-        denylist: frozenset[int | str] | None = None,
         dataset: Dataset = Dataset.Discover,
         **kwargs,
     ) -> set[TagKey | GroupTagKey]:
@@ -672,10 +669,6 @@ class SnubaTagStorage(TagStorage):
         results: set[TagKey | GroupTagKey] = set()
 
         for key, data in result.items():
-            # Ignore key (skip interaction) if it's in denylist
-            if denylist is not None and key in denylist:
-                continue
-
             params = {"key": key}
             if include_values_seen:
                 params["values_seen"] = data["values_seen"]
@@ -708,7 +701,6 @@ class SnubaTagStorage(TagStorage):
         environment_id: int | None,
         status: int = TagKeyStatus.ACTIVE,
         include_values_seen: bool = False,
-        denylist: frozenset[int | str] | None = None,
         tenant_ids=None,
         **kwargs,
     ) -> set[TagKey | GroupTagKey]:
@@ -729,7 +721,6 @@ class SnubaTagStorage(TagStorage):
             project_id,
             None,
             environment_id if environment_id is None else [environment_id],
-            denylist=denylist,
             tenant_ids=tenant_ids,
             include_values_seen=include_values_seen,
             **optimize_kwargs,
@@ -1048,8 +1039,6 @@ class SnubaTagStorage(TagStorage):
         )
 
         group_id_filter = f"group_id:[{','.join(str(gid) for gid in group_id_list)}]"
-        tag_filter = build_escaped_term_filter(key, [str(value)])
-        query_string = f"{group_id_filter} {tag_filter}"
 
         snuba_params = SnubaParams(
             start=resolved_start,
@@ -1060,6 +1049,9 @@ class SnubaTagStorage(TagStorage):
         )
 
         try:
+            tag_filter = build_escaped_term_filter(key, [str(value)])
+            query_string = f"{group_id_filter} {tag_filter}"
+
             result = Occurrences.run_table_query(
                 params=snuba_params,
                 query_string=query_string,
@@ -1435,8 +1427,6 @@ class SnubaTagStorage(TagStorage):
         now = datetime.now(tz=timezone.utc)
         resolved_start = start if start is not None else now - timedelta(days=90)
 
-        query_string = build_escaped_term_filter("release", [str(v) for v in versions])
-
         snuba_params = SnubaParams(
             start=resolved_start,
             end=now,
@@ -1446,6 +1436,8 @@ class SnubaTagStorage(TagStorage):
         )
 
         try:
+            query_string = build_escaped_term_filter("release", [str(v) for v in versions])
+
             result = Occurrences.run_table_query(
                 params=snuba_params,
                 query_string=query_string,

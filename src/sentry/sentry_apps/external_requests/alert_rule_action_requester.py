@@ -20,8 +20,9 @@ from sentry.sentry_apps.metrics import (
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
-from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryApp, RpcSentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppErrorType, SentryAppIntegratorError
 from sentry.utils import json
 
@@ -160,7 +161,7 @@ class SentryAppAlertRuleActionRequester:
         return f"{self.sentry_app.name}: {message}"
 
     @cached_property
-    def body(self):
+    def body(self) -> str:
         return json.dumps(
             {
                 "fields": self.fields,
@@ -169,5 +170,5 @@ class SentryAppAlertRuleActionRequester:
         )
 
     @cached_property
-    def sentry_app(self):
+    def sentry_app(self) -> SentryApp | RpcSentryApp:
         return self.install.sentry_app

@@ -2,89 +2,77 @@ import type {Organization} from 'sentry/types/organization';
 
 import {TraceTree} from './traceTree';
 
+const EXAMPLE_SPAN_COUNT = 20;
+
 // Creates an example trace response that we use to render the loading placeholder
-function partialTransaction(
-  partial: Partial<TraceTree.Transaction>
-): TraceTree.Transaction {
-  return {
-    start_timestamp: 0,
-    timestamp: 0,
-    errors: [],
-    performance_issues: [],
-    parent_span_id: '',
-    span_id: '',
-    parent_event_id: '',
-    project_id: 0,
-    sdk_name: '',
-    profiler_id: '',
-    'transaction.duration': 0,
-    'transaction.op': 'loading-transaction',
-    'transaction.status': 'loading-status',
-    generation: 0,
-    project_slug: '',
-    event_id: 'event_id',
-    transaction: 'transaction',
-    children: [],
-    ...partial,
-  };
-}
+export function makeExampleTrace(organization: Organization): TraceTree {
+  let start = Date.now() / 1e3;
 
-export function makeExampleTrace(
-  metadata: TraceTree.Metadata,
-  organization: Organization
-): TraceTree {
-  const trace: TraceTree.Trace = {
-    transactions: [],
-    orphan_errors: [],
-  };
-
-  function randomBetween(min: number, max: number) {
-    return Math.floor(Math.random() * (max - min + 1) + min);
-  }
-
-  let start = Date.now();
-
-  const root = partialTransaction({
-    ...metadata,
-    generation: 0,
+  const root = partialEAPSpan({
+    event_id: 'example-span-0',
     start_timestamp: start,
-    transaction: 'root transaction',
-    timestamp: start + randomBetween(100, 200),
+    end_timestamp: start + randomBetween(100, 200) / 1e3,
+    name: 'root span',
   });
 
-  trace.transactions.push(root);
+  const trace: TraceTree.EAPTrace = [root];
 
-  for (let i = 0; i < 50; i++) {
-    const end = start + randomBetween(100, 200);
-    const nest = i > 0 && Math.random() > 0.33;
+  for (let i = 1; i <= EXAMPLE_SPAN_COUNT; i++) {
+    const end = start + randomBetween(100, 200) / 1e3;
+    // The first child has to attach to the root, otherwise there is no previous
+    // sibling to nest under.
+    const nest = i > 1 && Math.random() > 0.33;
+    const parent = nest ? root.children[root.children.length - 1]! : root;
 
-    if (nest) {
-      const parent = root.children[root.children.length - 1]!;
-      parent.children.push(
-        partialTransaction({
-          ...metadata,
-          generation: 0,
-          start_timestamp: start,
-          transaction: `parent transaction ${i}`,
-          timestamp: end,
-        })
-      );
-      parent.timestamp = end;
-    } else {
-      root.children.push(
-        partialTransaction({
-          ...metadata,
-          generation: 0,
-          start_timestamp: start,
-          transaction: 'loading...',
-          ['transaction.op']: 'loading',
-          timestamp: end,
-        })
-      );
-    }
+    parent.children.push(
+      partialEAPSpan({
+        event_id: `example-span-${i}`,
+        parent_span_id: parent.event_id,
+        start_timestamp: start,
+        end_timestamp: end,
+        name: nest ? `nested span ${i}` : 'loading...',
+      })
+    );
+
+    // Grow the ancestors so they contain their children
+    parent.end_timestamp = Math.max(parent.end_timestamp, end);
+    parent.duration = (parent.end_timestamp - parent.start_timestamp) * 1e3;
+    root.end_timestamp = Math.max(root.end_timestamp, end);
+    root.duration = (root.end_timestamp - root.start_timestamp) * 1e3;
 
     start = end;
   }
 
   return TraceTree.FromTrace(trace, {meta: null, replay: null, organization});
+}
+
+function partialEAPSpan(
+  partial: Partial<TraceTree.EAPSpan> &
+    Pick<TraceTree.EAPSpan, 'event_id' | 'start_timestamp' | 'end_timestamp'>
+): TraceTree.EAPSpan {
+  return {
+    children: [],
+    duration: (partial.end_timestamp - partial.start_timestamp) * 1e3,
+    errors: [],
+    event_type: 'span',
+    // Spans render collapsed when they are transactions, which would hide the
+    // rest of the placeholder rows
+    is_transaction: false,
+    name: 'loading...',
+    occurrences: [],
+    op: 'loading',
+    parent_span_id: null,
+    profile_id: '',
+    profiler_id: '',
+    project_id: 0,
+    project_slug: '',
+    sdk_name: '',
+    transaction: 'transaction',
+    transaction_id: '',
+    ...partial,
+  };
+}
+
+function randomBetween(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }

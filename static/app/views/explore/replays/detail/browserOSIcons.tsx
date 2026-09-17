@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';

@@ -43,7 +43,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
-from sentry.apidocs.parameters import GlobalParams, OrganizationParams, WorkflowParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+    WorkflowParams,
+)
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -59,13 +65,23 @@ from sentry.workflow_engine.endpoints.serializers.workflow_serializer import (
     WorkflowSerializerResponse,
 )
 from sentry.workflow_engine.endpoints.utils.filters import apply_filter
+from sentry.workflow_engine.endpoints.utils.permissions import (
+    can_edit_workflows,
+    enforce_workflow_creation_permissions,
+)
 from sentry.workflow_engine.endpoints.utils.sortby import SortByParam
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.endpoints.validators.detector_workflow_mutation import (
     DetectorWorkflowMutationValidator,
 )
+from sentry.workflow_engine.endpoints.validators.utils import (
+    is_workflow_connected_to_all_projects_detector,
+    should_include_all_projects_detector_workflows,
+    should_include_all_projects_detector_workflows_or_raise,
+)
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+from sentry.workflow_engine.processors.detector import get_all_projects_detector
 from sentry.workflow_engine.types import DetectorId
 
 # Maps API field name to database field name, with synthetic aggregate fields keeping
@@ -93,9 +109,9 @@ parse_workflow_query = partial(base_parse_search_query, config=workflow_search_c
 class OrganizationWorkflowPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "alerts:read"],
-        "POST": ["org:write", "org:admin", "alerts:write"],
-        "PUT": ["org:write", "org:admin", "alerts:write"],
-        "DELETE": ["org:write", "org:admin", "alerts:write"],
+        "POST": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "alerts:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "alerts:write"],
     }
 
 
@@ -119,6 +135,12 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         # Workflows with no detector connections are org-level and accessible
         # to anyone with org-level workflow permissions.
         workflow = kwargs["workflow"]
+        organization = kwargs["organization"]
+        if is_workflow_connected_to_all_projects_detector(workflow):
+            if not should_include_all_projects_detector_workflows_or_raise(request, organization):
+                raise PermissionDenied
+            return args, kwargs
+
         connected_projects = Project.objects.filter(
             detector__detectorworkflow__workflow=workflow
         ).distinct()
@@ -208,15 +230,62 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         # Use include_all_accessible=True to get all projects the user can access,
         # not just those explicitly requested. This filter is ALWAYS applied to ensure
-        # users with no project access only see org-level workflows (those with no
-        # detector connections). When projects is empty, only workflows with
-        # detectorworkflow__isnull=True are returned.
+        # users with no project access only see org-level workflows.
         projects = self.get_projects(request, organization, include_all_accessible=True)
-        queryset = queryset.filter(
-            Q(detectorworkflow__detector__project__in=projects) | Q(detectorworkflow__isnull=True)
-        ).distinct()
+        accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
+        # Detached workflows are organization-level and do not match a specific
+        # project filter. ID filters take precedence over project filters, and the
+        # all-project sentinels are equivalent to no project filter.
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        has_specific_project_filter = (
+            not request.GET.getlist("id")
+            and requested_projects.has_values
+            and not requested_projects.has_all_projects_sentinel
+        )
+        if not has_specific_project_filter:
+            accessible_workflows |= Q(detectorworkflow__isnull=True)
+        all_projects_detector = get_all_projects_detector(organization.id)
+        if all_projects_detector:
+            all_projects_workflows_q = Q(detectorworkflow__detector_id=all_projects_detector.id)
+            if should_include_all_projects_detector_workflows(request, organization):
+                accessible_workflows |= all_projects_workflows_q
+            else:
+                queryset = queryset.exclude(all_projects_workflows_q)
+        queryset = queryset.filter(accessible_workflows).distinct()
 
         return queryset
+
+    def _get_workflows_for_mutation(
+        self, request: Request, organization: Organization
+    ) -> tuple[QuerySet[Workflow], list[Workflow]]:
+        """Return the complete set of workflows that the request is allowed to mutate."""
+        queryset = self.filter_workflows(request, organization)
+        workflows = list(queryset)
+
+        if raw_idlist := request.GET.getlist("id"):
+            requested_ids = set(to_valid_int_id_list("id", raw_idlist))
+            missing_workflow_ids = requested_ids - {workflow.id for workflow in workflows}
+            if missing_workflow_ids:
+                all_projects_detector = get_all_projects_detector(organization.id)
+                if (
+                    all_projects_detector
+                    and DetectorWorkflow.objects.filter(
+                        detector_id=all_projects_detector.id,
+                        workflow_id__in=missing_workflow_ids,
+                    ).exists()
+                ):
+                    should_include_all_projects_detector_workflows_or_raise(request, organization)
+                if not workflows:
+                    return queryset, workflows
+                raise PermissionDenied
+
+        if not workflows:
+            return queryset, workflows
+
+        if not can_edit_workflows(workflows, request):
+            raise PermissionDenied
+
+        return queryset, workflows
 
     @extend_schema(
         operation_id="listOrganizationWorkflows",
@@ -226,7 +295,10 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             WorkflowParams.SORT_BY,
             WorkflowParams.QUERY,
             WorkflowParams.ID,
+            WorkflowParams.DETECTOR,
             OrganizationParams.PROJECT,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -334,6 +406,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             context={"organization": organization, "request": request},
         )
         validator.is_valid(raise_exception=True)
+        enforce_workflow_creation_permissions(
+            request,
+            organization,
+            validator.validated_data.get("detector_ids"),
+        )
         workflow = validator.create(validator.validated_data)
         return Response(
             serialize(workflow, request.user, WorkflowSerializer()),
@@ -374,8 +451,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk enable or disable alerts for a given Organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -391,9 +469,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         validator.is_valid(raise_exception=True)
         enabled = validator.validated_data["enabled"]
 
-        queryset = self.filter_workflows(request, organization)
+        queryset, workflows = self._get_workflows_for_mutation(request, organization)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
@@ -401,7 +479,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
 
         with transaction.atomic(router.db_for_write(Workflow)):
             # We update workflows individually to ensure post_save signals are called
-            for workflow in queryset:
+            for workflow in workflows:
                 workflow.update(enabled=enabled)
 
         return self.paginate(
@@ -436,8 +514,9 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         """
         Bulk delete alerts for a given organization
         """
+        raw_idlist = request.GET.getlist("id")
         if not (
-            request.GET.getlist("id")
+            raw_idlist
             or request.GET.get("query")
             or request.GET.getlist("project")
             or request.GET.getlist("projectSlug")
@@ -449,15 +528,15 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        queryset = self.filter_workflows(request, organization)
+        _, workflows = self._get_workflows_for_mutation(request, organization)
 
-        if not queryset:
+        if not workflows:
             return Response(
                 {"detail": "No workflows found."},
                 status=status.HTTP_200_OK,
             )
 
-        for workflow in queryset:
+        for workflow in workflows:
             with transaction.atomic(router.db_for_write(Workflow)):
                 CellScheduledDeletion.schedule(workflow, days=0, actor=request.user)
                 create_audit_entry(

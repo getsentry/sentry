@@ -408,6 +408,24 @@ describe('typed filter keys containing colons', () => {
   });
 });
 
+describe('array membership filters', () => {
+  it('negates an array membership filter instead of emitting an operator sentinel', () => {
+    const query = 'csv_headers[*]:foo';
+
+    expect(
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.NOT_EQUAL)
+    ).toBe('!csv_headers[*]:foo');
+  });
+
+  it('un-negates an array membership filter back to includes', () => {
+    const query = '!csv_headers[*]:foo';
+
+    expect(
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('csv_headers[*]:foo');
+  });
+});
+
 describe('syntax-bearing filter keys', () => {
   it('preserves an aggregate key when updating its value', () => {
     const query = 'count():>100';
