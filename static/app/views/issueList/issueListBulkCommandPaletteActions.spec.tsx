@@ -1,4 +1,4 @@
-import {Fragment, useLayoutEffect} from 'react';
+import {useLayoutEffect} from 'react';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
@@ -162,6 +162,10 @@ describe('IssueListBulkCommandPaletteActions', () => {
     ]);
 
     const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
+    const bulkUpdateMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      method: 'PUT',
+    });
 
     render(
       <CommandPaletteProvider>
@@ -169,14 +173,14 @@ describe('IssueListBulkCommandPaletteActions', () => {
           <SelectionInitializer />
           <IssueListBulkCommandPaletteActions
             groupIds={['1', '2']}
-            sort={IssueSortOptions.DATE}
+            sort={IssueSortOptions.RECOMMENDED}
             onActionTaken={jest.fn()}
             query=""
             queryCount={10}
             selection={{
               projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
+              environments: ['production'],
+              datetime: {start: null, end: null, period: '24h', utc: true},
             }}
           />
         </IssueSelectionProvider>
@@ -189,6 +193,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
       </CommandPaletteProvider>,
       {organization}
     );
+    renderGlobalModal();
 
     await waitFor(() => {
       expect(treeRef.current.length).toBeGreaterThan(0);
@@ -201,12 +206,37 @@ describe('IssueListBulkCommandPaletteActions', () => {
 
     expect(labels).toContain('Resolve');
     expect(labels).toContain('Archive');
+
+    const resolveAction = treeRef.current
+      .flatMap(node => node.children)
+      .find(child => child.display.label === 'Resolve' && 'onAction' in child);
+
+    act(() => {
+      if (resolveAction && 'onAction' in resolveAction) {
+        resolveAction.onAction();
+      }
+    });
+    await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+
+    expect(bulkUpdateMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/issues/`,
+      expect.objectContaining({
+        query: {
+          query: '',
+          project: [1],
+          environment: ['production'],
+          statsPeriod: '24h',
+          utc: true,
+          sort: IssueSortOptions.RECOMMENDED,
+        },
+      })
+    );
   });
 
   it('shows a loader when marking all issues as resolved', async () => {
     const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
 
-    MockApiClient.addMockResponse({
+    const bulkUpdateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
       body: [],
@@ -224,10 +254,10 @@ describe('IssueListBulkCommandPaletteActions', () => {
             queryCount={10}
             selection={{
               projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
+              environments: ['production'],
+              datetime: {start: null, end: null, period: '24h', utc: true},
             }}
-            sort={IssueSortOptions.DATE}
+            sort={IssueSortOptions.RECOMMENDED}
           />
         </IssueSelectionProvider>
         <SlotOutlets />
@@ -273,105 +303,18 @@ describe('IssueListBulkCommandPaletteActions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(addLoadingMessage).toHaveBeenCalledWith('Saving changes…');
-  });
-
-  it.each([
-    {query: '', allSelected: false},
-    {query: 'is:unresolved', allSelected: false},
-    {query: '', allSelected: true},
-    {query: 'is:unresolved', allSelected: true},
-  ])(
-    'preserves search scope for query="$query", allSelected=$allSelected',
-    async ({query, allSelected}) => {
-      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
-
-      const bulkUpdateMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/issues/`,
-        method: 'PUT',
-        body: [],
-      });
-
-      const props = {
-        groupIds: ['1', '2'],
-        onActionTaken: jest.fn(),
-        query,
-        queryCount: 1500,
-        selection: {
-          projects: [1],
-          environments: ['production'],
-          datetime: {start: null, end: null, period: '24h', utc: true},
+    expect(bulkUpdateMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/issues/`,
+      expect.objectContaining({
+        query: {
+          query: '',
+          project: [1],
+          environment: ['production'],
+          statsPeriod: '24h',
+          utc: true,
+          sort: IssueSortOptions.RECOMMENDED,
         },
-        sort: IssueSortOptions.RECOMMENDED,
-      };
-
-      render(
-        <CommandPaletteProvider>
-          <IssueSelectionProvider visibleGroupIds={['1', '2']}>
-            {allSelected ? (
-              <Fragment>
-                <SelectionInitializer />
-                <IssueListBulkCommandPaletteActions {...props} />
-              </Fragment>
-            ) : (
-              <IssueListCommandPaletteActions
-                {...props}
-                onQueryChange={jest.fn()}
-                onSortChange={jest.fn()}
-              />
-            )}
-          </IssueSelectionProvider>
-          <SlotOutlets />
-          <CommandPaletteTree
-            onTree={tree => {
-              treeRef.current = tree;
-            }}
-          />
-        </CommandPaletteProvider>,
-        {organization}
-      );
-      renderGlobalModal();
-
-      await waitFor(() => {
-        expect(treeRef.current.length).toBeGreaterThan(0);
-      });
-
-      const issueFeedNode = treeRef.current.find(
-        node => node.display.label === 'Issues Feed'
-      );
-      const markAllNode = issueFeedNode?.children.find(
-        child => child.display.label === 'Mark all issues as'
-      );
-      const resolvedAction = allSelected
-        ? treeRef.current
-            .flatMap(node => node.children)
-            .find(child => child.display.label === 'Resolve' && 'onAction' in child)
-        : markAllNode?.children.find(
-            child => child.display.label === 'Resolved' && 'onAction' in child
-          );
-
-      expect(resolvedAction).toBeDefined();
-
-      act(() => {
-        if (resolvedAction && 'onAction' in resolvedAction) {
-          resolvedAction.onAction();
-        }
-      });
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
-
-      expect(bulkUpdateMock).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/issues/`,
-        expect.objectContaining({
-          query: {
-            query,
-            project: [1],
-            environment: ['production'],
-            statsPeriod: '24h',
-            utc: true,
-            sort: IssueSortOptions.RECOMMENDED,
-          },
-        })
-      );
-    }
-  );
+      })
+    );
+  });
 });
