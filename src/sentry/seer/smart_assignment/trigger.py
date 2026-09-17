@@ -221,7 +221,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
 
     metrics.incr(
         "smart_assignment.trigger.dispatched",
-        tags={"trigger": activity_type.name, "prefetch_cohort": prefetch_mode},
+        tags={"trigger": activity_type.name},
         sample_rate=1.0,
     )
     logger.info(
@@ -230,7 +230,6 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
             "group_id": group.id,
             "organization_id": organization.id,
             "trigger": activity_type.name,
-            "prefetch_cohort": prefetch_mode,
         },
     )
 

@@ -24,10 +24,10 @@ class _DeliveryAborted(Exception):
     """Control-flow signal: a step is stopping delivery early"""
 
 
-def _incr(outcome: str, prefetch_cohort: str = "unknown") -> None:
+def _incr(outcome: str) -> None:
     metrics.incr(
         "smart_assignment.delivery",
-        tags={"outcome": outcome, "prefetch_cohort": prefetch_cohort},
+        tags={"outcome": outcome},
         sample_rate=1.0,
     )
 
@@ -59,17 +59,16 @@ def _validate_run(
         )
         raise _DeliveryAborted
 
-    prefetch_cohort = agent_run.extras.get("prefetch_cohort", "control")
     metrics.distribution(
         "smart_assignment.run.duration",
         max((timezone.now() - agent_run.run.last_triggered_at).total_seconds(), 0),
-        tags={"status": status, "prefetch_cohort": prefetch_cohort},
+        tags={"status": status},
         unit="second",
         sample_rate=1.0,
     )
 
     if status == "error" or result is None:
-        _incr("error", prefetch_cohort)
+        _incr("error")
         logger.warning(
             "smart_assignment.delivery.no_result",
             extra={
@@ -85,7 +84,7 @@ def _validate_run(
     return agent_run
 
 
-def _validate_group(organization_id: int, run_uuid: UUID, prefetch_cohort: str) -> Group:
+def _validate_group(organization_id: int, run_uuid: UUID) -> Group:
     """Load the live group the run is tied to, to record the prediction against.
 
     Reaches the group through the run mirror in a single query. Emits `missing_group` and
@@ -97,7 +96,7 @@ def _validate_group(organization_id: int, run_uuid: UUID, prefetch_cohort: str) 
         project__organization_id=organization_id,
     ).first()
     if group is None:
-        _incr("missing_group", prefetch_cohort)
+        _incr("missing_group")
         logger.warning(
             "smart_assignment.delivery.missing_group",
             extra={"organization_id": organization_id, "run_uuid": run_uuid},
@@ -111,7 +110,6 @@ def _validate_resolve_verdict(
     organization_id: int,
     result: dict[str, Any] | None,
     log_extra: dict[str, Any],
-    prefetch_cohort: str,
 ) -> list[int | None]:
     """Parse the delivered artifact and resolve each ranked candidate to a Sentry user id.
 
@@ -122,7 +120,7 @@ def _validate_resolve_verdict(
     try:
         verdict = AssigneeVerdict.parse_obj(result)
     except Exception:
-        _incr("error", prefetch_cohort)
+        _incr("error")
         logger.warning("smart_assignment.delivery.invalid_result", extra=log_extra)
         raise _DeliveryAborted from None
 
@@ -203,7 +201,7 @@ def _record_result(
         )
     )
     if already_recorded:
-        _incr("duplicate", agent_run.extras.get("prefetch_cohort", "control"))
+        _incr("duplicate")
         logger.info("smart_assignment.delivery.duplicate", extra=log_extra)
         raise _DeliveryAborted
 
@@ -228,9 +226,8 @@ def _record_result(
         outcome = "unlinked"
     else:
         outcome = "resolved"
-    prefetch_cohort = agent_run.extras.get("prefetch_cohort", "control")
-    _incr(outcome, prefetch_cohort)
-    metric_tags = {"outcome": outcome, "prefetch_cohort": prefetch_cohort}
+    _incr(outcome)
+    metric_tags = {"outcome": outcome}
     metrics.distribution(
         "smart_assignment.prediction.candidates",
         len(predicted_assignee_user_ids),
@@ -270,17 +267,13 @@ def deliver_smart_assignment_result(
     """
     try:
         agent_run = _validate_run(organization_id, run_uuid, status, result, error)
-        prefetch_cohort = agent_run.extras.get("prefetch_cohort", "control")
-        group = _validate_group(organization_id, run_uuid, prefetch_cohort)
+        group = _validate_group(organization_id, run_uuid)
         log_extra = {
             "organization_id": organization_id,
             "group_id": group.id,
             "run_uuid": run_uuid,
-            "prefetch_cohort": prefetch_cohort,
         }
-        predicted_assignee_user_ids = _validate_resolve_verdict(
-            organization_id, result, log_extra, prefetch_cohort
-        )
+        predicted_assignee_user_ids = _validate_resolve_verdict(organization_id, result, log_extra)
         _record_result(group, agent_run, run_uuid, predicted_assignee_user_ids, log_extra)
     except _DeliveryAborted:
         return

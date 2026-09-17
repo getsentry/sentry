@@ -628,7 +628,6 @@ class TriggerSmartAssignmentTest(TestCase):
                 "result": SmartAssignmentScore.EXACT,
                 "hit_rank": 1,
                 "trigger": ActivityType.SEER_RCA_STARTED.name,
-                "prefetch_cohort": "control",
             },
             sample_rate=1.0,
         )
