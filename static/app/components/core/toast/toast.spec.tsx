@@ -144,6 +144,32 @@ describe('Toast', () => {
     expect(screen.queryByText('Loading')).not.toBeInTheDocument();
   });
 
+  it('keeps independent operations separate from other notifications', async () => {
+    render(<div />);
+    let toastId: string | number = '';
+    act(() => {
+      toast.error('Unrelated error', {duration: Infinity});
+      toastId = toast.loading('Resolving issues', {
+        duration: Infinity,
+        independent: true,
+      });
+    });
+
+    expect(await screen.findByText('Resolving issues')).toBeInTheDocument();
+    expect(screen.getByText('Unrelated error')).toBeInTheDocument();
+
+    act(() => void toast.success('Other change saved', {duration: Infinity}));
+    expect(await screen.findByText('Other change saved')).toBeInTheDocument();
+    expect(screen.getByText('Resolving issues')).toBeInTheDocument();
+
+    act(
+      () => void toast.error('Unable to resolve issues', {id: toastId, independent: true})
+    );
+    expect(await screen.findByText('Unable to resolve issues')).toBeInTheDocument();
+    expect(screen.queryByText('Resolving issues')).not.toBeInTheDocument();
+    expect(screen.getByText('Other change saved')).toBeInTheDocument();
+  });
+
   it('runs an action and dismisses the toast', async () => {
     const onClick = jest.fn();
     render(<div />);

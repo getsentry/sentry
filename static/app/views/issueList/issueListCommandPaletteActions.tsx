@@ -40,7 +40,7 @@ import {useIssueViewUnsavedChanges} from 'sentry/views/issueList/issueViews/useI
 import {useSelectedGroupSearchView} from 'sentry/views/issueList/issueViews/useSelectedGroupSeachView';
 import {canEditIssueView} from 'sentry/views/issueList/issueViews/utils';
 import {useUpdateGroupSearchView} from 'sentry/views/issueList/mutations/useUpdateGroupSearchView';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler} from 'sentry/views/issueList/types';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
@@ -56,7 +56,7 @@ interface IssueListCommandPaletteActionsProps {
   queryCount: number;
   selection: PageFilters;
   sort: IssueSortOptions;
-  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken?: IssueActionHandler;
 }
 
 /**

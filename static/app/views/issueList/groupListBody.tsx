@@ -1,9 +1,12 @@
 import {useTheme} from '@emotion/react';
 
+import {toast} from '@sentry/scraps/toast';
+
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
+import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group} from 'sentry/types/group';
 import type {IndexedMembersByProject} from 'sentry/utils/members/shared';
@@ -148,7 +151,10 @@ function GroupList({
             displayReprocessingLayout={displayReprocessingLayout}
             useFilteredStats
             canSelect={!selectDisabled}
-            onPriorityChange={priority => onActionTaken([id], {priority})}
+            onPriorityChange={priority => {
+              toast.success(t('Reprioritized %s', group.shortId));
+              onActionTaken([id], {priority});
+            }}
             withColumns={DEFAULT_COLUMNS}
           />
         );

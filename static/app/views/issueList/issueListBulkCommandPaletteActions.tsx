@@ -11,7 +11,12 @@ import {IconCheckmark, IconClock, IconIssues, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
+import {
+  GroupStatus,
+  GroupSubstatus,
+  PriorityLevel,
+  type BaseGroup,
+} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
@@ -28,14 +33,14 @@ import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueActionHandler, IssueUpdateData} from 'sentry/views/issueList/types';
 
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];
   query: string;
   queryCount: number;
   selection: PageFilters;
-  onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
+  onActionTaken?: IssueActionHandler;
 }
 
 interface IssueListMarkAllCommandPaletteActionProps extends IssueListBulkCommandPaletteActionsProps {}
@@ -252,7 +257,10 @@ function useIssueListBulkCommandPaletteActions({
 
   function performBulkUpdate(
     data: IssueUpdateData | Record<string, unknown>,
-    onSuccess?: (itemIds: string[] | undefined) => void,
+    onSuccess?: (
+      itemIds: string[] | undefined,
+      previousGroups: BaseGroup[]
+    ) => (() => void) | void,
     allInQuery?: boolean
   ) {
     const itemIds = allInQuery ? undefined : getSelectedIds();
@@ -263,13 +271,14 @@ function useIssueListBulkCommandPaletteActions({
       organizationSlug: organization.slug,
       query,
       selection,
-      onSuccess: updatedItemIds => {
-        onSuccess?.(updatedItemIds);
+      onSuccess: (updatedItemIds, previousGroups) => {
+        const undo = onSuccess?.(updatedItemIds, previousGroups);
         invalidateIssueQueries({
           itemIds: updatedItemIds,
           organizationSlug: organization.slug,
           queryClient,
         });
+        return undo;
       },
     });
 
@@ -279,9 +288,7 @@ function useIssueListBulkCommandPaletteActions({
   function handleUpdate(data: IssueUpdateData, allInQuery?: boolean) {
     performBulkUpdate(
       data,
-      itemIds => {
-        onActionTaken?.(itemIds ?? [], data);
-      },
+      (itemIds, previousGroups) => onActionTaken?.(itemIds, data, previousGroups),
       allInQuery
     );
   }

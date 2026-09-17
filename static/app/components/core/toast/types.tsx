@@ -17,5 +17,7 @@ export interface ToastOptions {
   duration?: number;
   /** Pass an existing id to replace that toast instead of adding one. */
   id?: string | number;
+  /** Keep this toast separate from other notifications, including variant changes. */
+  independent?: boolean;
   onDismiss?: () => void;
 }

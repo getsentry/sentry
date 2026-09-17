@@ -112,6 +112,10 @@ Toasts dismiss automatically after their duration. Users can also click the `Dis
 a toast. Toasts of the same variant stack up to three at once; showing a different variant
 dismisses the previous variant's active toasts.
 
+Use `independent: true` for an operation's loading and result toasts. These do not
+dismiss other notifications and are not dismissed when another toast's variant changes.
+Keep this option when updating the toast by id.
+
 ```tsx
 // Dismiss one toast by id
 const id = toast.loading('Working...', {duration: Infinity});

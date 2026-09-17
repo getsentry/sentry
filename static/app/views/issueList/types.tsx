@@ -1,5 +1,6 @@
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {
+  BaseGroup,
   GroupStatusResolution,
   MarkReviewed,
   PriorityLevel,
@@ -16,6 +17,12 @@ export type IssueUpdateData =
   | {priority: PriorityLevel}
   | MarkReviewed
   | GroupStatusResolution;
+
+export type IssueActionHandler = (
+  itemIds: string[] | undefined,
+  data: IssueUpdateData,
+  previousGroups?: BaseGroup[]
+) => (() => void) | void;
 
 export enum GroupSearchViewVisibility {
   OWNER = 'owner',

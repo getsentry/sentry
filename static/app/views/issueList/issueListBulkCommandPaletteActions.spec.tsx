@@ -12,7 +12,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {GlobalModal} from '@sentry/scraps/modal';
+
 import {
   CMDKCollection,
   CommandPaletteProvider,
@@ -30,8 +31,6 @@ import {
   useIssueSelectionActions,
 } from 'sentry/views/issueList/issueSelectionContext';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
-
-jest.mock('sentry/actionCreators/indicator');
 
 const organization = OrganizationFixture();
 
@@ -75,7 +74,6 @@ function SelectionInitializer() {
 describe('IssueListBulkCommandPaletteActions', () => {
   beforeEach(() => {
     GroupStore.reset();
-    jest.mocked(addLoadingMessage).mockClear();
     ConfigStore.loadInitialData({
       user: UserFixture({id: '1', name: 'Test User'}),
     } as any);
@@ -100,6 +98,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    jest.useRealTimers();
   });
 
   it('shows mark all actions when no issues are selected', async () => {
@@ -203,12 +202,16 @@ describe('IssueListBulkCommandPaletteActions', () => {
   });
 
   it('shows a loader when marking all issues as resolved', async () => {
+    jest.useFakeTimers();
+    const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+    const response = Promise.withResolvers<void>();
     const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
       body: [],
+      asyncDelay: response.promise,
     });
 
     render(
@@ -229,6 +232,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
             sort={IssueSortOptions.DATE}
           />
         </IssueSelectionProvider>
+        <GlobalModal />
         <SlotOutlets />
         <CommandPaletteTree
           onTree={tree => {
@@ -238,7 +242,6 @@ describe('IssueListBulkCommandPaletteActions', () => {
       </CommandPaletteProvider>,
       {organization}
     );
-    renderGlobalModal();
 
     await waitFor(() => {
       expect(treeRef.current.length).toBeGreaterThan(0);
@@ -262,16 +265,27 @@ describe('IssueListBulkCommandPaletteActions', () => {
       }
     });
 
-    expect(addLoadingMessage).not.toHaveBeenCalled();
+    expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
     expect(
       await screen.findByText(
         'You are about to resolve all 10 issues matching this search. Are you sure?'
       )
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await user.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    expect(addLoadingMessage).toHaveBeenCalledWith('Saving changes…');
+    expect(await screen.findByText('Resolving issues…')).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(10_000));
+    expect(screen.getByText('Resolving issues…')).toBeInTheDocument();
+
+    await act(async () => response.resolve());
+    expect(await screen.findByText('Selected issues resolved')).toBeInTheDocument();
+    expect(screen.queryByText('Resolving issues…')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Undo'})).not.toBeInTheDocument();
+
+    act(() => jest.advanceTimersByTime(6_000));
+    act(() => jest.advanceTimersByTime(400));
+    expect(screen.queryByText('Selected issues resolved')).not.toBeInTheDocument();
   });
 
   it('sends query-based API request when marking all issues as resolved', async () => {
