@@ -2,6 +2,8 @@ import logging
 from datetime import timedelta
 from typing import Any
 
+from sentry_sdk import traces
+
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.profile_functions import (
     ProfileFunctionsQueryBuilder,
@@ -14,7 +16,6 @@ from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,9 @@ def top_events_timeseries(
     assert not include_other, "Other is not supported"  # TODO: support other
 
     if top_events is None:
-        with start_span(op="discover.discover", name="top_events.fetch_events"):
+        with traces.start_span(
+            name="top_events.fetch_events", attributes={"sentry.op": "discover.discover"}
+        ):
             top_events = query(
                 selected_columns,
                 query=user_query,
@@ -233,10 +236,12 @@ def format_top_events_timeseries_results(
             rollup,
         )
 
-    with start_span(op="discover.discover", name="top_events.transform_results") as span:
+    with traces.start_span(
+        name="top_events.transform_results", attributes={"sentry.op": "discover.discover"}
+    ) as span:
         result = query_builder.strip_alias_prefix(result)
 
-        set_span_data(span, "result_count", len(result.get("data", [])))
+        span.set_attribute("result_count", len(result.get("data", [])))
         processed_result = query_builder.process_results(result)
 
         if result_key_order is None:

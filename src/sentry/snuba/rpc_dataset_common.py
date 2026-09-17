@@ -42,6 +42,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     OrFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover import arithmetic
@@ -69,7 +70,6 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, Sn
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -447,7 +447,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def _run_table_query(
         cls,
         query: TableQuery,
@@ -496,7 +496,7 @@ class RPCBase:
         raise NotImplementedError()
 
     @classmethod
-    @trace
+    @traces.trace
     def run_bulk_table_queries(
         cls, queries: list[TableQuery], debug: str | bool = False
     ) -> dict[str, EAPResponse]:
@@ -862,7 +862,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_timeseries_query(
         cls,
         *,
@@ -958,7 +958,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
@@ -1005,7 +1005,7 @@ class RPCBase:
         )
 
     @classmethod
-    @trace
+    @traces.trace
     def run_top_events_timeseries_query(
         cls,
         *,
