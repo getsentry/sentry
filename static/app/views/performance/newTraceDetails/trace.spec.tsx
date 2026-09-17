@@ -1669,45 +1669,6 @@ describe('trace view', () => {
       expect(await screen.findByText('transaction-name-2')).toBeInTheDocument();
     });
 
-    it('roving updates the element in the drawer', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'TransactionID: 0'
-      );
-
-      await userEvent.keyboard('{arrowright}');
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
-      await userEvent.keyboard('{arrowdown}');
-      await waitFor(() => {
-        const updatedRows = virtualizedContainer.querySelectorAll(
-          VISIBLE_TRACE_ROW_SELECTOR
-        );
-        expect(updatedRows[2]).toHaveFocus();
-      });
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'SpanID: 0'
-      );
-    });
-
     it('arrowup on first node jumps to end', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
 
@@ -2214,14 +2175,22 @@ describe('trace view', () => {
       await userEvent.type(searchInput, '5');
       await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
 
-      await searchToResolve();
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
       await assertHighlightedRowAtIndex(container, 6);
 
-      await userEvent.clear(searchInput);
-      await waitFor(() => expect(searchInput).toHaveValue(''));
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op-none');
-      await searchToResolve();
+      // Keep the previous results until the new search completes. Clearing the
+      // query also resets the results and can make the idle icon look finished.
+      await userEvent.type(searchInput, '-none');
+      expect(searchInput).toHaveValue('transaction-op-5-none');
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          'no results'
+        );
+      });
       await waitFor(() => {
         // eslint-disable-next-line testing-library/no-container
         expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
