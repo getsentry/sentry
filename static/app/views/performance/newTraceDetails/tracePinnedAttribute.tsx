@@ -29,7 +29,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
-import {isParentAutogroupedNode, isSiblingAutogroupedNode} from './traceGuards';
 import {
   getPinnedAttributeValue,
   MULTIPLE_PINNED_VALUES,
@@ -133,13 +132,15 @@ export function useTracePinnedAttribute({
     for (const page of query.data?.pages ?? []) {
       for (const item of page.json.data) {
         const value = attribute ? item[attribute] : null;
-        if (
+        // Keep null entries so a loaded span without the attribute is resolved.
+        result.set(
+          item.span_id,
           typeof value === 'string' ||
-          typeof value === 'number' ||
-          typeof value === 'boolean'
-        ) {
-          result.set(item.span_id, value);
-        }
+            typeof value === 'number' ||
+            typeof value === 'boolean'
+            ? value
+            : null
+        );
       }
     }
     return result;
@@ -226,15 +227,16 @@ export function TracePinnedAttributeCell({node}: {node: BaseNode}) {
   if (!pin?.attribute) {
     return null;
   }
-  const value = getPinnedAttributeValue(node, pin.values);
-  const isAutogrouped = isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node);
-  const label = pin.isError
+  const {value, resolved} = getPinnedAttributeValue(node, pin.values);
+  const isPending = pin.isPending && !resolved;
+  const isUnavailable = pin.isError && !resolved;
+  const label = isUnavailable
     ? '—'
     : value === MULTIPLE_PINNED_VALUES
       ? t('Multiple values')
       : formatPinnedValue(pin.attribute, value);
   const canCopy =
-    !pin.isPending && !pin.isError && value !== null && value !== MULTIPLE_PINNED_VALUES;
+    !isPending && !isUnavailable && value !== null && value !== MULTIPLE_PINNED_VALUES;
   return (
     <RevealOnHover>
       {hoverProps => (
@@ -248,7 +250,7 @@ export function TracePinnedAttributeCell({node}: {node: BaseNode}) {
           overflow="hidden"
           height="100%"
         >
-          {pin.isPending && !isAutogrouped ? (
+          {isPending ? (
             <LoadingIndicator size={12} style={{margin: 0}} />
           ) : (
             <Text ellipsis size="sm">

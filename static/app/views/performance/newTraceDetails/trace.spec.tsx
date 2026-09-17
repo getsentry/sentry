@@ -6,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -1004,6 +1005,69 @@ describe('trace view', () => {
       );
     }
 
+    function pinnedCell(description: string) {
+      const waterfall = within(screen.getByTestId('trace-virtualized-list'));
+      const row = waterfall.getByText(description).closest<HTMLElement>('.TraceRow')!;
+      return within(row.querySelector<HTMLElement>('.TracePinnedAttributeCell')!);
+    }
+
+    it('shows loaded values and missing attributes while later pages are pending', async () => {
+      const {renderTrace, root} = setupPinnedTrace();
+      const unloadedChild = makeEAPSpan({
+        event_id: 'unloaded-child',
+        event_type: 'span',
+        description: 'unloaded child',
+        start_timestamp: root.start_timestamp,
+        end_timestamp: root.end_timestamp,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        body: [{...root, children: [...root.children, unloadedChild]}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [
+          MockApiClient.matchQuery({
+            field: ['span_id', 'custom.region'],
+            cursor: undefined,
+          }),
+        ],
+        body: {
+          data: [
+            {span_id: root.event_id, 'custom.region': 'root-region'},
+            {span_id: root.children[0]!.event_id, 'custom.region': null},
+          ],
+        },
+        headers: {
+          Link: '<https://sentry.io/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+        },
+      });
+      const nextPage = Promise.withResolvers<void>();
+      const nextRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+        asyncDelay: nextPage.promise,
+        body: {data: [{span_id: unloadedChild.event_id, 'custom.region': 0}]},
+      });
+      renderTrace({pinnedAttribute: 'custom.region'});
+
+      expect(await screen.findByText('root-region')).toBeInTheDocument();
+      await waitFor(() => expect(nextRequest).toHaveBeenCalled());
+      expect(
+        pinnedCell('pinnable root').getByRole('button', {name: 'Copy attribute value'})
+      ).toBeEnabled();
+      expect(pinnedCell('pinnable child').getByText('—')).toBeInTheDocument();
+      expect(
+        pinnedCell('pinnable child').queryByTestId('loading-indicator')
+      ).not.toBeInTheDocument();
+      expect(
+        pinnedCell('unloaded child').getByTestId('loading-indicator')
+      ).toBeInTheDocument();
+
+      act(() => nextPage.resolve());
+      expect(await pinnedCell('unloaded child').findByText('0')).toBeInTheDocument();
+    });
+
     it('keeps pinned values loaded when navigating from an error deep link', async () => {
       const {renderTrace, root} = setupPinnedTrace();
       const errors = [
@@ -1104,13 +1168,32 @@ describe('trace view', () => {
 
         expect(await screen.findByText('Could not load attribute')).toBeInTheDocument();
         expect(failedRequest).toHaveBeenCalledTimes(1);
+        expect(pinnedCell('pinnable child').getByText('—')).toBeInTheDocument();
+        if (failedPage === 'next') {
+          expect(screen.getByText('root-region')).toBeInTheDocument();
+          expect(
+            pinnedCell('pinnable root').getByRole('button', {
+              name: 'Copy attribute value',
+            })
+          ).toBeEnabled();
+        }
         await userEvent.click(screen.getByText('pinnable root'));
         await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
 
-        MockApiClient.addMockResponse(failedResponse);
+        const retry = Promise.withResolvers<void>();
+        MockApiClient.addMockResponse({...failedResponse, asyncDelay: retry.promise});
         await userEvent.click(
           screen.getByRole('button', {name: 'Retry loading attribute'})
         );
+        if (failedPage === 'next') {
+          expect(screen.getByText('root-region')).toBeInTheDocument();
+          expect(
+            pinnedCell('pinnable root').getByRole('button', {
+              name: 'Copy attribute value',
+            })
+          ).toBeEnabled();
+        }
+        act(() => retry.resolve());
 
         expect(await screen.findByText('child-region')).toBeInTheDocument();
         expect(screen.getByText('root-region')).toBeInTheDocument();

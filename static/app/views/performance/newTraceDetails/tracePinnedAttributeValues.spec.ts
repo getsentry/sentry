@@ -27,9 +27,16 @@ it.each([0, false, '', 'test', null])(
       ['parent', value],
       ['child', 'other'],
     ]);
-    expect(getPinnedAttributeValue(parent, values)).toBe(value);
+    expect(getPinnedAttributeValue(parent, values)).toEqual({value, resolved: true});
   }
 );
+
+it('distinguishes an unresolved span from a loaded null attribute', () => {
+  expect(getPinnedAttributeValue(span('unloaded'), new Map())).toEqual({
+    value: null,
+    resolved: false,
+  });
+});
 
 it.each(['siblings', 'parents'])(
   'leaves %s auto-groups empty even when their spans share a value',
@@ -55,7 +62,7 @@ it.each(['siblings', 'parents'])(
       ['first', 'same'],
       ['last', 'same'],
     ]);
-    expect(getPinnedAttributeValue(node, values)).toBeNull();
+    expect(getPinnedAttributeValue(node, values)).toEqual({value: null, resolved: true});
   }
 );
 
@@ -66,11 +73,22 @@ it('summarizes collapsed span groups, including missing values', () => {
   const node = new CollapsedNode(span('root'), {type: 'collapsed'}, extra);
   node.children = [first];
   const values = new Map<string, PinnedAttributeValue>();
-  expect(getPinnedAttributeValue(node, values)).toBeNull();
+  expect(getPinnedAttributeValue(node, values)).toEqual({value: null, resolved: false});
   values.set('first', 'same');
-  expect(getPinnedAttributeValue(node, values)).toBe(MULTIPLE_PINNED_VALUES);
+  expect(getPinnedAttributeValue(node, values)).toEqual({
+    value: MULTIPLE_PINNED_VALUES,
+    resolved: false,
+  });
   values.set('last', 'same');
-  expect(getPinnedAttributeValue(node, values)).toBe('same');
+  expect(getPinnedAttributeValue(node, values)).toEqual({value: 'same', resolved: true});
   values.set('last', 'other');
-  expect(getPinnedAttributeValue(node, values)).toBe(MULTIPLE_PINNED_VALUES);
+  expect(getPinnedAttributeValue(node, values)).toEqual({
+    value: MULTIPLE_PINNED_VALUES,
+    resolved: true,
+  });
+  last.children = [span('unloaded')];
+  expect(getPinnedAttributeValue(node, values)).toEqual({
+    value: MULTIPLE_PINNED_VALUES,
+    resolved: false,
+  });
 });

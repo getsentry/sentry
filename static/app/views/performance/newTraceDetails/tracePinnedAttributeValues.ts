@@ -8,12 +8,12 @@ export type PinnedAttributeValues = ReadonlyMap<string, PinnedAttributeValue>;
 export function getPinnedAttributeValue(
   node: BaseNode,
   values: PinnedAttributeValues
-): PinnedAttributeValue | typeof MULTIPLE_PINNED_VALUES {
+): {resolved: boolean; value: PinnedAttributeValue | typeof MULTIPLE_PINNED_VALUES} {
   if (isEAPSpanNode(node)) {
-    return values.get(node.id) ?? null;
+    return {value: values.get(node.id) ?? null, resolved: values.has(node.id)};
   }
   if (!isCollapsedNode(node)) {
-    return null;
+    return {value: null, resolved: true};
   }
 
   const members = new Set<BaseNode>();
@@ -24,13 +24,16 @@ export function getPinnedAttributeValue(
   };
   node.forEachChild(addMember);
 
-  let commonValue: PinnedAttributeValue | undefined;
+  let commonValue: PinnedAttributeValue | typeof MULTIPLE_PINNED_VALUES | undefined;
+  let resolved = true;
   for (const member of members) {
+    resolved &&= values.has(member.id);
     const value = values.get(member.id) ?? null;
     if (commonValue !== undefined && !Object.is(commonValue, value)) {
-      return MULTIPLE_PINNED_VALUES;
+      commonValue = MULTIPLE_PINNED_VALUES;
+    } else {
+      commonValue = value;
     }
-    commonValue = value;
   }
-  return commonValue ?? null;
+  return {value: commonValue ?? null, resolved};
 }
