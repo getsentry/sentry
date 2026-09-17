@@ -11,8 +11,7 @@ import {
 } from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown} from '@sentry/scraps/markdown';
-import {markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -783,7 +782,7 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          // oxlint-disable-next-line typescript/no-base-to-string
           rowValue.toString(),
           key as TraceDrawerActionKind,
           'drawer'
