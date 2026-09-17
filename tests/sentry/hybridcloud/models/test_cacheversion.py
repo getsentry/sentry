@@ -15,7 +15,7 @@ def test_increment_version_existing_key() -> None:
         key="hello-world",
         version=1,
     )
-    assert original.keyname is None, "no keyname initially"
+    assert original.keyname == "", "no keyname initially"
 
     assert CellCacheVersion.incr_version("hello-world") == 2
     reload = CellCacheVersion.objects.get(id=original.id)

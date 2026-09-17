@@ -36,7 +36,7 @@ class InstallStepData(TypedDict):
     state: str
 
 
-class InstallSerializer(serializers.Serializer[dict[str, Any]]):
+class InstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
     # Absent for an install started from Origin, where the receipt was verified
     # before the pipeline began and the installation is already bound to state.
     installation_receipt = serializers.CharField(required=False)

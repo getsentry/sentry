@@ -1,4 +1,3 @@
-import pytest
 from django.urls import reverse
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryStarred
@@ -6,7 +5,6 @@ from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.testutils.cases import APITestCase
 
 
-@pytest.mark.skip(reason="API not public yet, this line will be removed in future")
 class SavedQueryStarredOrderTest(APITestCase):
     feature_flags = {
         "organizations:visibility-explore-view": True,
@@ -24,7 +22,7 @@ class SavedQueryStarredOrderTest(APITestCase):
         self.explore_b = self.create_explore_query("Explore B", position=3)
         self.discover_y = self.create_discover_query("Discover Y", position=4)
 
-        self.url = reverse("sentry-api-0-saved-query-starred-order", args=[self.org.slug])
+        self.url = reverse("sentry-api-0-explore-all-queries-starred-order", args=[self.org.slug])
 
     def create_explore_query(self, name: str, position: int) -> ExploreSavedQuery:
         query = ExploreSavedQuery.objects.create(
