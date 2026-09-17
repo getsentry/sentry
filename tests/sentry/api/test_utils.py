@@ -12,6 +12,7 @@ from snuba_sdk.column import InvalidColumnError
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
+    ServiceUnavailable,
     clamp_date_range,
     get_date_range_from_params,
     handle_query_errors,
@@ -39,7 +40,11 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCBadRequest, SnubaRPCTooManySimultaneous
+from sentry.utils.snuba_rpc import (
+    SnubaRPCBadRequest,
+    SnubaRPCTooManySimultaneous,
+    SnubaRPCUnavailable,
+)
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -264,6 +269,28 @@ class HandleQueryErrorsTest(APITestCase):
         except Exception as err:
             assert isinstance(err, ParseError)
             assert str(err.detail) == INVALID_RPC_REQUEST_MESSAGE
+
+    @patch("sentry.api.utils.sentry_sdk.capture_exception")
+    @patch("sentry.api.utils.logger.warning")
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_handle_snuba_rpc_unavailable(
+        self,
+        mock_set_tag: MagicMock,
+        mock_set_attribute: MagicMock,
+        mock_warning: MagicMock,
+        mock_capture_exception: MagicMock,
+    ) -> None:
+        with pytest.raises(ServiceUnavailable) as raised:
+            with handle_query_errors():
+                raise SnubaRPCUnavailable("no healthy upstream")
+
+        assert raised.value.status_code == 503
+        assert raised.value.wait == 5
+        mock_set_tag.assert_called_once_with("query.error_reason", "SnubaUnavailable")
+        mock_set_attribute.assert_called_once_with("query.error_reason", "SnubaUnavailable")
+        mock_warning.assert_called_once_with("snuba_rpc.unavailable")
+        mock_capture_exception.assert_not_called()
 
 
 class ClampDateRangeTest(unittest.TestCase):

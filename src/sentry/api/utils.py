@@ -4,7 +4,7 @@ import datetime
 import logging
 import sys
 import traceback
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import timedelta
 from typing import Any, Literal, overload
@@ -15,7 +15,7 @@ from django.db.utils import OperationalError
 from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import APIException, ParseError, Throttled, ValidationError
-from rest_framework.status import HTTP_504_GATEWAY_TIMEOUT
+from rest_framework.status import HTTP_503_SERVICE_UNAVAILABLE, HTTP_504_GATEWAY_TIMEOUT
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
 from urllib3.exceptions import MaxRetryError, ReadTimeoutError, TimeoutError
@@ -72,6 +72,7 @@ from sentry.utils.snuba_rpc import (
     SnubaRPCError,
     SnubaRPCRateLimitExceeded,
     SnubaRPCTooManySimultaneous,
+    SnubaRPCUnavailable,
 )
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID
 
@@ -82,6 +83,12 @@ MAX_STATS_PERIOD = timedelta(days=90)
 
 class TimeoutException(APIException):
     status_code = HTTP_504_GATEWAY_TIMEOUT
+
+
+class ServiceUnavailable(APIException):
+    status_code = HTTP_503_SERVICE_UNAVAILABLE
+    default_detail = "Service temporarily unavailable. Please try again."
+    wait = 5
 
 
 def get_datetime_from_stats_period(
@@ -369,7 +376,7 @@ def get_auth_api_token_type(auth: object) -> str | None:
 
 
 @contextmanager
-def handle_query_errors() -> Generator[None]:
+def handle_query_errors() -> Iterator[None]:
     try:
         yield
     except InvalidColumnError as error:
@@ -426,6 +433,11 @@ def handle_query_errors() -> Generator[None]:
         sentry_sdk.set_attribute("query.error_reason", str(error))
         logger.info("A snuba rpc request was rejected", extra={"query.error_reason": str(error)})
         raise ParseError(detail=INVALID_RPC_REQUEST_MESSAGE)
+    except SnubaRPCUnavailable:
+        sentry_sdk.set_tag("query.error_reason", "SnubaUnavailable")
+        sentry_sdk.set_attribute("query.error_reason", "SnubaUnavailable")
+        logger.warning("snuba_rpc.unavailable")
+        raise ServiceUnavailable
     except SnubaRPCError as error:
         message = "Internal error. Please try again."
         arg = error.args[0] if len(error.args) > 0 else None
@@ -453,15 +465,17 @@ def handle_query_errors() -> Generator[None]:
             sentry_sdk.set_tag("query.error_reason", "TooManySimultaneousQueries")
             sentry_sdk.set_attribute("query.error_reason", "TooManySimultaneousQueries")
             raise Throttled(detail=RATE_LIMIT_ERROR_MESSAGE)
-        if isinstance(
-            error,
+        if any(
             (
-                QueryMemoryLimitExceeded,
-                QueryExecutionTimeMaximum,
-            ),
-        ) or isinstance(
-            arg,
-            ReadTimeoutError,
+                isinstance(
+                    error,
+                    (
+                        QueryMemoryLimitExceeded,
+                        QueryExecutionTimeMaximum,
+                    ),
+                ),
+                isinstance(arg, ReadTimeoutError),
+            )
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             sentry_sdk.set_attribute("query.error_reason", "Timeout")
