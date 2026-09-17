@@ -16,6 +16,7 @@ import {Text} from '@sentry/scraps/text';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCopy, IconPin, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -84,6 +85,10 @@ export function useTracePinnedAttribute({
       if (!enabled) {
         return;
       }
+      trackAnalytics('trace.trace_layout.attribute_pin_changed', {
+        organization,
+        action: next ? 'added' : 'removed',
+      });
       const query = {...location.query};
       if (next) {
         query[PINNED_ATTRIBUTE_PARAM] = next;
@@ -92,7 +97,7 @@ export function useTracePinnedAttribute({
       }
       navigate({...location, query}, {replace: true});
     },
-    [enabled, location, navigate]
+    [enabled, location, navigate, organization]
   );
 
   // Query the full loaded trace independently of the selected span or error.
