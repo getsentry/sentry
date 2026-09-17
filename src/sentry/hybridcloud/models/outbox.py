@@ -393,12 +393,18 @@ class OutboxBase(Model):
                     if _test_processing_barrier:
                         _test_processing_barrier.wait()
 
+                    at_last_shard_row = (
+                        shard_row.id == latest_shard_row.id if latest_shard_row else False
+                    )
+
                     processed = shard_row.process(is_synchronous_flush=not flush_all)
 
                     if _test_processing_barrier:
                         _test_processing_barrier.wait()
 
-                    if not processed:
+                    # If we just processed the last designated row with no
+                    # coalescing remaining, we're done. No need to check for more.
+                    if not processed or at_last_shard_row:
                         break
         except DatabaseError as e:
             raise OutboxDatabaseError(

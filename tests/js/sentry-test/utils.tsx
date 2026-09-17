@@ -17,7 +17,9 @@ export function getEmotionRules(element: HTMLElement): string[] {
     }
     for (const rule of Array.from(sheetRules)) {
       if (classes.some(cls => rule.cssText.includes(cls))) {
-        rules.push(rule.cssText);
+        // CSSOM formatting varies between DOM implementations. Tests care about
+        // the generated declarations, not whether an at-rule contains newlines.
+        rules.push(rule.cssText.replace(/\s+/g, ' '));
       }
     }
   }
