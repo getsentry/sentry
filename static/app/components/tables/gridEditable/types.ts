@@ -15,7 +15,7 @@ type ObjectKey = string | number;
 
 export type {ColumnAlign};
 
-export type GridColumn<K = ObjectKey> = {
+type GridColumn<K = ObjectKey> = {
   key: K;
   width?: number;
 };
