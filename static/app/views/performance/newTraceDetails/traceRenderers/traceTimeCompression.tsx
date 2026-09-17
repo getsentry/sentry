@@ -1,6 +1,9 @@
+import {
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
-import {isZeroDurationNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/utils';
 
 const COLLAPSE_THRESHOLD_RATIO = 0.05;
 export const COLLAPSED_GAP_WIDTH_PX = 28;
@@ -194,20 +197,29 @@ function collectVisibleIntervals(options: TraceTimeCompressionOptions): Interval
       continue;
     }
 
-    const start = clampTimestamp(node.space[0], traceStart, traceEnd);
-    const end = clampTimestamp(node.space[0] + node.space[1], traceStart, traceEnd);
+    const segments =
+      isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node)
+        ? node.autogroupedSegments
+        : [];
+    // Match AutogroupedTraceBar, including its fallback to the full node space.
+    const spaces = segments.length > 1 ? segments : [node.space];
 
-    if (end > start) {
-      intervals.push([
-        clampTimestamp(start - durationLabelBuffer, traceStart, traceEnd),
-        clampTimestamp(end + durationLabelBuffer, traceStart, traceEnd),
-      ]);
-    } else {
-      const nodeBuffer = isZeroDurationNode(node) ? zeroDurationBuffer : markerPadding;
-      intervals.push([
-        clampTimestamp(start - nodeBuffer, traceStart, traceEnd),
-        clampTimestamp(start + nodeBuffer, traceStart, traceEnd),
-      ]);
+    for (const [timestamp, duration] of spaces) {
+      const start = clampTimestamp(timestamp, traceStart, traceEnd);
+      const end = clampTimestamp(timestamp + duration, traceStart, traceEnd);
+
+      if (end > start) {
+        intervals.push([
+          clampTimestamp(start - durationLabelBuffer, traceStart, traceEnd),
+          clampTimestamp(end + durationLabelBuffer, traceStart, traceEnd),
+        ]);
+      } else {
+        const nodeBuffer = duration === 0 ? zeroDurationBuffer : markerPadding;
+        intervals.push([
+          clampTimestamp(start - nodeBuffer, traceStart, traceEnd),
+          clampTimestamp(start + nodeBuffer, traceStart, traceEnd),
+        ]);
+      }
     }
   }
 

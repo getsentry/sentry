@@ -1,3 +1,13 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
+import {makeEAPSpan} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeTestUtils';
+
 import {COLLAPSED_GAP_WIDTH_PX, TraceTimeCompression} from './traceTimeCompression';
 
 function node(type: string, space: [number, number]) {
@@ -5,6 +15,129 @@ function node(type: string, space: [number, number]) {
 }
 
 describe('TraceTimeCompression', () => {
+  describe.each(['sibling', 'parent'] as const)('%s autogroups', grouping => {
+    function makeTree(durations = [100, 100, 100, 100, 100]) {
+      const organization = OrganizationFixture();
+      const spans = durations.map((duration, index) =>
+        makeEAPSpan({
+          start_timestamp: (index * 225) / 1000,
+          end_timestamp: (index * 225 + duration) / 1000,
+        })
+      );
+      if (grouping === 'parent') {
+        for (let i = 0; i < spans.length - 1; i++) {
+          spans[i]!.children = [spans[i + 1]!];
+        }
+      }
+      return TraceTree.FromTrace(grouping === 'parent' ? [spans[0]!] : spans, {
+        organization,
+        replay: null,
+        meta: null,
+      }).build();
+    }
+
+    function groupTree(tree: TraceTree) {
+      if (grouping === 'parent') {
+        TraceTree.AutogroupDirectChildrenSpanNodes(tree.root);
+      } else {
+        TraceTree.AutogroupSiblingSpanNodes(tree.root, {
+          organization: OrganizationFixture(),
+        });
+      }
+      tree.rebuild();
+      const group = tree.list.find(
+        item => isParentAutogroupedNode(item) || isSiblingAutogroupedNode(item)
+      );
+      if (!group) {
+        throw new Error('Expected an autogroup in the visible tree');
+      }
+      return group;
+    }
+
+    function compress(nodes: BaseNode[], indicators: TraceTree.Indicator[] = []) {
+      return TraceTimeCompression.FromVisibleItems({
+        enabled: true,
+        traceSpace: [0, 1000],
+        physicalWidth: 2000,
+        nodes,
+        indicators,
+      });
+    }
+
+    it('preserves inactive gaps when grouping, expanding, and ungrouping spans', () => {
+      const tree = makeTree();
+      const before = compress(tree.list);
+      expect(before.gaps.map(gap => [gap.start, gap.end])).toEqual([
+        [124, 201],
+        [349, 426],
+        [574, 651],
+        [799, 876],
+      ]);
+
+      const group = groupTree(tree);
+      expect(group.space).toEqual([0, 1000]);
+      expect(group.autogroupedSegments).toHaveLength(5);
+      expect(compress(tree.list).gaps).toEqual(before.gaps);
+
+      for (const expanded of [true, false]) {
+        group.expand(expanded, tree);
+        expect(compress(tree.list).gaps).toEqual(before.gaps);
+      }
+
+      if (grouping === 'parent') {
+        TraceTree.RemoveDirectChildrenAutogroupNodes(tree.root);
+      } else {
+        TraceTree.RemoveSiblingAutogroupNodes(tree.root);
+      }
+      tree.rebuild();
+      expect(compress(tree.list).gaps).toEqual(before.gaps);
+    });
+
+    it('protects activity from other rows and indicators between group segments', () => {
+      const tree = makeTree();
+      groupTree(tree);
+
+      const compression = compress(
+        [...tree.list, node('span', [100, 125])],
+        [
+          {
+            start: 387,
+            duration: 387,
+            label: 'LCP',
+            measurement: {value: 387},
+            node: tree.list[0]!,
+            poor: false,
+            type: 'lcp',
+          },
+        ]
+      );
+      expect(compression.gaps.map(gap => [gap.start, gap.end])).toEqual([
+        [574, 651],
+        [799, 876],
+      ]);
+    });
+
+    it('preserves buffers around zero-duration segments', () => {
+      const tree = makeTree([100, 100, 0, 100, 100]);
+      const before = compress(tree.list);
+      expect(before.gaps.map(gap => [gap.start, gap.end])).toEqual([
+        [124, 201],
+        [349, 436],
+        [464, 651],
+        [799, 876],
+      ]);
+      groupTree(tree);
+      expect(compress(tree.list).gaps).toEqual(before.gaps);
+    });
+
+    it('keeps overlapping segments continuous', () => {
+      const tree = makeTree([1000, 775, 550, 325, 100]);
+      const group = groupTree(tree);
+      expect(group.autogroupedSegments).toEqual([[0, 1000]]);
+      expect(compress(tree.list).enabled).toBe(false);
+    });
+  });
+
   it('collapses gaps at least 5% of the trace duration', () => {
     const compression = TraceTimeCompression.FromVisibleItems({
       enabled: true,

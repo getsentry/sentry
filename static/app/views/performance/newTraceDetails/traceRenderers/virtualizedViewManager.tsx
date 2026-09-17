@@ -10,6 +10,10 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {
   getRenderableTraceIssues,
   getTraceIconGroupWidth,
   getTraceIssueTimestamp,
@@ -2133,6 +2137,50 @@ export class VirtualizedViewManager {
 
   last_list_column_width = 0;
   last_span_column_width = 0;
+
+  private drawAutogroupIssueIcons(ref: HTMLElement, node: BaseNode) {
+    const icons = Array.from(ref.children).filter(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement &&
+        (child.classList.contains('TraceIcon') ||
+          child.classList.contains('TraceIconGroup'))
+    );
+    if (icons.length === 0) {
+      return;
+    }
+
+    const issues = getRenderableTraceIssues(
+      node,
+      node.errors,
+      node.occurrences,
+      node.space
+    );
+    issues.forEach(({issue, additionalIssueCount}, index) => {
+      const icon = icons[index];
+      if (!icon) {
+        return;
+      }
+      const baseClass =
+        additionalIssueCount === undefined ? 'TraceIcon' : 'TraceIconGroup';
+      const width =
+        additionalIssueCount === undefined
+          ? TRACE_ICON_WIDTH
+          : getTraceIconGroupWidth(additionalIssueCount, text =>
+              this.text_measurer.measure(text)
+            );
+      const {edge, anchorTimestamp} = this.computeTraceIconPlacement(
+        getTraceIssueTimestamp(issue, node.space),
+        width,
+        node.space
+      );
+      icon.style.left = `${
+        this.computeRelativeLeftPositionFromOrigin(anchorTimestamp, node.space) * 100
+      }%`;
+      icon.classList.toggle(`${baseClass}Start`, edge === 'start');
+      icon.classList.toggle(`${baseClass}End`, edge === 'end');
+    });
+  }
+
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];
@@ -2147,6 +2195,21 @@ export class VirtualizedViewManager {
           // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
           isNaN(inverseScale) ? 1 : inverseScale
         );
+
+        const node = this.columns.list.column_nodes[i];
+        if (node && (isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node))) {
+          node.autogroupedSegments.forEach((space, index) => {
+            const bar = invisible_bar.ref.children[index];
+            if (!(bar instanceof HTMLElement)) {
+              return;
+            }
+            bar.style.left = `${
+              this.computeRelativeLeftPositionFromOrigin(space[0], node.space) * 100
+            }%`;
+            bar.style.width = `${this.computeRelativeWidth(space, node.space) * 100}%`;
+          });
+          this.drawAutogroupIssueIcons(invisible_bar.ref, node);
+        }
       }
 
       if (text) {
