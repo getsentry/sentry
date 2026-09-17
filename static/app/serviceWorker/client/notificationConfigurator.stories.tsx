@@ -308,51 +308,69 @@ function NotificationConfigurator() {
 
   const permissionGranted = permission === 'granted';
 
-  const renderImageField = (
-    sourceName: 'iconSource' | 'badgeSource' | 'imageSource',
-    customName: 'iconCustom' | 'badgeCustom' | 'imageCustom',
-    label: string,
-    hintText: string
-  ) => (
-    <form.AppField name={sourceName}>
-      {field => (
-        <field.Layout.Row label={label} hintText={hintText}>
-          <Flex gap="md" align="center" wrap="wrap" flex={1}>
-            <field.Select
-              value={field.state.value}
-              onChange={field.handleChange}
-              options={imageSourceOptions}
-            />
-            <form.Subscribe selector={state => state.values[sourceName] === 'custom'}>
-              {isCustom =>
-                isCustom ? (
-                  <form.AppField name={customName}>
-                    {customField => (
-                      <customField.Input
-                        value={customField.state.value}
-                        onChange={customField.handleChange}
-                        placeholder="https://example.com/image.png"
-                      />
-                    )}
-                  </form.AppField>
-                ) : null
-              }
-            </form.Subscribe>
-            <form.Subscribe
-              selector={state =>
-                resolveImageUrl(
-                  state.values[sourceName],
-                  state.values[customName],
-                  imageSources
-                ) ?? ''
-              }
-            >
-              {url => <ImagePreview url={url || undefined} />}
-            </form.Subscribe>
-          </Flex>
-        </field.Layout.Row>
-      )}
-    </form.AppField>
+  const imageFieldConfigs = [
+    {
+      sourceName: 'iconSource',
+      customName: 'iconCustom',
+      label: 'icon',
+      hintText: 'Small icon shown next to the text.',
+    },
+    {
+      sourceName: 'badgeSource',
+      customName: 'badgeCustom',
+      label: 'badge',
+      hintText: 'Monochrome status-bar icon (mobile).',
+    },
+    {
+      sourceName: 'imageSource',
+      customName: 'imageCustom',
+      label: 'image',
+      hintText: 'Large hero image (Chrome).',
+    },
+  ] as const;
+
+  const imageFields = imageFieldConfigs.map(
+    ({sourceName, customName, label, hintText}) => (
+      <form.AppField key={sourceName} name={sourceName}>
+        {field => (
+          <field.Layout.Row label={label} hintText={hintText}>
+            <Flex gap="md" align="center" wrap="wrap" flex={1}>
+              <field.Select
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={imageSourceOptions}
+              />
+              <form.Subscribe selector={state => state.values[sourceName] === 'custom'}>
+                {isCustom =>
+                  isCustom ? (
+                    <form.AppField name={customName}>
+                      {customField => (
+                        <customField.Input
+                          value={customField.state.value}
+                          onChange={customField.handleChange}
+                          placeholder="https://example.com/image.png"
+                        />
+                      )}
+                    </form.AppField>
+                  ) : null
+                }
+              </form.Subscribe>
+              <form.Subscribe
+                selector={state =>
+                  resolveImageUrl(
+                    state.values[sourceName],
+                    state.values[customName],
+                    imageSources
+                  ) ?? ''
+                }
+              >
+                {url => <ImagePreview url={url || undefined} />}
+              </form.Subscribe>
+            </Flex>
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    )
   );
 
   return (
@@ -402,24 +420,7 @@ function NotificationConfigurator() {
             )}
           </form.AppField>
 
-          {renderImageField(
-            'iconSource',
-            'iconCustom',
-            'icon',
-            'Small icon shown next to the text.'
-          )}
-          {renderImageField(
-            'badgeSource',
-            'badgeCustom',
-            'badge',
-            'Monochrome status-bar icon (mobile).'
-          )}
-          {renderImageField(
-            'imageSource',
-            'imageCustom',
-            'image',
-            'Large hero image (Chrome).'
-          )}
+          {imageFields}
 
           <form.AppField name="tag">
             {field => (
