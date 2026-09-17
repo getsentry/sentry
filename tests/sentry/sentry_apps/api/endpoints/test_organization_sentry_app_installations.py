@@ -1,4 +1,5 @@
 from typing import Any
+from unittest.mock import patch
 
 from django.test import override_settings
 
@@ -101,7 +102,20 @@ class GetSentryAppInstallationsTest(SentryAppInstallationsTest):
 
     def test_users_only_sees_installs_on_their_org(self) -> None:
         self.login_as(user=self.user)
-        response = self.get_success_response(self.org.slug, status_code=200)
+        self.create_project(organization=self.org)
+        self.create_team(organization=self.org)
+        with (
+            patch(
+                "sentry.organizations.services.organization.serial.serialize_project"
+            ) as serialize_project,
+            patch(
+                "sentry.organizations.services.organization.serial.serialize_rpc_team"
+            ) as serialize_team,
+        ):
+            response = self.get_success_response(self.org.slug, status_code=200)
+
+        serialize_project.assert_not_called()
+        serialize_team.assert_not_called()
 
         assert response.data == [
             {
