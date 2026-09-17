@@ -173,7 +173,7 @@ describe('ScmAlertFrequencySection', () => {
       await userEvent.click(
         await screen.findByRole('button', {name: /connect to messaging/i})
       );
-      const addButtons = await screen.findAllByRole('button', {name: 'Add Installation'});
+      const addButtons = await screen.findAllByRole('button', {name: 'Add GitHub'});
       await userEvent.click(addButtons[0]!);
 
       expect(trackIntegrationSpy).toHaveBeenCalledWith(

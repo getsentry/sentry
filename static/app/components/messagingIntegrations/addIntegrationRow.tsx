@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {Access} from 'sentry/components/acl/access';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
+import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
@@ -28,10 +29,12 @@ export function AddIntegrationRow({onClick}: Props) {
     onClick();
   };
 
+  const buttonText = t('Add %s', provider.name);
   const buttonProps = {
     size: 'sm',
     priority: 'primary',
     'data-test-id': 'install-button',
+    buttonText,
   } as const;
 
   return (
@@ -48,14 +51,14 @@ export function AddIntegrationRow({onClick}: Props) {
               variant="primary"
               external
             >
-              Add {provider.metadata.noun}
+              {buttonText}
             </LinkButton>
           ) : (
             <StyledButton
               userHasAccess={hasAccess}
               onAddIntegration={onAddIntegration}
               onExternalClick={onClick}
-              externalInstallText={`Add ${provider.metadata.noun}`}
+              externalInstallText={buttonText}
               buttonProps={buttonProps}
             />
           );

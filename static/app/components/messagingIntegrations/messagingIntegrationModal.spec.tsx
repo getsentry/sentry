@@ -17,10 +17,11 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('MessagingIntegrationModal', () => {
   const organization = OrganizationFixture();
-  const providerKeys = ['slack', 'discord', 'msteams'];
-  const providers = providerKeys.map(providerKey =>
-    GitHubIntegrationProviderFixture({key: providerKey})
-  );
+  const providers = [
+    GitHubIntegrationProviderFixture({key: 'slack', name: 'Slack'}),
+    GitHubIntegrationProviderFixture({key: 'discord', name: 'Discord'}),
+    GitHubIntegrationProviderFixture({key: 'msteams', name: 'Microsoft Teams'}),
+  ];
 
   const getComponent = (closeModal = jest.fn(), props = {}) => (
     <MessagingIntegrationModal
@@ -44,7 +45,8 @@ describe('MessagingIntegrationModal', () => {
       name: /connect with a messaging tool/i,
     });
     expect(heading).toBeInTheDocument();
-    const buttons = await screen.findAllByRole('button', {name: 'Add Installation'});
-    expect(buttons).toHaveLength(providerKeys.length);
+    expect(await screen.findByRole('button', {name: 'Add Slack'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Discord'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Microsoft Teams'})).toBeInTheDocument();
   });
 });

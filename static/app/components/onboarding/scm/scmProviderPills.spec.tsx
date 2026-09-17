@@ -48,9 +48,9 @@ describe('ScmProviderPills', () => {
       />
     );
 
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
-    expect(screen.getByText('GitLab')).toBeInTheDocument();
-    expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'GitHub'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'GitLab'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Bitbucket'})).toBeInTheDocument();
     expect(screen.queryByText('More')).not.toBeInTheDocument();
   });
 
