@@ -6,6 +6,7 @@ export {
 export {Surface} from './surface';
 export {Flex, type FlexProps} from './flex';
 export {Grid, type GridProps} from './grid';
+export {IconText, type IconTextProps} from './iconText';
 export {Stack, type StackProps} from './stack';
 
 /**

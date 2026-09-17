@@ -1,0 +1,231 @@
+---
+title: IconText
+description: A layout primitive that vertically centers a leading icon with the first line of adjacent text, regardless of wrapping.
+category: layout
+source: '@sentry/scraps/layout'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/layout/iconText.tsx
+  reference: https://ishadeed.com/article/aligning-list-icons/
+---
+
+import {Container, Flex, IconText, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {IconCheckmark, IconFire, IconIssues, IconSpan, IconWarning} from 'sentry/icons';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/layout/iconText');
+
+`IconText` places a leading icon beside text content and keeps the icon
+centered with the **first line** — even when text wraps to multiple lines.
+
+## The problem
+
+When an icon and text sit in a flex row with `align-items: center`, a single
+line looks fine. But the moment the text wraps, the icon drifts to the vertical
+middle of the entire block — away from the line it belongs to.
+
+<Storybook.Demo background="secondary">
+  <Stack gap="lg" style={{maxWidth: 320}}>
+    <Stack gap="xs">
+      <Text size="xs" variant="muted" bold uppercase>
+        align-items: center (broken)
+      </Text>
+      <Container border="primary" radius="md" padding="md" background="primary">
+        <Flex gap="sm" align="center">
+          <Flex width="12px" justify="center" flexShrink={0}>
+            <IconFire size="xs" variant="danger" />
+          </Flex>
+          <Text size="sm">
+            This text wraps to multiple lines and the icon floats to the vertical center
+            of the whole block — detached from the first line it should belong to.
+          </Text>
+        </Flex>
+      </Container>
+    </Stack>
+    <Stack gap="xs">
+      <Text size="xs" variant="muted" bold uppercase>
+        IconText (correct)
+      </Text>
+      <Container border="primary" radius="md" padding="md" background="primary">
+        <IconText icon={<IconFire size="xs" variant="danger" />} iconSize="xs">
+          <Text size="sm">
+            This text wraps to multiple lines and the icon stays centered with the first
+            line — exactly where the eye expects it.
+          </Text>
+        </IconText>
+      </Container>
+    </Stack>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+{
+  /* ❌ align-items: center — icon drifts on wrap */
+}
+<Flex gap="sm" align="center">
+  <IconFire size="xs" variant="danger" />
+  <Text size="sm">Multi-line text...</Text>
+</Flex>;
+
+{
+  /* ✅ IconText — icon stays with the first line */
+}
+<IconText icon={<IconFire size="xs" variant="danger" />} iconSize="xs">
+  <Text size="sm">Multi-line text...</Text>
+</IconText>;
+```
+
+## How it works
+
+`IconText` uses `align-items: start` so everything anchors to the top, then
+shifts the icon down by `translateY(calc((1lh − size) / 2))`. The CSS `lh`
+unit resolves to the **inherited line-height**, which both the icon slot and
+the text content share from the same flex parent — so the offset stays in
+sync with the text's typographic rhythm, at every font-size.
+
+<Storybook.Demo background="secondary">
+  <Container
+    border="primary"
+    radius="md"
+    padding="lg"
+    background="primary"
+    style={{maxWidth: 400}}
+  >
+    <Stack gap="sm">
+      <Text size="xs" variant="muted" bold uppercase>
+        Anatomy: 1lh alignment
+      </Text>
+      <div style={{position: 'relative'}}>
+        {/* The shaded band visualizes one 1lh — the height the icon centers within */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '1lh',
+            background: 'var(--content-accent)',
+            opacity: 0.08,
+            borderRadius: 4,
+            pointerEvents: 'none',
+          }}
+        />
+        <IconText icon={<IconIssues size="md" />} iconSize="md" gap="md">
+          <Text size="sm">
+            The shaded band is one{' '}
+            <Text size="sm" bold>
+              1lh
+            </Text>{' '}
+            tall — the icon centers within it via{' '}
+            <Text size="sm" monospace bold>
+              translateY
+            </Text>
+            , matching the first line of text regardless of wrapping.
+          </Text>
+        </IconText>
+      </div>
+    </Stack>
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<IconText icon={<IconIssues size="md" />} iconSize="md" gap="md">
+  <Text size="sm">The icon centers within 1lh of the first line.</Text>
+</IconText>
+```
+
+## Basic usage
+
+<Storybook.Demo>
+  <Stack gap="md" style={{maxWidth: 300}}>
+    <IconText icon={<IconCheckmark size="xs" variant="success" />} iconSize="xs">
+      <Text size="sm">All tool calls succeeded</Text>
+    </IconText>
+    <IconText icon={<IconWarning size="xs" variant="warning" />} iconSize="xs">
+      <Text size="sm">Some tool calls failed — hover for details</Text>
+    </IconText>
+    <IconText icon={<IconFire size="xs" variant="danger" />} iconSize="xs">
+      <Text size="sm">
+        A longer message that wraps to multiple lines, demonstrating how the icon stays
+        anchored to the first line.
+      </Text>
+    </IconText>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<IconText icon={<IconCheckmark size="xs" variant="success" />} iconSize="xs">
+  <Text size="sm">All tool calls succeeded</Text>
+</IconText>
+```
+
+## Icon sizes
+
+The `iconSize` prop accepts `IconSize` tokens — the same values you pass to
+the icon's `size` prop. Defaults to `"md"` (16px).
+
+<Storybook.Demo>
+  <Stack gap="md" style={{maxWidth: 360}}>
+    <IconText icon={<IconIssues size="xs" />} iconSize="xs">
+      <Text size="sm">xs — 12px icon with sm text</Text>
+    </IconText>
+    <IconText icon={<IconIssues size="sm" />} iconSize="sm">
+      <Text size="md">sm — 14px icon with md text</Text>
+    </IconText>
+    <IconText icon={<IconIssues size="md" />} iconSize="md">
+      <Text size="lg">md — 16px icon with lg text</Text>
+    </IconText>
+    <IconText icon={<IconIssues size="lg" />} iconSize="lg">
+      <Text size="xl">lg — 24px icon with xl text</Text>
+    </IconText>
+  </Stack>
+</Storybook.Demo>
+
+```jsx
+<IconText icon={<IconIssues size="xs" />} iconSize="xs">
+  <Text size="sm">xs — 12px</Text>
+</IconText>
+```
+
+## Composing with other primitives
+
+`IconText` extends `Flex`, so it accepts all `Flex` props except `align` and
+`direction` (which are locked to make the alignment work).
+
+<Storybook.Demo>
+  <Container
+    border="primary"
+    radius="md"
+    padding="md"
+    background="primary"
+    style={{maxWidth: 360}}
+  >
+    <Stack gap="sm">
+      <IconText icon={<IconSpan size="xs" />} iconSize="xs" gap="md">
+        <Stack gap="xs">
+          <Text size="sm" bold>
+            Trace a3805648
+          </Text>
+          <Text size="xs" variant="muted">
+            12 spans · 340ms · 2 errors
+          </Text>
+        </Stack>
+      </IconText>
+    </Stack>
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<IconText icon={<IconSpan size="xs" />} iconSize="xs" gap="md">
+  <Stack gap="xs">
+    <Text size="sm" bold>
+      Trace a3805648
+    </Text>
+    <Text size="xs" variant="muted">
+      12 spans · 340ms · 2 errors
+    </Text>
+  </Stack>
+</IconText>
+```
