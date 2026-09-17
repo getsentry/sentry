@@ -19,7 +19,8 @@ from sentry.integrations.utils.status_sync import (
     is_stale_status_event,
     parse_provider_event_time,
 )
-from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
+from sentry.issues.action_log import SYSTEM_ACTOR
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution

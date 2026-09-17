@@ -44,10 +44,10 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.issues.action_log import (
-    action_context_scope,
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus

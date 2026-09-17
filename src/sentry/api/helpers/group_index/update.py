@@ -26,11 +26,13 @@ from sentry.api.serializers.models.groupactionlogentry import get_serialized_act
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
+    resolve_action_actor,
+    resolve_action_source,
+)
+from sentry.issues.action_log.publish import (
     action_context_scope,
     get_action_context,
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
 from sentry.issues.action_log.types import MergeIntoOtherAction

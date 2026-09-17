@@ -12,7 +12,7 @@ from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.issues.action_log import action_context_scope
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import (
     ActionSource,
     GroupActionActor,

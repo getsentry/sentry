@@ -21,7 +21,11 @@ from sentry.event_manager import (
     save_grouphash_and_group,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.grouptype import FeedbackGroup, should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority

@@ -32,7 +32,11 @@ from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
-from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log import (
+    ActionSource,
+    GroupActionActor,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.issue_search import parse_search_query
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry

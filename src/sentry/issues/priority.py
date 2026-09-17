@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionSource,
-    action_context_scope,
 )
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project

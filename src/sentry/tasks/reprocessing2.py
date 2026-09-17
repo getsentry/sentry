@@ -13,8 +13,8 @@ from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
     GroupActorType,
-    action_context_scope,
 )
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter

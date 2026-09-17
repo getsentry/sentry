@@ -46,7 +46,11 @@ from sentry.integrations.types import (
     IntegrationResponse,
 )
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
-from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log import (
+    ActionSource,
+    GroupActionActor,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group

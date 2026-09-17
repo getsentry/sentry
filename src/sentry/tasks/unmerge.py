@@ -14,7 +14,8 @@ from taskbroker_client.state import current_task
 from sentry import similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import ActionSource
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment

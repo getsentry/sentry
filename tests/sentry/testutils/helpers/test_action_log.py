@@ -2,7 +2,11 @@ from typing import Any
 
 import pytest
 
-from sentry.issues.action_log import SYSTEM_ACTOR, GroupActionActor, publish_action
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    GroupActionActor,
+)
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
     ActionSource,
     ArchiveAction,

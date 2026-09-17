@@ -10,14 +10,16 @@ from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbo
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
-    ActionContext,
     GroupActionActor,
+    resolve_action_actor,
+    resolve_action_source,
+)
+from sentry.issues.action_log.publish import (
+    ActionContext,
     action_context_scope,
     get_action_context,
     publish_action,
     publish_actions_from_context_bulk,
-    resolve_action_actor,
-    resolve_action_source,
 )
 from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
@@ -271,7 +273,7 @@ class TestPublishAction(TestCase):
 
 class TestPublishActionFromContext(TestCase):
     def test_logs_error_and_uses_unknown_without_context(self) -> None:
-        from sentry.issues.action_log import publish_action_from_context
+        from sentry.issues.action_log.publish import publish_action_from_context
 
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             publish_action_from_context(
@@ -287,7 +289,10 @@ class TestPublishActionFromContext(TestCase):
 
 class TestPublishActionsFromContextBulk(TestCase):
     def test_multiple_writes(self) -> None:
-        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+        from sentry.issues.action_log.publish import (
+            action_context_scope,
+            publish_actions_from_context_bulk,
+        )
 
         actor = GroupActionActor.user(42)
         with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():

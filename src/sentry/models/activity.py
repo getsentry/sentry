@@ -25,7 +25,10 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.issues.action_log import publish_action_from_context, publish_actions_from_context_bulk
+from sentry.issues.action_log.publish import (
+    publish_action_from_context,
+    publish_actions_from_context_bulk,
+)
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import (

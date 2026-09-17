@@ -5,7 +5,11 @@ from typing import Any
 from taskbroker_client.retry import Retry
 
 from sentry.auth import access
-from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log import (
+    ActionSource,
+    GroupActionActor,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

@@ -32,7 +32,11 @@ from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.status_sync import PROVIDER_EVENT_TIME_KEY
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
-from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
+from sentry.issues.action_log import (
+    ActionSource,
+    resolve_action_actor,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.repository import Repository

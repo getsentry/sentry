@@ -14,6 +14,8 @@ from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     ActionSource,
     GroupActionActor,
+)
+from sentry.issues.action_log.publish import (
     action_context_scope,
     get_action_context,
 )
