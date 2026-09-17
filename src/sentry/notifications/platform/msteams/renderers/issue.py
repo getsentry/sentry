@@ -157,5 +157,5 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         return None
 
     @classmethod
-    def build_actions(cls, *, group: Group, issue_url: str) -> list[Action]:
+    def build_actions(cls, *, issue_url: str) -> list[Action]:
         return [OpenUrlAction(type=ActionType.OPEN_URL, title="View Issue", url=issue_url)]
