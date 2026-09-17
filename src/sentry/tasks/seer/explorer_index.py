@@ -6,6 +6,7 @@ from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 
 from django.utils import timezone as django_timezone
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
@@ -21,7 +22,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.utils import compute_delay
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.tracing import start_span
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
@@ -70,8 +70,9 @@ def get_seer_explorer_enabled_projects() -> Generator[tuple[int, int]]:
             continue
 
         is_eligible = False
-        with start_span(
-            op="seer_explorer_index.has_feature", name="seer_explorer_index.has_feature"
+        with traces.start_span(
+            name="seer_explorer_index.has_feature",
+            attributes={"sentry.op": "seer_explorer_index.has_feature"},
         ):
             batch_result = features.batch_has(FEATURE_NAMES, organization=project.organization)
 
