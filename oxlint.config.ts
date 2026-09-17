@@ -80,7 +80,7 @@ const restrictedImportPaths = [
   {
     name: 'marked',
     message:
-      "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
+      "Please import marked from '@sentry/scraps/markdown' so that we can ensure sanitation of marked output",
   },
   {
     name: 'lodash',
