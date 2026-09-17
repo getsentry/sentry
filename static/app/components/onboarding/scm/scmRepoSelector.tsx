@@ -65,9 +65,8 @@ interface ScmRepoSelectorProps {
   onClearDerivedState: () => void;
   onRepositoryChange: (repo: Repository | undefined) => void;
   selectedRepository: Repository | undefined;
-  // Focus the search field on mount. Set when the selector replaces the
-  // provider pills after an install, so keyboard focus does not fall to body
-  // with the pill the user activated.
+  // Focus the search field on mount, for a host that swaps this selector in
+  // for a control that had focus.
   autoFocus?: boolean;
 }
 

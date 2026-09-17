@@ -85,7 +85,6 @@ describe('ScmRepoSelector', () => {
       organization,
     });
 
-    expect(screen.getByText('Search repositories')).toBeInTheDocument();
     expect(
       screen.getByRole('textbox', {name: 'Search repositories'})
     ).toBeInTheDocument();
@@ -431,12 +430,11 @@ describe('ScmRepoSelector', () => {
 
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
 
-    // react-select hides the clear indicator from the accessibility tree, so
-    // reach the button through its icon. Activate it with Enter: a mouse click
+    // react-select sets aria-hidden on the clear indicator, so the button has no
+    // role to query; reach it by its label. Activate it with Enter: a mouse click
     // fires mousedown, which react-select already answers by refocusing the
     // input, so only the keyboard path observes the refocus in handleChange.
-    const clearButton = (await screen.findByTestId('icon-close')).closest('button')!;
-    clearButton.focus();
+    (await screen.findByLabelText('Clear choices')).focus();
     await userEvent.keyboard('{Enter}');
 
     await waitFor(() => expect(onRepositoryChange).toHaveBeenCalledWith(undefined));

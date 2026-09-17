@@ -6,7 +6,11 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import type {Integration, Repository} from 'sentry/types/integrations';
+import type {
+  Integration,
+  OrganizationIntegration,
+  Repository,
+} from 'sentry/types/integrations';
 import * as analytics from 'sentry/utils/analytics';
 
 import {ScmIntegrationConnect} from './scmIntegrationConnect';
@@ -137,9 +141,10 @@ describe('ScmIntegrationConnect', () => {
       url: `/organizations/${organization.slug}/integrations/1/repos/`,
       body: {repos: []},
     });
-    const openPipelineModalSpy = jest
-      .spyOn(pipelineModal, 'openPipelineModal')
-      .mockImplementation(() => {});
+    let onComplete: ((data: OrganizationIntegration) => void) | undefined;
+    jest.spyOn(pipelineModal, 'openPipelineModal').mockImplementation((opts: any) => {
+      onComplete = opts.onComplete;
+    });
 
     render(
       <Harness
@@ -151,7 +156,6 @@ describe('ScmIntegrationConnect', () => {
     );
 
     await userEvent.click(await screen.findByText('GitHub'));
-    const {onComplete} = openPipelineModalSpy.mock.calls[0]![0];
     act(() => onComplete?.(githubGetsentry));
 
     expect(
