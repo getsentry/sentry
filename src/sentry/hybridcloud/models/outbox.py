@@ -383,6 +383,8 @@ class OutboxBase(Model):
             "drain_shard should only be called outside of any active transaction!"
         )
 
+        retry_tags: dict[str, str] | None = None
+        retry_outcome = "failed"
         try:
             # When we are flushing in a local context, we don't care about outboxes created concurrently --
             # at best our logic depends on previously created outboxes.
@@ -424,11 +426,26 @@ class OutboxBase(Model):
                     # replication, retry the idempotent token update once in a new transaction
                     # so we reacquire the shard lock and read the current token state.
                     retry_on_disconnect = False
+                    retry_tags = {
+                        "category": OutboxCategory(self.category).name,
+                        "outbox_name": self._meta.label,
+                    }
+                    metrics.incr("outbox.sync_shard_drain.retry", tags=retry_tags, sample_rate=1.0)
                     connection.close()
+
+            # The drain completed without an error, including its final transaction commit.
+            retry_outcome = "recovered"
         except (DatabaseError, InterfaceError) as e:
             raise OutboxDatabaseError(
                 f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
             ) from e
+        finally:
+            if retry_tags is not None:
+                metrics.incr(
+                    "outbox.sync_shard_drain.retry_outcome",
+                    tags={**retry_tags, "outcome": retry_outcome},
+                    sample_rate=1.0,
+                )
 
     @classmethod
     def get_shard_depths_descending(cls, limit: int | None = 10) -> list[dict[str, int | str]]:

@@ -174,7 +174,23 @@ class ControlOutboxDrainTest(TransactionTestCase):
         finally:
             terminator.close()
 
-    def test_reconnects_after_successful_token_replication(self) -> None:
+    def assert_retry_metrics(self, mock_incr: Mock, outcome: str) -> None:
+        tags = {"category": "API_TOKEN_UPDATE", "outbox_name": "sentry.ControlOutbox"}
+        assert [
+            metric_call
+            for metric_call in mock_incr.call_args_list
+            if metric_call.args[0].startswith("outbox.sync_shard_drain.retry")
+        ] == [
+            call("outbox.sync_shard_drain.retry", tags=tags, sample_rate=1.0),
+            call(
+                "outbox.sync_shard_drain.retry_outcome",
+                tags={**tags, "outcome": outcome},
+                sample_rate=1.0,
+            ),
+        ]
+
+    @patch("sentry.hybridcloud.models.outbox.metrics.incr")
+    def test_reconnects_after_successful_token_replication(self, mock_incr: Mock) -> None:
         self.outbox.delete()
         with outbox_runner():
             user = self.create_user()
@@ -209,6 +225,7 @@ class ControlOutboxDrainTest(TransactionTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
             assert replica.token == token.token
+        self.assert_retry_metrics(mock_incr, "recovered")
 
     @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
     def test_reconnects_after_interface_error(self, mock_send: Mock) -> None:
@@ -246,8 +263,9 @@ class ControlOutboxDrainTest(TransactionTestCase):
         assert not self.connection.in_atomic_block
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
+    @patch("sentry.hybridcloud.models.outbox.metrics.incr")
     @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
-    def test_retries_disconnection_only_once(self, mock_send: Mock) -> None:
+    def test_retries_disconnection_only_once(self, mock_send: Mock, mock_incr: Mock) -> None:
         mock_send.side_effect = self.terminate_connection
 
         with pytest.raises(OutboxDatabaseError):
@@ -256,6 +274,62 @@ class ControlOutboxDrainTest(TransactionTestCase):
         assert mock_send.call_count == 2
         assert not self.connection.in_atomic_block
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+        self.assert_retry_metrics(mock_incr, "failed")
+
+    @patch("sentry.hybridcloud.models.outbox.metrics.incr")
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_records_failed_retry_when_commit_fails(self, mock_send: Mock, mock_incr: Mock) -> None:
+        with (
+            patch.object(
+                self.connection,
+                "commit",
+                side_effect=OperationalError("server closed the connection unexpectedly"),
+            ) as mock_commit,
+            pytest.raises(OutboxDatabaseError),
+        ):
+            self.outbox.drain_shard()
+
+        assert mock_send.call_count == 2
+        assert mock_commit.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+        self.assert_retry_metrics(mock_incr, "failed")
+
+    @patch("sentry.hybridcloud.models.outbox.metrics.incr")
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_records_failed_retry_when_replication_fails(
+        self, mock_send: Mock, mock_incr: Mock
+    ) -> None:
+        replication_error = RuntimeError("replication failed")
+
+        def disconnect_then_fail(**kwargs: Any) -> None:
+            mock_send.side_effect = replication_error
+            self.terminate_connection()
+
+        mock_send.side_effect = disconnect_then_fail
+        with pytest.raises(OutboxFlushError) as exc_info:
+            self.outbox.drain_shard()
+
+        assert exc_info.value.__cause__ is replication_error
+        assert mock_send.call_count == 2
+        assert not self.connection.in_atomic_block
+        assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+        self.assert_retry_metrics(mock_incr, "failed")
+
+    @patch("sentry.hybridcloud.models.outbox.metrics.incr")
+    @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
+    def test_does_not_record_retry_without_disconnection(
+        self, mock_send: Mock, mock_incr: Mock
+    ) -> None:
+        self.outbox.drain_shard()
+        self.outbox.drain_shard()
+
+        mock_send.assert_called_once()
+        assert not ControlOutbox.objects.filter(id=self.outbox.id).exists()
+        assert not any(
+            metric_call.args[0].startswith("outbox.sync_shard_drain.retry")
+            for metric_call in mock_incr.call_args_list
+        )
 
     @patch("sentry.hybridcloud.models.outbox.process_control_outbox.send")
     def test_does_not_retry_async_drain(self, mock_send: Mock) -> None:
@@ -284,15 +358,19 @@ class ControlOutboxDrainTest(TransactionTestCase):
         mock_send.assert_called_once()
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
 
+    @patch("sentry.hybridcloud.models.outbox.metrics.incr")
     @patch.object(
         ControlOutbox, "process", side_effect=OperationalError("unrelated database error")
     )
-    def test_does_not_retry_other_database_errors(self, mock_process: Mock) -> None:
+    def test_does_not_retry_other_database_errors(
+        self, mock_process: Mock, mock_incr: Mock
+    ) -> None:
         with pytest.raises(OutboxDatabaseError):
             self.outbox.drain_shard()
 
         mock_process.assert_called_once()
         assert ControlOutbox.objects.filter(id=self.outbox.id).exists()
+        mock_incr.assert_not_called()
 
 
 class OutboxDrainTest(TransactionTestCase):
