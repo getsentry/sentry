@@ -503,6 +503,20 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_wildcard_on_virtual_column_rejected(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with project"):
+            self.resolver.resolve_query("project:*sen*")
+
+    def test_wildcard_on_virtual_column_rejected_for_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=OURLOG_DEFINITIONS,
+        )
+
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with project"):
+            resolver.resolve_query("project:*sen*")
+
 
 def test_count_default_argument() -> None:
     resolver = SearchResolver(

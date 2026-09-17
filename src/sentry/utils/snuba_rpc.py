@@ -84,6 +84,10 @@ class SnubaRPCError(SnubaError):
     pass
 
 
+class SnubaRPCBadRequest(SnubaRPCError):
+    """Snuba rejected the RPC request as invalid."""
+
+
 class SnubaRPCTimeout(SnubaRPCError):
     pass
 
@@ -94,12 +98,6 @@ class SnubaRPCRateLimitExceeded(SnubaRPCError):
 
 class SnubaRPCTooManySimultaneous(SnubaRPCError):
     """ClickHouse rejected the query because it hit the concurrent query limit."""
-
-    pass
-
-
-class SnubaRPCInvalidRequest(SnubaRPCError):
-    """Snuba rejected the request itself, so retrying it unchanged will not help."""
 
     pass
 
@@ -479,7 +477,7 @@ def _make_rpc_request(
                     if "Too many simultaneous queries" in error.message:
                         raise SnubaRPCTooManySimultaneous(error)
                     if http_resp.status == 400:
-                        raise SnubaRPCInvalidRequest(error.message)
+                        raise SnubaRPCBadRequest(error)
                     raise SnubaRPCError(error)
                 return http_resp
 

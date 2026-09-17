@@ -39,7 +39,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnqualifiedQueryError,
 )
-from sentry.utils.snuba_rpc import SnubaRPCInvalidRequest, SnubaRPCTooManySimultaneous
+from sentry.utils.snuba_rpc import SnubaRPCBadRequest, SnubaRPCTooManySimultaneous
 
 
 class GetDateRangeFromParamsTest(unittest.TestCase):
@@ -260,7 +260,7 @@ class HandleQueryErrorsTest(APITestCase):
         clickhouse_reason = "Code: 427. DB::Exception: cannot compile re2: while executing SELECT"
         try:
             with handle_query_errors():
-                raise SnubaRPCInvalidRequest(clickhouse_reason)
+                raise SnubaRPCBadRequest(clickhouse_reason)
         except Exception as err:
             assert isinstance(err, ParseError)
             assert str(err.detail) == INVALID_RPC_REQUEST_MESSAGE

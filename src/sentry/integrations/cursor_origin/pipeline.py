@@ -36,7 +36,7 @@ class InstallStepData(TypedDict):
     state: str
 
 
-class InstallSerializer(serializers.Serializer[dict[str, Any]]):
+class InstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
     # Absent for an install started from Origin, where the receipt was verified
     # before the pipeline began and the installation is already bound to state.
     installation_receipt = serializers.CharField(required=False)
@@ -115,12 +115,16 @@ def verify_receipt(receipt: str, expected_state: str | None) -> str | None:
                 audience=app_id,
                 issuer=CURSOR_ORIGIN_ISSUER,
                 leeway=CURSOR_ORIGIN_CLOCK_SKEW_SECONDS,
+                options={"require": ["exp", "iss", "aud", "sub"]},
             )
         except (jwt.PyJWTError, ValueError):
             continue
 
         if claims.get("state") != expected_state:
-            logger.warning("cursor_origin.install.receipt_state_mismatch", extra=signing)
+            # The setup view tries the state-less form for every callback, so a receipt
+            # from the in-Sentry flow landing here is routing, not an anomaly.
+            if expected_state is not None:
+                logger.warning("cursor_origin.install.receipt_state_mismatch", extra=signing)
             return None
 
         subject = claims["sub"]

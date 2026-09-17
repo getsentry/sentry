@@ -155,7 +155,13 @@ export function LogsFrozenContextProvider(
     if (isLogsFrozenForSpanProviderWithChildrenProps(props)) {
       const search = new MutableSearch('');
       search.addFilterValue(OurLogKnownFieldKey.TRACE_ID, props.span.traceId);
+      // SDKs before sentry-conventions 0.5.0 emit `trace.parent_span_id` attribute,
+      // newer ones set the log's `span_id` field.
+      search.addOp('(');
+      search.addFilterValue(OurLogKnownFieldKey.SPAN_ID, props.span.spanId);
+      search.addOp('OR');
       search.addFilterValue(OurLogKnownFieldKey.PARENT_SPAN_ID, props.span.spanId);
+      search.addOp(')');
       return {
         frozen: true,
         search,

@@ -1297,6 +1297,18 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
         assert len(result) == 1
         assert result[head_artifact.id] == base_artifact
 
+        result = PreprodArtifact.get_base_artifacts_for_commit(
+            [head_artifact], require_snapshot_metrics=True
+        )
+        assert result == {}
+
+        self.create_preprod_snapshot_metrics(preprod_artifact=base_artifact)
+
+        result = PreprodArtifact.get_base_artifacts_for_commit(
+            [head_artifact], require_snapshot_metrics=True
+        )
+        assert result[head_artifact.id] == base_artifact
+
     def test_get_base_artifacts_for_commit_multiple_artifacts(self) -> None:
         """Test batch lookup with multiple artifacts (monorepo scenario)."""
         base_commit_comparison = self.create_commit_comparison(

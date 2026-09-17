@@ -364,7 +364,10 @@ class PreprodArtifact(DefaultFieldsModel):
 
     @classmethod
     def get_base_artifacts_for_commit(
-        cls, artifacts: list[PreprodArtifact]
+        cls,
+        artifacts: list[PreprodArtifact],
+        *,
+        require_snapshot_metrics: bool = False,
     ) -> dict[int, PreprodArtifact]:
         """
         Batch lookup base artifacts for a list of head artifacts.
@@ -376,6 +379,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
         Args:
             artifacts: List of head artifacts. All must share the same commit_comparison.
+            require_snapshot_metrics: Only return base artifacts with snapshot metrics.
 
         Returns:
             Dict mapping head_artifact_id -> base_artifact
@@ -435,6 +439,8 @@ class PreprodArtifact(DefaultFieldsModel):
             commit_comparison=base_commit_comparison,
             project__organization_id=organization_id,
         ).order_by("-date_added")
+        if require_snapshot_metrics:
+            base_artifacts_qs = base_artifacts_qs.filter(preprodsnapshotmetrics__isnull=False)
 
         # Newest base artifact wins due to -date_added ordering
         base_artifacts = list(base_artifacts_qs)

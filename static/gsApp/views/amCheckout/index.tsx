@@ -667,7 +667,7 @@ function AMCheckout(props: Props) {
   const isOnSponsoredPartnerPlan =
     (subscription.partner?.isActive && subscription.isSponsored) || false;
 
-  const renderCheckoutContent = () => (
+  const checkoutContent = (
     <Fragment>
       <CheckoutBody>
         {renderPartnerAlert()}
@@ -793,7 +793,7 @@ function AMCheckout(props: Props) {
         align="start"
         paddingTop="3xl"
       >
-        {renderCheckoutContent()}
+        {checkoutContent}
       </Flex>
     </Stack>
   );
