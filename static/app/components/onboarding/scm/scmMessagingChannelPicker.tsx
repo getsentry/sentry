@@ -117,6 +117,12 @@ export function ScmMessagingChannelPicker({
     integration: selectedIntegration,
     provider: providerKey,
     setChannel,
+    onChannelSelected: source =>
+      trackAnalytics('onboarding.scm_messaging_channel_selected', {
+        organization,
+        provider: providerKey,
+        source,
+      }),
     options: {refetchOnWindowFocus: true},
   });
 
