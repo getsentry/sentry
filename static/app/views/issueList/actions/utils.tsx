@@ -19,6 +19,7 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {ExtraDescription} from './extraDescription';
 
@@ -241,6 +242,7 @@ export function performBulkUpdate({
   organizationSlug,
   query,
   selection,
+  sort,
   onError,
   onSuccess,
 }: {
@@ -250,6 +252,7 @@ export function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
+  sort: IssueSortOptions;
   onError?: () => void;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
@@ -266,6 +269,7 @@ export function performBulkUpdate({
       itemIds,
       data,
       query,
+      sort,
       environment: selection.environments,
       failSilently: true,
       ...projectConstraints,

@@ -29,12 +29,14 @@ import {
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface IssueListBulkCommandPaletteActionsProps {
   groupIds: string[];
   query: string;
   queryCount: number;
   selection: PageFilters;
+  sort: IssueSortOptions;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 }
 
@@ -218,6 +220,7 @@ function useIssueListBulkCommandPaletteActions({
   query,
   queryCount,
   selection,
+  sort,
   groupIds,
   onActionTaken,
 }: IssueListBulkCommandPaletteActionsProps) {
@@ -263,6 +266,7 @@ function useIssueListBulkCommandPaletteActions({
       organizationSlug: organization.slug,
       query,
       selection,
+      sort,
       onSuccess: updatedItemIds => {
         onSuccess?.(updatedItemIds);
         invalidateIssueQueries({

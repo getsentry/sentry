@@ -8,6 +8,9 @@ describe('group', () => {
         paramsToQueryArgs({
           itemIds: ['1', '2', '3'],
           query: 'is:unresolved', // itemIds takes precedence
+          environment: ['production'],
+          period: '24h',
+          sort: 'freq',
         })
       ).toEqual({id: ['1', '2', '3']});
     });
@@ -38,6 +41,43 @@ describe('group', () => {
           environment: 'production',
         })
       ).toEqual({query: 'is:unresolved', environment: 'production'});
+    });
+
+    it('preserves an empty search with environment, relative dates, and sort', () => {
+      expect(
+        paramsToQueryArgs({
+          query: '',
+          project: [1, 2],
+          environment: ['production'],
+          period: '24h',
+          utc: false,
+          sort: 'freq',
+        })
+      ).toEqual({
+        query: '',
+        project: [1, 2],
+        environment: ['production'],
+        statsPeriod: '24h',
+        utc: false,
+        sort: 'freq',
+      });
+    });
+
+    it('preserves absolute dates for an empty search in the issue list format', () => {
+      expect(
+        paramsToQueryArgs({
+          query: '',
+          start: new Date('2026-09-01T10:00:00-07:00'),
+          end: '2026-09-02T10:00:00-07:00',
+          period: null,
+          utc: true,
+        })
+      ).toEqual({
+        query: '',
+        start: '2026-09-01T17:00:00',
+        end: '2026-09-02T17:00:00',
+        utc: true,
+      });
     });
 
     it('should exclude environment when it is null/undefined', () => {

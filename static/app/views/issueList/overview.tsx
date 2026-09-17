@@ -987,6 +987,7 @@ function IssueListOverviewInner({
               />
               <IssueListTable
                 selection={selection}
+                sort={sort}
                 query={query}
                 queryCount={modifiedQueryCount}
                 onSelectStatsPeriod={onSelectStatsPeriod}
