@@ -648,6 +648,27 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             "heal_stale_derived_data.stale_hash_discovery_failed"
         )
 
+    def test_discovered_hashes_are_saved_before_range_selection(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        with (
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=[stale_hash],
+            ),
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=RuntimeError("range selection timed out"),
+            ),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+        ):
+            with pytest.raises(RuntimeError):
+                heal_stale_derived_data()
+
+        mock_save.assert_called_once()
+        saved_state = mock_save.call_args.args[0]
+        assert saved_state.head_hash == PIPELINE.pipeline_hash
+        assert saved_state.stale == {stale_hash: 0}
+
     def test_non_empty_state_skips_discovery_and_advances_across_runs(self) -> None:
         stale_hash = self._pick_stale_hash()
         state = HealSchedulerState(

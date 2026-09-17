@@ -522,12 +522,15 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     else:
         logger.info("heal_stale_derived_data.state_loaded")
 
+    hash_state_changed = False
     if state.head_hash != current_hash:
         if state.head_hash is not None:
             state.stale.setdefault(state.head_hash, 0)
         state.head_hash = current_hash
+        hash_state_changed = True
     # A rollback can make a previously discovered stale hash current again.
-    state.stale.pop(current_hash, None)
+    if state.stale.pop(current_hash, None) is not None:
+        hash_state_changed = True
 
     # Positive hash predicates let Postgres walk the (pipeline_hash, group_id)
     # index instead of scanning for everything unequal to the current hash.
@@ -554,6 +557,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             # though CacheMapping's eviction TTL slides on each save.
             state.discovered_at = state.discovered_at or datetime.now(timezone.utc)
             state.stale.update(dict.fromkeys(stale_hashes, 0))
+            hash_state_changed = True
             logger.info(
                 "heal_stale_derived_data.stale_hash_discovery_complete",
                 extra={
@@ -567,6 +571,11 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             "heal_stale_derived_data.stale_hash_discovery_skipped",
             extra={"stale_hash_count": len(state.stale)},
         )
+
+    # Checkpoint newly determined hashes before range selection, which can consume
+    # the rest of the task deadline. The post-loop save below persists mark advances.
+    if hash_state_changed:
+        save_state(state)
 
     remaining = max_tasks
     scheduled_per_hash: dict[str, int] = {}
