@@ -74,20 +74,20 @@ function Row({
     isMultiValue,
   } = item;
 
-  const renderValue = (v: KeyValueListDataItem['value']) =>
+  const renderedValue =
     item.isContextData || isContextData ? (
-      <ContextDataValue value={v} meta={meta} raw={raw} subjectIcon={subjectIcon} />
+      <ContextDataValue value={value} meta={meta} raw={raw} subjectIcon={subjectIcon} />
     ) : (
-      <PreformattedValue value={v} meta={meta} subjectIcon={subjectIcon} />
+      <PreformattedValue value={value} meta={meta} subjectIcon={subjectIcon} />
     );
 
   const rendered =
     isMultiValue && Array.isArray(value) ? (
       value.map((entry, index) => <PreformattedValue key={index} value={entry} />)
     ) : action?.link ? (
-      <ValueLink to={action.link}>{renderValue(value)}</ValueLink>
+      <ValueLink to={action.link}>{renderedValue}</ValueLink>
     ) : (
-      renderValue(value)
+      renderedValue
     );
 
   return (

@@ -400,6 +400,87 @@ type RegionProbe = {
   regionMatches: Cell[];
 };
 
+type RegionHintProps = {
+  allRegions: boolean;
+  cell: Cell | undefined;
+  onChangeCell: (localityUrl: string | undefined) => void;
+  probe: RegionProbe;
+  probeAcrossRegions: boolean;
+  probeAllRegions: boolean;
+  results: Results;
+  probeAllRegionsHint?: string;
+};
+
+function RegionHint({
+  allRegions,
+  cell,
+  onChangeCell,
+  probe,
+  probeAcrossRegions,
+  probeAllRegions,
+  probeAllRegionsHint,
+  results,
+}: RegionHintProps) {
+  // The all-regions mode already shows every region's results.
+  if (allRegions) {
+    return null;
+  }
+
+  if ((!probeAcrossRegions && !probeAllRegions) || results.loading || results.error) {
+    return null;
+  }
+
+  // The search-driven hint only surfaces when the active region lacked an
+  // exact match. The always-on `probeAllRegions` hint has no such gate.
+  if (!probeAllRegions && !probe.missingExactMatch) {
+    return null;
+  }
+
+  if (probe.probingRegions || probe.regionMatches.length === 0) {
+    return null;
+  }
+
+  const regionButtons = probe.regionMatches.map(matchedCell => (
+    <Button
+      key={matchedCell.locality_url}
+      size="xs"
+      onClick={() => onChangeCell(matchedCell.locality_url)}
+    >
+      {`View in ${matchedCell.name}`}
+    </Button>
+  ));
+
+  if (probeAllRegions) {
+    const lead =
+      probeAllRegionsHint ?? 'Also found in other data regions — look there too:';
+    return (
+      <RegionHintAlert variant="info" showIcon>
+        <Flex align="center" gap="md" wrap="wrap">
+          <span>{lead}</span>
+          {regionButtons}
+        </Flex>
+      </RegionHintAlert>
+    );
+  }
+
+  const currentName = cell?.name ?? 'this region';
+  // The active region returned similar (but not exact) matches — make it
+  // clear the exact record was not found here, rather than implying no
+  // results at all.
+  const leadText = results.rows.length > 0 ? 'No exact match in' : 'No results in';
+
+  return (
+    <RegionHintAlert variant="info" showIcon>
+      <Flex align="center" gap="md" wrap="wrap">
+        <span>
+          {leadText} <strong>{currentName}</strong>. Found results in another data region:
+        </span>
+        {regionButtons}
+      </Flex>
+    </RegionHintAlert>
+  );
+}
+
 const IDLE_PROBE: RegionProbe = {
   regionMatches: [],
   probingRegions: false,
@@ -419,6 +500,170 @@ function buildRequest(query: Location['query'], defaultSort: string): Request {
     sortBy: extractQuery(query.sortBy, defaultSort),
     filters: {...query},
   };
+}
+
+type ResultRowsProps = {
+  allRegions: boolean;
+  clampedRegionIndex: number;
+  columnsForRow: (row: any, allRows: any[], state: State) => React.ReactNode[];
+  effectiveColumns: React.ReactNode[];
+  keyForRow: (row: any) => string;
+  results: Results;
+  state: State;
+};
+
+function ResultRows({
+  allRegions,
+  clampedRegionIndex,
+  columnsForRow,
+  effectiveColumns,
+  keyForRow,
+  results,
+  state,
+}: ResultRowsProps) {
+  const regionIndex = allRegions ? clampedRegionIndex : -1;
+  const columnLabels = effectiveColumns.map(extractColumnLabel);
+  // The Region column is contextual — keep the record's own first labeled
+  // column as the mobile-primary cell.
+  const firstPrimaryIndex = columnLabels.findIndex(
+    (label, index) => index !== regionIndex && (label ?? '') !== ''
+  );
+
+  // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
+  // via inheritance, which works even when cells are rendered inside wrapper components
+  // (where cloneElement can't reach the inner <td> elements).
+  const labelVars = Object.fromEntries(
+    columnLabels.map((label, j) => [
+      `--cl-${j + 1}`,
+      `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
+    ])
+  );
+
+  return results.rows.map((row, i) => {
+    const rowRegion: Cell | undefined = allRegions ? row.__region : undefined;
+    const rowCells = columnsForRow(row, results.rows, state);
+    const cells = allRegions
+      ? rowCells.toSpliced(regionIndex, 0, <td key="__region">{rowRegion?.name}</td>)
+      : rowCells;
+    const labeledCells = cells.map((gridCell, j) => {
+      if (!isValidElement(gridCell)) {
+        return gridCell;
+      }
+      const extraProps: Record<string, unknown> = {
+        'data-label': columnLabels[j] ?? '',
+      };
+      if (j === firstPrimaryIndex) {
+        extraProps['data-mobile-primary'] = 'true';
+      }
+      return cloneElement(
+        gridCell as React.ReactElement<Record<string, unknown>>,
+        extraProps
+      );
+    });
+    const rowKey = keyForRow(row) ?? i;
+    return (
+      // Row ids can collide across regions, so scope the key by region.
+      <tr key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey} style={labelVars}>
+        {labeledCells}
+      </tr>
+    );
+  });
+}
+
+type ResultBodyProps = {
+  allRegions: boolean;
+  clampedRegionIndex: number;
+  columnsForRow: (row: any, allRows: any[], state: State) => React.ReactNode[];
+  effectiveColumns: React.ReactNode[];
+  keyForRow: (row: any) => string;
+  results: Results;
+  state: State;
+};
+
+function ResultBody({
+  allRegions,
+  clampedRegionIndex,
+  columnsForRow,
+  effectiveColumns,
+  keyForRow,
+  results,
+  state,
+}: ResultBodyProps) {
+  if (results.error) {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <ErrorAlert variant="danger" showIcon>
+            Something bad happened :/
+          </ErrorAlert>
+        </td>
+      </tr>
+    );
+  }
+
+  // Rows render as regions respond. The "still updating" signal lives outside
+  // the body, so rows never shift while regions trickle in, and "No results"
+  // only shows once every region has answered.
+  if (allRegions) {
+    if (results.rows.length > 0) {
+      return (
+        <ResultRows
+          allRegions={allRegions}
+          clampedRegionIndex={clampedRegionIndex}
+          columnsForRow={columnsForRow}
+          effectiveColumns={effectiveColumns}
+          keyForRow={keyForRow}
+          results={results}
+          state={state}
+        />
+      );
+    }
+    if (results.loading || results.pendingRegions.length > 0) {
+      return (
+        <tr>
+          <td colSpan={effectiveColumns.length}>
+            <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+          </td>
+        </tr>
+      );
+    }
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <EmptyMessage>No results</EmptyMessage>
+        </td>
+      </tr>
+    );
+  }
+  if (results.loading) {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+        </td>
+      </tr>
+    );
+  }
+  if (results.rows.length === 0) {
+    return (
+      <tr>
+        <td colSpan={effectiveColumns.length}>
+          <EmptyMessage>No results</EmptyMessage>
+        </td>
+      </tr>
+    );
+  }
+  return (
+    <ResultRows
+      allRegions={allRegions}
+      clampedRegionIndex={clampedRegionIndex}
+      columnsForRow={columnsForRow}
+      effectiveColumns={effectiveColumns}
+      keyForRow={keyForRow}
+      results={results}
+      state={state}
+    />
+  );
 }
 
 export function ResultGrid({
@@ -469,7 +714,10 @@ export function ResultGrid({
       ? cells.find(c => c.locality_url === regionUrl)
       : undefined;
     const allRegions = allowAllRegions && !requestedCell;
-    return {allRegions, cell: allRegions ? undefined : (requestedCell ?? cells[0])};
+    return {
+      allRegions,
+      cell: allRegions ? undefined : (requestedCell ?? cells[0]),
+    };
   });
   const {allRegions, cell} = region;
 
@@ -540,7 +788,11 @@ export function ResultGrid({
         return;
       }
       matches.sort((a, b) => a.name.localeCompare(b.name));
-      setProbe(prev => ({...prev, probingRegions: false, regionMatches: matches}));
+      setProbe(prev => ({
+        ...prev,
+        probingRegions: false,
+        regionMatches: matches,
+      }));
     };
 
     otherCells.forEach(probedCell => {
@@ -799,7 +1051,13 @@ export function ResultGrid({
             : isEmpty)
         );
 
-        setResults({...IDLE_REGIONS, loading: false, error: false, rows, pageLinks});
+        setResults({
+          ...IDLE_REGIONS,
+          loading: false,
+          error: false,
+          rows,
+          pageLinks,
+        });
         setProbe({...IDLE_PROBE, missingExactMatch});
         onLoad?.();
 
@@ -847,7 +1105,10 @@ export function ResultGrid({
   const stripRegionUrl = useEffectEvent(() => {
     if (needsRegion && location.query.regionUrl) {
       navigate(
-        {pathname: location.pathname, query: {...location.query, regionUrl: undefined}},
+        {
+          pathname: location.pathname,
+          query: {...location.query, regionUrl: undefined},
+        },
         {replace: true}
       );
     }
@@ -865,6 +1126,7 @@ export function ResultGrid({
             const nextCell = getCells().find(c => c.locality_url === localityUrl);
             return nextCell ? {allRegions: false, cell: nextCell} : undefined;
           })();
+
     if (nextRegion === undefined) {
       return;
     }
@@ -917,172 +1179,18 @@ export function ResultGrid({
       )
     : columns;
 
-  function renderLoading() {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
-        </td>
-      </tr>
-    );
-  }
-
-  function renderError() {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <ErrorAlert variant="danger" showIcon>
-            Something bad happened :/
-          </ErrorAlert>
-        </td>
-      </tr>
-    );
-  }
-
-  function renderNoResults() {
-    return (
-      <tr>
-        <td colSpan={effectiveColumns.length}>
-          <EmptyMessage>No results</EmptyMessage>
-        </td>
-      </tr>
-    );
-  }
-
-  function renderResults() {
-    const regionIndex = allRegions ? clampedRegionIndex : -1;
-    const columnLabels = effectiveColumns.map(extractColumnLabel);
-    // The Region column is contextual — keep the record's own first labeled
-    // column as the mobile-primary cell.
-    const firstPrimaryIndex = columnLabels.findIndex(
-      (label, index) => index !== regionIndex && (label ?? '') !== ''
-    );
-
-    // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
-    // via inheritance, which works even when cells are rendered inside wrapper components
-    // (where cloneElement can't reach the inner <td> elements).
-    const labelVars = Object.fromEntries(
-      columnLabels.map((label, j) => [
-        `--cl-${j + 1}`,
-        `"${(label ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
-      ])
-    );
-
-    return results.rows.map((row, i) => {
-      const rowRegion: Cell | undefined = allRegions ? row.__region : undefined;
-      const rowCells = columnsForRow(row, results.rows, state);
-      const cells = allRegions
-        ? rowCells.toSpliced(regionIndex, 0, <td key="__region">{rowRegion?.name}</td>)
-        : rowCells;
-      const labeledCells = cells.map((gridCell, j) => {
-        if (!isValidElement(gridCell)) {
-          return gridCell;
-        }
-        const extraProps: Record<string, unknown> = {'data-label': columnLabels[j] ?? ''};
-        if (j === firstPrimaryIndex) {
-          extraProps['data-mobile-primary'] = 'true';
-        }
-        return cloneElement(
-          gridCell as React.ReactElement<Record<string, unknown>>,
-          extraProps
-        );
-      });
-      const rowKey = keyForRow(row) ?? i;
-      return (
-        // Row ids can collide across regions, so scope the key by region.
-        <tr key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey} style={labelVars}>
-          {labeledCells}
-        </tr>
-      );
-    });
-  }
-
-  function renderBody() {
-    if (results.error) {
-      return renderError();
-    }
-    // Rows render as regions respond. The "still updating" signal lives outside
-    // the body, so rows never shift while regions trickle in, and "No results"
-    // only shows once every region has answered.
-    if (allRegions) {
-      if (results.rows.length > 0) {
-        return renderResults();
-      }
-      if (results.loading || results.pendingRegions.length > 0) {
-        return renderLoading();
-      }
-      return renderNoResults();
-    }
-    if (results.loading) {
-      return renderLoading();
-    }
-    if (results.rows.length === 0) {
-      return renderNoResults();
-    }
-    return renderResults();
-  }
-
-  function renderRegionHint() {
-    // The all-regions mode already shows every region's results.
-    if (allRegions) {
-      return null;
-    }
-
-    if ((!probeAcrossRegions && !probeAllRegions) || results.loading || results.error) {
-      return null;
-    }
-
-    // The search-driven hint only surfaces when the active region lacked an
-    // exact match. The always-on `probeAllRegions` hint has no such gate.
-    if (!probeAllRegions && !probe.missingExactMatch) {
-      return null;
-    }
-
-    if (probe.probingRegions || probe.regionMatches.length === 0) {
-      return null;
-    }
-
-    const regionButtons = probe.regionMatches.map(matchedCell => (
-      <Button
-        key={matchedCell.locality_url}
-        size="xs"
-        onClick={() => onChangeCell(matchedCell.locality_url)}
-      >
-        {`View in ${matchedCell.name}`}
-      </Button>
-    ));
-
-    if (probeAllRegions) {
-      const lead =
-        probeAllRegionsHint ?? 'Also found in other data regions — look there too:';
-      return (
-        <RegionHintAlert variant="info" showIcon>
-          <Flex align="center" gap="md" wrap="wrap">
-            <span>{lead}</span>
-            {regionButtons}
-          </Flex>
-        </RegionHintAlert>
-      );
-    }
-
-    const currentName = cell?.name ?? 'this region';
-    // The active region returned similar (but not exact) matches — make it
-    // clear the exact record was not found here, rather than implying no
-    // results at all.
-    const leadText = results.rows.length > 0 ? 'No exact match in' : 'No results in';
-
-    return (
-      <RegionHintAlert variant="info" showIcon>
-        <Flex align="center" gap="md" wrap="wrap">
-          <span>
-            {leadText} <strong>{currentName}</strong>. Found results in another data
-            region:
-          </span>
-          {regionButtons}
-        </Flex>
-      </RegionHintAlert>
-    );
-  }
+  const regionHint = (
+    <RegionHint
+      allRegions={allRegions}
+      cell={cell}
+      onChangeCell={onChangeCell}
+      probe={probe}
+      probeAcrossRegions={probeAcrossRegions}
+      probeAllRegions={probeAllRegions}
+      probeAllRegionsHint={probeAllRegionsHint}
+      results={results}
+    />
+  );
 
   const resultTable = (
     <TableScrollWrapper>
@@ -1095,7 +1203,17 @@ export function ResultGrid({
         <thead>
           <tr>{effectiveColumns}</tr>
         </thead>
-        <tbody>{renderBody()}</tbody>
+        <tbody>
+          <ResultBody
+            allRegions={allRegions}
+            clampedRegionIndex={clampedRegionIndex}
+            columnsForRow={columnsForRow}
+            effectiveColumns={effectiveColumns}
+            keyForRow={keyForRow}
+            results={results}
+            state={state}
+          />
+        </tbody>
       </ResultTable>
     </TableScrollWrapper>
   );
@@ -1227,7 +1345,7 @@ export function ResultGrid({
         )}
         {statusNote}
       </SortSearchForm>
-      {renderRegionHint()}
+      {regionHint}
       {table}
       {hasPagination && results.pageLinks && (
         <StyledPagination
