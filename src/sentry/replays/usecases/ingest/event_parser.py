@@ -10,12 +10,12 @@ from enum import Enum
 from typing import Any, Literal, TypedDict, TypeVar
 
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.logging.handlers import SamplingFilter
 from sentry.replays.lib.eap.write import Value, new_trace_item
 from sentry.utils import json
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.replays.event_parser")
 logger.addFilter(SamplingFilter(0.001))
@@ -96,7 +96,7 @@ class EventContext(TypedDict):
     user_geo_subdivision: str | None
 
 
-@trace
+@traces.trace
 def parse_events(
     context: EventContext, events: list[dict[str, Any]]
 ) -> tuple[ParsedEventMeta, list[TraceItem]]:
