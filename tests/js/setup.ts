@@ -214,13 +214,22 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-afterEach(async () => {
+afterEach(() => {
   const {toast} =
     jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  await act(async () => {
-    toast.dismiss();
-    // Sonner applies dismissals on the next animation frame.
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  act(() => {
+    const originalRequestAnimationFrame = window.requestAnimationFrame;
+    // Sonner defers dismissal updates with requestAnimationFrame. Flush them
+    // synchronously so cleanup also works when a test has enabled fake timers.
+    window.requestAnimationFrame = callback => {
+      callback(0);
+      return 0;
+    };
+    try {
+      toast.dismiss();
+    } finally {
+      window.requestAnimationFrame = originalRequestAnimationFrame;
+    }
   });
   resetResizeObservers();
 });
