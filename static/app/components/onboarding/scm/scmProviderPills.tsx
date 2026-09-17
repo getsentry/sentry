@@ -80,6 +80,9 @@ function ScmProviderPillRow({
               size: buttonSize,
               icon: getIntegrationIcon(provider.key, iconSize),
               buttonText: provider.name,
+              // AddIntegrationButton names every instance "Add integration";
+              // name each pill by its provider instead.
+              'aria-label': t('Add %s', provider.name),
             }}
           />
         </IntegrationContext>
@@ -87,6 +90,7 @@ function ScmProviderPillRow({
       {moreProviders.length > 0 && (
         <DropdownMenu
           triggerLabel={t('More')}
+          triggerProps={{'aria-label': t('More providers')}}
           position="bottom-end"
           size={buttonSize}
           items={moreProviders.map(provider => ({
