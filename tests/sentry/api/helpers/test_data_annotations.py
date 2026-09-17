@@ -52,9 +52,7 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
         )
 
     def test_dropped_and_accepted_series_spans(self) -> None:
-        # Core happy path: accepted and dropped come back as two independent
-        # series, with the reason mapped to a friendly label. Spans have no paired
-        # byte category, so byteSize is omitted.
+        # Core happy path: accepted and dropped come back as two independent series.
         drop_at = self.start + timedelta(minutes=30)
         self._store_drop(Outcome.ACCEPTED, DataCategory.SPAN, drop_at, quantity=8000)
         self._store_drop(
@@ -65,16 +63,17 @@ class GetDroppedDataAnnotationsTest(OutcomesSnubaTest):
 
         assert len(dropped) == 1
         assert dropped[0]["category"] == DataCategory.SPAN.api_name()
+        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
         assert dropped[0]["reason"] == "over_quota"
         assert dropped[0]["eventCount"] == 2000
-        assert dropped[0]["label"] == "Quota exceeded"
         assert dropped[0]["end"] - dropped[0]["start"] == ONE_HOUR * 1000
+        assert "label" not in dropped[0]
         assert "byteSize" not in dropped[0]
 
         assert len(accepted) == 1
-        assert accepted[0]["reason"] == Outcome.ACCEPTED.api_name()
-        assert accepted[0]["label"] == "Accepted"
+        assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
         assert accepted[0]["eventCount"] == 8000
+        assert "label" not in accepted[0]
         assert "byteSize" not in accepted[0]
 
     def test_log_series_carry_byte_size(self) -> None:

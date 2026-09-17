@@ -6,15 +6,15 @@ INGESTION_DELAY_MESSAGE = "INCOMPLETE_BUCKET"
 
 
 class Annotation(TypedDict):
-    """One time bucket's volume for a system data-fidelity annotation"""
+    """One time bucket's volume for a system data-fidelity annotation."""
 
     type: Literal["system"]
     category: str
+    outcome: str
     reason: str
     start: float
     end: float
     eventCount: float
-    label: str
     # Only present for datasets with a paired byte category (logs today).
     byteSize: NotRequired[float]
 

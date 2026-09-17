@@ -581,13 +581,15 @@ class OrganizationEventsTimeseriesAnnotationsTest(APITestCase, OutcomesSnubaTest
         dropped = response.data["meta"]["droppedAnnotations"]
         assert len(dropped) == 1
         assert dropped[0]["category"] == DataCategory.LOG_ITEM.api_name()
+        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
         assert dropped[0]["reason"] == "key_quota"
         assert dropped[0]["eventCount"] == 400
         assert dropped[0]["byteSize"] == 200_000
+        assert "label" not in dropped[0]
 
         accepted = response.data["meta"]["acceptedAnnotations"]
         assert len(accepted) == 1
-        assert accepted[0]["reason"] == Outcome.ACCEPTED.api_name()
+        assert accepted[0]["outcome"] == Outcome.ACCEPTED.api_name()
         assert accepted[0]["eventCount"] == 1000
         assert accepted[0]["byteSize"] == 500_000
 

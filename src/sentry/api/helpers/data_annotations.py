@@ -40,29 +40,7 @@ DATASET_TO_BYTE_CATEGORY: dict[object, DataCategory] = {
     OurLogs: DataCategory.LOG_BYTE,
 }
 
-_REASON_LABELS: dict[str, str] = {
-    "over_quota": "Quota exceeded",
-    "grace_period": "Quota grace period",
-    "smart_rate_limit": "Spike protection",
-    "spike_protection": "Spike protection",
-}
-_OUTCOME_LABELS: dict[str, str] = {
-    Outcome.ACCEPTED.api_name(): "Accepted",
-    Outcome.FILTERED.api_name(): "Inbound filter",
-    Outcome.RATE_LIMITED.api_name(): "Rate limited",
-    Outcome.INVALID.api_name(): "Invalid or malformed",
-    Outcome.ABUSE.api_name(): "Abuse limit",
-    Outcome.CLIENT_DISCARD.api_name(): "Client discard",
-    Outcome.CARDINALITY_LIMITED.api_name(): "Cardinality limited",
-}
-
 _ACCEPTED_NAME = Outcome.ACCEPTED.api_name()
-
-
-def _label_for(outcome: str, reason: str | None) -> str:
-    if reason and reason in _REASON_LABELS:
-        return _REASON_LABELS[reason]
-    return _OUTCOME_LABELS.get(outcome, outcome)
 
 
 def _bucket_start_ms(raw_time: object) -> float | None:
@@ -177,11 +155,11 @@ def get_dropped_data_annotations(
             annotation = Annotation(
                 type="system",
                 category=category.api_name(),
+                outcome=outcome,
                 reason=reason_key,
                 start=bucket_start_ms,
                 end=bucket_start_ms + rollup * 1000,
                 eventCount=dropped,
-                label=_label_for(outcome, reason_key),
             )
             if byte_category is not None:
                 annotation["byteSize"] = dropped_bytes_by_key.get(
@@ -194,11 +172,11 @@ def get_dropped_data_annotations(
             annotation = Annotation(
                 type="system",
                 category=category.api_name(),
+                outcome=_ACCEPTED_NAME,
                 reason=_ACCEPTED_NAME,
                 start=bucket_start_ms,
                 end=bucket_start_ms + rollup * 1000,
                 eventCount=accepted_by_bucket.get(bucket_start_ms, 0),
-                label=_OUTCOME_LABELS[_ACCEPTED_NAME],
             )
             if byte_category is not None:
                 annotation["byteSize"] = accepted_bytes_by_bucket.get(bucket_start_ms, 0)
