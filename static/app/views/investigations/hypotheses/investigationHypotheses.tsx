@@ -200,7 +200,7 @@ export function InvestigationHypotheses({
       {projection.hypotheses.length > 0 ? (
         <Container
           border="primary"
-          radius="md"
+          radius="xl"
           background="secondary"
           padding="xl"
           data-test-id="investigation-run-panel"

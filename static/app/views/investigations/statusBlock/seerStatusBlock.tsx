@@ -81,7 +81,7 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
 }
 
 type SeerStatusBlockProps = {
-  /** The short pill on the right, e.g. "Running…", "Awaiting input". */
+  /** The short pill beside the title, e.g. "Running…", "Awaiting input". */
   statusLabel: string;
   /** The sentence the block leads with, in the agent's voice. */
   title: string;
@@ -153,15 +153,10 @@ export function SeerStatusBlock({
         </Flex>
 
         <Stack gap="xs" flex="1 1 auto" minWidth="0">
-          <Flex justify="between" align="center" gap="md">
+          <Flex align="center" gap="md" wrap="wrap">
             <Text size="md" bold variant={TITLE_VARIANT[variant]}>
               {title}
             </Text>
-            {/*
-             * The chip and the clock never wrap under the sentence: they are
-             * the part a viewer glances at, so they hold the top-right corner
-             * and the title wraps around them instead.
-             */}
             <Flex gap="md" align="center" flex="0 0 auto">
               <Tag variant={TAG_VARIANT[variant]}>{statusLabel}</Tag>
               {elapsed ? (
