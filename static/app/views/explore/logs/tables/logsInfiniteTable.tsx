@@ -522,8 +522,9 @@ export function LogsInfiniteTable({
         <LogRowContent
           dataRow={dataRow}
           routingHint={
-            routingHintsByRow.get(dataRow) ??
-            pinnedLogsQuery.routingHintsByRow.get(dataRow)
+            routingHintsByRow.has(dataRow)
+              ? routingHintsByRow.get(dataRow)
+              : pinnedLogsQuery.routingHintsById.get(rowId)
           }
           meta={meta}
           highlightTerms={highlightTerms}
@@ -556,7 +557,7 @@ export function LogsInfiniteTable({
       logsPinning,
       meta,
       routingHintsByRow,
-      pinnedLogsQuery.routingHintsByRow,
+      pinnedLogsQuery.routingHintsById,
     ]
   );
 
