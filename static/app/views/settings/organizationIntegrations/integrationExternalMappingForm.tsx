@@ -185,7 +185,7 @@ function InlineMappingForm({
             const isValidMapping = Object.hasOwn(mapping || {}, 'id');
             const fullData = buildMutationData(mapping, integration, type, sentryId);
             return fetchMutation<ExternalActorMapping>({
-              url: getBaseFormEndpoint(mapping),
+              url: getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
               method: isValidMapping ? 'PUT' : 'POST',
               data: fullData,
             });
@@ -270,7 +270,7 @@ function ModalMappingForm({
         externalName
       );
       return fetchMutation<ExternalActorMapping>({
-        url: getBaseFormEndpoint(mapping),
+        url: getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
         method: isValidMapping ? 'PUT' : 'POST',
         data: fullData,
       });

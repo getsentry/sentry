@@ -19,9 +19,16 @@ describe('IntegrationExternalMappingForm', () => {
     path: {organizationIdOrSlug: 'org-slug'},
   });
   const teamsEndpoint = '/organizations/org-slug/teams/';
+  const memberEndpoint = (memberId: string) =>
+    getApiUrl('/organizations/$organizationIdOrSlug/members/$memberId/', {
+      path: {organizationIdOrSlug: 'org-slug', memberId},
+    });
   const baseProps = {
     integration: GitHubIntegrationFixture(),
-    getBaseFormEndpoint: jest.fn(_mapping => membersEndpoint),
+    // Callers own the whole url, so an existing mapping resolves to its own resource.
+    getBaseFormEndpoint: jest.fn(mapping =>
+      mapping && 'id' in mapping ? memberEndpoint(mapping.id) : membersEndpoint
+    ),
   } satisfies Partial<React.ComponentProps<typeof IntegrationExternalMappingForm>>;
 
   const closeModal = jest.fn();
@@ -78,7 +85,7 @@ describe('IntegrationExternalMappingForm', () => {
       body: {},
     });
     putResponse = MockApiClient.addMockResponse({
-      url: `${membersEndpoint}1/`,
+      url: memberEndpoint('1'),
       method: 'PUT',
       body: {},
     });
