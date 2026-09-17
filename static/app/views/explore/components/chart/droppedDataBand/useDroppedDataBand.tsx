@@ -122,7 +122,7 @@ function createDroppedDataSeries({
     // TODO: modify this when adding tooltip support. `trigger: 'item'` has to
     // stay either way, since it is what keeps the band out of the chart-level
     // `trigger: 'axis'` tooltip's series list.
-    silent: true,
+    silent: false,
     tooltip: {trigger: 'item', formatter: () => ''},
   };
 }

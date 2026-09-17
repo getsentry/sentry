@@ -49,7 +49,11 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {useDroppedDataBand} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
+import {
+  DROPPED_DATA_SERIES_ID,
+  useDroppedDataBand,
+} from 'sentry/views/explore/components/chart/droppedDataBand/useDroppedDataBand';
+import type {AnnotationBucket} from 'sentry/views/explore/components/chart/droppedDataBand/utils';
 import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
@@ -122,6 +126,8 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Defaults to true when `droppedData` is provided.
    */
   showDroppedData?: boolean;
+
+  onDroppedDataClick?: (bucket: AnnotationBucket) => void;
 
   /**
    * Defines the legend's visibility.
@@ -682,6 +688,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   const handleClick: EChartClickHandler = event => {
+    if (event.seriesId === DROPPED_DATA_SERIES_ID) {
+      props.onDroppedDataClick?.(event.data as AnnotationBucket);
+      return;
+    }
     runHandler(event, 'onClick');
   };
 
