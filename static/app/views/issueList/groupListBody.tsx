@@ -25,7 +25,6 @@ type GroupListBodyProps = {
   query: string;
   refetchGroups: () => void;
   selectedProjectIds: number[];
-  withColumns?: GroupListColumn[];
 };
 
 type GroupListProps = {
@@ -35,7 +34,6 @@ type GroupListProps = {
   memberList: IndexedMembersByProject | undefined;
   onActionTaken: (itemIds: string[], data: IssueUpdateData) => void;
   query: string;
-  withColumns?: GroupListColumn[];
 };
 
 const DEFAULT_COLUMNS: GroupListColumn[] = [
@@ -52,9 +50,7 @@ const DEFAULT_COLUMNS: GroupListColumn[] = [
 function LoadingSkeleton({
   pageSize,
   displayReprocessingLayout,
-  columns,
 }: {
-  columns: GroupListColumn[];
   displayReprocessingLayout: boolean;
   pageSize: number;
 }) {
@@ -64,7 +60,7 @@ function LoadingSkeleton({
         <LoadingStreamGroup
           key={`loading-group-${index}`}
           displayReprocessingLayout={displayReprocessingLayout}
-          withColumns={columns}
+          withColumns={DEFAULT_COLUMNS}
         />
       ))}
     </PanelBody>
@@ -83,17 +79,14 @@ export function GroupListBody({
   selectedProjectIds,
   pageSize,
   onActionTaken,
-  withColumns,
 }: GroupListBodyProps) {
   const organization = useOrganization();
-  const columns = withColumns ?? DEFAULT_COLUMNS;
 
   if (loading) {
     return (
       <LoadingSkeleton
         displayReprocessingLayout={displayReprocessingLayout}
         pageSize={pageSize}
-        columns={columns}
       />
     );
   }
@@ -121,7 +114,6 @@ export function GroupListBody({
       displayReprocessingLayout={displayReprocessingLayout}
       groupStatsPeriod={groupStatsPeriod}
       onActionTaken={onActionTaken}
-      withColumns={columns}
     />
   );
 }
@@ -133,36 +125,34 @@ function GroupList({
   displayReprocessingLayout,
   groupStatsPeriod,
   onActionTaken,
-  withColumns = DEFAULT_COLUMNS,
 }: GroupListProps) {
   const theme = useTheme();
   const topIssue = groupIds[0];
   const selectDisabled = useMedia(`(width < ${theme.breakpoints.sm})`);
 
-  const showProgress = withColumns.includes('progress');
-
-  const renderStreamGroup = (id: string, columns: GroupListColumn[]) => {
-    const group = GroupStore.get(id) as Group | undefined;
-    if (!group) {
-      return null;
-    }
-    return (
-      <StreamGroup
-        key={id}
-        group={group}
-        statsPeriod={groupStatsPeriod}
-        query={query}
-        hasGuideAnchor={id === topIssue}
-        memberList={group.project ? memberList?.get(group.project.slug) : undefined}
-        displayReprocessingLayout={displayReprocessingLayout}
-        useFilteredStats
-        canSelect={!selectDisabled}
-        onPriorityChange={priority => onActionTaken([id], {priority})}
-        withColumns={columns}
-        progressState={showProgress ? (group.derivedData?.progress ?? null) : undefined}
-      />
-    );
-  };
-
-  return <PanelBody>{groupIds.map(id => renderStreamGroup(id, withColumns))}</PanelBody>;
+  return (
+    <PanelBody>
+      {groupIds.map(id => {
+        const group = GroupStore.get(id) as Group | undefined;
+        if (!group) {
+          return null;
+        }
+        return (
+          <StreamGroup
+            key={id}
+            group={group}
+            statsPeriod={groupStatsPeriod}
+            query={query}
+            hasGuideAnchor={id === topIssue}
+            memberList={group.project ? memberList?.get(group.project.slug) : undefined}
+            displayReprocessingLayout={displayReprocessingLayout}
+            useFilteredStats
+            canSelect={!selectDisabled}
+            onPriorityChange={priority => onActionTaken([id], {priority})}
+            withColumns={DEFAULT_COLUMNS}
+          />
+        );
+      })}
+    </PanelBody>
+  );
 }

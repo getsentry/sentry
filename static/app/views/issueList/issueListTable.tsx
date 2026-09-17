@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -41,7 +40,6 @@ interface IssueListTableProps {
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
-  withColumns?: GroupListColumn[];
 }
 
 export function IssueListTable({
@@ -66,7 +64,6 @@ export function IssueListTable({
   paginationAnalyticsEvent,
   issuesSuccessfullyLoaded,
   pageSize,
-  withColumns,
 }: IssueListTableProps) {
   const location = useLocation();
 
@@ -113,7 +110,6 @@ export function IssueListTable({
                     groupIds={groupIds}
                     allResultsVisible={allResultsVisible}
                     displayReprocessingActions={displayReprocessingActions}
-                    withColumns={withColumns}
                   />
                 </HoverOverlayGroupProvider>
               )}
@@ -136,7 +132,6 @@ export function IssueListTable({
                     pageSize={pageSize}
                     refetchGroups={refetchGroups}
                     onActionTaken={onActionTaken}
-                    withColumns={withColumns}
                   />
                 </VisuallyCompleteWithData>
               </HoverOverlayGroupProvider>

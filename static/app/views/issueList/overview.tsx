@@ -13,7 +13,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -92,7 +91,6 @@ interface Props {
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
-  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilterDatetime> {
@@ -142,7 +140,6 @@ function IssueListOverviewInner({
   title = t('Issues'),
   titleDescription,
   headerActions,
-  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -1004,7 +1001,6 @@ function IssueListOverviewInner({
                 statsLoading={statsLoading}
                 error={error}
                 refetchGroups={fetchData}
-                withColumns={withColumns}
                 paginationCaption={
                   !issuesLoading && modifiedQueryCount > 0
                     ? tct('[start]-[end] of [total]', {
