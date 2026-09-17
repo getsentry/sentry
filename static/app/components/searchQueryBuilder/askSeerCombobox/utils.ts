@@ -8,6 +8,8 @@ import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {
   BooleanOperator,
   parseSearch,
+  type RegexOperator,
+  regexOperators,
   TermOperator,
   Token,
   type WildcardOperator,
@@ -224,25 +226,28 @@ export function normalizeSeerDateTimeParams({
   };
 }
 
-const NEGATED_WILDCARD_OPERATOR_LABELS: Partial<Record<WildcardOperator, string>> = {
+const NEGATED_PATTERN_OPERATOR_LABELS: Partial<
+  Record<WildcardOperator | RegexOperator, string>
+> = {
   [TermOperator.CONTAINS]: OP_LABELS[TermOperator.DOES_NOT_CONTAIN],
   [TermOperator.STARTS_WITH]: OP_LABELS[TermOperator.DOES_NOT_START_WITH],
   [TermOperator.ENDS_WITH]: OP_LABELS[TermOperator.DOES_NOT_END_WITH],
+  [TermOperator.MATCHES]: OP_LABELS[TermOperator.DOES_NOT_MATCH],
 };
 
-function getWildcardOperatorLabel(
-  operator: WildcardOperator,
+function getPatternOperatorLabel(
+  operator: WildcardOperator | RegexOperator,
   isNegated: boolean
 ): string {
   if (isNegated) {
-    return NEGATED_WILDCARD_OPERATOR_LABELS[operator] ?? `not ${OP_LABELS[operator]}`;
+    return NEGATED_PATTERN_OPERATOR_LABELS[operator] ?? `not ${OP_LABELS[operator]}`;
   }
 
   return OP_LABELS[operator];
 }
 
-function formatWildcardToken(token: string, isNegated: boolean): string | null {
-  for (const operator of wildcardOperators) {
+function formatPatternToken(token: string, isNegated: boolean): string | null {
+  for (const operator of [...wildcardOperators, ...regexOperators]) {
     const operatorIndex = token.indexOf(operator);
 
     if (operatorIndex === -1) {
@@ -251,7 +256,7 @@ function formatWildcardToken(token: string, isNegated: boolean): string | null {
 
     const key = token.slice(0, operatorIndex).replace(/:$/, '').trim();
     const value = token.slice(operatorIndex + operator.length).trim();
-    const description = getWildcardOperatorLabel(operator, isNegated);
+    const description = getPatternOperatorLabel(operator, isNegated);
 
     return `${key} ${description} ${value}`.replace(/\s+/g, ' ').trim();
   }
@@ -262,10 +267,10 @@ function formatWildcardToken(token: string, isNegated: boolean): string | null {
 function formatToken(token: string): string {
   const isNegated = token.startsWith('!') && token.includes(':');
   const actualToken = isNegated ? token.slice(1) : token;
-  const wildcardToken = formatWildcardToken(actualToken, isNegated);
+  const patternToken = formatPatternToken(actualToken, isNegated);
 
-  if (wildcardToken) {
-    return wildcardToken;
+  if (patternToken) {
+    return patternToken;
   }
 
   const operators = [

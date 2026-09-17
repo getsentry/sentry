@@ -478,6 +478,7 @@ describe('utils/tokenizeSearch', () => {
       ['a quantifier', `message:${WildcardOperators.MATCHES}"^a{1,3}$"`],
       ['a negation', `!message:${WildcardOperators.MATCHES}"^ERROR \\d+"`],
       ['an asterisk', `message:${WildcardOperators.MATCHES}"^ERROR.*"`],
+      ['a character class', `message:${WildcardOperators.MATCHES}"[0-9]"`],
     ])('round-trips a pattern with %s unchanged', (_name, query) => {
       expect(new MutableSearch(query).formatString()).toBe(query);
     });

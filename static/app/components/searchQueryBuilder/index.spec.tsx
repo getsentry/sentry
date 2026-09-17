@@ -8446,6 +8446,30 @@ describe('SearchQueryBuilder', () => {
         );
       });
     });
+
+    it('quotes a character-class pattern so it is not committed as a value list', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery={`browser.name:${WildcardOperators.MATCHES}firefox`}
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.keyboard('{Control>}a{/Control}[[0-9]{enter}');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          `browser.name:${WildcardOperators.MATCHES}"[0-9]"`,
+          expect.anything()
+        );
+      });
+    });
   });
 
   describe('async filter keys (getTagKeys)', () => {
