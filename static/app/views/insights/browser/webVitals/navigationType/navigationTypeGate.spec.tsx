@@ -96,16 +96,15 @@ describe('NavigationTypeGate', () => {
     expect(screen.getByText('widget grid')).toBeInTheDocument();
   });
 
-  it('says "All" is the pre-existing blend', async () => {
+  it('leaves the dashboard alone on "All", which filters nothing', async () => {
     mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', 'count()': 100}]);
 
     renderGate(NAVIGATION_TYPE_BUCKET_ORDER);
 
+    expect(await screen.findByText('widget grid')).toBeInTheDocument();
     expect(
-      await screen.findByText(
-        /the blend the dashboard showed before this control existed/
-      )
-    ).toBeInTheDocument();
+      screen.queryByText(/is a blend rather than one measurement/)
+    ).not.toBeInTheDocument();
   });
 
   it('does nothing, and queries nothing, outside the web vitals dashboards', async () => {
@@ -132,15 +131,18 @@ describe('NavigationTypeGate', () => {
       ).toBe(false);
     });
 
-    it('drops thresholds for any blend, including "All"', () => {
+    it('drops thresholds for a narrowed blend', () => {
       expect(
         navigationTypeSuppressesThresholds(
           filtersFor([NavigationTypeBucket.PAGE_LOAD, NavigationTypeBucket.BFCACHE])
         )
       ).toBe(true);
+    });
+
+    it('keeps thresholds on "All", which is the unfiltered dashboard', () => {
       expect(
         navigationTypeSuppressesThresholds(filtersFor(NAVIGATION_TYPE_BUCKET_ORDER))
-      ).toBe(true);
+      ).toBe(false);
     });
 
     it('leaves dashboards without a navigation type filter alone', () => {

@@ -127,18 +127,31 @@ export function normalizeBuckets(
   return NAVIGATION_TYPE_BUCKET_ORDER.filter(bucket => buckets.includes(bucket));
 }
 
+/**
+ * Deselecting everything reads as "All" too, matching the other filter chips.
+ * Both select the whole population, so both filter nothing.
+ */
 export function isAllBucketsSelected(buckets: NavigationTypeBucket[]): boolean {
-  return normalizeBuckets(buckets).length === NAVIGATION_TYPE_BUCKET_ORDER.length;
+  const selected = normalizeBuckets(buckets);
+  return selected.length === 0 || selected.length === NAVIGATION_TYPE_BUCKET_ORDER.length;
 }
 
 /**
- * The good/needs improvement/poor boundaries were derived from page load data.
- * They only mean something when page loads are the whole selection: a bfcache
- * restore scored against them reads "good" every time, and a mixed selection is
- * a blend of populations rather than one measurement.
+ * Whether the dashboard keeps its good/needs improvement/poor thresholds.
+ *
+ * Those boundaries were derived from page load data, so they only mean
+ * something when page loads are the whole selection: a bfcache restore scored
+ * against them reads "good" every time, and a narrowed mixed selection is a
+ * blend of populations rather than one measurement.
+ *
+ * "All" keeps them because it filters nothing. It is the same blend, scored the
+ * same way, that the dashboard showed before this control existed.
  */
-export function bucketsSupportThresholds(buckets: NavigationTypeBucket[]): boolean {
-  return buckets.length === 1 && buckets[0] === NavigationTypeBucket.PAGE_LOAD;
+export function bucketsKeepThresholds(buckets: NavigationTypeBucket[]): boolean {
+  return (
+    isAllBucketsSelected(buckets) ||
+    (buckets.length === 1 && buckets[0] === NavigationTypeBucket.PAGE_LOAD)
+  );
 }
 
 /**
