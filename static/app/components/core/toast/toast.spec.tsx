@@ -116,7 +116,7 @@ describe('Toast', () => {
     expect(getEmotionRules(messageElement).join('')).toMatch(/word-break:\s*break-word/);
   });
 
-  it('dismisses toasts when the variant changes', async () => {
+  it('keeps toasts of different variants together', async () => {
     render(<div />);
     act(() => void toast.loading('Loading', {duration: Infinity}));
 
@@ -124,16 +124,17 @@ describe('Toast', () => {
 
     act(() => void toast.success('Success', {duration: Infinity}));
 
-    await waitForElementToBeRemoved(() => screen.queryByText('Loading'));
-    expect(screen.getByText('Success')).toBeInTheDocument();
+    expect(await screen.findByText('Success')).toBeInTheDocument();
+    expect(screen.getByText('Loading')).toBeInTheDocument();
   });
 
-  it('updates a toast when its variant changes', async () => {
+  it('updates only the given id when its variant changes', async () => {
     let toastId: string | number = '';
 
     render(<div />);
     act(() => {
       toastId = toast.loading('Loading', {duration: Infinity});
+      toast.loading('Other operation', {duration: Infinity});
     });
 
     expect(await screen.findByText('Loading')).toBeInTheDocument();
@@ -142,32 +143,7 @@ describe('Toast', () => {
 
     expect(await screen.findByText('Success')).toBeInTheDocument();
     expect(screen.queryByText('Loading')).not.toBeInTheDocument();
-  });
-
-  it('keeps independent operations separate from other notifications', async () => {
-    render(<div />);
-    let toastId: string | number = '';
-    act(() => {
-      toast.error('Unrelated error', {duration: Infinity});
-      toastId = toast.loading('Resolving issues', {
-        duration: Infinity,
-        independent: true,
-      });
-    });
-
-    expect(await screen.findByText('Resolving issues')).toBeInTheDocument();
-    expect(screen.getByText('Unrelated error')).toBeInTheDocument();
-
-    act(() => void toast.success('Other change saved', {duration: Infinity}));
-    expect(await screen.findByText('Other change saved')).toBeInTheDocument();
-    expect(screen.getByText('Resolving issues')).toBeInTheDocument();
-
-    act(
-      () => void toast.error('Unable to resolve issues', {id: toastId, independent: true})
-    );
-    expect(await screen.findByText('Unable to resolve issues')).toBeInTheDocument();
-    expect(screen.queryByText('Resolving issues')).not.toBeInTheDocument();
-    expect(screen.getByText('Other change saved')).toBeInTheDocument();
+    expect(screen.getByText('Other operation')).toBeInTheDocument();
   });
 
   it('runs an action and dismisses the toast', async () => {

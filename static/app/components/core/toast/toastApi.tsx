@@ -4,47 +4,10 @@ import {toast as sonnerToast} from 'sonner';
 import {Toast} from './toast';
 import type {ToastOptions, ToastVariant} from './types';
 
-type ToastId = string | number;
-
-const activeToastIds = new Map<ToastVariant, Set<ToastId>>();
-
-function removeActiveToast(variant: ToastVariant, toastId: ToastId) {
-  const ids = activeToastIds.get(variant);
-  ids?.delete(toastId);
-
-  if (ids?.size === 0) {
-    activeToastIds.delete(variant);
-  }
-}
-
-function dismissOtherVariants(variant: ToastVariant, toastIdToUpdate?: ToastId) {
-  for (const [activeVariant, ids] of activeToastIds) {
-    if (activeVariant === variant) {
-      continue;
-    }
-
-    for (const toastId of ids) {
-      if (toastId !== toastIdToUpdate) {
-        sonnerToast.dismiss(toastId);
-      }
-    }
-    activeToastIds.delete(activeVariant);
-  }
-}
-
 function show(variant: ToastVariant, message: ReactNode, options: ToastOptions = {}) {
-  const {action, duration, id, independent, onDismiss} = options;
+  const {action, duration, id, onDismiss} = options;
 
-  if (!independent) {
-    dismissOtherVariants(variant, id);
-  }
-  if (id !== undefined) {
-    for (const activeVariant of activeToastIds.keys()) {
-      removeActiveToast(activeVariant, id);
-    }
-  }
-
-  const toastId = sonnerToast.custom(
+  return sonnerToast.custom(
     renderedToastId => (
       <Toast
         variant={variant}
@@ -55,25 +18,11 @@ function show(variant: ToastVariant, message: ReactNode, options: ToastOptions =
     ),
     {
       duration,
-      onDismiss: dismissedToast => {
-        removeActiveToast(variant, dismissedToast.id);
-        onDismiss?.();
-      },
-      onAutoClose: dismissedToast => {
-        removeActiveToast(variant, dismissedToast.id);
-        onDismiss?.();
-      },
+      onDismiss,
+      onAutoClose: onDismiss,
       ...(id === undefined ? {} : {id}),
     }
   );
-
-  if (!independent) {
-    const ids = activeToastIds.get(variant) ?? new Set<ToastId>();
-    ids.add(toastId);
-    activeToastIds.set(variant, ids);
-  }
-
-  return toastId;
 }
 
 export const toast = {
@@ -85,15 +34,5 @@ export const toast = {
   message: (message: ReactNode, options?: ToastOptions) =>
     show('default', message, options),
   /** Dismisses one toast, or every toast when called with no id. */
-  dismiss: (id?: ToastId) => {
-    if (id === undefined) {
-      activeToastIds.clear();
-    } else {
-      for (const variant of activeToastIds.keys()) {
-        removeActiveToast(variant, id);
-      }
-    }
-
-    return sonnerToast.dismiss(id);
-  },
+  dismiss: sonnerToast.dismiss,
 };

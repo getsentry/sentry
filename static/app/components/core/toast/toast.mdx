@@ -24,6 +24,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/toast');
 
 Use the namespaced `toast` API to show temporary notifications. The shared app provider renders the
 toaster, so callers only need to invoke a method.
+Each method returns the toast's id, which you can use to update or dismiss it later.
 
 <Storybook.Demo>
   <Flex gap="sm" wrap="wrap">
@@ -76,19 +77,17 @@ toast.error('Could not save changes', {
 
 - `duration` is in milliseconds. It defaults to `6_000`. Use `Infinity` for a persistent toast.
 - `id` updates an existing toast with the same id instead of adding another toast.
-- `independent` keeps a toast separate from other notifications, including variant changes.
 - `onDismiss` runs when the toast is dismissed.
 
-## Independent operations
+## Updating an operation
 
-Use `independent: true` for an operation's loading and result toasts. These do not
-dismiss other notifications and are not dismissed when another toast's variant changes.
-Keep this option when updating the toast by id.
+Reuse a toast's returned id to replace loading with the result. Other notifications stay visible.
+You can also supply your own stable id, as the demo does.
 
 Start resolving, show an unrelated notification, then complete or fail the operation.
 Loading stays visible until you choose a result; the result uses the normal timeout.
 
-export function IndependentOperationDemo() {
+export function OperationToastDemo() {
   const id = useId();
   const [pending, setPending] = useState(false);
   useEffect(
@@ -102,7 +101,7 @@ export function IndependentOperationDemo() {
       <Button
         disabled={pending}
         onClick={() => {
-          toast.loading('Resolving issues…', {id, duration: Infinity, independent: true});
+          toast.loading('Resolving issues…', {id, duration: Infinity});
           setPending(true);
         }}
       >
@@ -111,7 +110,7 @@ export function IndependentOperationDemo() {
       <Button
         disabled={!pending}
         onClick={() => {
-          toast.success('Selected issues resolved', {id, independent: true});
+          toast.success('Selected issues resolved', {id});
           setPending(false);
         }}
       >
@@ -120,7 +119,7 @@ export function IndependentOperationDemo() {
       <Button
         disabled={!pending}
         onClick={() => {
-          toast.error('Unable to resolve issues', {id, independent: true});
+          toast.error('Unable to resolve issues', {id});
           setPending(false);
         }}
       >
@@ -134,14 +133,16 @@ export function IndependentOperationDemo() {
 }
 
 <Storybook.Demo>
-  <IndependentOperationDemo />
+  <OperationToastDemo />
 </Storybook.Demo>
 
 ```tsx
-const id = toast.loading('Resolving issues…', {duration: Infinity, independent: true});
+const id = toast.loading('Resolving issues…', {
+  duration: Infinity,
+});
 
 // When the request finishes, update the same toast.
-toast.success('Selected issues resolved', {id, independent: true});
+toast.success('Selected issues resolved', {id});
 ```
 
 ## Actions
@@ -177,8 +178,7 @@ toast.success('Item deleted', {
 ## Dismissing toasts
 
 Toasts dismiss automatically after their duration. Users can also click the `Dismiss` button or swipe
-a toast. Toasts of the same variant stack up to three at once; showing a different variant
-dismisses the previous variant's active toasts.
+a toast. Toasts of different variants coexist and stack up to three at once.
 
 ```tsx
 // Dismiss one toast by id

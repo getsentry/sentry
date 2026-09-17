@@ -328,7 +328,6 @@ export function performBulkUpdate({
   const messages = getBulkActionMessages(data, itemIds);
   const toastId = toast.loading(messages.loading, {
     duration: Infinity,
-    independent: true,
   });
 
   bulkUpdate(
@@ -348,7 +347,6 @@ export function performBulkUpdate({
         const undo = onSuccess?.(itemIds, previousGroups);
         toast.success(messages.success, {
           id: toastId,
-          independent: true,
           action: undo
             ? {label: t('Undo'), icon: <IconRefresh size="xs" />, onClick: undo}
             : undefined,
@@ -359,7 +357,7 @@ export function performBulkUpdate({
           isDemoModeActive()
             ? t('This action is not allowed in demo mode.')
             : messages.error,
-          {id: toastId, independent: true}
+          {id: toastId}
         );
         onError?.();
       },
