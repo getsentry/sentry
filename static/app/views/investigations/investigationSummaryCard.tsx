@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 type InvestigationSummaryCardProps = {
   summary: string | null;
@@ -19,32 +19,17 @@ export function InvestigationSummaryCard({
   }
 
   return (
-    <SummaryCard className={className} gap="xs" data-test-id="investigation-summary">
-      <Text size="lg" bold>
+    <Stack className={className} gap="xs" data-test-id="investigation-summary">
+      <SummaryTitle as="h2" size="xl" tabular>
         {summary}
+      </SummaryTitle>
+      <Text size="md" density="comfortable" tabular wrap="pre-line">
+        {summaryDescription}
       </Text>
-      <SummaryDescription size="md">{summaryDescription}</SummaryDescription>
-    </SummaryCard>
+    </Stack>
   );
 }
 
-const SummaryCard = styled(Stack)`
-  position: relative;
-  overflow: hidden;
-  padding: ${p => p.theme.space.lg};
-  border: 1px solid ${p => p.theme.tokens.border.accent.muted};
-  border-radius: ${p => p.theme.radius.md};
-  box-shadow: ${p => p.theme.shadow.low};
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: ${p => p.theme.tokens.background.accent.vibrant};
-  }
-`;
-
-const SummaryDescription = styled(Text)`
-  white-space: pre-line;
+const SummaryTitle = styled(Heading)`
+  color: ${p => p.theme.tokens.content.headings};
 `;

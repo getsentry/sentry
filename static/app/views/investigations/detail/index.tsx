@@ -455,7 +455,6 @@ function formatNotebookDate(date: string) {
 const NotebookSummaryCard = styled(InvestigationSummaryCard)`
   width: 100%;
   margin-bottom: ${p => p.theme.space.xl};
-  padding-inline: ${p => p.theme.space.xl};
 `;
 
 const HeaderBreadcrumbs = styled(Flex)`
