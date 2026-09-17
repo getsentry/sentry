@@ -31,6 +31,7 @@ import {
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
+import {scaleThresholdsToInterval} from 'sentry/views/dashboards/widgetCard/scaleThresholdsToInterval';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {
@@ -167,6 +168,7 @@ export function VisualizationWidget({
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
+            widgetInterval={widgetInterval}
           />
         );
       }}
@@ -194,6 +196,7 @@ interface VisualizationWidgetContentProps {
   tableResults?: TableDataWithTitle[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
+  widgetInterval?: string;
 }
 
 function VisualizationWidgetContent({
@@ -216,6 +219,7 @@ function VisualizationWidgetContent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
+  widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -411,7 +415,7 @@ function VisualizationWidgetContent({
   ) {
     plottables.push(
       new Thresholds({
-        thresholds: widget.thresholds,
+        thresholds: scaleThresholdsToInterval(widget.thresholds, widgetInterval),
         dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
       })
     );

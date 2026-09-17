@@ -12,7 +12,30 @@ jest.mock('sentry/views/dashboards/widgetCard/widgetCardDataLoader');
 jest.mock(
   'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization',
   () => ({
-    TimeSeriesWidgetVisualization: jest.fn(() => <div data-testid="chart" />),
+    TimeSeriesWidgetVisualization: jest.fn(
+      ({
+        plottables,
+      }: {
+        plottables: Array<{
+          name: string;
+          thresholds?: {max_values: {max1?: number; max2?: number}};
+        }>;
+      }) => {
+        const thresholdValues = plottables.find(
+          plottable => plottable.name === '__thresholds__'
+        )?.thresholds?.max_values;
+
+        return (
+          <div data-test-id="chart">
+            {thresholdValues && (
+              <div data-test-id="threshold-values">
+                {thresholdValues.max1}, {thresholdValues.max2}
+              </div>
+            )}
+          </div>
+        );
+      }
+    ),
   })
 );
 
@@ -95,5 +118,69 @@ describe('VisualizationWidget breakdown series labels', () => {
     });
 
     expect(screen.getByRole('link', {name: 'my_transaction'})).toBeInTheDocument();
+  });
+});
+
+describe('VisualizationWidget threshold time windows', () => {
+  const thresholdWidget = {
+    ...spansBreakdownWidget,
+    thresholds: {
+      max_values: {max1: 100, max2: 200},
+      unit: null,
+      timeWindow: '10m',
+    },
+  };
+
+  it('updates rendered threshold ranges when the widget interval changes', () => {
+    const {rerender} = render(
+      <VisualizationWidget
+        widget={thresholdWidget}
+        selection={selection}
+        widgetInterval="10m"
+      />,
+      {organization: OrganizationFixture()}
+    );
+
+    expect(screen.getByTestId('threshold-values')).toHaveTextContent('100, 200');
+
+    rerender(
+      <VisualizationWidget
+        widget={thresholdWidget}
+        selection={selection}
+        widgetInterval="1h"
+      />
+    );
+
+    expect(screen.getByTestId('threshold-values')).toHaveTextContent('600, 1200');
+  });
+
+  it('keeps fixed threshold ranges unchanged when the widget interval changes', () => {
+    const fixedThresholdWidget = {
+      ...thresholdWidget,
+      thresholds: {
+        max_values: {max1: 100, max2: 200},
+        unit: null,
+      },
+    };
+    const {rerender} = render(
+      <VisualizationWidget
+        widget={fixedThresholdWidget}
+        selection={selection}
+        widgetInterval="10m"
+      />,
+      {organization: OrganizationFixture()}
+    );
+
+    expect(screen.getByTestId('threshold-values')).toHaveTextContent('100, 200');
+
+    rerender(
+      <VisualizationWidget
+        widget={fixedThresholdWidget}
+        selection={selection}
+        widgetInterval="1h"
+      />
+    );
+
+    expect(screen.getByTestId('threshold-values')).toHaveTextContent('100, 200');
   });
 });

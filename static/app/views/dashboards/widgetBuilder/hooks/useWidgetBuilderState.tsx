@@ -747,6 +747,11 @@ export function useWidgetBuilderState(): {
           }
           if (!doesDisplayTypeSupportThresholds(action.payload)) {
             setThresholds(undefined, options);
+          } else if (!usesTimeSeriesData(action.payload) && thresholds?.timeWindow) {
+            // Big Number compares thresholds against one aggregate for the entire
+            // dashboard time range, not interval-sized buckets, so it cannot scale
+            // thresholds using a time window.
+            setThresholds({...thresholds, timeWindow: undefined}, options);
           }
           if (!usesTimeSeriesData(action.payload)) {
             setAxisRange(undefined, options);
@@ -1306,6 +1311,7 @@ export function useWidgetBuilderState(): {
       legendType,
       linkedDashboards,
       selectedAggregate,
+      thresholds,
     ]
   );
 
