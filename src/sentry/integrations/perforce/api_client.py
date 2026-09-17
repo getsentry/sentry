@@ -17,17 +17,14 @@ from sentry.integrations.perforce.client import PerforceClient
 from sentry.integrations.perforce.p4protocol import P4Exception
 from sentry.utils import json
 
-# One ``p4 print`` returns every file it matches in a single round trip, but the
-# protocol client buffers the whole result, so the manifest is printed in batches
-# to keep peak memory proportional to a batch rather than to the depot.
+# p4 print returns every match in one round trip, but the protocol client buffers
+# the result, so batching keeps peak memory proportional to a batch, not the depot.
 PRINT_BATCH_SIZE = 200
 
-# Perforce file types carry "+modifiers" (``binary+FS2w``); only the base type
-# says whether the content is source. Filtering runs server-side where possible,
-# but ``p4 print`` has no ``-F``, so the manifest is filtered again here.
+# p4 print has no -F, so the manifest is filtered again here.
 TEXT_BASE_TYPES = frozenset({"text", "unicode", "utf8", "utf16"})
 
-# Mirrors Seer's own per-file cap: larger files are unreadable to it anyway.
+# Mirrors Seer's own per-file cap.
 MAX_FILE_SIZE_BYTES = 1024 * 1024
 
 
@@ -159,9 +156,8 @@ class PerforceApiClient:
     def enrich_users(self, records: list[dict[str, str]]) -> list[dict[str, str]]:
         """Attach real names and emails to change records.
 
-        ``p4 changes`` reports only a login, but ``CommitAuthor.email`` is
-        required downstream. Looked up once per distinct user rather than per
-        record, since a listing is usually dominated by a handful of authors.
+        p4 reports only a login. Cached per distinct user, since a listing is
+        usually dominated by a handful of authors.
         """
         cache: dict[str, Any] = {}
         for record in records:
@@ -208,9 +204,8 @@ class PerforceApiClient:
     ) -> Iterator[bytes]:
         """Yield a gzipped tar of ``paths``, printed in batches.
 
-        Every member sits under a single top-level directory: Seer's extractor
-        moves that directory's *contents* into place, so a tar with entries at the
-        root silently yields a wrong tree rather than an error.
+        Every member sits under one top-level directory: Seer's extractor moves
+        that directory's contents into place, so a rootless tar yields a wrong tree.
         """
         buffer = io.BytesIO()
         tar = tarfile.open(fileobj=buffer, mode="w|gz")

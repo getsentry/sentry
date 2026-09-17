@@ -28,8 +28,7 @@ def _client(*results):
 
 
 def test_segment_print_splits_on_stat_records():
-    """A file with no trailing newline runs straight into the next file's header, so
-    content must be segmented on the stat dicts rather than parsed by line."""
+    # A file with no trailing newline runs straight into the next file's header.
     result = [
         {"depotFile": f"{DEPOT}/a.cpp"},
         b"no trailing newline",
@@ -55,14 +54,14 @@ def test_unknown_route_is_a_404():
 
 
 def test_p4_missing_file_maps_to_404():
-    """The provider turns status into a coded error, so "no such file(s)" must not be a 500."""
+    # The provider turns status into a coded error, so this must not be a 500.
     client, p4 = _client(P4Exception("//depot/x - no such file(s)."))
     p4.run.side_effect = P4Exception("//depot/x - no such file(s).")
     assert client.request("GET", "/print", params={"path": "//depot/x"}).status_code == 404
 
 
 def test_changes_enriches_the_author():
-    """``p4 changes`` reports only a login, but CommitAuthor.email is required downstream."""
+    # p4 changes reports only a login, but CommitAuthor.email is required downstream.
     client, _ = _client([{"change": "2993", "user": "someone"}])
     payload = json.loads(client.request("GET", "/changes", params={"path": f"{DEPOT}/..."}).content)
     assert payload[0]["userEmail"] == "someone@example.com"
@@ -97,8 +96,8 @@ def _archive_members(client):
 
 
 def test_archive_puts_everything_under_one_top_level_directory():
-    """Seer's extractor moves that directory's *contents* into place; entries at the
-    tar root silently yield a wrong tree instead of an error."""
+    # Seer's extractor moves that directory's contents into place; a rootless tar
+    # silently yields a wrong tree instead of an error.
     manifest = [{"depotFile": f"{DEPOT}/Source/a.cpp", "headType": "text", "fileSize": "5"}]
     client, _ = _client(manifest, [{"depotFile": f"{DEPOT}/Source/a.cpp"}, b"hello"])
 
@@ -121,8 +120,8 @@ def test_archive_puts_everything_under_one_top_level_directory():
     ids=["binary", "oversized", "deleted"],
 )
 def test_archive_excludes_unreadable_files(record):
-    """Binary assets dominate a real depot by bytes, oversized files exceed Seer's own
-    read cap, and a deleted revision has no content to print."""
+    # Binary dominates a real depot by bytes; oversized exceeds Seer's read cap;
+    # a deleted revision has no content to print.
     client, p4 = _client([record])
     assert _archive_members(client) == {}
     # Only the manifest call; nothing was printed.
@@ -130,7 +129,7 @@ def test_archive_excludes_unreadable_files(record):
 
 
 def test_archive_batches_prints():
-    """One print per batch keeps peak memory proportional to a batch, not the depot."""
+    # One print per batch keeps peak memory proportional to a batch, not the depot.
     manifest = [
         {"depotFile": f"{DEPOT}/f{i}.cpp", "headType": "text", "fileSize": "1"} for i in range(250)
     ]

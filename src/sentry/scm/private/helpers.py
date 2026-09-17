@@ -1,20 +1,52 @@
+import importlib
+import logging
 from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
-from scm.providers.perforce.provider import PerforceProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.perforce.api_client import PerforceApiClient
+from sentry.integrations.perforce.client import PerforceClient
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository as RepositoryModel
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
+
+
+def _perforce_provider(
+    client: object, organization_id: int, repository: Repository
+) -> Provider | None:
+    """Build a PerforceProvider, or None when the installed sentry-scm predates it.
+
+    Resolved dynamically rather than imported: a top-level import raises at Django
+    startup against a pinned sentry-scm without the provider, taking down every SCM
+    path rather than just Perforce. A guarded import is no better -- it flips
+    between "unresolvable" and "unused ignore" depending on which build is
+    installed. Import it normally once the pin includes the provider.
+
+    Perforce is not HTTP, so the provider is driven by a client that turns synthetic
+    routes into p4 commands rather than by the integration's own API client.
+    """
+    if not isinstance(client, PerforceClient):
+        logger.warning("scm.perforce.unexpected_client", extra={"client": type(client).__name__})
+        return None
+    try:
+        module = importlib.import_module("scm.providers.perforce.provider")
+    except ModuleNotFoundError:
+        logger.warning("scm.perforce.provider_unavailable")
+        return None
+    provider: Provider = module.PerforceProvider(
+        PerforceApiClient(client), organization_id, repository
+    )
+    return provider
 
 
 def fetch_service_provider(organization_id: int, repository: Repository) -> Provider | None:
@@ -35,7 +67,7 @@ def fetch_service_provider(organization_id: int, repository: Repository) -> Prov
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
     elif integration.provider == "perforce":
-        return PerforceProvider(PerforceApiClient(client), organization_id, repository)
+        return _perforce_provider(client, organization_id, repository)
     else:
         return None
 
