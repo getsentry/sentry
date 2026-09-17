@@ -11,6 +11,8 @@ resources:
     WAI-ARIA Alert: https://www.w3.org/WAI/ARIA/apg/patterns/alert/
 ---
 
+import {useEffect, useId, useState} from 'react';
+
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
@@ -74,7 +76,73 @@ toast.error('Could not save changes', {
 
 - `duration` is in milliseconds. It defaults to `6_000`. Use `Infinity` for a persistent toast.
 - `id` updates an existing toast with the same id instead of adding another toast.
+- `independent` keeps a toast separate from other notifications, including variant changes.
 - `onDismiss` runs when the toast is dismissed.
+
+## Independent operations
+
+Use `independent: true` for an operation's loading and result toasts. These do not
+dismiss other notifications and are not dismissed when another toast's variant changes.
+Keep this option when updating the toast by id.
+
+Start resolving, show an unrelated notification, then complete or fail the operation.
+Loading stays visible until you choose a result; the result uses the normal timeout.
+
+export function IndependentOperationDemo() {
+  const id = useId();
+  const [pending, setPending] = useState(false);
+  useEffect(
+    () => () => {
+      toast.dismiss(id);
+    },
+    [id]
+  );
+  return (
+    <Flex gap="sm" wrap="wrap">
+      <Button
+        disabled={pending}
+        onClick={() => {
+          toast.loading('Resolving issues…', {id, duration: Infinity, independent: true});
+          setPending(true);
+        }}
+      >
+        Start resolving
+      </Button>
+      <Button
+        disabled={!pending}
+        onClick={() => {
+          toast.success('Selected issues resolved', {id, independent: true});
+          setPending(false);
+        }}
+      >
+        Complete
+      </Button>
+      <Button
+        disabled={!pending}
+        onClick={() => {
+          toast.error('Unable to resolve issues', {id, independent: true});
+          setPending(false);
+        }}
+      >
+        Fail
+      </Button>
+      <Button onClick={() => toast.message('Unrelated notification')}>
+        Other notification
+      </Button>
+    </Flex>
+  );
+}
+
+<Storybook.Demo>
+  <IndependentOperationDemo />
+</Storybook.Demo>
+
+```tsx
+const id = toast.loading('Resolving issues…', {duration: Infinity, independent: true});
+
+// When the request finishes, update the same toast.
+toast.success('Selected issues resolved', {id, independent: true});
+```
 
 ## Actions
 
@@ -111,10 +179,6 @@ toast.success('Item deleted', {
 Toasts dismiss automatically after their duration. Users can also click the `Dismiss` button or swipe
 a toast. Toasts of the same variant stack up to three at once; showing a different variant
 dismisses the previous variant's active toasts.
-
-Use `independent: true` for an operation's loading and result toasts. These do not
-dismiss other notifications and are not dismissed when another toast's variant changes.
-Keep this option when updating the toast by id.
 
 ```tsx
 // Dismiss one toast by id
