@@ -226,7 +226,7 @@ export function InvestigationHypotheses({
           border="primary"
           radius="xl"
           background="secondary"
-          padding="xl"
+          padding="lg"
           gap={panelState.expanded ? 'xl' : undefined}
           data-test-id="investigation-run-panel"
         >
@@ -260,8 +260,13 @@ export function InvestigationHypotheses({
 }
 
 const HypothesesTitle = styled(Disclosure.Title)`
+  :has(> &) {
+    padding: 0;
+  }
+
   && {
     height: auto;
+    padding: 0;
     white-space: normal;
     text-align: left;
   }
