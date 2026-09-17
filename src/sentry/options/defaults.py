@@ -1382,7 +1382,6 @@ register(
 register(
     "seer.smart_assignment.prefetch_rollout_rate",
     type=Float,
-    # Start disabled; set to 0.10 only after the Seer receiver is fully deployed.
     default=0.5,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
