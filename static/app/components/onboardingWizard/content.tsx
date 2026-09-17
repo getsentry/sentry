@@ -421,7 +421,7 @@ function TaskGroup({
   }, [tasks]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setIsExpanded(expanded);
   }, [expanded]);
 
