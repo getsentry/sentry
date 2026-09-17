@@ -69,29 +69,6 @@ type FilterSelectorProps = {
   disableRemoveFilter?: boolean;
 };
 
-function FilterSelectorTriggerView({
-  activeFilterValues,
-  globalFilter,
-  operator,
-  options,
-}: {
-  activeFilterValues: string[];
-  globalFilter: GlobalFilter;
-  operator: TermOperator;
-  options: Array<SelectOption<string>>;
-}) {
-  const displayValues = stripUnsupportedNoValue(activeFilterValues, operator);
-
-  return (
-    <FilterSelectorTrigger
-      globalFilter={globalFilter}
-      activeFilterValues={displayValues}
-      operator={operator}
-      options={options}
-    />
-  );
-}
-
 export function FilterSelector({
   globalFilter,
   searchBarData,
@@ -494,8 +471,11 @@ export function FilterSelector({
         )}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps}>
-            <FilterSelectorTriggerView
-              activeFilterValues={activeFilterValues}
+            <FilterSelectorTrigger
+              activeFilterValues={stripUnsupportedNoValue(
+                activeFilterValues,
+                stagedOperator
+              )}
               globalFilter={globalFilter}
               operator={stagedOperator}
               options={translatedOptions}
@@ -596,8 +576,11 @@ export function FilterSelector({
       )}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>
-          <FilterSelectorTriggerView
-            activeFilterValues={activeFilterValues}
+          <FilterSelectorTrigger
+            activeFilterValues={stripUnsupportedNoValue(
+              activeFilterValues,
+              stagedOperator
+            )}
             globalFilter={globalFilter}
             operator={stagedOperator}
             options={translatedOptions}
