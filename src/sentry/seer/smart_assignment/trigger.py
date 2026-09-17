@@ -7,6 +7,7 @@ from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.options.rollout import in_rollout_group
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
@@ -17,6 +18,7 @@ from sentry.seer.smart_assignment.models import (
     SEER_FEATURE_ID,
     SEER_START_ACTIVITIES,
     SmartAssignmentPayload,
+    SmartAssignmentPrefetchMode,
     is_unscorable_assignment,
 )
 from sentry.seer.smart_assignment.scoring import record_ground_truth, resolver_user_id
@@ -176,9 +178,18 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         )
         return
 
+    prefetch_mode: SmartAssignmentPrefetchMode = (
+        "seer"
+        if in_rollout_group(
+            "seer.smart_assignment.prefetch_rollout_rate",
+            f"smart-assignment-prefetch:{group.id}",
+        )
+        else "control"
+    )
     extras: dict[str, object] = {
         "trigger": activity_type.name,
         "triggering_activity_id": activity.id,
+        "prefetch_cohort": prefetch_mode,
     }
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
@@ -190,6 +201,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         group_id=group.id,
         project_slug=group.project.slug,
         connected_repos=connected_repos,
+        prefetch_mode=prefetch_mode,
     )
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:
@@ -209,7 +221,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
 
     metrics.incr(
         "smart_assignment.trigger.dispatched",
-        tags={"trigger": activity_type.name},
+        tags={"trigger": activity_type.name, "prefetch_cohort": prefetch_mode},
         sample_rate=1.0,
     )
     logger.info(
@@ -218,6 +230,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
             "group_id": group.id,
             "organization_id": organization.id,
             "trigger": activity_type.name,
+            "prefetch_cohort": prefetch_mode,
         },
     )
 

@@ -47,10 +47,21 @@ class ScoringTestBase(TestCase):
 
 
 class RecordPredictionScoringTest(ScoringTestBase):
-    def _assert_result(self, mock_metrics: MagicMock, expected: str, hit_rank: int = 0) -> None:
+    def _assert_result(
+        self,
+        mock_metrics: MagicMock,
+        expected: str,
+        hit_rank: int = 0,
+        prefetch_cohort: str = "control",
+    ) -> None:
         mock_metrics.incr.assert_called_once_with(
             "smart_assignment.scored",
-            tags={"result": expected, "hit_rank": hit_rank, "trigger": STARTED.name},
+            tags={
+                "result": expected,
+                "hit_rank": hit_rank,
+                "trigger": STARTED.name,
+                "prefetch_cohort": prefetch_cohort,
+            },
             sample_rate=1.0,
         )
 
@@ -64,6 +75,20 @@ class RecordPredictionScoringTest(ScoringTestBase):
         run.refresh_from_db()
         assert run.extras["result"] == SmartAssignmentScore.EXACT
         assert run.extras["hit_rank"] == 1
+
+    @patch(METRICS_PATH)
+    def test_scoring_tags_seer_prefetch_cohort(self, mock_metrics: MagicMock) -> None:
+        user = self.create_user()
+        run = self._run(actual_assignee_user_id=user.id, prefetch_cohort="seer")
+
+        record_prediction(run, [user.id], user.id)
+
+        self._assert_result(
+            mock_metrics,
+            SmartAssignmentScore.EXACT,
+            hit_rank=1,
+            prefetch_cohort="seer",
+        )
 
     @patch(METRICS_PATH)
     def test_team_when_predicted_user_on_assigned_team(self, mock_metrics: MagicMock) -> None:
@@ -466,7 +491,12 @@ class RecordGroundTruthTest(ScoringTestBase):
 
         mock_metrics.incr.assert_any_call(
             "smart_assignment.scored",
-            tags={"result": SmartAssignmentScore.EXACT, "hit_rank": 1, "trigger": STARTED.name},
+            tags={
+                "result": SmartAssignmentScore.EXACT,
+                "hit_rank": 1,
+                "trigger": STARTED.name,
+                "prefetch_cohort": "control",
+            },
             sample_rate=1.0,
         )
 

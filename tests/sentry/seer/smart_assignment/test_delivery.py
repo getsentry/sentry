@@ -48,9 +48,13 @@ class DeliverSmartAssignmentResultTest(TestCase):
             self.organization.id, self.seer_run.uuid, status, result, error
         )
 
-    def _assert_outcome(self, mock_metrics: MagicMock, expected: str) -> None:
+    def _assert_outcome(
+        self, mock_metrics: MagicMock, expected: str, prefetch_cohort: str = "control"
+    ) -> None:
         mock_metrics.incr.assert_called_once_with(
-            "smart_assignment.delivery", tags={"outcome": expected}, sample_rate=1.0
+            "smart_assignment.delivery",
+            tags={"outcome": expected, "prefetch_cohort": prefetch_cohort},
+            sample_rate=1.0,
         )
 
     def _completion_activity(self) -> Activity:
@@ -108,6 +112,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
     @patch(METRICS_PATH)
     def test_records_run_duration_and_candidate_counts(self, mock_metrics: MagicMock) -> None:
         self.seer_run.update(last_triggered_at=timezone.now() - timedelta(seconds=30))
+        self.mirror.update(extras={**self.mirror.extras, "prefetch_cohort": "seer"})
         alice = self.create_user(username="alice")
         self.create_member(user=alice, organization=self.organization)
 
@@ -123,20 +128,20 @@ class DeliverSmartAssignmentResultTest(TestCase):
         mock_metrics.distribution.assert_any_call(
             "smart_assignment.run.duration",
             ANY,
-            tags={"status": "completed"},
+            tags={"status": "completed", "prefetch_cohort": "seer"},
             unit="second",
             sample_rate=1.0,
         )
         mock_metrics.distribution.assert_any_call(
             "smart_assignment.prediction.candidates",
             2,
-            tags={"outcome": "resolved"},
+            tags={"outcome": "resolved", "prefetch_cohort": "seer"},
             sample_rate=1.0,
         )
         mock_metrics.distribution.assert_any_call(
             "smart_assignment.prediction.resolved_candidates",
             1,
-            tags={"outcome": "resolved"},
+            tags={"outcome": "resolved", "prefetch_cohort": "seer"},
             sample_rate=1.0,
         )
 
@@ -178,7 +183,9 @@ class DeliverSmartAssignmentResultTest(TestCase):
             == 1
         )
         mock_metrics.incr.assert_any_call(
-            "smart_assignment.delivery", tags={"outcome": "duplicate"}, sample_rate=1.0
+            "smart_assignment.delivery",
+            tags={"outcome": "duplicate", "prefetch_cohort": "control"},
+            sample_rate=1.0,
         )
 
     @patch(METRICS_PATH)
@@ -373,6 +380,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
                 "result": SmartAssignmentScore.EXACT,
                 "hit_rank": 1,
                 "trigger": ActivityType.SEER_RCA_STARTED.name,
+                "prefetch_cohort": "control",
             },
             sample_rate=1.0,
         )
@@ -481,4 +489,4 @@ class DeliverSmartAssignmentResultTest(TestCase):
             {"candidates": []},
             None,
         )
-        self._assert_outcome(mock_metrics, "missing_run")
+        self._assert_outcome(mock_metrics, "missing_run", "unknown")
