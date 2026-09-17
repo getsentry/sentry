@@ -99,6 +99,13 @@ class BuildInstallUrlTest(TestCase):
         assert query["redirect_uri"] == ["https://sentry.io/cb"]
         assert query["scope"] == [" ".join(CURSOR_ORIGIN_SCOPES)]
 
+    def test_keeps_scopes_the_customer_already_granted(self) -> None:
+        with self.options({"cursor-origin-app.id": APP_ID}):
+            url = build_install_url(state="sig", redirect_uri="https://sentry.io/cb")
+
+        query = parse_qs(urlparse(url).query)
+        assert query["include_granted_scopes"] == ["true"]
+
     def test_scopes_are_space_separated_with_percent_20(self) -> None:
         with self.options({"cursor-origin-app.id": APP_ID}):
             url = build_install_url(state="sig", redirect_uri="https://sentry.io/cb")
