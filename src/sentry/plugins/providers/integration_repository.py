@@ -234,7 +234,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         return result, repo
 
     def _apply_repo_config(self, repo: RpcRepository, config: RepositoryConfig) -> RpcRepository:
-        """Reactivates ``repo`` and overlays ``config`` onto it in memory. The caller persists it."""
+        """Reactivates ``repo`` and overlays ``config`` onto it, mutating it in place and
+        returning it. The caller persists it."""
         repo.status = ObjectStatus.ACTIVE
         # legacy plugin repos carry the bare provider slug; adopting one moves it to this provider
         repo.provider = self.id
@@ -283,19 +284,18 @@ class IntegrationRepositoryProvider(Generic[InstT]):
             organization, configs_to_create
         )
 
+        # callers (link_all_repos) treat the third return value as "configs I asked for that
+        # weren't created". a repo that was already active on this integration counts
+        already_active = [
+            config for repo, config in repos_to_update if repo.status == ObjectStatus.ACTIVE
+        ]
+
         updated_repos = self._update_existing_repositories(organization, repos_to_update)
 
         transferred_repos, untransferable = self._transfer_repositories(
             organization, repos_to_transfer
         )
 
-        # callers (link_all_repos) treat the third list as "configs I asked for that weren't
-        # created". a repo that was already active on this integration counts: it was updated
-        # above, but nothing was created for it. hidden or disabled repos don't count, since
-        # reactivating them is the closest thing to creating them
-        already_active = [
-            config for repo, config in repos_to_update if repo.status == ObjectStatus.ACTIVE
-        ]
         not_created = already_created + already_active + untransferable
 
         return created_repos, updated_repos + transferred_repos, not_created
