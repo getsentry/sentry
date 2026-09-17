@@ -45,6 +45,14 @@ def delete_malformed_anomaly_conditions(
         ).select_related("alert_rule")
 
         for trigger in triggers:
+            conditions = DataCondition.objects.filter(
+                id__in=condition_ids_by_trigger_id[trigger.id]
+            )
+            condition_group_ids = conditions.values_list("condition_group_id", flat=True)
+            DataCondition.objects.filter(condition_group_id__in=condition_group_ids).exclude(
+                type="anomaly_detection"
+            ).delete()
+
             alert_rule = trigger.alert_rule
             if (
                 alert_rule.sensitivity is None
@@ -53,13 +61,6 @@ def delete_malformed_anomaly_conditions(
             ):
                 continue
 
-            conditions = DataCondition.objects.filter(
-                id__in=condition_ids_by_trigger_id[trigger.id]
-            )
-            condition_group_ids = conditions.values_list("condition_group_id", flat=True)
-            DataCondition.objects.filter(condition_group_id__in=condition_group_ids).exclude(
-                type="anomaly_detection"
-            ).delete()
             conditions.update(
                 comparison={
                     "seasonality": alert_rule.seasonality,
