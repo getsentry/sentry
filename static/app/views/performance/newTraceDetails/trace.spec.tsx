@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -22,6 +23,7 @@ import {EntryType, type EventTransaction} from 'sentry/types/event';
 import * as analytics from 'sentry/utils/analytics';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
+  makeEAPError,
   makeEAPSpan,
   makeEAPTrace,
   makeEventTransaction,
@@ -980,6 +982,145 @@ describe('trace view', () => {
       });
       return {organization, root};
     }
+
+    it.each([false, true])(
+      'keeps pinned values loaded when selecting errors and spans (error deep link: %s)',
+      async errorDeepLink => {
+        const {organization, root} = setupPinnedTrace();
+        const errors = [
+          makeEAPError({
+            event_id: '11111111111141118111111111111111',
+            description: 'first selectable error',
+            start_timestamp: root.start_timestamp + 0.25,
+          }),
+          makeEAPError({
+            event_id: '22222222222242228222222222222222',
+            description: 'second selectable error',
+            start_timestamp: root.start_timestamp + 0.5,
+          }),
+        ];
+        const traceRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace/trace-id/',
+          body: [root, ...errors],
+        });
+        const attributeRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+          asyncDelay: 100,
+          body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/1/',
+          body: GroupFixture(),
+        });
+        const query = {
+          pinnedAttribute: 'custom.region',
+          ...(errorDeepLink ? {eventId: errors[0]!.event_id} : {}),
+        };
+        mockQueryString(`?${new URLSearchParams(query).toString()}`);
+        const {router} = render(<TraceView />, {
+          organization,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              pathname: '/organizations/org-slug/performance/trace/trace-id/',
+              query,
+            },
+          },
+        });
+        expect(await screen.findByText('waterfall-region')).toBeInTheDocument();
+        const waterfall = within(screen.getByTestId('trace-virtualized-list'));
+
+        for (const item of [root, ...errors, root]) {
+          const description = waterfall.getByText(item.description!);
+          // Deep links animate the waterfall before enabling pointer interaction.
+          await waitFor(() =>
+            expect(screen.getByTestId('trace-virtualized-list')).not.toHaveStyle({
+              pointerEvents: 'none',
+            })
+          );
+          await userEvent.click(description);
+          await waitFor(() =>
+            expect(router.location.query.node).toBe(`${item.event_type}-${item.event_id}`)
+          );
+          expect(attributeRequest).toHaveBeenCalledTimes(1);
+          expect(waterfall.getByText('waterfall-region')).toBeInTheDocument();
+        }
+
+        expect(traceRequest).toHaveBeenCalledTimes(1);
+        expect(attributeRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              start: new Date(Math.floor(root.start_timestamp) * 1000).toISOString(),
+              end: new Date((Math.floor(root.end_timestamp) + 1) * 1000).toISOString(),
+              dataset: 'spans',
+              field: ['span_id', 'custom.region'],
+              query: 'trace:trace-id',
+              project: -1,
+              per_page: 100,
+              sort: 'span_id',
+              sampling: 'HIGHEST_ACCURACY',
+              referrer: 'trace.waterfall.attribute-pinning',
+            },
+          })
+        );
+      }
+    );
+
+    it('loads all events pages and retries a failed later page without refetching the trace', async () => {
+      const {organization, root} = setupPinnedTrace();
+      const traceRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        body: [root],
+      });
+      const firstPage = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: root.event_id, 'custom.region': 'root-region'}]},
+        headers: {
+          Link: '<https://sentry.io/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+        },
+      });
+      const failedPage = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+        statusCode: 500,
+      });
+      mockQueryString('?pinnedAttribute=custom.region');
+      render(<TraceView />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            pathname: '/organizations/org-slug/performance/trace/trace-id/',
+            query: {pinnedAttribute: 'custom.region'},
+          },
+        },
+      });
+
+      expect(await screen.findByText('Could not load attribute')).toBeInTheDocument();
+      expect(screen.getByText('pinnable child')).toBeInTheDocument();
+      expect(firstPage).toHaveBeenCalledTimes(1);
+      expect(failedPage).toHaveBeenCalledTimes(1);
+
+      const nextPage = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+        body: {
+          data: [{span_id: root.children[0]!.event_id, 'custom.region': 'child-region'}],
+        },
+      });
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Retry loading attribute'})
+      );
+
+      expect(await screen.findByText('child-region')).toBeInTheDocument();
+      expect(screen.getByText('root-region')).toBeInTheDocument();
+      expect(screen.queryByText('Could not load attribute')).not.toBeInTheDocument();
+      expect(nextPage).toHaveBeenCalledTimes(1);
+      expect(traceRequest).toHaveBeenCalledTimes(1);
+    });
 
     it('waits for the trace to load before showing a shared pin', async () => {
       const {organization, root} = setupPinnedTrace();
