@@ -19,6 +19,7 @@ export type IssueUpdateData =
   | GroupStatusResolution;
 
 export type IssueActionHandler = (
+  /** Explicit issue IDs, or undefined for all issues matching the current query. */
   itemIds: string[] | undefined,
   data: IssueUpdateData,
   previousGroups?: BaseGroup[]

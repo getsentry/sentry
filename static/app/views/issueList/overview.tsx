@@ -834,28 +834,32 @@ function IssueListOverviewInner({
         });
 
         const firstGroup = previousGroups[0];
-        if (
-          !realtimeActive &&
-          firstGroup &&
-          previousGroups.length === itemIds?.length &&
-          previousGroups.every(
-            group =>
-              group.status === GroupStatus.UNRESOLVED &&
-              group.substatus === firstGroup.substatus &&
-              Object.keys(group.statusDetails).length === 0
-          )
-        ) {
-          return () =>
-            undoAction({
-              data: {
-                status: GroupStatus.UNRESOLVED,
-                statusDetails: {},
-                substatus: firstGroup.substatus,
-              },
-              groupItems: previousGroups,
-            });
+        // Undo needs the previous state of every explicitly selected issue.
+        if (realtimeActive || !firstGroup || previousGroups.length !== itemIds?.length) {
+          return;
         }
-        return;
+
+        // One Undo request applies the same status, substatus and empty details to
+        // every issue, so it must match all of their previous states.
+        const canRestorePreviousState = previousGroups.every(
+          group =>
+            group.status === GroupStatus.UNRESOLVED &&
+            group.substatus === firstGroup.substatus &&
+            Object.keys(group.statusDetails).length === 0
+        );
+        if (!canRestorePreviousState) {
+          return;
+        }
+
+        return () =>
+          undoAction({
+            data: {
+              status: GroupStatus.UNRESOLVED,
+              statusDetails: {},
+              substatus: firstGroup.substatus,
+            },
+            groupItems: previousGroups,
+          });
       }
     }
 
