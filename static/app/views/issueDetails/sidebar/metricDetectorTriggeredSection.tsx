@@ -219,6 +219,7 @@ function useZoomTimeRangeToOpenPeriod({
 
   useEffect(() => {
     zoomTimeRangeToOpenPeriod();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
 }
 

@@ -305,6 +305,7 @@ function LazyImage({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setLoaded(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [src]);
 
   const onLoad = useCallback(() => setLoaded(true), []);

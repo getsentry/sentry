@@ -114,6 +114,7 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
     }
 
     setFirstOverflowIndex(newOverflowIndex);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [wrapperWidth, items, innerGap, outerGap]);
 
   const overflowItems =

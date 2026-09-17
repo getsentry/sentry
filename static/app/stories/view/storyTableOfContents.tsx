@@ -80,6 +80,7 @@ function useStoryIndex(): Entry[] {
     }
 
     return () => observer.disconnect();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [hash]);
 
   return entries;

@@ -163,6 +163,7 @@ export function FilterSelector({
    */
   useEffect(() => {
     setStagedOperator(initialOperator);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [initialOperator]);
 
   // Retrieve full tag definition to check if it has predefined values

@@ -97,6 +97,7 @@ export function AutoSizedText({children}: Props) {
     return () => {
       observer.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, []);
 
   const adjustFontSize = (childDimensions: Dimensions, parentDimensions: Dimensions) => {
