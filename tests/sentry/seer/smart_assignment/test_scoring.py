@@ -47,19 +47,10 @@ class ScoringTestBase(TestCase):
 
 
 class RecordPredictionScoringTest(ScoringTestBase):
-    def _assert_result(
-        self,
-        mock_metrics: MagicMock,
-        expected: str,
-        hit_rank: int = 0,
-    ) -> None:
+    def _assert_result(self, mock_metrics: MagicMock, expected: str, hit_rank: int = 0) -> None:
         mock_metrics.incr.assert_called_once_with(
             "smart_assignment.scored",
-            tags={
-                "result": expected,
-                "hit_rank": hit_rank,
-                "trigger": STARTED.name,
-            },
+            tags={"result": expected, "hit_rank": hit_rank, "trigger": STARTED.name},
             sample_rate=1.0,
         )
 
@@ -475,11 +466,7 @@ class RecordGroundTruthTest(ScoringTestBase):
 
         mock_metrics.incr.assert_any_call(
             "smart_assignment.scored",
-            tags={
-                "result": SmartAssignmentScore.EXACT,
-                "hit_rank": 1,
-                "trigger": STARTED.name,
-            },
+            tags={"result": SmartAssignmentScore.EXACT, "hit_rank": 1, "trigger": STARTED.name},
             sample_rate=1.0,
         )
 

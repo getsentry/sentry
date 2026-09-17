@@ -25,11 +25,7 @@ class _DeliveryAborted(Exception):
 
 
 def _incr(outcome: str) -> None:
-    metrics.incr(
-        "smart_assignment.delivery",
-        tags={"outcome": outcome},
-        sample_rate=1.0,
-    )
+    metrics.incr("smart_assignment.delivery", tags={"outcome": outcome}, sample_rate=1.0)
 
 
 def _validate_run(
@@ -107,9 +103,7 @@ def _validate_group(organization_id: int, run_uuid: UUID) -> Group:
 
 
 def _validate_resolve_verdict(
-    organization_id: int,
-    result: dict[str, Any] | None,
-    log_extra: dict[str, Any],
+    organization_id: int, result: dict[str, Any] | None, log_extra: dict[str, Any]
 ) -> list[int | None]:
     """Parse the delivered artifact and resolve each ranked candidate to a Sentry user id.
 
