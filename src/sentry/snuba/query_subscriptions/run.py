@@ -1,6 +1,9 @@
 import logging
 
+import sentry_sdk
 from sentry_kafka_schemas import get_codec
+from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 from taskbroker_client.registry import TaskNamespace
 
 from sentry import options
@@ -16,7 +19,6 @@ from sentry.taskworker.namespaces import (
     snuba_transactions_subscriptions_raw_tasks,
 )
 from sentry.utils.kafka_config import get_topic_definition
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -29,13 +31,22 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
     logical_topic = dataset_to_logical_topic[dataset]
     topic = get_topic_definition(Topic(logical_topic))["real_topic_name"]
 
-    with (
-        start_span(
-            op="handle_message",
+    traces.new_trace()
+    _start_span_ctx_1 = sentry_sdk.get_current_scope().get_active_propagation_context()
+    _start_span_prev_1 = _start_span_ctx_1.custom_sampling_context
+    Scope.set_custom_sampling_context(
+        {"sample_rate": options.get("subscriptions-query.sample-rate")}
+    )
+    try:
+        _start_span_tmp_1 = traces.start_span(
             name="query_subscription_consumer_process_message",
-            custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
-            transaction=True,
-        ),
+            attributes={"sentry.op": "handle_message"},
+            parent_span=None,
+        )
+    finally:
+        _start_span_ctx_1.custom_sampling_context = _start_span_prev_1
+    with (
+        _start_span_tmp_1,
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):
         try:
