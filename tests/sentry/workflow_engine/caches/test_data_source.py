@@ -18,7 +18,6 @@ class TestGetDataSourcesByDetectorAndSourceId(BaseWorkflowTest):
         data_source.detectors.set([detector])
 
         with self.assertNumQueries(1):
-            # 1. Get the data sources (cache miss)
             result = get_data_sources_by_detector_and_source_id(detector.id, "12345")
 
             assert len(result) == 1

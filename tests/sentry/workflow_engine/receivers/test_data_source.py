@@ -48,7 +48,6 @@ class TestDataSourcesByDetectorCacheInvalidationSignals(BaseWorkflowTest):
         data_source.save()
 
         with self.assertNumQueries(1):
-            # 1. Get the data sources (cache miss after invalidation)
             result = get_data_sources_by_detector_and_source_id(detector.id, "ds_evidence_test_1")
             assert len(result) == 1
             assert result[0].id == data_source.id
@@ -69,7 +68,6 @@ class TestDataSourcesByDetectorCacheInvalidationSignals(BaseWorkflowTest):
         data_source.delete()
 
         with self.assertNumQueries(1):
-            # 1. Get the data sources (cache miss after invalidation)
             assert (
                 get_data_sources_by_detector_and_source_id(detector.id, "ds_evidence_test_2") == []
             )
