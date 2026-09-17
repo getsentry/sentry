@@ -214,10 +214,14 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-afterEach(() => {
+afterEach(async () => {
   const {toast} =
     jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
-  act(() => void toast.dismiss());
+  await act(async () => {
+    toast.dismiss();
+    // Sonner applies dismissals on the next animation frame.
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  });
   resetResizeObservers();
 });
 
