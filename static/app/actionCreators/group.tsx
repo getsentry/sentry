@@ -13,7 +13,7 @@ import {parseActorString} from 'sentry/utils/parseActorString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 
-type ParamsType = Partial<PageFilterDatetime> & {
+type GroupQueryParams = Partial<PageFilterDatetime> & {
   environment?: string | string[] | null;
   itemIds?: string[];
   project?: number[] | string[] | null;
@@ -21,59 +21,32 @@ type ParamsType = Partial<PageFilterDatetime> & {
   sort?: string;
 };
 
-type UpdateParams = ParamsType & {
+type UpdateParams = GroupQueryParams & {
   orgId: string;
   projectId?: string;
 };
 
-type QueryArgs = {
-  end?: string;
-  environment?: string | string[];
-  project?: Array<number | string>;
-  sort?: string;
-  start?: string;
-  statsPeriod?: string;
-  utc?: boolean;
-} & ({id: number[] | string[]; query?: never} | {id?: never; query?: string});
-
 /**
  * Converts input parameters to API-compatible query arguments
  */
-export function paramsToQueryArgs(params: ParamsType): QueryArgs {
-  // An empty query means all statuses; omitting it defaults to unresolved issues.
-  const p: QueryArgs = params.itemIds
-    ? {id: params.itemIds}
-    : params.query === undefined
-      ? {}
-      : {query: params.query};
-
-  // only include projects if it is not null/undefined/an empty array
-  if (params.project?.length) {
-    p.project = params.project;
-  }
+export function paramsToQueryArgs(params: GroupQueryParams) {
+  const project = params.project?.length ? params.project : undefined;
 
   if (params.itemIds) {
-    return p;
+    return {id: params.itemIds, project};
   }
-  if (params.environment !== null && params.environment !== undefined) {
-    p.environment = params.environment;
-  }
-  if (params.sort !== undefined) {
-    p.sort = params.sort;
-  }
-  if (params.start) {
-    p.start = getUtcDateString(params.start);
-  }
-  if (params.end) {
-    p.end = getUtcDateString(params.end);
-  }
-  if (params.period) {
-    p.statsPeriod = params.period;
-  }
-  if (params.utc !== null && params.utc !== undefined) {
-    p.utc = params.utc;
-  }
-  return p;
+
+  return {
+    // Preserve an empty query; omitting it defaults to unresolved issues.
+    query: params.query,
+    project,
+    environment: params.environment ?? undefined,
+    sort: params.sort,
+    start: params.start ? getUtcDateString(params.start) : undefined,
+    end: params.end ? getUtcDateString(params.end) : undefined,
+    statsPeriod: params.period || undefined,
+    utc: params.utc ?? undefined,
+  };
 }
 
 function getUpdateUrl({projectId, orgId}: UpdateParams) {
