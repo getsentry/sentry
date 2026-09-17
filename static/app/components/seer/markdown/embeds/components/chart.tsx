@@ -128,6 +128,10 @@ export function ChartContent({
           })
           .filter((plottable): plottable is Plottable => plottable !== null)}
         showReleaseAs="none"
+        // An embed's chart is as wide as the card it sits in, which is narrow
+        // and clips. Left to size itself to a model-written series name, the
+        // legend's "+n more" menu grows past the card and is cut off.
+        truncateLegendMenuLabels
       />
     );
 

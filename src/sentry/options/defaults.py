@@ -1403,6 +1403,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "issues.action_log.use_db_sequence_for_outbox_identifier",
+    type=Bool,
+    default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
     default=False,
@@ -3715,6 +3721,22 @@ register(
     "uptime.create-issues",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Kill switch for the scheduled Redis/Postgres uptime config drift sweep.
+register(
+    "uptime.config-drift.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Hours one full drift sweep is spread across, i.e. how stale drift may be before it is seen.
+register(
+    "uptime.config-drift.cycle-hours",
+    type=Int,
+    default=24,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

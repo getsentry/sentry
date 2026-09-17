@@ -104,11 +104,6 @@ export function InvestigationCell({
     block.title ||
     chartTitle ||
     (block.kind === 'query' ? t('Untitled query') : t('Untitled cell'));
-  const rerunMutation = useRunInvestigationBlockMutation(
-    organizationSlug,
-    investigation.id,
-    {onError: () => addErrorMessage(t('Unable to rerun this cell.'))}
-  );
   const deleteMutation = useDeleteInvestigationBlockMutation(
     organizationSlug,
     investigation.id,
@@ -136,36 +131,7 @@ export function InvestigationCell({
     setPrompt(block.outputStatus === 'notRun' ? block.generationPrompt : '');
   }
 
-  async function rerun() {
-    try {
-      const execution = await rerunMutation.mutateAsync({
-        block,
-        investigationVersion: investigation.version,
-      });
-      setPanelOpen(true);
-      setTraceExecutionId(execution.id);
-      setShowPrompt(false);
-      autoOpenedExecutionId.current = execution.id;
-    } catch {
-      // The mutation owns user-facing error handling.
-    }
-  }
-
-  const actionItems: MenuItemProps[] = [];
-  if (block.kind === 'query') {
-    // oxlint-disable-next-line react/refs
-    actionItems.push({
-      key: 'rerun',
-      label: t('Rerun'),
-      disabled:
-        !canRun ||
-        rerunMutation.isPending ||
-        isExecutionActive(block.currentExecution?.status) ||
-        !(block.generationPrompt || block.content).trim(),
-      onAction: () => void rerun(),
-    });
-  }
-  actionItems.push(
+  const actionItems: MenuItemProps[] = [
     {
       key: 'refine',
       label: t('Refine'),
@@ -191,8 +157,8 @@ export function InvestigationCell({
               investigationVersion: investigation.version,
             }),
         }),
-    }
-  );
+    },
+  ];
 
   const cellActions = (
     <CellActions flexShrink={0}>
@@ -307,7 +273,7 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(block.config.autoRun !== true);
+  const [expanded, setExpanded] = useState(true);
   const output = getQueryOutput(block.output);
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
@@ -466,13 +432,18 @@ function getCellProgressState(
   return 'waiting';
 }
 
-export function shouldDisplayInvestigationBlock(
-  block: InvestigationBlock,
-  blocks: InvestigationBlock[]
-) {
-  // Waiting cells have no useful content yet. Dependency failures and cancellations
-  // remain visible so users can understand why downstream work stopped.
-  return getCellProgressState(block, blocks) !== 'waiting';
+export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
+  if (block.kind === 'text') {
+    return Boolean((getTextOutput(block.output) ?? block.content).trim());
+  }
+  const output = getQueryOutput(block.output);
+  if (!output || output.isEmpty) {
+    return false;
+  }
+  return Boolean(
+    output.tableMarkdown.trim() ||
+    (output.preferredView === 'chart' && getRenderableChart(output.chart))
+  );
 }
 
 export function shouldPollInvestigationBlocks(blocks: InvestigationBlock[]) {
@@ -1090,7 +1061,7 @@ function getTextOutput(output: unknown): string | null {
 
 type RenderableQueryOutput = Pick<
   InvestigationQueryOutput,
-  'chart' | 'preferredView' | 'tableMarkdown'
+  'chart' | 'preferredView' | 'tableMarkdown' | 'isEmpty'
 >;
 
 function getQueryOutput(output: unknown): RenderableQueryOutput | null {
@@ -1110,6 +1081,7 @@ function getQueryOutput(output: unknown): RenderableQueryOutput | null {
       : null;
   return {
     chart,
+    isEmpty: 'isEmpty' in output && output.isEmpty === true,
     preferredView: output.preferredView,
     tableMarkdown: output.tableMarkdown,
   };
