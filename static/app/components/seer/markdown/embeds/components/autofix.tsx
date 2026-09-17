@@ -1,9 +1,7 @@
-import {useEffect, useMemo, type ReactNode} from 'react';
+import {useEffect, useMemo, type ComponentType, type ReactNode} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
@@ -21,22 +19,23 @@ import {
   useExplorerAutofix,
   type AutofixExplorerStep,
   type AutofixSection,
-  type RootCauseArtifact,
-  type SolutionArtifact,
+  type SolutionStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetails';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
+import {resourceLinkMarkdown} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconList} from 'sentry/icons/iconList';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
@@ -50,38 +49,49 @@ export const STEP_LABELS: Record<AutofixExplorerStep, string> = {
   pr_iteration: t('Pull Request'),
 };
 
-const STEP_ICONS: Record<AutofixExplorerStep, ReactNode> = {
-  root_cause: <IconBug />,
-  solution: <IconList />,
-  code_changes: <IconCode />,
-  pr_iteration: <IconPullRequest />,
+/**
+ * The step's title, which is all that survives as text -- progress, the buttons
+ * and the body are why you would look at the embed instead. A string because it
+ * is composed into a larger line, and there is no icon here for a `ResourceLink`.
+ */
+function autofixStepMarkdown(
+  step: AutofixExplorerStep,
+  id: string,
+  shortId: string
+): string {
+  const issue = resourceLinkMarkdown(`/issues/${id}/`, shortId);
+  return issue ? `${STEP_LABELS[step]}: ${issue}` : STEP_LABELS[step];
+}
+
+const STEP_ICONS: Record<AutofixExplorerStep, ComponentType<SVGIconProps>> = {
+  root_cause: IconBug,
+  solution: IconList,
+  code_changes: IconCode,
+  pr_iteration: IconPullRequest,
 };
 
-interface AutofixDisclosureProps extends Pick<Group, 'id' | 'shortId'> {
+interface AutofixBlockProps extends Pick<Group, 'id' | 'shortId'> {
   children: ReactNode;
   step: AutofixExplorerStep;
 }
 
 /**
- * The collapsible shell autofix embeds render into: an icon + step label title
- * with a link back to the issue, and arbitrary step content below.
+ * The shared block shell autofix embeds render into, with a link back to the
+ * issue and arbitrary step content below.
  */
-function AutofixDisclosure({id, shortId, step, children}: AutofixDisclosureProps) {
+function AutofixBlock({id, shortId, step, children}: AutofixBlockProps) {
   const organization = useOrganization();
   return (
-    <Disclosure>
-      <Disclosure.Title
-        trailingItems={
-          <Link to={`/organizations/${organization.slug}/issues/${id}/`}>{shortId}</Link>
-        }
-      >
-        <Flex gap="md">
-          {STEP_ICONS[step]}
-          <Text>{STEP_LABELS[step]}</Text>
-        </Flex>
-      </Disclosure.Title>
-      <Disclosure.Content>{children}</Disclosure.Content>
-    </Disclosure>
+    <SeerEmbedBlock
+      defaultExpanded={false}
+      href={`/organizations/${organization.slug}/issues/${id}/`}
+      icon={STEP_ICONS[step]}
+      linkLabel={shortId}
+      testId="seer-autofix-embed"
+      title={STEP_LABELS[step]}
+    >
+      {children}
+    </SeerEmbedBlock>
   );
 }
 
@@ -92,16 +102,54 @@ interface AutofixContentProps extends Pick<Group, 'id' | 'shortId'> {
    */
   result: string;
   step: AutofixExplorerStep;
+  fiveWhys?: string[];
+  reproductionSteps?: string[];
+  steps?: SolutionStep[];
+}
+
+/**
+ * The structured fields are optional because Seer writes this embed itself
+ * rather than echoing back run state, so a step can arrive as the write-up
+ * alone. Missing detail collapses to the summary rather than an empty section.
+ */
+function AutofixStepBody({
+  fiveWhys,
+  reproductionSteps,
+  result,
+  step,
+  steps,
+}: Omit<AutofixContentProps, 'id' | 'shortId'>) {
+  if (step === 'root_cause') {
+    return (
+      <RootCauseBody
+        description={result}
+        fiveWhys={fiveWhys ?? []}
+        reproductionSteps={reproductionSteps}
+      />
+    );
+  }
+
+  if (step === 'solution') {
+    return <SolutionBody summary={result} steps={steps ?? []} />;
+  }
+
+  return <Markdown raw={result} />;
 }
 
 export const Autofix = defineSeerEmbed({
   name: 'autofix',
-  render({id, shortId, result, step}: AutofixContentProps) {
-    return (
-      <AutofixDisclosure id={id} shortId={shortId} step={step}>
-        <MarkedText text={result} />
-      </AutofixDisclosure>
-    );
+  render({id, shortId, ...content}: AutofixContentProps, level) {
+    switch (level) {
+      case 'markdown':
+        return autofixStepMarkdown(content.step, id, shortId);
+      case 'block':
+      case 'inline':
+        return (
+          <AutofixBlock id={id} shortId={shortId} step={content.step}>
+            <AutofixStepBody {...content} />
+          </AutofixBlock>
+        );
+    }
   },
 });
 
@@ -184,7 +232,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const canAct = !!sendMessage && !isPolling;
 
   return (
-    <AutofixDisclosure id={id} shortId={shortId} step={step}>
+    <AutofixBlock id={id} shortId={shortId} step={step}>
       <Stack gap="lg">
         <AutofixRefBody isLoading={isLoading} section={section} step={step} />
         {section?.status === 'error' && (
@@ -219,7 +267,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
           </Flex>
         )}
       </Stack>
-    </AutofixDisclosure>
+    </AutofixBlock>
   );
 }
 
@@ -271,12 +319,23 @@ function AutofixRefBody({isLoading, section, step}: AutofixRefBodyProps) {
 
   const artifact = getAutofixArtifactFromSection(section);
 
-  if (step === 'root_cause' && isRootCauseArtifact(artifact)) {
-    return <RootCauseBody data={artifact.data} />;
+  if (step === 'root_cause' && isRootCauseArtifact(artifact) && artifact.data) {
+    return (
+      <RootCauseBody
+        description={artifact.data.one_line_description}
+        fiveWhys={artifact.data.five_whys}
+        reproductionSteps={artifact.data.reproduction_steps}
+      />
+    );
   }
 
-  if (step === 'solution' && isSolutionArtifact(artifact)) {
-    return <SolutionBody data={artifact.data} />;
+  if (step === 'solution' && isSolutionArtifact(artifact) && artifact.data) {
+    return (
+      <SolutionBody
+        summary={artifact.data.one_line_summary}
+        steps={artifact.data.steps}
+      />
+    );
   }
 
   if (isCodeChangesArtifact(artifact)) {
@@ -290,22 +349,20 @@ function AutofixRefBody({isLoading, section, step}: AutofixRefBodyProps) {
 }
 
 interface RootCauseBodyProps {
-  data: RootCauseArtifact | null;
+  description: string;
+  fiveWhys: string[];
+  reproductionSteps?: string[];
 }
 
-function RootCauseBody({data}: RootCauseBodyProps) {
-  if (!data) {
-    return <Markdown raw="" />;
-  }
-
+function RootCauseBody({description, fiveWhys, reproductionSteps}: RootCauseBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={data.one_line_description} />
-      {data.five_whys.length > 0 && (
+      <Markdown raw={description} />
+      {fiveWhys.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Why did this happen?')}</Text>
           <Container as="ul" margin="0">
-            {data.five_whys.map((why, index) => (
+            {fiveWhys.map((why, index) => (
               <li key={index}>
                 <Markdown raw={why} />
               </li>
@@ -313,11 +370,11 @@ function RootCauseBody({data}: RootCauseBodyProps) {
           </Container>
         </ArtifactDetails>
       )}
-      {data.reproduction_steps && data.reproduction_steps.length > 0 && (
+      {reproductionSteps && reproductionSteps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Reproduction Steps')}</Text>
           <Container as="ol" margin="0">
-            {data.reproduction_steps.map((step, index) => (
+            {reproductionSteps.map((step, index) => (
               <li key={index}>
                 <Markdown raw={step} />
               </li>
@@ -330,22 +387,19 @@ function RootCauseBody({data}: RootCauseBodyProps) {
 }
 
 interface SolutionBodyProps {
-  data: SolutionArtifact | null;
+  steps: SolutionStep[];
+  summary: string;
 }
 
-function SolutionBody({data}: SolutionBodyProps) {
-  if (!data) {
-    return <Markdown raw="" />;
-  }
-
+function SolutionBody({steps, summary}: SolutionBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={data.one_line_summary} />
-      {data.steps.length > 0 && (
+      <Markdown raw={summary} />
+      {steps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Steps to Resolve')}</Text>
           <Container as="ol" margin="0">
-            {data.steps.map((step, index) => (
+            {steps.map((step, index) => (
               <li key={index}>
                 <Stack>
                   <Markdown raw={step.title} />
@@ -421,7 +475,13 @@ function summarizeCodeChanges(patchesByRepo: ReturnType<typeof collectPatches>):
 
 export const AutofixRef = defineSeerEmbed({
   name: 'autofixRef',
-  render(props) {
-    return <AutofixRefContent {...props} />;
+  render(props, level) {
+    switch (level) {
+      case 'markdown':
+        return autofixStepMarkdown(props.step, props.id, props.shortId);
+      case 'block':
+      case 'inline':
+        return <AutofixRefContent {...props} />;
+    }
   },
 });

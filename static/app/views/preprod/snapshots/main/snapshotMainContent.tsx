@@ -158,6 +158,7 @@ export function SnapshotMainContent({
       return;
     }
     const cardIndex = (cardOffsets[singleViewIndex] ?? 0) + variantIndex;
+    // oxlint-disable-next-line react/set-state-in-effect
     setCurrentCardIndex(cardIndex);
     setScrollProgress(totalCards <= 1 ? 100 : (cardIndex / (totalCards - 1)) * 100);
   }, [viewMode, singleViewIndex, variantIndex, totalCards, cardOffsets]);
@@ -476,6 +477,7 @@ function SingleViewLayout({
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const navStateRef = useRef({onNavigateSingleView, canNavigateNext, canNavigatePrev});
+  // oxlint-disable-next-line react/refs
   navStateRef.current = {onNavigateSingleView, canNavigateNext, canNavigatePrev};
 
   useEffect(() => {
@@ -592,6 +594,7 @@ function SingleViewLayout({
               </Tooltip>
               <Tooltip title={t('Next (↓)')} skipWrapper>
                 <Button
+                  // oxlint-disable-next-line react/refs
                   ref={navButtonRefs.next}
                   size="sm"
                   icon={<IconArrow direction="down" />}

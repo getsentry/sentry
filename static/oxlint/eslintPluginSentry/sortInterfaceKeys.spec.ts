@@ -1,12 +1,9 @@
-import {RuleTester} from '@typescript-eslint/rule-tester';
+import {RuleTester} from 'oxlint/plugins-dev';
 
 import {sortInterfaceKeys} from './sortInterfaceKeys';
 
-const ruleTester = new RuleTester();
-const options = [
-  'asc',
-  {caseSensitive: true, natural: false, requiredFirst: true},
-] as const;
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'ts'}}});
+const options = ['asc', {caseSensitive: true, natural: false, requiredFirst: true}];
 
 ruleTester.run('sort-interface-keys', sortInterfaceKeys, {
   valid: [

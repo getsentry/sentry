@@ -17,6 +17,8 @@ import {
 } from 'sentry/views/detectors/components/detectorTypeForm';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
+import {getNoPermissionToCreateMonitorsTooltip} from 'sentry/views/detectors/utils/monitorAccessMessages';
+import {useCanCreateDetector} from 'sentry/views/detectors/utils/useCanCreateDetector';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 function NewDetectorBreadcrumbs() {
@@ -43,6 +45,7 @@ export default function DetectorNew() {
   const maxWidth = theme.breakpoints.xl;
   const [detectorType] = useDetectorTypeQueryState();
   const [projectId] = useQueryState('project', parseAsString);
+  const canCreateDetector = useCanCreateDetector(detectorType);
 
   const formProps = {
     onSubmit: () => {
@@ -91,7 +94,16 @@ export default function DetectorNew() {
         <LinkButton variant="secondary" to={makeMonitorBasePathname(organization.slug)}>
           {t('Cancel')}
         </LinkButton>
-        <Button variant="primary" type="submit">
+        <Button
+          variant="primary"
+          type="submit"
+          disabled={!canCreateDetector}
+          tooltipProps={{
+            title: canCreateDetector
+              ? undefined
+              : getNoPermissionToCreateMonitorsTooltip(),
+          }}
+        >
           {t('Next')}
         </Button>
       </EditLayoutDeprecated.Footer>

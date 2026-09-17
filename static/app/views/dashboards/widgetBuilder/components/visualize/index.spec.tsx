@@ -11,85 +11,95 @@ import {
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Visualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
+  useSpanItemAttributes,
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
-jest.mock('sentry/utils/useNavigate');
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/widget/new/';
+const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
 
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
-  let mockNavigate!: jest.Mock;
+  let organizationWithConditionalAggregates!: ReturnType<typeof OrganizationFixture>;
 
   beforeEach(() => {
     organization = OrganizationFixture({
       features: ['performance-view'],
     });
+    organizationWithConditionalAggregates = OrganizationFixture({
+      features: ['performance-view', 'explore-conditional-aggregates'],
+    });
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
+    const mockAttributes = (_options: unknown, type?: string) => {
+      if (type === 'number') {
+        const tags: TagCollection = {
+          'span.duration': {
+            key: 'span.duration',
+            name: 'span.duration',
+            kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
+          },
+          'span.self_time': {
+            key: 'span.self_time',
+            name: 'span.self_time',
+            kind: FieldKind.MEASUREMENT,
+            secondaryAliases: [],
+          },
+        };
+        return {attributes: tags, isLoading: false, secondaryAliases: {}};
+      }
+
+      if (type === 'boolean') {
+        const tags: TagCollection = {
+          'span.status': {
+            key: 'span.status',
+            name: 'span.status',
+            kind: FieldKind.BOOLEAN,
+          },
+        };
+        return {attributes: tags, isLoading: false, secondaryAliases: {}};
+      }
+
+      const tags: TagCollection = {
+        'span.op': {
+          key: 'span.op',
+          name: 'span.op',
+          kind: FieldKind.TAG,
+        },
+        'span.description': {
+          key: 'span.description',
+          name: 'span.description',
+          kind: FieldKind.TAG,
+        },
+      };
+
+      return {
+        attributes: tags,
+        secondaryAliases: {},
+        isLoading: false,
+      };
+    };
+
     jest
       .mocked(useTraceItemDatasetAttributes)
-      .mockImplementation((_traceItemType, _options, type?) => {
-        if (type === 'number') {
-          const tags: TagCollection = {
-            'span.duration': {
-              key: 'span.duration',
-              name: 'span.duration',
-              kind: FieldKind.MEASUREMENT,
-              secondaryAliases: [],
-            },
-            'span.self_time': {
-              key: 'span.self_time',
-              name: 'span.self_time',
-              kind: FieldKind.MEASUREMENT,
-              secondaryAliases: [],
-            },
-          };
-          return {attributes: tags, isLoading: false, secondaryAliases: {}};
-        }
-
-        if (type === 'boolean') {
-          const tags: TagCollection = {
-            'span.status': {
-              key: 'span.status',
-              name: 'span.status',
-              kind: FieldKind.BOOLEAN,
-            },
-          };
-          return {attributes: tags, isLoading: false, secondaryAliases: {}};
-        }
-
-        const tags: TagCollection = {
-          'span.op': {
-            key: 'span.op',
-            name: 'span.op',
-            kind: FieldKind.TAG,
-          },
-          'span.description': {
-            key: 'span.description',
-            name: 'span.description',
-            kind: FieldKind.TAG,
-          },
-        };
-
-        return {
-          attributes: tags,
-          secondaryAliases: {},
-          isLoading: false,
-        };
-      });
+      .mockImplementation((_traceItemType, _options, type?) =>
+        mockAttributes(_options, type)
+      );
+    jest
+      .mocked(useSpanItemAttributes)
+      .mockImplementation((_options, type?) => mockAttributes(_options, type));
 
     jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
       attributes: {},
@@ -97,8 +107,19 @@ describe('Visualize', () => {
       secondaryAliases: {},
     });
 
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -516,7 +537,7 @@ describe('Visualize', () => {
   });
 
   it('properly transitions between aggregates of higher to no parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -545,14 +566,13 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Aggregate Selection'})).toHaveTextContent(
       'count'
     );
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({query: expect.objectContaining({field: ['count()']})}),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(expect.objectContaining({field: 'count()'}));
+    });
   });
 
   it('properly transitions between aggregates of higher to lower parameter count', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -582,12 +602,11 @@ describe('Visualize', () => {
       'count_miserable'
     );
     expect(screen.getByDisplayValue('300')).toBeInTheDocument();
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({field: ['count_miserable(user,300)']}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({field: 'count_miserable(user,300)'})
+      );
+    });
   });
 
   it('adds the default value for an aggregate with 2 parameters', async () => {
@@ -904,7 +923,7 @@ describe('Visualize', () => {
   });
 
   it('shifts the selected aggregate up when it is the last one and removed', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Visualize />
       </WidgetBuilderProvider>,
@@ -931,12 +950,9 @@ describe('Visualize', () => {
     // The second field is now selected, but the URL param for selectedAggregate
     // is cleared, so the last field is selected
     expect(await screen.findByRole('radio', {name: 'field1'})).toBeChecked();
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({selectedAggregate: undefined}),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).not.toHaveProperty('selectedAggregate');
+    });
   });
 
   it('only shows the relevant options for the release dataset', async () => {
@@ -1559,11 +1575,18 @@ describe('Visualize', () => {
       // Closing and reopening resets the search, so the previously fetched
       // attribute should not linger in the options when there is no query.
       await userEvent.keyboard('{Escape}');
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('listbox', {name: 'Column Selection'})
+        ).not.toBeInTheDocument();
+      });
       await userEvent.click(screen.getByRole('button', {name: 'Column Selection'}));
       const reopenedListbox = await screen.findByRole('listbox', {
         name: 'Column Selection',
       });
-      expect(within(reopenedListbox).getByText('span.duration')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(within(reopenedListbox).getByText('span.duration')).toBeInTheDocument();
+      });
       expect(
         within(reopenedListbox).queryByText('measurements.app_start_cold')
       ).not.toBeInTheDocument();
@@ -1703,7 +1726,7 @@ describe('Visualize', () => {
     });
 
     it('adds equations', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1745,16 +1768,15 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
-      );
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
+      });
     });
 
     it('adds equations line chart', async () => {
-      render(
+      const {router} = render(
         <WidgetBuilderProvider>
           <Visualize />
         </WidgetBuilderProvider>,
@@ -1796,12 +1818,11 @@ describe('Visualize', () => {
       });
       await userEvent.type(input, '{ArrowDown}{Enter}');
 
-      expect(mockNavigate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({field: ['equation|( avg(span.duration)']}),
-        }),
-        expect.anything()
-      );
+      await waitFor(() => {
+        expect(router.location.query).toEqual(
+          expect.objectContaining({field: 'equation|( avg(span.duration)'})
+        );
+      });
     });
   });
 
@@ -2008,6 +2029,251 @@ describe('Visualize', () => {
     expect(
       screen.queryByRole('button', {name: 'Column Selection'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows a per-series filter search bar for spans aggregates', async () => {
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg(span.duration)'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+    ).toBeInTheDocument();
+  });
+
+  it('hides the per-series filter search bar when the feature is disabled', async () => {
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg(span.duration)'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+    ).not.toBeInTheDocument();
+  });
+
+  it('loads Explore-style _if aggregates into base dropdowns with a filter', async () => {
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.self_time)'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('avg');
+    expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
+      'span.self_time'
+    );
+    expect(screen.getByText('span.op')).toBeInTheDocument();
+  });
+
+  it('applies visualize filters as _if aggregates', async () => {
+    const {router} = render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg(span.duration)'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    const filterInput = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+    await userEvent.click(filterInput);
+    await userEvent.paste('span.op:db');
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'avg_if(`span.op:db`,span.duration)'})
+      );
+    });
+  });
+
+  it('preserves field aliases when applying a series filter', async () => {
+    const {router} = render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.TABLE,
+            field: ['{"field":"avg(span.duration)","alias":"Latency"}'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    const filterInput = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+    await userEvent.click(filterInput);
+    await userEvent.paste('span.op:db');
+    await userEvent.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({
+          field: '{"field":"avg_if(`span.op:db`,span.duration)","alias":"Latency"}',
+        })
+      );
+    });
+  });
+
+  it('hides the filter search bar for no-argument spans aggregates', async () => {
+    render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['failure_rate()'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    ).toHaveTextContent('failure_rate');
+    expect(
+      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves the series filter when changing the column', async () => {
+    const {router} = render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.duration)'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'avg_if(`span.op:db`,span.self_time)'})
+      );
+    });
+  });
+
+  it('preserves Explore-style _if filters when changing the column with the feature disabled', async () => {
+    const {router} = render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.duration)'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    expect(
+      screen.queryByPlaceholderText(SERIES_FILTER_PLACEHOLDER)
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Column Selection'}));
+    await userEvent.click(screen.getByRole('option', {name: 'span.self_time'}));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'avg_if(`span.op:db`,span.self_time)'})
+      );
+    });
+  });
+
+  it('preserves the series filter when changing the aggregate', async () => {
+    const {router} = render(<Visualize />, {
+      additionalWrapper: WidgetBuilderProvider,
+      organization: organizationWithConditionalAggregates,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['avg_if(`span.op:db`,span.duration)'],
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Aggregate Selection'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'p95'}));
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual(
+        expect.objectContaining({yAxis: 'p95_if(`span.op:db`,span.duration)'})
+      );
+    });
   });
 
   it('defaults count_unique argument to span.op', async () => {
@@ -2223,7 +2489,7 @@ describe('Visualize', () => {
       },
     });
 
-    render(<Visualize />, {
+    const {router} = render(<Visualize />, {
       organization,
       additionalWrapper: WidgetBuilderProvider,
       initialRouterConfig: {
@@ -2252,13 +2518,10 @@ describe('Visualize', () => {
     ).toHaveTextContent('span.description');
     expect(await screen.findByRole('listbox')).toBeInTheDocument();
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
-          }),
-        }),
-        expect.anything()
+          field: ['span.description', 'sum(value,alpha_metric,counter,none)'],
+        })
       );
     });
 
@@ -2266,16 +2529,13 @@ describe('Visualize', () => {
     await userEvent.click(await screen.findByRole('option', {name: 'alpha_metric'}));
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith(
+      expect(router.location.query).toEqual(
         expect.objectContaining({
-          query: expect.objectContaining({
-            field: [
-              'sum(value,alpha_metric,counter,none)',
-              'sum(value,alpha_metric,counter,none)',
-            ],
-          }),
-        }),
-        expect.anything()
+          field: [
+            'sum(value,alpha_metric,counter,none)',
+            'sum(value,alpha_metric,counter,none)',
+          ],
+        })
       );
     });
   });

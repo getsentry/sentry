@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -87,27 +85,27 @@ export function RowActions({
 
   if (visualState === 'configured') {
     return (
-      <Fragment>
+      <Flex gap="xl">
         <Button size="sm" variant="link" onClick={onEditDestination}>
           {t('Edit')}
         </Button>
         <Button size="sm" variant="link" onClick={onStartRemoving}>
           {t('Remove')}
         </Button>
-      </Fragment>
+      </Flex>
     );
   }
 
   if (visualState === 'removing') {
     return (
-      <Fragment>
+      <Flex gap="xl">
         <Button size="sm" variant="link" onClick={onCancelRemoving}>
           {t('Cancel')}
         </Button>
         <Button size="sm" variant="danger" onClick={onConfirmRemove}>
           {t('Remove')}
         </Button>
-      </Fragment>
+      </Flex>
     );
   }
 
