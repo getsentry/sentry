@@ -32,21 +32,21 @@ def _process_subscription_message(message_bytes: bytes, dataset: Dataset) -> Non
     topic = get_topic_definition(Topic(logical_topic))["real_topic_name"]
 
     traces.new_trace()
-    _start_span_ctx_1 = sentry_sdk.get_current_scope().get_active_propagation_context()
-    _start_span_prev_1 = _start_span_ctx_1.custom_sampling_context
+    propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+    prev_sampling_context = propagation_context.custom_sampling_context
     Scope.set_custom_sampling_context(
         {"sample_rate": options.get("subscriptions-query.sample-rate")}
     )
     try:
-        _start_span_tmp_1 = traces.start_span(
+        span = traces.start_span(
             name="query_subscription_consumer_process_message",
             attributes={"sentry.op": "handle_message"},
             parent_span=None,
         )
     finally:
-        _start_span_ctx_1.custom_sampling_context = _start_span_prev_1
+        propagation_context.custom_sampling_context = prev_sampling_context
     with (
-        _start_span_tmp_1,
+        span,
         metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
     ):
         try:

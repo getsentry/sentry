@@ -169,7 +169,7 @@ def handle_message(
                 tags={"dataset": dataset},
             ),
         ):
-            span.set_attribute("payload", contents)
+            span.set_attribute("payload", repr(contents))
             span.set_attribute("subscription_dataset", subscription.snuba_query.dataset)
             span.set_attribute("subscription_query", subscription.snuba_query.query)
             span.set_attribute("subscription_aggregation", subscription.snuba_query.aggregate)
@@ -177,7 +177,7 @@ def handle_message(
             span.set_attribute("subscription_resolution", subscription.snuba_query.resolution)
             span.set_attribute("message_offset", message_offset)
             span.set_attribute("message_partition", message_partition)
-            span.set_attribute("message_value", message_value)
+            span.set_attribute("message_value", repr(message_value))
 
             callback(contents, subscription)
 
