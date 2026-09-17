@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -57,24 +57,25 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
     undefined
   );
-  const breadcrumbs = (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug),
-        },
-        {label: automation.name},
-      ]}
-    />
-  );
-
   const hasConnections = !!automation.detectorIds.length;
 
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+        <TopBar.Slot name="breadcrumbs">
+          <BreadcrumbList
+            items={[
+              {
+                type: 'link',
+                label: t('Alerts'),
+                to: makeAutomationBasePathname(organization.slug),
+              },
+            ]}
+          />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">
+          <BreadcrumbList.Title item={{type: 'page-title', label: automation.name}} />
+        </TopBar.Slot>
         <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>

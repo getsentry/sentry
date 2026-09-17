@@ -12,7 +12,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -111,6 +117,31 @@ describe('AutomationDetail', () => {
     expect(screen.getByRole('heading', {name: 'Throttling'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Conditions'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Details'})).toBeInTheDocument();
+  });
+
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the alert name as the page title', async () => {
+      render(<AutomationDetail />, {
+        organization,
+        initialRouterConfig: {
+          route: '/alerts/:automationId/',
+          location: {pathname: '/alerts/123/'},
+        },
+      });
+
+      const alertsCrumb = await screen.findByRole('link', {name: 'Alerts'});
+      expect(alertsCrumb).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/alerts/`
+      );
+
+      expect(
+        screen.getByRole('heading', {name: automation.name, level: 1})
+      ).toBeInTheDocument();
+
+      const trail = alertsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(automation.name)).not.toBeInTheDocument();
+    });
   });
 
   it('shows all projects for an all-projects detector', async () => {

@@ -263,6 +263,27 @@ describe('DetectorEdit', () => {
     const name = 'Test Error Detector';
     const mockDetector = ErrorDetectorFixture({id: '1', name, projectId: project.id});
 
+    it('renders parent crumbs in the trail and the monitor name as the page title', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      const monitorsCrumb = await screen.findByRole('link', {name: 'Monitors'});
+      expect(monitorsCrumb).toHaveAttribute('href', '/organizations/org-slug/monitors/');
+      expect(screen.getByRole('link', {name: 'Error'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/monitors/errors/'
+      );
+
+      expect(screen.getByRole('heading', {name, level: 1})).toBeInTheDocument();
+
+      const trail = monitorsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(name)).not.toBeInTheDocument();
+    });
+
     it('renders a Cancel link back to the monitor details page', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
