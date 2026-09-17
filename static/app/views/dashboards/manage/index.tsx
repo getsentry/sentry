@@ -36,8 +36,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
+import {getIsOnlyCustom} from 'sentry/views/dashboards/manage/utils/getIsOnlyCustom';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {
+  CUSTOM_DASHBOARD_LABEL,
+  DashboardFilter,
+  PREBUILT_DASHBOARD_LABEL,
+} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
@@ -99,7 +104,12 @@ function ManageDashboards() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
-  const pageTitle = isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards');
+  const isOnlyCustom = getIsOnlyCustom(hasPrebuiltDashboards, urlFilter);
+  const pageTitle = isOnlyPrebuilt
+    ? PREBUILT_DASHBOARD_LABEL
+    : isOnlyCustom
+      ? CUSTOM_DASHBOARD_LABEL
+      : t('All Dashboards');
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
@@ -124,6 +134,7 @@ function ManageDashboards() {
         pin: 'favorites',
         per_page: DASHBOARD_TABLE_NUM_ROWS,
         ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+        ...(isOnlyCustom ? {filter: DashboardFilter.EXCLUDE_PREBUILT} : {}),
       },
     }),
     select: selectJsonWithHeaders,
@@ -414,9 +425,11 @@ function ManageDashboards() {
                         ? t(
                             'Dashboards built by Sentry to help monitor your application out of the box.'
                           )
-                        : t(
-                            "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                          )
+                        : isOnlyCustom
+                          ? t('Dashboards created by you and your team.')
+                          : t(
+                              "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                            )
                     }
                   />
                 </Layout.Title>

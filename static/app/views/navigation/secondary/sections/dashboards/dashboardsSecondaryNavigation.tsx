@@ -12,8 +12,13 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
+import {getIsOnlyCustom} from 'sentry/views/dashboards/manage/utils/getIsOnlyCustom';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {
+  CUSTOM_DASHBOARD_LABEL,
+  DashboardFilter,
+  PREBUILT_DASHBOARD_LABEL,
+} from 'sentry/views/dashboards/types';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
@@ -37,6 +42,7 @@ function DashboardsSecondaryNavigationImpl() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
+  const isOnlyCustom = getIsOnlyCustom(hasPrebuiltDashboards, urlFilter);
   const isOnDashboardsList = isPrimaryNavigationLinkActive(
     `${baseUrl}/`,
     location.pathname,
@@ -65,7 +71,7 @@ function DashboardsSecondaryNavigationImpl() {
               <SecondaryNavigation.Link
                 to={`${baseUrl}/`}
                 end
-                isActive={isOnDashboardsList && !isOnlyPrebuilt}
+                isActive={isOnDashboardsList && !isOnlyPrebuilt && !isOnlyCustom}
                 analyticsItemName="dashboards_all_combined"
               >
                 {t('All Dashboards')}
@@ -83,6 +89,17 @@ function DashboardsSecondaryNavigationImpl() {
                   analyticsItemName="dashboards_sentry_built"
                 >
                   {PREBUILT_DASHBOARD_LABEL}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
+            ) : null}
+            {hasPrebuiltDashboards ? (
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/?filter=${DashboardFilter.EXCLUDE_PREBUILT}`}
+                  isActive={isOnDashboardsList && isOnlyCustom}
+                  analyticsItemName="dashboards_custom"
+                >
+                  {CUSTOM_DASHBOARD_LABEL}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             ) : null}
