@@ -1676,6 +1676,14 @@ const config = defineConfig({
         'import/no-relative-parent-imports': 'off',
       },
     },
+    // Build scripts run outside the app bundle and are kept as bare as
+    // possible, so they reach for source with a plain relative path.
+    {
+      files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
     {
       files: [
         'static/oxlint/**/*.js',
