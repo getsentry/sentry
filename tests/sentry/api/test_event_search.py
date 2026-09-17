@@ -22,6 +22,7 @@ from sentry.api.event_search import (
     flatten,
     gen_wildcard_value,
     parse_search_query,
+    quote_regex_pattern,
     translate_wildcard_as_clickhouse_pattern,
 )
 from sentry.constants import MODULE_ROOT
@@ -1633,12 +1634,34 @@ UNSUPPORTED_REGEX_MESSAGE = (
             "span.op: Empty regex pattern",
             id="empty quoted pattern",
         ),
+        pytest.param(
+            f"span.op:{REGEX_OPERATOR}foo\\\\",
+            "span.op: Invalid regex: a pattern cannot end with a backslash",
+            id="trailing backslash",
+        ),
     ],
 )
 def test_rejects_an_invalid_regex_pattern(query, expected_message) -> None:
     with pytest.raises(InvalidSearchQuery) as err:
         parse_search_query(query)
     assert str(err.value) == expected_message
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        pytest.param(r"^GET /api/\d{1,3}", id="escapes"),
+        pytest.param(r"a\\b", id="embedded backslashes"),
+        pytest.param('say "hi"', id="embedded quotes"),
+        pytest.param(r"(GET|POST) /api", id="spaces and parens"),
+    ],
+)
+def test_regex_pattern_survives_a_serialization_round_trip(pattern) -> None:
+    query = f"message:{REGEX_OPERATOR}{quote_regex_pattern(pattern)}"
+
+    reparsed = parse_search_query(query)
+
+    assert reparsed[0].value.raw_value == pattern
 
 
 @pytest.mark.parametrize(
