@@ -413,6 +413,7 @@ function CustomFilterModal({
     dataTypeOptions,
     filter ? defaultValues.dataType : undefined
   );
+  const theme = useTheme();
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -496,6 +497,9 @@ function CustomFilterModal({
                           )}
                         </Text>
                       )}
+                      {/* The value textarea grows with its lines, so the row aligns
+                          to the top and the single-line cells center on the control
+                          height to line up with the first line. */}
                       <Stack gap="sm">
                         {conditions.map((condition, index) => (
                           <Grid
@@ -515,12 +519,14 @@ function CustomFilterModal({
                                 />
                               )}
                             </form.AppField>
-                            <InfoText
-                              variant="muted"
-                              title={getMatchDescription(condition.property, dataType)}
-                            >
-                              {t('matches')}
-                            </InfoText>
+                            <Flex align="center" height={theme.form.md.height}>
+                              <InfoText
+                                variant="muted"
+                                title={getMatchDescription(condition.property, dataType)}
+                              >
+                                {t('matches')}
+                              </InfoText>
+                            </Flex>
                             <form.AppField name={`conditions[${index}].value`}>
                               {valueField => (
                                 <valueField.TextArea
@@ -537,14 +543,16 @@ function CustomFilterModal({
                                 />
                               )}
                             </form.AppField>
-                            <Button
-                              size="sm"
-                              variant="transparent"
-                              icon={<IconDelete />}
-                              aria-label={t('Remove condition')}
-                              disabled={conditions.length === 1}
-                              onClick={() => conditionsField.removeValue(index)}
-                            />
+                            <Flex align="center" height={theme.form.md.height}>
+                              <Button
+                                size="sm"
+                                variant="transparent"
+                                icon={<IconDelete />}
+                                aria-label={t('Remove condition')}
+                                disabled={conditions.length === 1}
+                                onClick={() => conditionsField.removeValue(index)}
+                              />
+                            </Flex>
                           </Grid>
                         ))}
                       </Stack>
