@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import logging
-from enum import StrEnum
-from typing import Any
+from typing import Literal
 
 from django.db.models import F, Window
 from django.db.models.functions import PercentRank
@@ -24,15 +22,11 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import json, metrics
 
-logger = logging.getLogger(__name__)
-
 FEATURE_FLAG = "organizations:seer-fixability-training-data"
 MAX_REVIEWS_PER_ORG_PER_DAY = 20
 BOTTOM_SAMPLE_SIZE = 16
 MIDDLE_SAMPLE_SIZE = 2
 TOP_SAMPLE_SIZE = 2
-RATE_LIMIT_WINDOW = 24 * 60 * 60
-PROMPT_VERSION = "1"
 
 SYSTEM_PROMPT = """Night Shift reviews software issues and may trigger Autofix to investigate
 and open a pull request. Your job is to identify issues where opening a pull request would be
@@ -48,26 +42,14 @@ Return only a JSON object matching this shape, with a concise one-to-two-sentenc
 """
 
 
-class JudgeVerdict(StrEnum):
-    FIXABLE = "fixable"
-    NOT_FIXABLE = "not_fixable"
-    UNCERTAIN = "uncertain"
-
-
-class JudgeConfidence(StrEnum):
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-
-
 class JudgeResponse(BaseModel):
-    verdict: JudgeVerdict
-    confidence: JudgeConfidence
+    verdict: Literal["fixable", "not_fixable", "uncertain"]
+    confidence: Literal["high", "medium", "low"]
     reason: str = Field(min_length=1, max_length=2048)
 
 
-def _eligible_rows(organization_id: int):
-    return (
+def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
+    rows = (
         SeerAutofixIssueData.objects.filter(
             organization_id=organization_id,
             judge_review__isnull=True,
@@ -82,10 +64,6 @@ def _eligible_rows(organization_id: int):
             )
         )
     )
-
-
-def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
-    rows = _eligible_rows(organization_id)
     bottom = list(
         rows.filter(score_percentile__lte=0.1).order_by("group__seer_fixability_score", "id")[
             :BOTTOM_SAMPLE_SIZE
@@ -98,14 +76,6 @@ def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
     )
     top = list(rows.filter(score_percentile__gte=0.9).order_by("?")[:TOP_SAMPLE_SIZE])
     return [*bottom, *middle, *top]
-
-
-def _dispatch_rate_limited(organization_id: int) -> bool:
-    return ratelimiter.is_limited(
-        f"autofix_issue_data_judge:org:{organization_id}",
-        limit=MAX_REVIEWS_PER_ORG_PER_DAY,
-        window=RATE_LIMIT_WINDOW,
-    )
 
 
 @instrumented_task(
@@ -122,7 +92,11 @@ def schedule_judging_for_org(organization_id: int) -> None:
         event_id = issue_data.raw_issue_data.get("event_id")
         if not isinstance(event_id, str):
             continue
-        if _dispatch_rate_limited(organization.id):
+        if ratelimiter.is_limited(
+            f"autofix_issue_data_judge:org:{organization.id}",
+            limit=MAX_REVIEWS_PER_ORG_PER_DAY,
+            window=24 * 60 * 60,
+        ):
             break
         judge_issue_data.apply_async(
             args=[issue_data.id, event_id],
@@ -135,16 +109,6 @@ def _parse_response(content: str) -> JudgeResponse:
     if value.startswith("```json") and value.endswith("```"):
         value = value[7:-3].strip()
     return JudgeResponse.parse_obj(json.loads(value))
-
-
-def _build_prompt(issue_data: SeerAutofixIssueData) -> str:
-    return json.dumps(
-        {
-            key: value
-            for key, value in issue_data.raw_issue_data.items()
-            if key not in {"status", "reason"}
-        }
-    )
 
 
 @instrumented_task(
@@ -169,7 +133,13 @@ def judge_issue_data(issue_data_id: int, event_id: str) -> None:
         provider="anthropic",
         model="opus",
         referrer="sentry.autofix_issue_data.judge",
-        prompt=_build_prompt(issue_data),
+        prompt=json.dumps(
+            {
+                key: value
+                for key, value in issue_data.raw_issue_data.items()
+                if key not in {"status", "reason"}
+            }
+        ),
         system_prompt=SYSTEM_PROMPT,
         temperature=0.0,
         max_tokens=1000,
@@ -185,7 +155,7 @@ def judge_issue_data(issue_data_id: int, event_id: str) -> None:
     if response.status >= 400:
         raise SeerApiError("Seer autofix issue data judge request failed", response.status)
 
-    response_data: dict[str, Any] = response.json()
+    response_data = response.json()
     content = response_data.get("content")
     model = response_data.get("model")
     if not isinstance(content, str) or not isinstance(model, str):
@@ -200,11 +170,11 @@ def judge_issue_data(issue_data_id: int, event_id: str) -> None:
     ).update(
         judge_review={
             "reviewer": "llm_judge",
-            "verdict": result.verdict.value,
-            "confidence": result.confidence.value,
+            "verdict": result.verdict,
+            "confidence": result.confidence,
             "reason": result.reason,
             "model": model,
-            "prompt_version": PROMPT_VERSION,
+            "prompt_version": "1",
             "reviewed_at": reviewed_at.isoformat(),
             "reviewed_event_id": event_id,
         },

@@ -81,7 +81,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         assert len([score for score in scores if score is not None and 0.4 <= score <= 0.6]) == 2
 
     @patch("sentry.tasks.seer.autofix_issue_data.judge_issue_data.apply_async")
-    @patch("sentry.tasks.seer.autofix_issue_data._dispatch_rate_limited")
+    @patch("sentry.tasks.seer.autofix_issue_data.ratelimiter.is_limited")
     @patch("sentry.tasks.seer.autofix_issue_data._select_candidates")
     def test_limits_dispatches_to_twenty_per_organization(
         self,
@@ -104,7 +104,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             response = _parse_response(
                 json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"})
             )
-            assert response.verdict.value == verdict
+            assert response.verdict == verdict
 
     @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
     def test_judges_blinded_issue_data_and_records_verdict(
