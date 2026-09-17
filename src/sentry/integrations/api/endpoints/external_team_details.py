@@ -52,12 +52,25 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
             request, organization_id_or_slug, team_id_or_slug, *args, **kwargs
         )
         team = kwargs["team"]
+        external_teams = ExternalActor.objects.filter(
+            organization_id=team.organization_id, team__isnull=False
+        )
+        # The settings UI remaps via PUT to the destination team's URL with the existing
+        # mapping ID. Allow that lookup, then check the current team's permissions below.
+        # DELETE must only operate on mappings belonging to the URL team.
+        if request.method != "PUT":
+            external_teams = external_teams.filter(team_id=team.id)
+
         try:
-            kwargs["external_team"] = ExternalActor.objects.get(
-                id=external_team_id, organization_id=team.organization_id, team_id=team.id
+            external_team = external_teams.select_related("team__organization").get(
+                id=external_team_id
             )
         except ExternalActor.DoesNotExist:
             raise Http404
+
+        if external_team.team_id != team.id:
+            self.check_object_permissions(request, external_team.team)
+        kwargs["external_team"] = external_team
         return args, kwargs
 
     @extend_schema(
