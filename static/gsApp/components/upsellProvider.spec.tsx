@@ -8,8 +8,10 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -18,6 +20,7 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
 jest.mock('getsentry/actionCreators/modal');
+jest.mock('sentry/actionCreators/indicator');
 
 const createRenderer = () => {
   return jest.fn(({onClick, defaultButtonText}) => (
@@ -65,6 +68,7 @@ describe('UpsellProvider', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    jest.mocked(addSuccessMessage).mockClear();
   });
 
   it('with billing scope starts a trial if available', async () => {
@@ -163,7 +167,7 @@ describe('UpsellProvider', () => {
 
     await userEvent.click(screen.getByTestId('test-render'));
     expect(requestTrialMock).toHaveBeenCalled();
-    expect(await screen.findByText('Request Sent')).toBeInTheDocument();
+    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledWith('Request Sent'));
   });
 
   it('request plan upgrade with triggerMemberRequests', async () => {
@@ -187,7 +191,7 @@ describe('UpsellProvider', () => {
     expect(screen.getByText('Request Upgrade')).toBeInTheDocument();
     await userEvent.click(screen.getByTestId('test-render'));
     expect(requestTrialMock).toHaveBeenCalled();
-    expect(await screen.findByText('Request Sent')).toBeInTheDocument();
+    await waitFor(() => expect(addSuccessMessage).toHaveBeenCalledWith('Request Sent'));
   });
 
   it('opens modal with showConfirmation', async () => {
