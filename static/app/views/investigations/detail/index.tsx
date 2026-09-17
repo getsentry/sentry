@@ -6,7 +6,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Input} from '@sentry/scraps/input';
+import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -156,6 +156,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const titleInputRef = useAutosizeInput({value: displayedTitle});
   const {data: orchestration} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
@@ -362,8 +363,9 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             margin="0 auto"
           >
             <Stack gap="xs" minWidth={0}>
-              <Grid columns="minmax(0, 1fr) auto" align="center" gap="md">
+              <Flex align="center" gap="md" minWidth={0}>
                 <NotebookTitleInput
+                  ref={titleInputRef}
                   aria-label={t('Investigation title')}
                   value={displayedTitle}
                   onChange={event => handleTitleChange(event.target.value)}
@@ -372,11 +374,13 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   aria-busy={renameMutation.isPending}
                 />
                 {runStatus ? (
-                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                    {runStatus.statusLabel}
-                  </Tag>
+                  <Flex justify="start" flexShrink={0}>
+                    <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                      {runStatus.statusLabel}
+                    </Tag>
+                  </Flex>
                 ) : null}
-              </Grid>
+              </Flex>
               <Flex align="center" gap="sm" wrap="wrap">
                 <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
                 <MetaDivider />
@@ -520,6 +524,8 @@ const HeaderInvestigationTitle = styled('span')`
 
 const NotebookTitleInput = styled(Input)`
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   height: auto;
   margin: 0;
   padding: 0;

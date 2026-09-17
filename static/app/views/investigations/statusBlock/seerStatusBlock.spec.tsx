@@ -55,7 +55,7 @@ describe('getSeerStatusBlock', () => {
     ['awaiting_input', 'awaitingInput', 'Awaiting input'],
     ['failed', 'failed', 'Failed'],
     ['cancelled', 'cancelled', 'Cancelled'],
-    ['completed', 'complete', 'Complete'],
+    ['completed', 'complete', 'Completed'],
   ] as const)(
     'maps the %s run status to the %s variant',
     (status, variant, statusLabel) => {
@@ -73,8 +73,8 @@ describe('getSeerStatusBlock', () => {
     ['intake', 'Seer is gathering context', 'Running…'],
     ['broad_scan', 'Seer is gathering context', 'Running…'],
     ['planning', 'Seer is looking for likely causes', 'Running…'],
-    ['reporting', 'Seer is bringing the findings together', 'Finalizing…'],
-    ['metadata', 'Seer is bringing the findings together', 'Finalizing…'],
+    ['reporting', 'Seer is bringing the findings together', 'Synthesizing…'],
+    ['metadata', 'Seer is bringing the findings together', 'Synthesizing…'],
   ] as const)('reads the %s phase as "%s"', (phase, title, statusLabel) => {
     const block = getSeerStatusBlock(
       InvestigationOrchestrationFixture({status: 'processing', phase})

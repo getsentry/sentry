@@ -1767,9 +1767,9 @@ describe('Investigation detail', () => {
     expect(
       within(header).getByRole('textbox', {name: 'Investigation title'})
     ).toBeInTheDocument();
-    expect(within(header).getByText('Finalizing…')).toBeInTheDocument();
+    expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
     expect(
-      within(screen.getByTestId('seer-status-block')).queryByText('Finalizing…')
+      within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
     ).not.toBeInTheDocument();
 
     MockApiClient.addMockResponse({
@@ -1785,8 +1785,8 @@ describe('Investigation detail', () => {
       })
     );
 
-    expect(await within(header).findByText('Complete')).toBeInTheDocument();
-    expect(within(header).queryByText('Finalizing…')).not.toBeInTheDocument();
+    expect(await within(header).findByText('Completed')).toBeInTheDocument();
+    expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
     expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });
 
