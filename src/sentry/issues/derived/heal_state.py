@@ -14,6 +14,8 @@ class HealSchedulerState(BaseModel):
     version: Literal[1] = 1
     head_hash: str | None = None
     stale: dict[str, int] = Field(default_factory=dict)
+    # Forces periodic from-zero sweeps to recover gaps below optimistic marks;
+    # routine saves must not refresh it.
     discovered_at: datetime | None = None
 
 

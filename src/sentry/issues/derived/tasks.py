@@ -40,9 +40,7 @@ _MAX_GENERATION_RUNS = 20
 _MAX_CHECK_RUNS = 20
 # Maximum group IDs loaded by one project-level task invocation.
 _MAX_PROJECT_GROUPS = 10_000
-# Hard cap on the number of hashes one discovery scan will look for, so its cost is
-# fixed even if many stale hashes exist. Persisted state may track more than this
-# across deploys; how many we act on per run is bounded by the task budget instead.
+# Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
 _STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=5)
 
@@ -532,14 +530,12 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     if state.stale.pop(current_hash, None) is not None:
         hash_state_changed = True
 
-    # Positive hash predicates let Postgres walk the (pipeline_hash, group_id)
-    # index instead of scanning for everything unequal to the current hash.
+    # We fetch known stale hashes and match on those for better index usage.
+    # Querying for rows that aren't the fresh hash ends up being a full index scan,
+    # whereas providing positive examples to match lets us do more efficient btree walking.
     if not state.stale:
         discovery_started_at = time.monotonic()
         logger.info("heal_stale_derived_data.stale_hash_discovery_started")
-        # An empty stale map means either that no state survived (the cache isn't
-        # working) or that everything is healed. Tag them apart so a rising
-        # discovery rate can be told from a healthy idle one.
         metrics.incr(
             "issues.derived.heal_stale_hash_discovery",
             sample_rate=1.0,
@@ -553,8 +549,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             metrics.incr("issues.derived.heal_stale_hash_discovery_failed", sample_rate=1.0)
             stale_hashes = []
         else:
-            # This is the fixed epoch for the state; load_state enforces its age even
-            # though CacheMapping's eviction TTL slides on each save.
+            # Keep a fixed epoch despite CacheMapping's sliding eviction TTL.
             state.discovered_at = state.discovered_at or datetime.now(timezone.utc)
             state.stale.update(dict.fromkeys(stale_hashes, 0))
             hash_state_changed = True
@@ -572,8 +567,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             extra={"stale_hash_count": len(state.stale)},
         )
 
-    # Checkpoint newly determined hashes before range selection, which can consume
-    # the rest of the task deadline. The post-loop save below persists mark advances.
+    # Checkpoint hashes before potentially expensive range selection.
     if hash_state_changed:
         save_state(state)
 
@@ -658,9 +652,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             tags={"hash_kind": hash_kind},
         )
 
-    # All state mutation is done once the heal loop exits. Persist it here rather
-    # than at each exit below so a failure in the unrelated check fan-out can't
-    # discard marks for batches that were already dispatched.
+    # Persist marks before the unrelated check fan-out, which may fail.
     save_state(state)
 
     task_count = max_tasks - remaining
