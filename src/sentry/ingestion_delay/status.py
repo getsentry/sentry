@@ -51,7 +51,19 @@ def get_ingestion_delay_status(
     delay_seconds = measurement.delay_seconds
     last_ingested_at = measurement.last_ingested_at
 
-    complete_through = now - timedelta(seconds=delay_seconds) if delay_seconds is not None else None
+    complete_through = (
+        last_ingested_at - timedelta(seconds=delay_seconds)
+        if delay_seconds is not None and last_ingested_at is not None
+        else None
+    )
+
+    # STALL_MARGIN adds some tolerance for ingestion slow downs and also covers other sources
+    # of pipeline delays not captured in our attributes, like batch insert wait times.
+    stall_threshold = (
+        now - (timedelta(seconds=delay_seconds) + STALL_MARGIN)
+        if delay_seconds is not None
+        else None
+    )
 
     def result(
         status: IngestionStatus, through: datetime | None = complete_through
@@ -59,20 +71,18 @@ def get_ingestion_delay_status(
         return IngestionDelayStatus(delay_seconds, through, status)
 
     # The newest row is inside the window the expected delay accounts for.
-    # STALL_MARGIN adds some tolerance for ingestion slow downs and also covers other sources
-    # of pipeline delays not captured in our attributes, like batch insert wait times.
     if (
-        complete_through is not None
+        stall_threshold is not None
         and last_ingested_at is not None
-        and last_ingested_at > complete_through - STALL_MARGIN
+        and last_ingested_at > stall_threshold
     ):
         return result(IngestionStatus.HEALTHY)
 
     # Either no data landed at all (idle), or the newest row is older than expected delay (stalled).
     # Check outcomes to determine if the pipeline is stalled or idle.
     # Add some buffer to account for outliers and projects just exiting idle.
-    if delay_seconds is not None and last_ingested_at is not None:
-        evidence_end = now - (timedelta(seconds=delay_seconds) + STALL_MARGIN)
+    if stall_threshold is not None and last_ingested_at is not None:
+        evidence_end = stall_threshold
         evidence_start = last_ingested_at
         if evidence_end <= evidence_start:
             return result(IngestionStatus.UNKNOWN, None)
