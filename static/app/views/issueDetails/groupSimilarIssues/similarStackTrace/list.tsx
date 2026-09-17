@@ -17,11 +17,11 @@ import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
 
 const SIMILAR_ISSUE_COLUMNS: TableColumnConfig[] = [
-  {key: 'merge', width: 'minmax(0, 1fr)'},
-  {key: 'events', width: 'max-content'},
+  {key: 'merge', width: 'minmax(160px, 1fr)'},
+  {key: 'events', width: 'max-content', visible: {xs: true}},
   {key: 'exception', width: 'max-content'},
-  {key: 'message', width: 'max-content'},
-  {key: 'actions', width: '80px'},
+  {key: 'message', width: 'max-content', visible: {md: true}},
+  {key: 'actions', width: '80px', visible: {'2xs': true}},
 ];
 
 const SIMILAR_ISSUE_COLUMNS_WITHOUT_MESSAGE = SIMILAR_ISSUE_COLUMNS.filter(
@@ -89,7 +89,7 @@ export function List({
         }
         header={
           <SimpleTable.HeaderRow>
-            <MergeHeaderCell>
+            <MergeHeaderCell columnKey="merge">
               <Confirm
                 disabled={mergeCount === 0}
                 message={tn(
@@ -104,16 +104,18 @@ export function List({
                 </Button>
               </Confirm>
             </MergeHeaderCell>
-            <SimpleTable.HeaderCell align="center">{t('Events')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell align="center">
+            <SimpleTable.HeaderCell align="center" columnKey="events">
+              {t('Events')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="center" columnKey="exception">
               {t('Exception')}
             </SimpleTable.HeaderCell>
             {!hasSimilarityEmbeddingsFeature && (
-              <SimpleTable.HeaderCell align="center">
+              <SimpleTable.HeaderCell align="center" columnKey="message">
                 {t('Message')}
               </SimpleTable.HeaderCell>
             )}
-            <SimpleTable.HeaderCell />
+            <SimpleTable.HeaderCell columnKey="actions" />
           </SimpleTable.HeaderRow>
         }
       >

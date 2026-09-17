@@ -166,6 +166,21 @@ function SpendLimitInput({
   );
 }
 
+function PerCategoryWarning({productName}: {productName: string}) {
+  return (
+    // hardcoded height to match the input height so that all rows have the same height
+    <Flex gap="xs" height="36px" align="center">
+      <IconWarning size="sm" />
+      <Text variant="muted" size="sm">
+        {tct(
+          'Additional [productName] usage is only available with a shared spending limit',
+          {productName: toTitleCase(productName, {allowInnerUpperCase: true})}
+        )}
+      </Text>
+    </Flex>
+  );
+}
+
 export function SharedSpendLimitPriceTable({
   activePlan,
   currentReserved,
@@ -379,21 +394,6 @@ function InnerSpendLimitSettings({
 
   const formattedBudgetMode = onDemandBudgets.budgetMode.replace('_', '-');
 
-  const getPerCategoryWarning = (productName: string) => {
-    return (
-      // hardcoded height to match the input height so that all rows have the same height
-      <Flex gap="xs" height="36px" align="center">
-        <IconWarning size="sm" />
-        <Text variant="muted" size="sm">
-          {tct(
-            'Additional [productName] usage is only available with a shared spending limit',
-            {productName: toTitleCase(productName, {allowInnerUpperCase: true})}
-          )}
-        </Text>
-      </Flex>
-    );
-  };
-
   let inputs: React.ReactNode = null;
   if (onDemandBudgets.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
     const addOnCategories = Object.values(activePlan.addOnCategories).flatMap(
@@ -497,7 +497,7 @@ function InnerSpendLimitSettings({
                     reserved={reserved}
                   />
                 ) : (
-                  getPerCategoryWarning(productName)
+                  <PerCategoryWarning productName={productName} />
                 )}
               </Flex>
             );
@@ -546,7 +546,7 @@ function InnerSpendLimitSettings({
                       : t('None included')}
                   </Text>
                 </Flex>
-                {getPerCategoryWarning(addOnInfo.productName)}
+                <PerCategoryWarning productName={addOnInfo.productName} />
               </Flex>
             );
           })}
