@@ -63,6 +63,29 @@ resetMockDate();
 /**
  * Mocks
  */
+// jsdom does not lay out elements. Skip Popper's geometry work and the React
+// updates it schedules; overlay interactions still use the real component code.
+// Positioning tests can opt back in with jest.unmock('react-popper').
+jest.mock('react-popper', () => {
+  const update = async () => ({});
+  const forceUpdate = () => {};
+  const usePopper: typeof import('react-popper').usePopper = (
+    _reference,
+    _popper,
+    options = {}
+  ) => ({
+    styles: {
+      popper: {position: options.strategy ?? 'absolute', left: 0, top: 0},
+      arrow: {position: 'absolute'},
+    },
+    attributes: {},
+    state: null,
+    update,
+    forceUpdate,
+  });
+  return {...jest.requireActual('react-popper'), usePopper};
+});
+
 jest.mock('lodash/debounce', () =>
   jest.fn(fn => {
     fn.cancel = jest.fn();
