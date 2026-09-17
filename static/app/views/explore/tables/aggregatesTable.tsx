@@ -2,9 +2,9 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';

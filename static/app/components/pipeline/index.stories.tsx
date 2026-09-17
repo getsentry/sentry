@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import * as Storybook from 'sentry/stories';
 

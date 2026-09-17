@@ -70,6 +70,8 @@ export function TraceAutogroupedRow(
           <span className="TraceDescription">{props.node.value.autogrouped_by.op}</span>
         </div>
       </div>
+      {/* oxlint-disable-next-line react/refs -- This is a React element, not a ref. */}
+      {props.pinnedAttributeCell}
       <div
         // oxlint-disable-next-line react/refs
         className={props.spanColumnClassName}

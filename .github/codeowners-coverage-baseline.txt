@@ -543,14 +543,6 @@ static/app/components/discover/transactionsList.spec.tsx
 static/app/components/discover/transactionsList.tsx
 static/app/components/discover/transactionsTable.tsx
 static/app/components/discoverButton.tsx
-static/app/components/dropdownButton.tsx
-static/app/components/dropdownMenu/footer.tsx
-static/app/components/dropdownMenu/index.spec.tsx
-static/app/components/dropdownMenu/index.stories.tsx
-static/app/components/dropdownMenu/index.tsx
-static/app/components/dropdownMenu/item.tsx
-static/app/components/dropdownMenu/list.tsx
-static/app/components/dropdownMenu/section.tsx
 static/app/components/duration.tsx
 static/app/components/duration/duration.spec.tsx
 static/app/components/duration/duration.stories.tsx

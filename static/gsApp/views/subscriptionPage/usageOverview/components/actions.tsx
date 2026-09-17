@@ -1,7 +1,7 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconDownload, IconEllipsis, IconTable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
