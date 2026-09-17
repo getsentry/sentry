@@ -70,7 +70,6 @@ export const DetectorProjectField = withFieldGroup({
                       options={options}
                       placeholder={t('Project')}
                       aria-label={t('Select Project')}
-                      size="sm"
                     />
                   </LayoutContainer>
                 )}

@@ -5,6 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {withFieldGroup} from '@sentry/scraps/form';
 import {Container as LayoutContainer} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {EditableText} from 'sentry/components/editableText';
@@ -76,18 +77,20 @@ export const DetectorFormLayout = withFieldGroup({
                       {field => (
                         <field.Base>
                           {({ref: _ref, ...baseProps}) => (
-                            <EditableText
-                              {...baseProps}
-                              allowEmpty
-                              value={field.state.value}
-                              onChange={value => {
-                                setHasSetDetectorName(true);
-                                field.handleChange(value);
-                              }}
-                              placeholder={t('New Monitor')}
-                              aria-label={t('Monitor Name')}
-                              variant="compact"
-                            />
+                            <Text as="div" bold>
+                              <EditableText
+                                {...baseProps}
+                                allowEmpty
+                                value={field.state.value}
+                                onChange={value => {
+                                  setHasSetDetectorName(true);
+                                  field.handleChange(value);
+                                }}
+                                placeholder={t('New Monitor')}
+                                aria-label={t('Monitor Name')}
+                                variant="compact"
+                              />
+                            </Text>
                           )}
                         </field.Base>
                       )}
