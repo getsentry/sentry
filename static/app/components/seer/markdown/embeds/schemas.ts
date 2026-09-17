@@ -190,10 +190,6 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, users, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
-      'Position picks the level: alone on its line the tag renders the block row, ' +
-      'sharing a line with prose it renders inline. That holds in a paragraph, a list ' +
-      'item and a table cell alike, so referencing an issue mid-sentence in a bullet ' +
-      'or a cell is fine -- write the sentence and the reference follows it. ' +
       'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
