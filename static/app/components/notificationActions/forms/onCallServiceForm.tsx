@@ -1,9 +1,8 @@
 import {useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';

@@ -1,7 +1,6 @@
 import {keepPreviousData} from '@tanstack/react-query';
 
-import {DropdownButton} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 import {t, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

@@ -1,7 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
