@@ -415,7 +415,7 @@ def _send_rpc_request(
     req: SnubaRPCRequest | CreateSubscriptionRequest,
 ) -> BaseHTTPResponse:
     """Retry allowlisted 502/503 responses once, within the transport retry budget."""
-    retries = cast(urllib3.Retry, _snuba_pool.retries)
+    retries = _snuba_pool.retries
     retry_status = endpoint_name in _STATUS_RETRY_RPC_ENDPOINTS
     if retry_status:
         # Handle one status retry here so it waits even on the first failure and
@@ -435,7 +435,7 @@ def _send_rpc_request(
         return http_resp
 
     # Preserve the remaining transport retry budget rather than starting it over.
-    response_retries = cast(urllib3.HTTPResponse, http_resp).retries
+    response_retries = http_resp.retries
     assert response_retries is not None
     try:
         retries = response_retries.increment(method="POST", url=url, response=http_resp)
