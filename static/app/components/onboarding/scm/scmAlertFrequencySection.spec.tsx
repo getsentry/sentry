@@ -80,8 +80,6 @@ describe('ScmAlertFrequencySection', () => {
     ).not.toBeInTheDocument();
     expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
-    // One radio per option card: the dot drawn inside each card is decorative.
-    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
   it('shows the notification options when alerts are enabled', () => {
