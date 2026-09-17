@@ -101,7 +101,7 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
 }
 
 const StyledLink = styled(LinkBase)`
-  ${p => getTextStyles({...p, variant: 'inherit'})}
+  ${p => getTextStyles({theme: p.theme, variant: 'inherit'})}
   font-family: inherit;
   ${getLinkStyles}
 `;
