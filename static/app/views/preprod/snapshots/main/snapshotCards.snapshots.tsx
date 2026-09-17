@@ -116,7 +116,7 @@ function image(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
     height: 180,
     image_file_name: 'button.light.png',
     key: 'head-button-light',
-    tags: {lang: 'en', dir: 'ltr'},
+    tags: {lang: 'en', dir: 'ltr', theme: 'light'},
     width: 320,
     ...overrides,
   };
@@ -164,7 +164,7 @@ describe('SnapshotCards', () => {
     fileName: 'button.light.png',
     isDark: false,
     onToggleDark: noop,
-    tags: {lang: 'en', dir: 'ltr'} as Record<string, string>,
+    tags: {lang: 'en', dir: 'ltr', theme: 'light'} as Record<string, string>,
   };
 
   it.snapshot(
