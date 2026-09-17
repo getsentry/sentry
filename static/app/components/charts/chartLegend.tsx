@@ -160,10 +160,8 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
       align="center"
       gap={OUTER_GAP}
       wrap="nowrap"
-      // Without inline-size containment, the legend's contents can widen
-      // ancestors, so each overflow result changes the measured width and the
-      // legend oscillates between overflowing and clipping its last item.
-      style={{height: theme.form.xs.height, contain: 'inline-size'}}
+      contain="inline-size"
+      style={{height: theme.form.xs.height}}
     >
       <Flex
         ref={containerRef}
