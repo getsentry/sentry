@@ -5,23 +5,13 @@ import {Text} from '@sentry/scraps/text';
 import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
-import {aggregateOutputType, getAggregateAlias} from 'sentry/utils/discover/fields';
+import type {ColumnType} from 'sentry/utils/discover/fields';
+import {
+  aggregateOutputType,
+  fieldAlignment,
+  getAggregateAlias,
+} from 'sentry/utils/discover/fields';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
-
-/**
- * Field types whose values are numbers, and so want the tabular figures and
- * the type-aware formatting below. Everything else is text.
- */
-const NUMERIC_FIELD_TYPES = new Set([
-  'currency',
-  'duration',
-  'integer',
-  'number',
-  'percentage',
-  'rate',
-  'score',
-  'size',
-]);
 
 /**
  * A raw `1234` is not a duration a reader can scan — `1.23s` is. The events
@@ -29,7 +19,11 @@ const NUMERIC_FIELD_TYPES = new Set([
  * dispatches on exactly that pair, so a cell borrows the formatting its own
  * chart would use rather than growing a second dialect of it.
  */
-function formatCellValue(value: unknown, type: string, unit: string | undefined): string {
+function formatCellValue(
+  value: unknown,
+  type: ColumnType,
+  unit: string | undefined
+): string {
   if (value === undefined || value === null || value === '') {
     return '—';
   }
@@ -56,10 +50,16 @@ function formatCellValue(value: unknown, type: string, unit: string | undefined)
  */
 function fieldFormat(field: string, meta: EventsMetaType | undefined) {
   const alias = getAggregateAlias(field);
+  const type: ColumnType =
+    meta?.fields?.[field] ?? meta?.fields?.[alias] ?? aggregateOutputType(field);
 
   return {
-    type: meta?.fields?.[field] ?? meta?.fields?.[alias] ?? aggregateOutputType(field),
+    type,
     unit: meta?.units?.[field] ?? meta?.units?.[alias] ?? undefined,
+    // Discover already keeps the list of field types that read as numbers: it
+    // right-aligns exactly those. Borrow that judgement instead of keeping a
+    // second copy of the list here for it to drift from.
+    isNumeric: fieldAlignment(field, type) === 'right',
   };
 }
 
@@ -92,12 +92,12 @@ export function eventColumns<Row extends Record<string, unknown>>(
 ): Array<QueryEmbedColumn<Row>> {
   return fields.map(field => {
     const alias = getAggregateAlias(field);
-    const {type, unit} = fieldFormat(field, meta);
+    const {isNumeric, type, unit} = fieldFormat(field, meta);
 
     return {
       key: field,
       render: (row: Row) => (
-        <Text ellipsis tabular={NUMERIC_FIELD_TYPES.has(type)}>
+        <Text ellipsis tabular={isNumeric}>
           {formatCellValue(row[field] ?? row[alias], type, unit)}
         </Text>
       ),
