@@ -10,7 +10,6 @@ import orjson
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
-from sentry_sdk import traces
 
 from sentry.api.base import apply_cors_headers
 from sentry.ratelimits import (
@@ -24,6 +23,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.ratelimits.utils import EndpointFunction
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils import metrics
+from sentry.utils.tracing import start_span
 
 DEFAULT_ERROR_MESSAGE = (
     "You are attempting to use this endpoint too frequently. Limit is "
@@ -55,9 +55,7 @@ class RatelimitMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
-        with traces.start_span(
-            name="ratelimit.__call__", attributes={"sentry.op": "ratelimit.__call__"}
-        ):
+        with start_span(op="ratelimit.__call__", name="ratelimit.__call__"):
             response = self.get_response(request)
             self.process_response(request, response)
             return response

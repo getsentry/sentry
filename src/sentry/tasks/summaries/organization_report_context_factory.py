@@ -1,5 +1,4 @@
 import sentry_sdk
-from sentry_sdk import traces
 
 from sentry import features
 from sentry.models.organization import Organization
@@ -25,6 +24,7 @@ from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
 from sentry.utils.snuba import parse_snuba_datetime
+from sentry.utils.tracing import start_span
 
 
 class OrganizationReportContextFactory:
@@ -42,9 +42,8 @@ class OrganizationReportContextFactory:
         """Find the projects associated with each user.
         Populates context.project_ownership which is { user_id: set<project_id> }
         """
-        with traces.start_span(
-            name="weekly_reports.user_project_ownership",
-            attributes={"sentry.op": "weekly_reports.user_project_ownership"},
+        with start_span(
+            op="weekly_reports.user_project_ownership", name="weekly_reports.user_project_ownership"
         ):
             for project_id, user_id in OrganizationMember.objects.filter(
                 organization_id=ctx.organization.id,
@@ -56,9 +55,9 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.project_event_counts")
     def _append_project_event_counts(self, ctx: OrganizationReportContext) -> None:
-        with traces.start_span(
+        with start_span(
+            op="weekly_reports.project_event_counts_for_organization",
             name="weekly_reports.project_event_counts_for_organization",
-            attributes={"sentry.op": "weekly_reports.project_event_counts_for_organization"},
         ):
             event_counts = project_event_counts_for_organization(
                 start=ctx.start, end=ctx.end, ctx=ctx, referrer=Referrer.REPORTS_OUTCOMES.value
@@ -88,9 +87,9 @@ class OrganizationReportContextFactory:
         weekly report run), then falls back to Snuba (errors) and Django ORM (issues) for
         any cache misses.
         """
-        with traces.start_span(
+        with start_span(
+            op="weekly_reports.previous_week_counts",
             name="weekly_reports.previous_week_counts",
-            attributes={"sentry.op": "weekly_reports.previous_week_counts"},
         ):
             project_ids = list(ctx.projects_context_map.keys())
             cached = read_project_metrics(ctx.organization.id, project_ids)
@@ -176,9 +175,9 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.issue_summaries")
     def _append_organization_project_issue_summaries(self, ctx: OrganizationReportContext) -> None:
-        with traces.start_span(
+        with start_span(
+            op="weekly_reports.organization_project_issue_summaries",
             name="weekly_reports.organization_project_issue_summaries",
-            attributes={"sentry.op": "weekly_reports.organization_project_issue_summaries"},
         ):
             data = organization_project_issue_summaries(start=ctx.start, end=ctx.end, ctx=ctx)
             for item in data:
@@ -206,10 +205,7 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.project_key_issues")
     def _append_project_key_issues(self, ctx: OrganizationReportContext) -> None:
-        with traces.start_span(
-            name="weekly_reports.project_passes",
-            attributes={"sentry.op": "weekly_reports.project_passes"},
-        ):
+        with start_span(op="weekly_reports.project_passes", name="weekly_reports.project_passes"):
             organization = ctx.organization
 
             projects = [
@@ -252,25 +248,25 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_error_issues")
     def _hydrate_key_error_issues(self, ctx: OrganizationReportContext) -> None:
-        with traces.start_span(
+        with start_span(
+            op="weekly_reports.fetch_key_error_issues",
             name="weekly_reports.fetch_key_error_issues",
-            attributes={"sentry.op": "weekly_reports.fetch_key_error_issues"},
         ):
             fetch_key_error_issues(ctx)
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_performance_issues")
     def _hydrate_key_performance_issues(self, ctx: OrganizationReportContext) -> None:
-        with traces.start_span(
+        with start_span(
+            op="weekly_reports.fetch_key_performance_issues",
             name="weekly_reports.fetch_key_performance_issues",
-            attributes={"sentry.op": "weekly_reports.fetch_key_performance_issues"},
         ):
             fetch_key_performance_issues(ctx)
 
     @metrics.wraps("weekly_report.create_context.project_past_resolved_issues")
     def _append_project_past_resolved_issues(self, ctx: OrganizationReportContext) -> None:
-        with traces.start_span(
+        with start_span(
+            op="weekly_reports.project_past_resolved_issues",
             name="weekly_reports.project_past_resolved_issues",
-            attributes={"sentry.op": "weekly_reports.project_past_resolved_issues"},
         ):
             for project in ctx.organization.project_set.all():
                 if project.id not in ctx.projects_context_map:
@@ -286,9 +282,9 @@ class OrganizationReportContextFactory:
 
     @metrics.wraps("weekly_report.create_context.top_spans")
     def _append_organization_top_spans(self, ctx: OrganizationReportContext) -> None:
-        with traces.start_span(
+        with start_span(
+            op="weekly_reports.organization_top_spans",
             name="weekly_reports.organization_top_spans",
-            attributes={"sentry.op": "weekly_reports.organization_top_spans"},
         ):
             referrer = Referrer.REPORTS_TOP_SPANS.value
             try:

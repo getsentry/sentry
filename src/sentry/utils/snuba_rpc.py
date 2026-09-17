@@ -48,13 +48,12 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
 )
 from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
-from sentry_sdk import traces
 from urllib3.response import BaseHTTPResponse
 
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba import SnubaError, _snuba_pool
-from sentry.utils.tracing import set_span_data, set_span_tag
+from sentry.utils.tracing import set_span_data, set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 RPCResponseType = TypeVar("RPCResponseType", bound=ProtobufMessage)
@@ -132,7 +131,7 @@ def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
     return response
 
 
-@traces.trace
+@trace
 def _make_rpc_requests(
     table_requests: list[TraceItemTableRequest] | None = None,
     timeseries_requests: list[TimeSeriesRequest] | None = None,
@@ -400,7 +399,7 @@ def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
     return response
 
 
-@traces.trace
+@trace
 def _make_rpc_request(
     endpoint_name: str,
     class_version: str,
@@ -440,9 +439,7 @@ def _make_rpc_request(
         log_snuba_info(f"{referrer}.body:\n{MessageToJson(req)}")  # type: ignore[arg-type]
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            with traces.start_span(
-                name=req.__class__.__name__, attributes={"sentry.op": "snuba_rpc.run"}
-            ) as span:
+            with start_span(op="snuba_rpc.run", name=req.__class__.__name__) as span:
                 if referrer:
                     set_span_tag(span, "snuba.referrer", referrer)
                     set_span_data(span, "snuba.query", req)

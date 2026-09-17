@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, TypedDict
 
 from django.db import models
 from django.utils import timezone
-from sentry_sdk import traces
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
@@ -21,6 +20,7 @@ from sentry.models.grouphistory import (
     record_group_history,
 )
 from sentry.types.activity import ActivityType
+from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.models.team import Team
@@ -112,7 +112,7 @@ def bulk_remove_groups_from_inbox(
     action: GroupInboxRemoveAction | None = None,
     user: User | RpcUser | Team | None = None,
 ) -> None:
-    with traces.start_span(name="bulk_remove_groups_from_inbox"):
+    with start_span(name="bulk_remove_groups_from_inbox"):
         try:
             group_inbox = GroupInbox.objects.filter(group__in=groups)
             group_inbox.delete()

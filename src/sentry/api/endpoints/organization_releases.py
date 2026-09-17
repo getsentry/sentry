@@ -12,7 +12,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ListField
-from sentry_sdk import traces
 
 from sentry import analytics, release_health
 from sentry.analytics.events.release_created import ReleaseCreatedEvent
@@ -97,6 +96,7 @@ from sentry.utils.cache import cache
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.sdk import bind_organization_context
+from sentry.utils.tracing import trace
 
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
@@ -236,7 +236,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     )
 
 
-@traces.trace
+@trace
 def debounce_update_release_health_data(organization, project_ids: list[int]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.

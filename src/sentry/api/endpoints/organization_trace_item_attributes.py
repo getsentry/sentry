@@ -27,7 +27,6 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
-from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -105,7 +104,7 @@ from sentry.tagstore.types import TagValue, TagValueSerializerResponse
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
-from sentry.utils.tracing import set_span_data
+from sentry.utils.tracing import set_span_data, start_span
 
 SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
 POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
@@ -852,9 +851,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
         )
-        with traces.start_span(
-            name="hardcoded_aliases", attributes={"sentry.op": "filter"}
-        ) as span:
+        with start_span(op="filter", name="hardcoded_aliases") as span:
             all_aliased_attributes = []
             # our aliases don't exist in the db, so filter over our aliases
             # virtually page through defined aliases before we hit the db
@@ -919,7 +916,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
                                 )
                             )
             aliased_attributes = all_aliased_attributes[offset : offset + limit]
-        with traces.start_span(name="attribute_names", attributes={"sentry.op": "query"}) as span:
+        with start_span(op="query", name="attribute_names") as span:
             if len(aliased_attributes) < limit:
                 offset -= len(all_aliased_attributes) - len(aliased_attributes)
                 limit -= len(aliased_attributes)
@@ -943,7 +940,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
             else:
                 rpc_response = TraceItemAttributeNamesResponse()
 
-        with traces.start_span(name="serialize", attributes={"sentry.op": "query"}) as span:
+        with start_span(op="query", name="serialize") as span:
             attributes = self.serialize_trace_attributes(
                 rpc_response,
                 attribute_type,

@@ -5,7 +5,6 @@ from typing import Any
 
 from django.db.models import Count, Prefetch, prefetch_related_objects
 from django.db.models.functions import TruncDay
-from sentry_sdk import traces
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -45,6 +44,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
+from sentry.utils.tracing import start_span
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
 SIX_HOURS = int(timedelta(hours=6).total_seconds())
@@ -220,7 +220,7 @@ def org_key_error_issues(
     per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
     op = "weekly_reports.org_key_error_issues"
-    with traces.start_span(name=op, attributes=({"sentry.op": op} if op is not None else {})):
+    with start_span(op=op, name=op):
         if not project_ids:
             return {}
 
@@ -239,7 +239,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
 
     op = "weekly_reports.project_key_performance_issues"
 
-    with traces.start_span(name=op, attributes=({"sentry.op": op} if op is not None else {})):
+    with start_span(op=op, name=op):
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
         # We do this to limit the number of group_ids snuba has to join with.
@@ -519,9 +519,9 @@ def project_past_resolved_issues(
     if not project.first_event:
         return []
 
-    with traces.start_span(
+    with start_span(
+        op="weekly_reports.project_past_resolved_issues",
         name="weekly_reports.project_past_resolved_issues",
-        attributes={"sentry.op": "weekly_reports.project_past_resolved_issues"},
     ):
         candidates = list(
             Group.objects.filter(
@@ -900,10 +900,7 @@ def organization_top_spans(
     )
     config = SearchResolverConfig(auto_fields=True)
 
-    with traces.start_span(
-        name="weekly_reports.top_spans_table",
-        attributes={"sentry.op": "weekly_reports.top_spans_table"},
-    ):
+    with start_span(op="weekly_reports.top_spans_table", name="weekly_reports.top_spans_table"):
         result = Spans.run_table_query(
             params=snuba_params,
             query_string="is_transaction:1 has:span.name",
@@ -921,9 +918,9 @@ def organization_top_spans(
             sampling_mode=None,
         )
 
-    with traces.start_span(
+    with start_span(
+        op="weekly_reports.spans_count_by_project",
         name="weekly_reports.spans_count_by_project",
-        attributes={"sentry.op": "weekly_reports.spans_count_by_project"},
     ):
         ctx.spans_count_by_project = spans_count_by_project(
             projects, ctx.organization, ctx.start, ctx.end, referrer
@@ -966,9 +963,8 @@ def organization_top_spans_timeseries(
     config = SearchResolverConfig(auto_fields=True)
 
     span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans])
-    with traces.start_span(
-        name="weekly_reports.top_spans_timeseries",
-        attributes={"sentry.op": "weekly_reports.top_spans_timeseries"},
+    with start_span(
+        op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
     ):
         ts_result = Spans.run_top_events_timeseries_query(
             params=snuba_params,

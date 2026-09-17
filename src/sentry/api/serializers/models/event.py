@@ -10,7 +10,6 @@ import sentry_sdk
 import sqlparse
 from django.contrib.auth.models import AnonymousUser
 from sentry_relay.processing import meta_with_chunks
-from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
@@ -35,6 +34,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
+from sentry.utils.tracing import start_span
 
 CRASH_FILE_TYPES = {"event.minidump"}
 RESERVED_KEYS = frozenset(["user", "sdk", "device", "contexts"])
@@ -529,7 +529,7 @@ class SqlFormatEventSerializer(EventSerializer):
         include_full_release_data = kwargs.pop("include_full_release_data", False)
         result = super().serialize(obj, attrs, user, **kwargs)
 
-        with traces.start_span(name="Format SQL", attributes={"sentry.op": "serialize"}):
+        with start_span(op="serialize", name="Format SQL"):
             result = self._format_breadcrumb_messages(result, obj, user)
             result = self._format_db_spans(result, obj, user)
             release_info = self._get_release_info(user, obj, include_full_release_data)

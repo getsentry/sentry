@@ -3,7 +3,6 @@ import orjson
 from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import traces
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -20,6 +19,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
+from sentry.utils.tracing import start_span
 
 
 @cell_silo_endpoint
@@ -33,9 +33,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         """
         Assembles an artifact bundle and stores the debug ids in the database.
         """
-        with traces.start_span(
-            name="artifact_bundle.assemble", attributes={"sentry.op": "artifact_bundle.assemble"}
-        ):
+        with start_span(op="artifact_bundle.assemble", name="artifact_bundle.assemble"):
             schema = {
                 "type": "object",
                 "properties": {
@@ -88,9 +86,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 else:
                     input_project_slug.add(project)
 
-            with traces.start_span(
+            with start_span(
+                op="artifact_bundle.assemble.find_projects",
                 name="artifact_bundle.assemble.find_projects",
-                attributes={"sentry.op": "artifact_bundle.assemble.find_projects"},
             ):
                 project_ids = Project.objects.filter(
                     (Q(id__in=input_project_id) | Q(slug__in=input_project_slug)),
@@ -101,9 +99,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             if len(project_ids) != len(input_projects):
                 return Response({"error": "One or more projects are invalid"}, status=400)
 
-            with traces.start_span(
+            with start_span(
+                op="artifact_bundle.assemble.check_release_permission",
                 name="artifact_bundle.assemble.check_release_permission",
-                attributes={"sentry.op": "artifact_bundle.assemble.check_release_permission"},
             ):
                 if not self.has_release_permission(
                     request, organization, project_ids=set(project_ids)
@@ -160,9 +158,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                     {"error": "You need to specify a release together with a dist"}, status=400
                 )
 
-            with traces.start_span(
+            with start_span(
+                op="artifact_bundle.assemble.start_assemble_artifacts",
                 name="artifact_bundle.assemble.start_assemble_artifacts",
-                attributes={"sentry.op": "artifact_bundle.assemble.start_assemble_artifacts"},
             ):
                 assemble_artifacts.apply_async(
                     kwargs={
