@@ -296,7 +296,8 @@ class OrganizationReplayCountEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data == expected
 
-    def test_simple_events(self) -> None:
+    @pytest.mark.parametrize("data_source", [Dataset.Events.value, "errors"])
+    def test_simple_events(self, data_source: str) -> None:
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
 
@@ -335,7 +336,7 @@ class OrganizationReplayCountEndpointTest(
 
         query = {
             "query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]",
-            "data_source": Dataset.Events.value,
+            "data_source": data_source,
         }
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
