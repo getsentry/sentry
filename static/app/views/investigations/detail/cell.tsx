@@ -5,13 +5,13 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';

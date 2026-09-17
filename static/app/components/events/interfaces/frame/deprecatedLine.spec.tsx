@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {DeprecatedLine} from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {Frame} from 'sentry/types/event';
@@ -119,6 +119,46 @@ describe('Frame - Line', () => {
       render(<DeprecatedLine {...defaultProps} data={data} event={event} isExpanded />);
 
       expect(screen.queryByText('Registers')).not.toBeInTheDocument();
+    });
+
+    it('should render context vars', () => {
+      const vars = {
+        origin: null,
+        helper: '<sentry.coreapi.MinidumpApiHelper object at 0x10e157ed0>',
+        self: '<sentry.web.api.MinidumpView object at 0x10e157250>',
+        args: [],
+        request: '<WSGIRequest at 0x4531253712>',
+        content: '[Filtered]',
+        kwargs: {},
+        project_id: "u'3'",
+      };
+
+      render(
+        <DeprecatedLine
+          {...defaultProps}
+          data={{...data, vars}}
+          event={event}
+          isExpanded
+        />
+      );
+
+      for (const [key, value] of Object.entries(vars)) {
+        const row = screen.getByText(key).closest('tr');
+        expect(row).toBeTruthy();
+
+        if (!row) {
+          return;
+        }
+
+        const utils = within(row);
+        expect(utils.getByText(key)).toBeInTheDocument();
+
+        if (typeof value !== 'string') {
+          return;
+        }
+
+        expect(utils.getByText(value)).toBeInTheDocument();
+      }
     });
   });
 

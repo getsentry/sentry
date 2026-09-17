@@ -341,12 +341,15 @@ export function DeprecatedLine({
         registers={registers}
         components={components}
         hasContextSource={hasContextSource(data)}
+        hasContextVars={hasContextVars(data)}
         hasContextRegisters={hasContextRegisters(registers)}
         emptySourceNotation={emptySourceNotation}
         hasAssembly={hasAssembly(data, platform)}
         hasScmSourceContext={hasScmSourceContext}
         isExpanded={isExpanded}
         registersMeta={registersMeta}
+        frameMeta={frameMeta}
+        platform={propPlatform}
       />
     </li>
   );

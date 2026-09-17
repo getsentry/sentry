@@ -1,6 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {ClippedBox} from 'sentry/components/clippedBox';
 import {parseAssembly} from 'sentry/components/events/interfaces/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconFlag} from 'sentry/icons';
@@ -10,6 +11,7 @@ import type {
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types/integrations';
+import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 import {getFileExtension} from 'sentry/utils/fileExtension';
@@ -19,6 +21,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Assembly} from './assembly';
 import {ContextLineNumber} from './contextLineNumber';
 import {FrameRegisters} from './frameRegisters';
+import {FrameVariables} from './frameVariables';
 import {usePrismTokensSourceContext} from './usePrismTokensSourceContext';
 import {useSourceContext} from './useSourceContext';
 import {hasPotentialSourceContext} from './utils';
@@ -30,15 +33,19 @@ type Props = {
   registers: StacktraceType['registers'];
   className?: string;
   emptySourceNotation?: boolean;
+  frameMeta?: Record<any, any>;
   hasAssembly?: boolean;
   hasContextRegisters?: boolean;
   hasContextSource?: boolean;
+  hasContextVars?: boolean;
   hasScmSourceContext?: boolean;
   isExpanded?: boolean;
+  platform?: PlatformKey;
   registersMeta?: Record<any, any>;
 };
 
 export function Context({
+  hasContextVars = false,
   hasContextSource = false,
   hasContextRegisters = false,
   isExpanded = false,
@@ -49,7 +56,9 @@ export function Context({
   frame,
   event,
   className,
+  frameMeta,
   registersMeta,
+  platform,
 }: Props) {
   const organization = useOrganization();
 
@@ -107,6 +116,7 @@ export function Context({
   if (
     !isLoadingScmContext &&
     !effectiveHasContextSource &&
+    !hasContextVars &&
     !hasContextRegisters &&
     !hasAssembly
   ) {
@@ -165,6 +175,12 @@ export function Context({
         </CodeWrapper>
       ) : null}
 
+      {hasContextVars && (
+        <StyledClippedBox clipHeight={100}>
+          <FrameVariables platform={platform} data={frame.vars} meta={frameMeta?.vars} />
+        </StyledClippedBox>
+      )}
+
       {hasContextRegisters && (
         <FrameRegisters
           registers={registers!}
@@ -177,6 +193,10 @@ export function Context({
     </Wrapper>
   );
 }
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding: 0;
+`;
 
 const StyledIconFlag = styled(IconFlag)`
   margin-right: ${p => p.theme.space.md};
