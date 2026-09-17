@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import pytest
 import urllib3
+from django.urls import reverse
 from django.utils.timezone import now
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
@@ -25,6 +26,48 @@ KNOWN_PREFLIGHT_ID = "ca056dd858a24299"
 class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
     def do_request(self, query, features=None, **kwargs):
         return super().do_request(query, features, **kwargs)
+
+    def test_routing_hint_round_trip_for_older_span(self) -> None:
+        timestamp = before_now(days=40)
+        span = self.create_span(
+            {"span_id": KNOWN_PREFLIGHT_ID, "description": "older span"}, start_ts=timestamp
+        )
+        self.store_spans([span])
+        response = self.do_request(
+            {
+                "field": ["id", "trace", "timestamp"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "statsPeriod": "90d",
+                "sampling": "NORMAL",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        row = response.data["data"][0]
+        assert row["id"] == span["span_id"]
+        hint = response.data["meta"]["routingHint"]
+        assert isinstance(hint, str) and hint
+        details_url = reverse(
+            "sentry-api-0-project-trace-item-details",
+            args=[self.organization.slug, self.project.slug, row["id"]],
+        )
+        details = self.client_get(
+            details_url,
+            {
+                "item_type": "spans",
+                "trace_id": row["trace"],
+                "timestamp": timestamp.isoformat(),
+                "routing_hint": hint,
+            },
+        )
+
+        assert details.status_code == 200, details.content
+        assert details.data["itemId"] == row["id"]
+        assert {"name": "span.description", "type": "str", "value": "older span"} in details.data[
+            "attributes"
+        ]
 
     @pytest.mark.xfail(reason="spm is not implemented, as spm will be replaced with spm")
     def test_spm(self) -> None:
@@ -777,6 +820,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             assert response.status_code == 200, response.content
             expected = {
                 "bytesScanned": mock.ANY,
+                "routingHint": mock.ANY,
                 "dataScanned": "full",
                 "dataset": mock.ANY,
                 "datasetReason": "unchanged",
@@ -2104,6 +2148,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
         ]
         expected = {
             "bytesScanned": mock.ANY,
+            "routingHint": mock.ANY,
             "dataScanned": "full",
             "dataset": mock.ANY,
             "datasetReason": "unchanged",
