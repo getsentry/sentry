@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from django.http import Http404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -50,9 +51,13 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         args, kwargs = super().convert_args(
             request, organization_id_or_slug, team_id_or_slug, *args, **kwargs
         )
-        kwargs["external_team"] = self.get_external_actor_or_404(
-            external_team_id, kwargs["team"].organization
-        )
+        team = kwargs["team"]
+        try:
+            kwargs["external_team"] = ExternalActor.objects.get(
+                id=external_team_id, organization_id=team.organization_id, team_id=team.id
+            )
+        except ExternalActor.DoesNotExist:
+            raise Http404
         return args, kwargs
 
     @extend_schema(
