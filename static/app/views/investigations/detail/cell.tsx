@@ -197,9 +197,7 @@ export function InvestigationCell({
       as="section"
       width="100%"
       padding="0"
-      borderBottom={block.kind === 'query' ? 'primary' : undefined}
       data-test-id={`investigation-cell-${block.id}`}
-      data-has-divider={block.kind === 'query'}
     >
       {block.kind === 'query' ? (
         <Fragment>

@@ -420,6 +420,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   ))}
                 </Stack>
               </Stack>
+              <Container height="160px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
         </Layout.Body>

@@ -697,14 +697,6 @@ describe('Investigation detail', () => {
     expect(screen.getByTestId('query-cell-toolbar')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Database latency'})
     );
-    expect(screen.getByTestId('investigation-cell-block-1')).toHaveAttribute(
-      'data-has-divider',
-      'false'
-    );
-    expect(screen.getByTestId('investigation-cell-block-2')).toHaveAttribute(
-      'data-has-divider',
-      'true'
-    );
     expect(screen.getByText('820ms')).toBeInTheDocument();
     expect(screen.queryByText('Secret text-generation prompt')).not.toBeInTheDocument();
     expect(screen.queryByText('Secret query-generation prompt')).not.toBeInTheDocument();
