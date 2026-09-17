@@ -4,6 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
+import {findExampleTags} from './embedStoryTestUtils';
 import {LogEmbedStory} from './logEmbedStory';
 
 jest.mock('sentry/components/seer/markdown', () => ({
@@ -46,7 +47,7 @@ describe('LogEmbedStory', () => {
 
     render(<LogEmbedStory />);
 
-    const variants = await screen.findAllByLabelText('Rendered markdown');
+    const variants = await findExampleTags();
     expect(variants).toHaveLength(4);
     expect(eventsRequest).toHaveBeenCalled();
 

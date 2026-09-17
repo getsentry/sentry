@@ -61,6 +61,7 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
+import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {
@@ -153,7 +154,8 @@ export function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (
       option.value.kind === FieldValueKind.FUNCTION ||
-      option.value.kind === FieldValueKind.EQUATION
+      option.value.kind === FieldValueKind.EQUATION ||
+      hasConditionalAggregateFilter(option.value.meta.name)
     ) {
       return true;
     }
@@ -199,12 +201,34 @@ export function getTimeseriesSortOptions(
             },
           },
         };
+        return;
+      }
+
+      // Explore `_if` series are not in the generic aggregate catalog (avg, p95, …).
+      // Add each combinator that already exists on the widget as its own sort option.
+      if (hasConditionalAggregateFilter(field)) {
+        const parsedFunction = parseFunction(field);
+        if (!parsedFunction) {
+          return;
+        }
+        options[`field:${field}`] = {
+          label: prettifyParsedFunction(parsedFunction),
+          value: {
+            kind: FieldValueKind.FIELD,
+            meta: {
+              dataType: 'number',
+              name: field,
+            },
+          },
+        };
       }
     });
 
   const fieldOptions = getFieldOptions(organization, tags);
 
-  return {...options, ...fieldOptions};
+  // Widget-specific options (equations, `_if` combinators) must win over the
+  // generic field catalog so they are not overwritten by a colliding key.
+  return {...fieldOptions, ...options};
 }
 
 function getEventsTableFieldOptions(

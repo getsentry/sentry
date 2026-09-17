@@ -73,7 +73,11 @@ from sentry.seer.autofix.pr_iteration.emit import (
     record_pr_iteration_counts,
     trigger_pr_iteration_details,
 )
-from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
+from sentry.seer.autofix.pr_iteration.feedback import (
+    Feedback,
+    automated_iteration_cap_reached,
+    feedback_kind,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
@@ -163,19 +167,17 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
-def _get_feedback_kind(items: Collection[Feedback]) -> str:
-    """Whether the batch is manual, automated, or both."""
-    kinds = {item.source.is_automated for item in items}
-    if len(kinds) != 1:
-        return "mixed"
-    return "automated" if kinds.pop() else "manual"
-
-
 def _get_feedback_actor_user_id(items: list[QueuedAutofixFeedback]) -> int | None:
     actor_user_ids = {item.actor_user_id for item in items}
     if len(actor_user_ids) == 1:
         return actor_user_ids.pop()
     return None
+
+
+# sources that we want to bypass `should_trigger` checks for
+_BYPASSES_SHOULD_TRIGGER = frozenset(
+    {ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER, ConsumeTriggerSource.UI_CONSUME}
+)
 
 
 def _organization_for_gate(run_id: int, organization_id: int) -> Organization | None:
@@ -197,10 +199,10 @@ def trigger_consume_pr_iteration_feedback(
     organization_id: int,
     feedback: Feedback,
     run_state: SeerRunState,
-    bypass: bool = False,
+    source: str = ConsumeTriggerSource.FEEDBACK,
     delay: int | None = None,
-    triggered_by: str = "feedback",
 ) -> None:
+    bypass = source in _BYPASSES_SHOULD_TRIGGER
     set_pr_iteration_attributes(
         run_id=run_id,
         organization_id=organization_id,
@@ -225,7 +227,7 @@ def trigger_consume_pr_iteration_feedback(
         )
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by=triggered_by,
+            trigger_source=source,
             outcome="not_triggered",
             reason="paused",
             countdown=None,
@@ -249,7 +251,7 @@ def trigger_consume_pr_iteration_feedback(
     ):
         log_ctx.info(
             "autofix.pr_iteration.feedback.trigger",
-            triggered_by=triggered_by,
+            trigger_source=source,
             outcome="not_triggered",
             reason="missing_github_permissions",
             countdown=None,
@@ -264,14 +266,10 @@ def trigger_consume_pr_iteration_feedback(
 
     if bypass:
         decision = TriggerDecision(task=ConsumeTask.Now, reason="bypass")
-        trigger_source = ConsumeTriggerSource.GREEN_CHECK_SUITE_DEFER
     else:
         decision = feedback.source.should_trigger(run_state)
-        trigger_source = (
-            ConsumeTriggerSource.TIME_LIMIT_DEFER
-            if isinstance(decision.task, ConsumeTask.Later)
-            else ConsumeTriggerSource.FEEDBACK
-        )
+        if isinstance(decision.task, ConsumeTask.Later):
+            source = ConsumeTriggerSource.TIME_LIMIT_DEFER
 
     countdown = None
     trigger_id = None
@@ -287,7 +285,7 @@ def trigger_consume_pr_iteration_feedback(
                 "run_id": run_id,
                 "organization_id": organization_id,
                 "trigger_id": trigger_id,
-                "trigger_source": trigger_source,
+                "trigger_source": source,
             },
             countdown=countdown,
         )
@@ -301,12 +299,11 @@ def trigger_consume_pr_iteration_feedback(
 
     log_ctx.info(
         "autofix.pr_iteration.feedback.trigger",
-        triggered_by=triggered_by,
         outcome=outcome,
         reason=decision.reason,
         countdown=countdown,
         trigger_id=trigger_id,
-        trigger_source=trigger_source,
+        trigger_source=source,
         bypass=bypass,
         delay=delay,
         feedback_source=feedback.source.type,
@@ -670,14 +667,14 @@ def _drain_queued_autofix_feedback(
 
     referrer = _get_feedback_referrer(consumable_items)
     actor_user_id = _get_feedback_actor_user_id(consumable_items)
-    feedback_kind = _get_feedback_kind(feedback_items)
+    kind = feedback_kind(feedback_items)
     metrics.incr(
         "autofix.pr_iteration.step",
         amount=len(feedback_items),
         tags={
             "checkpoint": "consumed",
             "referrer": referrer.value,
-            "feedback_kind": feedback_kind,
+            "feedback_kind": kind,
         },
         sample_rate=1.0,
     )
@@ -717,7 +714,7 @@ def _drain_queued_autofix_feedback(
             tags={
                 "checkpoint": "sent_to_seer",
                 "referrer": referrer.value,
-                "feedback_kind": feedback_kind,
+                "feedback_kind": kind,
             },
             sample_rate=1.0,
         )

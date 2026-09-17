@@ -209,6 +209,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-discover-get-custom-measurements-reduced-range", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Detect performance issues in the new standalone spans pipeline instead of on transactions
     manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Load slow-query issue evidence from the spans dataset.
+    manager.add("organizations:issue-details-slow-query-span-data", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable all registered prebuilt dashboards to be synced to the database
     manager.add("organizations:dashboards-sync-all-registered-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Suggestions for Web Vitals Module
@@ -480,6 +482,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-stats-bytes-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics showing pii scrubbing
     manager.add("organizations:tracemetrics-pii-scrubbing-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable trace waterfall attribute pinning
+    manager.add("organizations:trace-waterfall-attribute-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace waterfall time compression
     manager.add("organizations:trace-waterfall-time-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the informational message re: moving the trace waterfall data source from transaction events to EAP spans

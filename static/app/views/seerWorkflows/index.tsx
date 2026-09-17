@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Spinner} from '@sentry/scraps/chat';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -15,7 +16,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';

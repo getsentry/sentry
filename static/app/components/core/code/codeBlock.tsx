@@ -64,6 +64,7 @@ interface CodeBlockProps {
    * Fires when the user switches tabs.
    */
   onTabClick?: (tab: string) => void;
+  ref?: React.Ref<HTMLDivElement>;
   selectedTab?: string;
   tabs?: Array<{
     label: string;
@@ -94,6 +95,7 @@ export function CodeBlock({
   onCopy,
   onSelectAndCopy,
   onTabClick,
+  ref: forwardedRef,
   selectedTab,
   tabs,
   wrapMode = 'scroll',
@@ -164,6 +166,7 @@ export function CodeBlock({
 
   const snippet = (
     <Wrapper
+      ref={forwardedRef}
       reserveCopyButtonSpace={alwaysShowCopyButton && hasFloatingHeader}
       isRounded={isRounded}
       wrapMode={wrapMode}

@@ -4,10 +4,13 @@ import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/
 import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ConversationAggregatesBar} from 'sentry/views/explore/conversations/components/conversationSummary';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
 
 import {getConversationHref, type ConversationData} from './conversationLink';
+import {
+  ConversationMetricsBar,
+  getConversationMetricsFromNodes,
+} from './conversationMetrics';
 
 function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
   if (!isoTimestamp) {
@@ -36,6 +39,10 @@ function toProjectIds(projects: ConversationData['projects']): number[] | undefi
  * embed is itself rendered inside an agent conversation, so a nested transcript
  * reads as part of the surrounding answer. The link goes to the full detail
  * view for anyone who wants the messages.
+ *
+ * The totals are the same fields the `conversationsQuery` embed tables, so one
+ * conversation reads the same whether the model named it on its own or it came
+ * back in a list.
  */
 export default function ConversationBlock({data}: {data: ConversationData}) {
   const organization = useOrganization();
@@ -60,9 +67,8 @@ export default function ConversationBlock({data}: {data: ConversationData}) {
       ) : !isLoading && nodes.length === 0 ? (
         <Text variant="muted">{t('No messages in this conversation')}</Text>
       ) : (
-        <ConversationAggregatesBar
-          conversationId={data.id}
-          nodes={nodes}
+        <ConversationMetricsBar
+          metrics={getConversationMetricsFromNodes(nodes)}
           isLoading={isLoading}
         />
       )}

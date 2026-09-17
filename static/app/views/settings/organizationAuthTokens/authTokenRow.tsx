@@ -82,7 +82,7 @@ export function OrganizationAuthTokensAuthTokenRow({
 }) {
   return (
     <SimpleTable.Row>
-      <SimpleTable.RowCell columnKey="token">
+      <SimpleTable.RowCell columnKey="token" direction="column" align="start">
         <Label>
           <Link to={`/settings/${organization.slug}/auth-tokens/${token.id}/`}>
             {token.name}

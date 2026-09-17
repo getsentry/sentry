@@ -12,10 +12,6 @@ from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION
 from sentry.integrations.slack.utils.rule_status import RedisRuleStatus
 from sentry.models.rule import Rule
 from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
-from sentry.workflow_engine.utils.legacy_metric_tracking import (
-    report_used_legacy_models,
-    track_alert_endpoint_execution,
-)
 
 
 @cell_silo_endpoint
@@ -26,7 +22,6 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    @track_alert_endpoint_execution("GET", "sentry-api-0-project-rule-task-details")
     @deprecated(ALERTS_API_DEPRECATION_DATE, key=ALERTS_API_DEPRECATION_KEY)
     def get(self, request: Request, project, task_uuid) -> Response:
         """
@@ -47,9 +42,6 @@ class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
         context = {"status": status, "rule": None, "error": None}
 
         if rule_id and status == "success":
-            # Mark that we're using legacy Rule models (before query to track failures too)
-            report_used_legacy_models()
-
             try:
                 rule = Rule.objects.get(
                     project=project,

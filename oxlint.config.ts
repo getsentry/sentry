@@ -532,6 +532,7 @@ const config = defineConfig({
     'import/no-absolute-path': 'error',
     'import/no-amd': 'error',
     'import/no-anonymous-default-export': 'error',
+    'import/no-duplicates': 'error',
     'import/no-named-default': 'error',
     'import/no-nodejs-modules': 'error',
     'import/no-webpack-loader-syntax': 'error',
@@ -552,6 +553,7 @@ const config = defineConfig({
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
     '@sentry/scraps/prefer-stack-for-column-flex': 'error',
+    '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
       {

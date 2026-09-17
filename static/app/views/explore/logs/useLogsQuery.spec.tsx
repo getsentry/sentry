@@ -16,6 +16,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {LogsFrozenContextProviderProps} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -412,7 +413,7 @@ describe('useInfiniteLogsQuery', () => {
       });
     }
 
-    function createTraceWrapper(freeze: {traceId: string; traceTimestamp?: number}) {
+    function createTraceWrapper(freeze: LogsFrozenContextProviderProps) {
       return function ({children}: {children?: React.ReactNode}) {
         return (
           <QueryClientProvider client={queryClient}>
@@ -477,6 +478,26 @@ describe('useInfiniteLogsQuery', () => {
           query: expect.objectContaining({
             start: '2025-04-03T00:00:00.000',
             end: '2025-04-03T00:10:00.000',
+          }),
+        })
+      );
+    });
+
+    it('matches both span id attributes when frozen to a span', async () => {
+      const mockRequest = mockTraceLogsRequest();
+      const spanId = 'b'.repeat(16);
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({span: {traceId, spanId}}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `trace:${traceId} ( span_id:${spanId} OR trace.parent_span_id:${spanId} )`,
           }),
         })
       );

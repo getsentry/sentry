@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, feedback_kind
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
 from sentry.utils import metrics
 from sentry.utils.redis import load_redis_script, redis_clusters
@@ -62,7 +62,11 @@ def try_enqueue_autofix_feedback(
 
         metrics.incr(
             "autofix.pr_iteration.step",
-            tags={"checkpoint": "enqueued", "referrer": referrer.value},
+            tags={
+                "checkpoint": "enqueued",
+                "referrer": referrer.value,
+                "feedback_kind": feedback_kind([feedback]),
+            },
             sample_rate=1.0,
         )
 

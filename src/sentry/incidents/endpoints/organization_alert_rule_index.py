@@ -112,7 +112,6 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
 
@@ -535,7 +534,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-index",
@@ -758,7 +756,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-index",
@@ -799,7 +796,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-index",

@@ -119,13 +119,12 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter,
-  operator?: TermOperator
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key), operator)
+    getInitialFilterText(key, getFieldDefinition(key))
   );
 }
 
