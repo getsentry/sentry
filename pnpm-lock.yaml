@@ -12,6 +12,9 @@ overrides:
 packageExtensionsChecksum: sha256-0VZ2XeajIU53t75fxV6NpDm9r5YxmYRM0rEQhyaaIlQ=
 
 patchedDependencies:
+  jsdom@30.1.0:
+    hash: 5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a
+    path: patches/jsdom@30.1.0.patch
   zod@4.3.5:
     hash: 2bb6d33b2c713a7a2c559c18ad0aa6cfb261f01d935ee1288dfec6c84411aa76
     path: patches/zod@4.3.5.patch
@@ -551,7 +554,7 @@ importers:
         version: 30.5.1
       '@jest/environment-jsdom-abstract':
         specifier: 30.5.1
-        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0)
+        version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
       '@jest/types':
         specifier: 30.5.1
         version: 30.5.1
@@ -560,7 +563,7 @@ importers:
         version: 2.43.0
       '@sentry/jest-environment':
         specifier: 8.0.0
-        version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0))(@sentry/node@11.0.0-beta.2)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0)
+        version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0-beta.2)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
       '@swc-contrib/mut-cjs-exports':
         specifier: 15.0.0
         version: 15.0.0(@swc/core@1.16.2)(@swc/jest@0.2.39(@swc/core@1.16.2))
@@ -638,7 +641,7 @@ importers:
         version: 3.3.4(@jest/globals@30.5.1)
       jsdom:
         specifier: 30.1.0
-        version: 30.1.0
+        version: 30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)
       knip:
         specifier: 6.32.1
         version: 6.32.1
@@ -10327,7 +10330,7 @@ snapshots:
 
   '@jest/diff-sequences@30.5.0': {}
 
-  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0)':
+  '@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))':
     dependencies:
       '@jest/environment': 30.5.1
       '@jest/fake-timers': 30.5.1
@@ -10336,7 +10339,7 @@ snapshots:
       '@types/node': 24.13.2
       jest-mock: 30.5.1
       jest-util: 30.5.1
-      jsdom: 30.1.0
+      jsdom: 30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)
 
   '@jest/environment@30.5.1':
     dependencies:
@@ -11942,14 +11945,14 @@ snapshots:
     dependencies:
       '@sentry/core': 11.0.0-beta.2
 
-  '@sentry/jest-environment@8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0))(@sentry/node@11.0.0-beta.2)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0)':
+  '@sentry/jest-environment@8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)))(@sentry/node@11.0.0-beta.2)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))':
     dependencies:
       '@sentry/node': 11.0.0-beta.2
       jest: 30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2)(@types/node@24.13.2)(@typescript/typescript6@6.0.2))
     optionalDependencies:
-      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0)
+      '@jest/environment-jsdom-abstract': 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a))
       jest-environment-node: 30.5.1
-      jsdom: 30.1.0
+      jsdom: 30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a)
 
   '@sentry/node@11.0.0-beta.2':
     dependencies:
@@ -15869,7 +15872,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  jsdom@30.1.0:
+  jsdom@30.1.0(patch_hash=5dac761088e7baf0d6a93f505737e3e3f0dc178680ab47fb53483561d730388a):
     dependencies:
       '@asamuzakjp/css-color': 7.0.0
       '@asamuzakjp/dom-selector': 9.1.4

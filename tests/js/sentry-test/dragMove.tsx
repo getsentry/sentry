@@ -31,7 +31,7 @@ interface DragOptions {
 
 export function dragMove({button = 0, to, y = 0}: Omit<DragOptions, 'from' | 'release'>) {
   act(() => {
-    dispatch(window, 'mousemove', to, y, button);
+    dispatch(window, 'pointermove', to, y, button);
   });
 }
 
