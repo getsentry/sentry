@@ -300,7 +300,8 @@ class SeerAgentClient:
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
             custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
-            on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. This is called whether or not the agent was successful. Hook classes must be module-level (not nested classes).
+            on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. By default this is called only when the run succeeds; see hook_call_on_failure. Hook classes must be module-level (not nested classes).
+            hook_call_on_failure: Also call the hook when the run errors or times out, including when Seer's stale-run sweep ends a run whose worker died. The hook is told nothing about which outcome it was called for, so it must read the run status itself. Seer pins this when the run is created, so it cannot be varied per step of an existing run. Default is False.
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
             is_interactive: Enable full interactive, human-like features of the agent. Only enable if you support *all* available interactions in Seer. An example use of this is the explorer chat in Sentry UI.
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
@@ -319,6 +320,7 @@ class SeerAgentClient:
         category_value: str | None = None,
         custom_tools: list[type[AgentTool[Any]]] | None = None,
         on_completion_hook: type[AgentOnCompletionHook] | None = None,
+        hook_call_on_failure: bool = False,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
         reasoning_effort: Literal["low", "medium", "high"] | None = None,
         is_interactive: bool = False,
@@ -337,6 +339,7 @@ class SeerAgentClient:
         self.group = group
         self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
+        self.hook_call_on_failure = hook_call_on_failure
         self.intelligence_level = intelligence_level
         self.reasoning_effort = reasoning_effort
         self.category_key = category_key
@@ -478,7 +481,7 @@ class SeerAgentClient:
         # Add on-completion hook if provided
         if self.on_completion_hook:
             chat_body["on_completion_hook"] = extract_hook_definition(
-                self.on_completion_hook
+                self.on_completion_hook, call_on_failure=self.hook_call_on_failure
             ).dict()
 
         if self.category_key and self.category_value:
@@ -1034,7 +1037,9 @@ class SeerAgentClient:
         if author:
             payload["author"] = author
         if self.on_completion_hook:
-            payload["on_completion_hook"] = extract_hook_definition(self.on_completion_hook).dict()
+            payload["on_completion_hook"] = extract_hook_definition(
+                self.on_completion_hook, call_on_failure=self.hook_call_on_failure
+            ).dict()
         update_body = AgentUpdateRequest(
             run_id=run_id,
             organization_id=self.organization.id,

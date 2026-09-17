@@ -1369,16 +1369,32 @@ describe('ToolUseBlock', () => {
       expect(screen.getByText('ml-service')).toBeInTheDocument();
     });
 
-    it('shows the HTTP status code in the trailing chip and the error under Output', () => {
+    it('shows only the HTTP status code in the trailing chip on failure', () => {
       const block = codeModeCallsBlock([
         {...issueCall, status: 500, title: 'Retrieve an issue'},
       ]);
       render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
 
-      // Status code trails the title; the error prints under Output, mirroring Input.
       expect(screen.getByText('500')).toBeInTheDocument();
+      expect(screen.queryByText('Output:')).not.toBeInTheDocument();
+      expect(screen.queryByText('Returned HTTP 500')).not.toBeInTheDocument();
+    });
+
+    it('shows useful error context for a transport failure', () => {
+      const block = codeModeCallsBlock([
+        {
+          ...issueCall,
+          status: undefined,
+          error: 'Error: Connection timed out',
+          title: 'Retrieve an issue',
+        },
+      ]);
+      render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />);
+
       expect(screen.getByText('Output:')).toBeInTheDocument();
-      expect(screen.getByText('Returned HTTP 500')).toBeInTheDocument();
+      expect(
+        screen.getByText('Request failed: Error: Connection timed out')
+      ).toBeInTheDocument();
     });
   });
 });

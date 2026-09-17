@@ -1268,6 +1268,11 @@ urlpatterns += [
         name="sentry-robots-txt",
     ),
     re_path(
+        r"^\.well-known/change-password$",
+        RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
+        name="sentry-change-password-redirect",
+    ),
+    re_path(
         r"^\.well-known/security\.txt$",
         api.security_txt,
         name="sentry-security-txt",

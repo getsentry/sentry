@@ -239,6 +239,41 @@ describe('EditAutomation', () => {
     );
   });
 
+  describe('breadcrumbs', () => {
+    it('renders the parent crumb in the trail and the alert name as the page title', async () => {
+      render(<AutomationEdit />, {organization, initialRouterConfig});
+
+      const alertsCrumb = await screen.findByRole('link', {name: 'Alerts'});
+      expect(alertsCrumb).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/monitors/alerts/`
+      );
+
+      expect(
+        screen.getByRole('heading', {name: automation.name, level: 1})
+      ).toBeInTheDocument();
+
+      const trail = alertsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(automation.name)).not.toBeInTheDocument();
+    });
+
+    it('edits the alert name from the page title', async () => {
+      render(<AutomationEdit />, {organization, initialRouterConfig});
+
+      await userEvent.click(await screen.findByText(automation.name));
+
+      const input = screen.getByRole('textbox', {name: 'Alert Name'});
+      expect(input).toHaveValue(automation.name);
+
+      await userEvent.clear(input);
+      await userEvent.type(input, 'Renamed alert{enter}');
+
+      expect(
+        screen.getByRole('heading', {name: 'Renamed alert', level: 1})
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('initial trigger conditions', () => {
     const everyEventLabel = dataConditionNodesMap.get(
       DataConditionType.EVERY_EVENT

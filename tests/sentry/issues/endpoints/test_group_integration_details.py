@@ -286,6 +286,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 organization=self.organization,
                 provider=provider,
                 external_id=f"{provider}:{issue_path}",
+                name="example",
                 metadata=metadata,
             )
             self.create_repo(
@@ -323,6 +324,68 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "repo": "example/repo"
             }
         assert len(responses.calls) == 3
+
+    @responses.activate
+    def test_put_github_issue_url_without_domain_name(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github-installation",
+            name="example",
+            metadata={
+                "access_token": "access-token",
+                "expires_at": "3000-01-01T00:00:00Z",
+            },
+        )
+        self.create_repo(name="example/repo", project=self.project, integration_id=integration.id)
+        responses.get(
+            "https://api.github.com/repos/example/repo/issues/321",
+            json={
+                "number": 321,
+                "title": "Existing issue",
+                "body": "Description",
+                "html_url": "https://github.com/example/repo/issues/321",
+            },
+        )
+        group = self.create_group(project=self.project)
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.put(
+                path, data={"externalIssue": "https://github.com/EXAMPLE/Repo/issues/321"}
+            )
+
+        assert response.status_code == 201, response.content
+        assert response.data["key"] == "example/repo#321"
+        assert GroupLink.objects.filter(
+            group_id=group.id,
+            linked_id=response.data["id"],
+            linked_type=GroupLink.LinkedType.issue,
+            relationship=GroupLink.Relationship.references,
+        ).exists()
+
+    @responses.activate
+    def test_put_github_enterprise_issue_url_without_hostname(self) -> None:
+        self.login_as(self.user)
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            external_id="enterprise-installation",
+            name="example",
+            metadata={},
+        )
+        self.create_repo(name="example/repo", project=self.project, integration_id=integration.id)
+        group = self.create_group(project=self.project)
+        path = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/integrations/{integration.id}/"
+
+        with self.feature("organizations:integrations-issue-basic"):
+            response = self.client.put(
+                path, data={"externalIssue": "https://github.com/example/repo/issues/321"}
+            )
+
+        assert response.status_code == 400, response.content
+        assert not GroupLink.objects.filter(group_id=group.id).exists()
 
     @responses.activate
     def test_put_azure_issue_url(self) -> None:

@@ -96,6 +96,7 @@ export function UsageOverview({
       }
     }
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     location.query.product,
     selectedProduct,
     location.pathname,

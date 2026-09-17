@@ -9,7 +9,10 @@ from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.models import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
-from sentry.integrations.tasks.sync_status_inbound import sync_status_inbound
+from sentry.integrations.tasks.sync_status_inbound import (
+    get_resolutions_and_activity_data_for_groups,
+    sync_status_inbound,
+)
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
@@ -17,6 +20,7 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.signals import issue_unresolved
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -253,6 +257,43 @@ class TestSyncStatusInbound(TestCase):
         )
         assert activity is not None
         assert activity.ident == str(resolution.id)
+
+    @with_feature("organizations:release-resolution-finalized-order")
+    @mock.patch(
+        "sentry.integrations.tasks.sync_status_inbound.get_current_release_version_of_group"
+    )
+    def test_resolve_next_release_uses_finalized_release_order(
+        self, mock_get_current_release_version: mock.MagicMock
+    ) -> None:
+        now = django_timezone.now()
+        current_release = self.create_release(
+            project=self.project,
+            version="current release",
+            date_added=now - timedelta(minutes=30),
+            date_released=now - timedelta(minutes=30),
+        )
+        next_release = self.create_release(
+            project=self.project,
+            version="next release",
+            date_added=now - timedelta(minutes=60),
+            date_released=now - timedelta(minutes=10),
+        )
+        self.create_release(
+            project=self.project,
+            version="late registered old release",
+            date_added=now,
+            date_released=now - timedelta(minutes=60),
+        )
+        mock_get_current_release_version.return_value = current_release.version
+
+        resolutions, _, _ = get_resolutions_and_activity_data_for_groups(
+            affected_groups=[self.group],
+            resolution_strategy="resolve_next_release",
+            activity_data={},
+            organization_id=self.organization.id,
+        )
+
+        assert resolutions[self.group.id]["release"] == next_release
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_current_release(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:

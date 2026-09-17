@@ -2,6 +2,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from rest_framework.exceptions import NotFound
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
     CreateSubscriptionRequest,
     CreateSubscriptionResponse,
@@ -35,9 +36,33 @@ from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
 )
+from sentry_protos.snuba.v1.error_pb2 import Error as ErrorProto
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
+from urllib3.response import HTTPResponse
 
 from sentry.utils import snuba_rpc
+
+
+@pytest.mark.parametrize(
+    "status, message, exception",
+    [
+        (400, "invalid routing_hint", snuba_rpc.SnubaRPCBadRequest),
+        (400, "Too many simultaneous queries", snuba_rpc.SnubaRPCTooManySimultaneous),
+        (404, "not found", NotFound),
+        (429, "rate limited", snuba_rpc.SnubaRPCRateLimitExceeded),
+        (500, "internal error", snuba_rpc.SnubaRPCError),
+    ],
+)
+def test_rpc_http_errors(status: int, message: str, exception: type[Exception]) -> None:
+    error = ErrorProto(message=message)
+    response = HTTPResponse(status=status, body=error.SerializeToString())
+    with (
+        mock.patch("sentry.utils.snuba_rpc._snuba_pool.urlopen", return_value=response),
+        pytest.raises(exception) as raised,
+    ):
+        snuba_rpc.trace_item_details_rpc(TraceItemDetailsRequest(meta=_meta()))
+
+    assert type(raised.value) is exception
 
 
 def _meta() -> RequestMeta:

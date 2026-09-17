@@ -122,12 +122,39 @@ class SavedQueryStarredOrderTest(APITestCase):
             ("explore", self.explore_a.id),
         ]
 
-    def test_rejects_a_partial_list(self) -> None:
-        """A payload naming only one product cannot express the user's intent, so it errors."""
+    def test_accepts_a_partial_list(self) -> None:
+        """The nav may render a subset of the starred list, so a drag names only those rows"""
         with self.feature(self.feature_flags):
             response = self.client.put(
                 self.url,
                 data={"queries": [self.ref(self.discover_y), self.ref(self.discover_x)]},
+            )
+
+        assert response.status_code == 204
+        assert self.current_order() == [
+            ("explore", self.explore_a.id),
+            ("discover", self.discover_y.id),
+            ("explore", self.explore_b.id),
+            ("discover", self.discover_x.id),
+        ]
+
+    def test_rejects_a_query_the_user_has_not_starred(self) -> None:
+        unstarred = ExploreSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="Unstarred",
+            query=[{"fields": ["span.op"], "mode": "samples"}],
+        )
+
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                self.url,
+                data={
+                    "queries": [
+                        self.ref(self.explore_a),
+                        {"type": "explore", "query_id": unstarred.id},
+                    ]
+                },
             )
 
         assert response.status_code == 400
