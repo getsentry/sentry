@@ -535,6 +535,9 @@ const config = defineConfig({
     'import/no-duplicates': 'error',
     'import/no-named-default': 'error',
     'import/no-nodejs-modules': 'error',
+    // Catches the parent-relative forms that `@sentry/no-relative-import-paths`
+    // lets through: dynamic `import()`, a bare `'..'`, and `'./../foo'`.
+    'import/no-relative-parent-imports': 'error',
     'import/no-webpack-loader-syntax': 'error',
     '@sentry/no-calling-components-as-functions': 'error',
     '@sentry/no-digits-in-tn': 'error',
@@ -1653,6 +1656,30 @@ const config = defineConfig({
       files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
       rules: {
         '@sentry/no-calling-components-as-functions': 'off',
+      },
+    },
+    // The lint plugins are standalone packages loaded by oxlint itself, so none
+    // of the `sentry/*` aliases resolve inside them.
+    {
+      files: ['static/oxlint/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Scraps is its own component library rather than ordinary app code, and a
+    // handful of its internal imports are deliberately parent-relative.
+    {
+      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Build scripts run outside the app bundle and are kept as bare as
+    // possible, so they reach for source with a plain relative path.
+    {
+      files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
       },
     },
     {
