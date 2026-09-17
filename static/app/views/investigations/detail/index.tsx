@@ -339,7 +339,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             align="start"
             gap="lg"
             width="100%"
-            maxWidth="885px"
+            maxWidth="960px"
             margin="0 auto"
           >
             <Stack gap="xs" minWidth={0}>
@@ -382,7 +382,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         </InvestigationHeader>
         <Layout.Body>
           <Layout.Main width="full">
-            <InvestigationCanvas>
+            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
               <NotebookSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
@@ -395,12 +395,12 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                * 404s.
                */}
               {investigation.orchestration ? (
-                <Stack width="min(100%, 884px)" margin="0 auto" paddingBottom="xl">
+                <Stack width="100%" minWidth={0} paddingBottom="xl">
                   <InvestigationHypotheses investigationId={investigation.id} />
                 </Stack>
               ) : null}
 
-              <Stack width="min(100%, 884px)" margin="0 auto">
+              <Stack width="100%" minWidth={0}>
                 {visibleSummaryBlock ? (
                   <InvestigationCell
                     block={visibleSummaryBlock}
@@ -420,7 +420,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   ))}
                 </Stack>
               </Stack>
-            </InvestigationCanvas>
+            </Stack>
           </Layout.Main>
         </Layout.Body>
       </Stack>
@@ -451,11 +451,6 @@ function formatSourceType(sourceType: string) {
 function formatNotebookDate(date: string) {
   return new Date(date).toISOString().slice(0, 10).replaceAll('-', '.');
 }
-
-const InvestigationCanvas = styled(Stack)`
-  width: min(100%, calc(884px + ${p => p.theme.space['2xl']}));
-  margin: 0 auto;
-`;
 
 const InvestigationHeader = styled(Container)`
   position: relative;
