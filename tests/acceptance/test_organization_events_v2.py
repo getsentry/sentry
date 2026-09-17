@@ -396,7 +396,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('input[name="query_name"]').send_keys(query_name)
             self.browser.element('[aria-label="Save for Organization"]').click()
 
-            self.browser.wait_until(f'[data-test-id="discover2-query-name-{query_name}"]')
+            self.browser.wait_until(xpath=f'//h1[contains(.,"{query_name}")]')
 
             # Page title should update.
             editable_text_label = self.browser.element('[data-test-id="editable-text-label"]').text
@@ -439,9 +439,7 @@ class OrganizationEventsTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.wait_until('[data-test-id="editable-text-label"]')
 
             new_name = "Custom queryupdated!"
-            # new_card_selector = f'div[name="discover2-query-name"][value="{new_name}"]'
-            # self.browser.wait_until(new_card_selector)
-            self.browser.wait_until(f'[data-test-id="discover2-query-name-{new_name}"]')
+            self.browser.wait_until(xpath=f'//h1[contains(.,"{new_name}")]')
 
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()
