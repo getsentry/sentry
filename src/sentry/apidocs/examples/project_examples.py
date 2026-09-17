@@ -2,6 +2,14 @@ from typing import Any
 
 from drf_spectacular.utils import OpenApiExample
 
+from sentry.apidocs.examples.world import (
+    PROJECT_BACKEND,
+    PROJECT_FRONTEND,
+    TEAM_BACKEND,
+    TEAM_FRONTEND,
+    ref,
+)
+
 KEY_RATE_LIMIT = {
     "id": "60120449b6b1d5e45f75561e6dabd80b",
     "name": "Liked Pegasus",
@@ -49,11 +57,7 @@ KEY_NO_RATE_LIMIT = {
 }
 
 BASE_PROJECT = {
-    "id": "4505321021243392",
-    "slug": "the-spoiled-yoghurt",
-    "name": "The Spoiled Yoghurt",
-    "platform": "python",
-    "dateCreated": "2023-06-08T00:13:06.004534Z",
+    **PROJECT_FRONTEND,
     "isBookmarked": False,
     "isMember": True,
     "features": [
@@ -116,14 +120,11 @@ BASE_PROJECT = {
 
 DETAILED_PROJECT = {
     **BASE_PROJECT,
-    "id": "4505278496",
-    "slug": "pump-station",
-    "name": "Pump Station",
-    "dateCreated": "2021-01-14T22:08:52.711809Z",
-    "firstEvent": "2021-01-14T22:08:52.711809Z",
+    **PROJECT_BACKEND,
+    "firstEvent": PROJECT_BACKEND["dateCreated"],
     "firstTransactionEvent": True,
-    "team": {"id": "2", "name": "Powerful Abolitionist", "slug": "powerful-abolitionist"},
-    "teams": [{"id": "2", "name": "Powerful Abolitionist", "slug": "powerful-abolitionist"}],
+    "team": ref(TEAM_BACKEND),
+    "teams": [ref(TEAM_BACKEND)],
     "latestRelease": {
         "version": "backend@3e90a5d9e767ebcfa70e921d7a7ff6c037461168",
     },
@@ -233,26 +234,11 @@ DETAILED_PROJECT = {
 }
 
 PROJECT_SUMMARY = {
-    "team": {
-        "id": "2349234102",
-        "name": "Prime Mover",
-        "slug": "prime-mover",
-    },
-    "teams": [
-        {
-            "id": "2349234102",
-            "name": "Prime Mover",
-            "slug": "prime-mover",
-        },
-        {
-            "id": "47584447",
-            "name": "Powerful Abolitionist",
-            "slug": "powerful-abolitionist",
-        },
-    ],
-    "id": "6758470122493650",
-    "slug": "the-spoiled-yoghurt",
-    "name": "The Spoiled Yoghurt",
+    "team": ref(TEAM_FRONTEND),
+    "teams": [ref(TEAM_FRONTEND), ref(TEAM_BACKEND)],
+    "id": PROJECT_FRONTEND["id"],
+    "slug": PROJECT_FRONTEND["slug"],
+    "name": PROJECT_FRONTEND["name"],
     "isBookmarked": False,
     "isMember": True,
     "access": [
