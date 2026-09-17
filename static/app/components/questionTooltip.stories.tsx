@@ -25,7 +25,6 @@ export default Storybook.story('QuestionTooltip', story => {
             size="lg"
             position="top"
             title="The top selectors your users have dead clicked on (i.e., a user click that does not result in any page activity after 7 seconds)."
-            isHoverable
           />
         </Flex>
         <p>
@@ -80,9 +79,6 @@ export default Storybook.story('QuestionTooltip', story => {
         <ul>
           <li>
             <Storybook.JSXProperty name="containerDisplayMode" value />
-          </li>
-          <li>
-            <Storybook.JSXProperty name="isHoverable" value />
           </li>
           <li>
             <Storybook.JSXProperty name="overlayStyle" value />

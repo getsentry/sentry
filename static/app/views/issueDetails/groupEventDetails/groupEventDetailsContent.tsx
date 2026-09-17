@@ -4,7 +4,6 @@ import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
-import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
@@ -14,9 +13,6 @@ import {EventInsightDiff} from 'sentry/components/events/eventInsightDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
-import {AggregateSpanDiff} from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
-import {EventBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/breakpointChart';
-import {EventComparison} from 'sentry/components/events/eventStatisticalDetector/eventComparison';
 import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
@@ -272,19 +268,6 @@ export function EventDetailsContent({
           <EventRegressionSummary event={event} group={group} />
         </ErrorBoundary>
       )}
-      {issueTypeConfig.performanceDurationRegression.enabled && (
-        <Fragment>
-          <ErrorBoundary mini>
-            <EventBreakpointChart event={event} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <AggregateSpanDiff event={event} project={project} />
-          </ErrorBoundary>
-          <ErrorBoundary mini>
-            <EventComparison event={event} project={project} />
-          </ErrorBoundary>
-        </Fragment>
-      )}
       {issueTypeConfig.profilingDurationRegression.enabled && (
         <Fragment>
           <ErrorBoundary mini>
@@ -364,7 +347,6 @@ export function EventDetailsContent({
       <EventInsightDiff event={event} project={project} />
       <EventXrayDiff event={event} project={project} />
       <EventPackageData event={event} />
-      <EventDevice event={event} />
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
       <EventProcessingErrors event={event} project={project} isShare={false} />

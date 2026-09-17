@@ -4,9 +4,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useAuthV2Rollout} from 'sentry/utils/useAuthV2Rollout';
 import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
+
+jest.mock('sentry/utils/analytics');
 
 const AUTH_V2_ROLLOUT_ORGANIZATION = 'sentry_react_auth_rollout_organization';
 
@@ -22,6 +25,7 @@ function setRolloutOrganization(organizationSlug: string) {
 
 describe('useAuthV2Rollout', () => {
   beforeEach(() => {
+    jest.mocked(trackAnalytics).mockClear();
     OrganizationStore.init();
     Cookies.remove('sentry_react_auth', {path: '/'});
     localStorage.removeItem(AUTH_V2_ROLLOUT_ORGANIZATION);
@@ -38,6 +42,11 @@ describe('useAuthV2Rollout', () => {
 
     await waitFor(() => expect(Cookies.get('sentry_react_auth')).toBe('1'));
     expect(getRolloutOrganization()).toBe('rollout-org');
+    expect(trackAnalytics).toHaveBeenCalledWith('auth_v2.rollout.changed', {
+      organization: expect.objectContaining({slug: 'rollout-org'}),
+      source: 'feature_flag',
+      state: 'enabled',
+    });
   });
 
   it('preserves an explicit opt-out while the organization has the rollout feature', async () => {
@@ -117,5 +126,10 @@ describe('useAuthV2Rollout', () => {
 
     await waitFor(() => expect(Cookies.get('sentry_react_auth')).toBeUndefined());
     expect(getRolloutOrganization()).toBeNull();
+    expect(trackAnalytics).toHaveBeenCalledWith('auth_v2.rollout.changed', {
+      organization: expect.objectContaining({slug: 'rollout-org'}),
+      source: 'feature_flag',
+      state: 'unset',
+    });
   });
 });

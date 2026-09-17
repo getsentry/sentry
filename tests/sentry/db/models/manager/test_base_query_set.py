@@ -1,6 +1,8 @@
 from contextlib import contextmanager
 from unittest import mock
 
+import pytest
+
 from sentry.models.group import Group
 from sentry.signals import post_update
 from sentry.testutils.cases import TestCase
@@ -13,6 +15,26 @@ def catch_signal(signal):
     signal.connect(handler)
     yield handler
     signal.disconnect(handler)
+
+
+class TestGetOrNone(TestCase):
+    def test_found(self) -> None:
+        assert Group.objects.get_or_none(id=self.group.id) == self.group
+
+    def test_missing(self) -> None:
+        assert Group.objects.get_or_none(id=0) is None
+
+    def test_multiple_raises(self) -> None:
+        other = self.create_group()
+        with pytest.raises(Group.MultipleObjectsReturned):
+            Group.objects.filter(id__in=[self.group.id, other.id]).get_or_none()
+
+    def test_values_list(self) -> None:
+        assert (
+            Group.objects.filter(id=self.group.id).values_list("id", flat=True).get_or_none()
+            == self.group.id
+        )
+        assert Group.objects.filter(id=0).values_list("id", flat=True).get_or_none() is None
 
 
 class TestUpdateWithReturning(TestCase):

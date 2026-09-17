@@ -46,6 +46,7 @@ function AddGiftBudgetModal({
 
   useEffect(() => {
     if (reservedBudgetOptions.length > 0 && !selectedBudgetId) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setSelectedBudgetId(reservedBudgetOptions[0]?.id ?? null);
     }
   }, [reservedBudgetOptions, selectedBudgetId]);

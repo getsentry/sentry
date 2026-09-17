@@ -19,7 +19,7 @@ from django.db.models import (
 from django.db.models.fields import BigIntegerField
 from django.db.models.functions import Cast, Coalesce
 from django.http.response import HttpResponseBase
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -111,7 +111,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.types import DetectorPriorityLevel
-from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
+from sentry.workflow_engine.utils.legacy_alerts_api import enforce_alerts_api_deprecation
 
 logger = logging.getLogger(__name__)
 
@@ -285,6 +285,7 @@ class OrganizationOnDemandRuleStatsEndpoint(OrganizationEndpoint):
         Returns the total number of on-demand alert rules for a project, along with
         the maximum allowed limit of on-demand alert rules that can be created.
         """
+        enforce_alerts_api_deprecation(organization)
         project_id = request.GET.get("project_id")
         if project_id is None:
             raise ParseError(detail="Invalid project_id")
@@ -533,7 +534,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = get_max_metric_alert_subscriptions(organization)
         return response
 
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-combined-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-index",
@@ -543,6 +543,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         """
         Fetches metric, issue, crons, and uptime alert rules for an organization
         """
+        enforce_alerts_api_deprecation(organization)
         # Materialize the project ids here. This helps us to not overwhelm the query planner with
         # overcomplicated subqueries. Previously, this was causing Postgres to use a suboptimal
         # index to filter on. Also enforces permission checks.
@@ -595,7 +596,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
         )
 
 
-@extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleIndexPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         max_length=256,
@@ -726,7 +726,13 @@ Metric alert rule trigger actions follow the following structure:
         choices=ExtrapolationMode.as_text_choices(),
         help_text="How sampled spans are scaled to estimate the true aggregate. Only applies to alerts on the `events_analytics_platform` dataset. New alerts accept `client_and_server_weighted` and `unknown`; `server_weighted` and `none` are rejected.",
     )
-    thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    thresholdPeriod = serializers.IntegerField(
+        required=False,
+        default=1,
+        min_value=1,
+        max_value=20,
+        help_text="Number of consecutive times the threshold must be met before the alert fires.",
+    )
 
 
 @extend_schema(tags=["Alerts"])
@@ -750,7 +756,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-index",
@@ -771,6 +776,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         predefined threshold. These rules help you proactively identify and address issues in your
         project.
         """
+        enforce_alerts_api_deprecation(organization)
         projects = self.get_projects(request, organization)
         return self.fetch_metric_alerts(request, organization, projects)
 
@@ -790,7 +796,6 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     @deprecated(
         ALERTS_API_DEPRECATION_DATE,
         suggested_api="sentry-api-0-organization-detector-index",
@@ -950,6 +955,7 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
         }
         ```
         """
+        enforce_alerts_api_deprecation(organization)
         if features.has(
             "organizations:workflow-engine-metric-detector-limit", organization, actor=request.user
         ):

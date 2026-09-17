@@ -9,12 +9,7 @@ import {SvgIcon, type SVGIconProps} from 'sentry/icons/svgIcon';
 interface QuestionProps extends Partial<
   Pick<
     TooltipProps,
-    | 'containerDisplayMode'
-    | 'isHoverable'
-    | 'overlayStyle'
-    | 'position'
-    | 'skipWrapper'
-    | 'delay'
+    'containerDisplayMode' | 'overlayStyle' | 'position' | 'skipWrapper' | 'delay'
   >
 > {
   /**

@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import Cookies from 'js-cookie';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -6,11 +7,19 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import type {AuthConfig} from 'sentry/types/auth';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {BrandedAuthLoadingProvider} from 'sentry/views/authV2/useBrandedAuthLoading';
 
 import AuthLogin from './index';
 
+jest.mock('sentry/utils/analytics');
+
 describe('AuthLogin', () => {
+  beforeEach(() => {
+    jest.mocked(trackAnalytics).mockClear();
+  });
+
   beforeAll(() => {
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,
@@ -37,6 +46,19 @@ describe('AuthLogin', () => {
     });
   }
 
+  function renderWithLoadingState() {
+    return render(
+      <BrandedAuthLoadingProvider>
+        {isLoading => (
+          <Fragment>
+            <div>{isLoading ? 'Loading authentication' : 'Authentication ready'}</div>
+            <AuthLogin />
+          </Fragment>
+        )}
+      </BrandedAuthLoadingProvider>
+    );
+  }
+
   it('does not render the sign-in flow while auth config is loading', async () => {
     const authConfig = Promise.withResolvers<AuthConfig>();
     MockApiClient.addMockResponse({
@@ -44,8 +66,9 @@ describe('AuthLogin', () => {
       body: () => authConfig.promise,
     });
 
-    render(<AuthLogin />);
+    renderWithLoadingState();
 
+    expect(screen.getByText('Loading authentication')).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
@@ -69,6 +92,16 @@ describe('AuthLogin', () => {
     expect(
       await screen.findByRole('heading', {name: 'Sign in to Sentry'})
     ).toBeInTheDocument();
+    expect(screen.getByText('Authentication ready')).toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'auth.login.rendered',
+      {
+        organization: null,
+        entrypoint: 'generic',
+        state: 'login',
+      },
+      {startSession: true}
+    );
   });
 
   it('shows a retry when the initial auth config request fails', async () => {
@@ -78,7 +111,7 @@ describe('AuthLogin', () => {
       body: {detail: 'Config unavailable'},
     });
 
-    render(<AuthLogin />);
+    renderWithLoadingState();
 
     expect(
       await screen.findByText('Unable to load the login page. Try again.')
@@ -96,7 +129,7 @@ describe('AuthLogin', () => {
       body: {nextUri: '/organizations/acme/issues/'},
     });
 
-    render(<AuthLogin />);
+    renderWithLoadingState();
 
     await waitFor(() =>
       expect(testableWindowLocation.assign).toHaveBeenCalledWith(
@@ -106,6 +139,7 @@ describe('AuthLogin', () => {
     expect(
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
+    expect(screen.getByText('Loading authentication')).toBeInTheDocument();
   });
 
   it('focuses organization SSO when the authenticated user still requires it', async () => {
@@ -139,10 +173,6 @@ describe('AuthLogin', () => {
     expect(screen.getByRole('button', {name: 'SSO'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Account Settings'})).toHaveAttribute(
-      'href',
-      'https://sentry.io/settings/account/'
-    );
     expect(
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
@@ -304,17 +334,18 @@ describe('AuthLogin', () => {
     }
   });
 
-  it('renders the configured login banner', async () => {
+  it('renders warnings above the configured login banner', async () => {
     const authConfig: AuthConfig = {
       canRegister: true,
       githubLoginLink: '',
       googleLoginLink: '',
       hasNewsletter: false,
-      loginBanner:
-        'Try agent monitoring. <a href="https://example.com/agents">Learn more</a>.',
+      loginBannerMarkdown:
+        'Try agent monitoring. [Learn more](https://example.com/agents).',
       pendingMfa: null,
       serverHostname: 'sentry.example.com',
       vstsLoginLink: '',
+      warning: 'Your session has expired.',
     };
     MockApiClient.addMockResponse({
       url: '/auth/config/',
@@ -323,9 +354,12 @@ describe('AuthLogin', () => {
 
     render(<AuthLogin />);
 
-    expect(await screen.findByRole('link', {name: 'Learn more'})).toHaveAttribute(
-      'href',
-      'https://example.com/agents'
+    const warning = await screen.findByText('Your session has expired.');
+    const bannerLink = screen.getByRole('link', {name: 'Learn more'});
+
+    expect(bannerLink).toHaveAttribute('href', 'https://example.com/agents');
+    expect(warning.compareDocumentPosition(bannerLink)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
     );
   });
 
@@ -398,7 +432,7 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.queryByText('or')).not.toBeInTheDocument();
-    await userEvent.hover(screen.getByTestId('more-information'));
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
     expect(
       await screen.findByText(
         'This organization requires SSO authentication. You may still log in with an email and password to access other organizations and account settings.'

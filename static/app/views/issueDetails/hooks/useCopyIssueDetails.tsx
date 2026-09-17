@@ -267,7 +267,6 @@ export const issueAndEventToMarkdown = ({
   event,
   autofixData,
   activeThreadId,
-  organization,
   autofixFormatted,
 }: IssueAndEventToMarkdownOptions): string => {
   const formatted = event?.formatted?.content;
@@ -347,7 +346,7 @@ export const issueAndEventToMarkdown = ({
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event, organization, group);
+    markdownText += formatSpanEvidenceToMarkdown(event, group);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 

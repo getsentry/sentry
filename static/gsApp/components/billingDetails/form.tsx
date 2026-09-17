@@ -4,6 +4,7 @@ import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +12,6 @@ import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -49,15 +49,7 @@ type Props = {
    * Initial form data.
    */
   initialData?: BillingDetails;
-  /**
-   * Display detailed view for subscription settings.
-   */
-  isDetailed?: boolean;
   onSubmitError?: (error: any) => void;
-  /**
-   * Form submit button label.
-   */
-  submitLabel?: string;
 };
 
 type State = {
@@ -70,7 +62,6 @@ const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
 function BillingDetailsFormFields({
   form,
-  isDetailed,
   initialData,
   handleStripeFormChange,
   state,
@@ -79,7 +70,6 @@ function BillingDetailsFormFields({
 }: {
   form: FormModel;
   handleStripeFormChange: (data: StripeAddressElementChangeEvent) => void;
-  isDetailed: boolean;
   onSubmitDisabled: (disabled: boolean) => void;
   state: State;
   initialData?: BillingDetails;
@@ -124,7 +114,7 @@ function BillingDetailsFormFields({
         </Alert>
       ) : (
         <Fragment>
-          {isDetailed && !stripeIsLoading && (
+          {!stripeIsLoading && (
             <CustomBillingDetailsFormField
               inputName="billingEmail"
               label={t('Billing email')}
@@ -210,7 +200,7 @@ function CustomBillingDetailsFormField({
         <Text size="sm" variant="muted">
           {label}
         </Text>
-        <QuestionTooltip title={help} size="sm" />
+        <InfoTip title={help} size="sm" />
       </Flex>
       <StyledTextField
         name={inputName}
@@ -231,8 +221,6 @@ export function BillingDetailsForm({
   onSubmitError,
   onSubmitSuccess,
   organization,
-  submitLabel,
-  isDetailed = true,
   extraButton,
   analyticsEvent,
 }: Props) {
@@ -327,7 +315,6 @@ export function BillingDetailsForm({
         model={form}
         submitDisabled={submitDisabled}
         apiEndpoint={`/customers/${organization.slug}/billing-details/`}
-        submitLabel={submitLabel}
         onSubmitSuccess={handleSubmit}
         onSubmitError={err => onSubmitError?.(err)}
         initialData={transformedInitialData}
@@ -335,7 +322,6 @@ export function BillingDetailsForm({
       >
         <BillingDetailsFormFields
           form={form}
-          isDetailed={isDetailed}
           initialData={initialData}
           handleStripeFormChange={handleStripeFormChange}
           state={state}

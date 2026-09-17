@@ -150,7 +150,7 @@ export type TeamInsightsEventParameters = {
     notification_rule_created: boolean;
     platform: string;
     project_id: string;
-    rule_ids: string[];
+    workflow_ids: string[];
     // 'legacy' from CreateProject, 'scm' from the SCM wizard. Both variants
     // populate the same payload; only this discriminator differs.
     variant?: ProjectCreationVariant;

@@ -5,7 +5,6 @@ from unittest import mock
 import orjson
 import pytest
 from arroyo.backends.kafka import KafkaPayload
-from arroyo.dlq import InvalidMessage
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
 from sentry.spans.consumers.process.factory import ProcessSpansStrategyFactory
@@ -148,47 +147,48 @@ def test_schema_validator_rejects_none_fields(field_to_set_none: str) -> None:
 
         step = fac.create_with_partitions(add_commit, {Partition(topic, 0): 0})
         try:
-            with pytest.raises(InvalidMessage):
-                span_data = {
-                    "organization_id": 1,
-                    "project_id": 12,
-                    "span_id": "a" * 16,
-                    "trace_id": "b" * 32,
-                    "start_timestamp": 1699999999.0,
-                    "end_timestamp": 1700000000.0,
-                    "retention_days": 90,
-                    "received": 1699999999.0,
-                    "name": "test-span",
-                    "status": "ok",
-                    "is_segment": False,
-                }
-                # Set the field to None
-                span_data[field_to_set_none] = None
+            span_data = {
+                "organization_id": 1,
+                "project_id": 12,
+                "span_id": "a" * 16,
+                "trace_id": "b" * 32,
+                "start_timestamp": 1699999999.0,
+                "end_timestamp": 1700000000.0,
+                "retention_days": 90,
+                "received": 1699999999.0,
+                "name": "test-span",
+                "status": "ok",
+                "is_segment": False,
+            }
+            # Set the field to None
+            span_data[field_to_set_none] = None
 
-                step.submit(
-                    Message(
-                        BrokerValue(
-                            partition=Partition(topic, 0),
-                            offset=1,
-                            payload=KafkaPayload(
-                                None,
-                                orjson.dumps(span_data),
-                                [],
-                            ),
-                            timestamp=datetime.now(),
-                        )
+            step.submit(
+                Message(
+                    BrokerValue(
+                        partition=Partition(topic, 0),
+                        offset=1,
+                        payload=KafkaPayload(
+                            None,
+                            orjson.dumps(span_data),
+                            [],
+                        ),
+                        timestamp=datetime.now(),
                     )
                 )
+            )
 
+            step.poll()
+            fac._flusher.current_drift.value = 9000
+
+            for _ in range(20):
                 step.poll()
-                fac._flusher.current_drift.value = 9000
+                real_sleep(0.01)
 
-                for _ in range(20):
-                    step.poll()
-                    real_sleep(0.01)
-
-            # The span should be rejected by schema validator, so no messages produced
+            # The span fails validation and is dropped rather than DLQ'd, so no
+            # messages are produced and the offset is still committed.
             assert len(messages) == 0
+            assert commits
         finally:
             fac._flusher.join()
 

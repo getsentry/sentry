@@ -9,12 +9,10 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
-import Indicators from 'sentry/components/indicators';
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-// eslint-disable-next-line no-restricted-imports
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {SystemAlerts} from 'sentry/views/app/systemAlerts';
@@ -63,6 +61,7 @@ export function Layout() {
 
   // Close mobile drawer on route change.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     closeSidebar();
   }, [location.pathname]);
 
@@ -94,7 +93,6 @@ export function Layout() {
           <GlobalStyles theme={theme} />
           <GlobalModal />
           <SystemAlerts className="messages-container" />
-          <Indicators className="indicators-container" />
           <AppContainer isCollapsed={isCollapsed}>
             {/* Mobile: tap-outside backdrop for the drawer */}
             <Overlay isOpen={sidebarOpen} onClick={closeSidebar} />
@@ -155,7 +153,6 @@ export function Layout() {
                 <NavLink to="/_admin/relocations/">Relocations</NavLink>
                 <NavLink to="/_admin/employees/">Sentry Employees</NavLink>
                 <NavLink to="/_admin/billing-plans/">Billing Plans</NavLink>
-                <NavLink to="/_admin/invoices/">Invoices</NavLink>
                 <NavLink to="/_admin/billing-platform/">Billing Platform</NavLink>
                 <NavLink to="/_admin/gift-recurring-credits/">
                   Gift Recurring Credits

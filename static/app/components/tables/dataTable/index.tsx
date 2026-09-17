@@ -1,8 +1,9 @@
-import type {CSSProperties, ReactNode, RefObject} from 'react';
+import type {ReactNode, RefObject} from 'react';
 import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {
   COL_WIDTH_MINIMUM,
   Table,
@@ -49,7 +50,7 @@ const Grid = styled(Table, {
   shouldForwardProp: prop => prop !== 'fit' && prop !== 'height' && prop !== 'scrollable',
 })<{
   fit?: 'max-content';
-  height?: CSSProperties['height'];
+  height?: CSS['height'];
   scrollable?: boolean;
 }>`
   ${p =>
@@ -66,7 +67,7 @@ const Grid = styled(Table, {
     p.height
       ? css`
           height: 100%;
-          max-height: ${typeof p.height === 'number' ? p.height + 'px' : p.height};
+          max-height: ${p.height};
           flex: 1;
           min-height: 0;
 
@@ -106,8 +107,8 @@ const Head = styled(Table.Head)`
 `;
 
 const HeadCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'align' && prop !== 'isFirst',
-})<{align?: 'left' | 'right'; isFirst?: boolean}>`
+  shouldForwardProp: prop => prop !== 'isFirst',
+})<{isFirst?: boolean}>`
   height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
@@ -149,16 +150,6 @@ const HeadCell = styled(Table.HeadCell, {
   ${HeaderCellContent} > svg {
     align-self: flex-start;
   }
-
-  ${p =>
-    p.align &&
-    css`
-      justify-content: ${p.align};
-
-      ${HeaderCellContent} {
-        justify-content: ${p.align};
-      }
-    `}
 `;
 
 const Row = styled(Table.Row, {
@@ -252,7 +243,7 @@ function useDataTableProps({
 
 interface DataTableProps
   extends Omit<React.ComponentProps<typeof Frame>, 'height'>, DataTableColumnOptions {
-  height?: CSSProperties['height'];
+  height?: CSS['height'];
   ref?: RefObject<HTMLTableElement | null>;
   scrollable?: boolean;
 }

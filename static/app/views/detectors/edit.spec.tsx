@@ -113,6 +113,33 @@ describe('DetectorEdit', () => {
     });
   });
 
+  describe('breadcrumbs', () => {
+    const mockDetector = MetricDetectorFixture({name: 'My Metric Monitor'});
+
+    it('renders parent crumbs in the trail and the monitor name as the page title', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
+        body: mockDetector,
+      });
+
+      render(<DetectorEdit />, {organization, initialRouterConfig});
+
+      const monitorsCrumb = await screen.findByRole('link', {name: 'Monitors'});
+      expect(monitorsCrumb).toHaveAttribute('href', '/organizations/org-slug/monitors/');
+      expect(screen.getByRole('link', {name: 'Metric'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/monitors/metrics/'
+      );
+
+      expect(
+        screen.getByRole('heading', {name: mockDetector.name, level: 1})
+      ).toBeInTheDocument();
+
+      const trail = monitorsCrumb.closest('ol')!;
+      expect(within(trail).queryByText(mockDetector.name)).not.toBeInTheDocument();
+    });
+  });
+
   describe('EditDetectorActions', () => {
     const mockDetector = MetricDetectorFixture();
 

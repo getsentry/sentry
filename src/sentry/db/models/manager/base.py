@@ -490,6 +490,18 @@ class BaseManager(_base_manager_base[M]):
         Triggered when a model bound to this manager is deleted.
         """
 
+    # Redeclared so mypy binds M; from_queryset leaves the queryset row typevar unbound.
+    def get_or_none(self, *args: Any, **kwargs: Any) -> M | None:
+        """Like ``get()``, but returns ``None`` instead of raising ``DoesNotExist``.
+
+        Still raises ``MultipleObjectsReturned`` if more than one row matches.
+        Prefer this over ``first()`` when the lookup is unique and order does not matter.
+        """
+        try:
+            return self.get(*args, **kwargs)
+        except self.model.DoesNotExist:
+            return None
+
     def get_queryset(self) -> BaseQuerySet[M]:
         """
         Returns a new QuerySet object.  Subclasses can override this method to

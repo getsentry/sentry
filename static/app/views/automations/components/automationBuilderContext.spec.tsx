@@ -1,6 +1,7 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {Priority} from 'sentry/views/automations/components/actionFilters/constants';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 import {useAutomationBuilderReducer} from './automationBuilderContext';
@@ -41,24 +42,21 @@ describe('useAutomationBuilderReducer', () => {
     expect(addedCondition?.comparison).toEqual(expectedDefault);
   });
 
-  it('uses defaultComparison from the node map when adding an if condition', () => {
+  it('uses a priority threshold when adding a de-escalation condition', () => {
     const {result} = renderHook(useAutomationBuilderReducer);
     const groupId = result.current.state.actionFilters[0]!.id;
 
     act(() => {
-      result.current.actions.addIfCondition(groupId, DataConditionType.AGE_COMPARISON);
+      result.current.actions.addIfCondition(
+        groupId,
+        DataConditionType.ISSUE_PRIORITY_DEESCALATING
+      );
     });
 
     const addedCondition = result.current.state.actionFilters[0]?.conditions.find(
-      c => c.type === DataConditionType.AGE_COMPARISON
+      c => c.type === DataConditionType.ISSUE_PRIORITY_DEESCALATING
     );
 
-    const expectedDefault = dataConditionNodesMap.get(
-      DataConditionType.AGE_COMPARISON
-    )?.defaultComparison;
-
-    expect(expectedDefault).toBeDefined();
-    expect(addedCondition).toBeDefined();
-    expect(addedCondition?.comparison).toEqual(expectedDefault);
+    expect(addedCondition?.comparison).toBe(Priority.HIGH);
   });
 });

@@ -260,7 +260,7 @@ class MailboxDepthMetricsTest(TestCase):
 
     @patch("sentry.hybridcloud.tasks.webhook_backlog_metrics.metrics")
     def test_github_enterprise_mailboxes_carry_an_event_type(self, mock_metrics: MagicMock) -> None:
-        # GithubEnterpriseRequestParser inherits get_mailbox_identifier, so its mailbox
+        # GithubEnterpriseRequestParser inherits get_mailbox, so its mailbox
         # names have the same shape.
         create_payloads(1, "github_enterprise:123:7:push", provider="github_enterprise")
 

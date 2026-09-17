@@ -32,6 +32,10 @@ jest.useFakeTimers();
 describe('replayDetailsUserBadge', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [project],
+    });
   });
 
   it('should show LIVE badge when last received segment is within 5 minutes', async () => {

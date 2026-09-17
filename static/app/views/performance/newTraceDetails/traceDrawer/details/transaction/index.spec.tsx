@@ -27,7 +27,7 @@ describe('TransactionNodeDetails', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders transaction details with title, ID, and op', async () => {
+  it('renders transaction details with title and ID', async () => {
     const organization = OrganizationFixture();
     const project = ProjectFixture({id: '1', slug: 'project-slug'});
 
@@ -61,12 +61,6 @@ describe('TransactionNodeDetails', () => {
       }),
     });
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      body: {data: []},
-    });
-
     render(
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
         <TransactionNodeDetails
@@ -87,7 +81,5 @@ describe('TransactionNodeDetails', () => {
     expect(screen.getByText(/ID: test-transaction-id/)).toBeInTheDocument();
 
     expect(screen.getAllByText('http.server').length).toBeGreaterThan(0);
-
-    expect(screen.getAllByText(/GET \/api\/users/).length).toBeGreaterThan(0);
   });
 });

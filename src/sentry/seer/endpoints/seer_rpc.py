@@ -39,6 +39,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
+from sentry.api.client_kind import ClientKind, client_kind_scope
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -53,6 +54,8 @@ from sentry.identity.services.identity import identity_service
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import MONITORING_PROVIDERS, IntegrationProviderSlug
+from sentry.investigations.endpoints.validators import InvestigationOrchestrationEventValidator
+from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
@@ -91,6 +94,7 @@ from sentry.seer.agent.tools import (
     get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
+    get_project_members,
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
@@ -136,12 +140,14 @@ from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
     GitHubEnterpriseConfigSuccessResponse,
     HasRepoCodeMappingsResponse,
+    InvestigationEventDeliveryResponse,
     MonitoringProviderConnectionsResponse,
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
     OrganizationProjectDetail,
     OrganizationProjectsResponse,
     OrganizationSlugResponse,
+    ReferencedFixStatementsResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
     SendSeerWebhookErrorResponse,
@@ -158,11 +164,13 @@ from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
+from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
+    viewer_context_from_header,
 )
 
 logger = logging.getLogger(__name__)
@@ -320,6 +328,26 @@ class SeerRpcServiceEndpoint(Endpoint):
             )
             raise PermissionDenied("Viewer context organization does not match request")
 
+    def _enforce_investigation_event_viewer_context(
+        self,
+        request: Request,
+        method_name: str,
+        arguments: dict[str, Any],
+    ) -> None:
+        if method_name != "deliver_investigation_event":
+            return
+        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
+        viewer = viewer_context_from_header(header) if header else None
+        argument_org_id = arguments.get("org_id")
+        if argument_org_id is None or isinstance(argument_org_id, bool):
+            raise ParseError("Invalid organization id")
+        try:
+            organization_id = int(argument_org_id)
+        except (TypeError, ValueError):
+            raise ParseError("Invalid organization id")
+        if viewer is None or viewer.organization_id != organization_id:
+            raise PermissionDenied("Viewer context organization does not match request")
+
     @trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
@@ -364,9 +392,11 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise ParseError
 
         self._enforce_viewer_context_org_binding(request, arguments)
+        self._enforce_investigation_event_viewer_context(request, method_name, arguments)
 
         try:
-            result = self._dispatch_to_local_method(method_name, arguments)
+            with client_kind_scope(ClientKind.SEER):
+                result = self._dispatch_to_local_method(method_name, arguments)
         except RpcResolutionException as e:
             sentry_sdk.capture_exception()
             raise NotFound from e
@@ -393,6 +423,39 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
     return OrganizationSlugResponse(slug=org.slug)
+
+
+def find_referenced_fix_statements(*, org_id: int, text: str) -> ReferencedFixStatementsResponse:
+    statements = find_fix_statements(text, org_id)
+    return ReferencedFixStatementsResponse(
+        statements=[line for line, _ in statements],
+        short_ids=sorted(
+            {
+                group.qualified_short_id
+                for _, groups in statements
+                for group in groups
+                if group.qualified_short_id
+            }
+        ),
+    )
+
+
+def deliver_investigation_event(
+    *, org_id: int, event: dict[str, Any]
+) -> InvestigationEventDeliveryResponse:
+    validator = InvestigationOrchestrationEventValidator(data=event)
+    validator.is_valid(raise_exception=True)
+    receipt = deliver_orchestration_event(
+        organization_id=org_id,
+        event=dict(validator.validated_data),
+    )
+    return InvestigationEventDeliveryResponse(
+        duplicate=receipt.duplicate,
+        application_status=receipt.application_status,
+        last_applied_sequence=receipt.last_applied_sequence,
+        next_expected_sequence=receipt.next_expected_sequence,
+        notebook_revision=receipt.notebook_revision,
+    )
 
 
 def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
@@ -844,6 +907,7 @@ def deliver_feature_result(
     status: FeatureRunStatus,
     result: dict[str, Any] | None = None,
     error: str | None = None,
+    prompt_version: str | None = None,
 ) -> None:
     """Dispatch a feature result from Seer to the registered handler."""
     handler = DELIVERY_HANDLERS.get(feature_id)
@@ -859,7 +923,7 @@ def deliver_feature_result(
     except (TypeError, ValueError):
         raise ParseError("Invalid run uuid")
 
-    handler(organization_id, parsed_run_uuid, status, result, error)
+    handler(organization_id, parsed_run_uuid, status, result, error, prompt_version)
 
 
 def get_monitoring_provider_connections(
@@ -979,10 +1043,12 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
+    "deliver_investigation_event": seer_rpc(deliver_investigation_event),
     "get_repo_installation_id": seer_rpc(get_repo_installation_id),
     #
     # Autofix
     "get_organization_slug": seer_rpc(get_organization_slug),
+    "find_referenced_fix_statements": seer_rpc(find_referenced_fix_statements),
     "get_organization_autofix_consent": seer_rpc(get_organization_autofix_consent),
     "get_error_event_details": seer_rpc(get_error_event_details),
     "get_profile_details": seer_rpc(get_profile_details),
@@ -1018,6 +1084,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_issue_committers": seer_rpc(get_issue_committers),
     "get_issue_ownership": seer_rpc(get_issue_ownership),
     "get_team_members": seer_rpc(get_team_members),
+    "get_project_members": seer_rpc(get_project_members),
     "get_group_assignees": seer_rpc(get_group_assignees),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),

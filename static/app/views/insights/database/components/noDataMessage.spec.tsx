@@ -5,19 +5,14 @@ import {ProjectSdkUpdatesFixture} from 'sentry-fixture/projectSdkUpdates';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {usePageFilters as importedUsePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
-const usePageFilters = jest.mocked(importedUsePageFilters);
 
 describe('NoDataMessage', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
-    usePageFilters.mockClear();
 
     ProjectsStore.loadInitialData([
       ProjectFixture({
@@ -27,16 +22,11 @@ describe('NoDataMessage', () => {
       }),
     ]);
 
-    usePageFilters.mockImplementation(() => ({
-      selection: PageFiltersFixture({projects: [2]}),
-      isReady: true,
-      shouldPersist: true,
-      adjustments: {},
-      pinnedFilters: new Set(),
-    }));
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     ProjectsStore.reset();
   });
 

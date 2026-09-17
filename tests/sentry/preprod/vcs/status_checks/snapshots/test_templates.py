@@ -7,6 +7,7 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
+    format_approved_without_base_snapshot_status_check_messages,
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
@@ -444,6 +445,31 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "We had trouble comparing snapshots, our team is investigating."
         assert summary == ""
 
+    def test_approved_failed_comparison_shows_approved(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(app_id="com.example.head")
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics, base_metrics, state=PreprodSnapshotComparison.State.FAILED
+        )
+        approval = self._create_approval(head_artifact)
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.SUCCESS,
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+            approvals_map={head_artifact.id: approval},
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Approved despite failed comparison"
+        assert "com.example.head" in summary
+        assert "| - | - | - | - | - | - | ✅ Approved (comparison failed) |" in summary
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in summary
+
     def test_failed_comparison_early_returns_ignoring_other_artifacts(self) -> None:
         # First artifact has a failed comparison
         head1, head1_metrics = self._create_artifact_with_metrics(
@@ -488,6 +514,40 @@ class SnapshotFailureStateFormattingTest(SnapshotStatusCheckTestBase):
 
         assert subtitle == "We had trouble comparing snapshots, our team is investigating."
         assert summary == ""
+
+    def test_failed_with_base_manifest_missing_reports_missing_base(self) -> None:
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization,
+            base_sha="abcdef1234567890abcdef1234567890abcdef12",
+        )
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            commit_comparison=commit_comparison
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            state=PreprodSnapshotComparison.State.FAILED,
+        )
+        comparison.error_code = PreprodSnapshotComparison.ErrorCode.BASE_MANIFEST_MISSING
+        comparison.save(update_fields=["error_code"])
+
+        title, subtitle, summary = format_snapshot_status_check_messages(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            StatusCheckStatus.FAILURE,
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "No base snapshot found for abcdef1234567890abcdef1234567890abcdef12"
+        assert "No snapshots were found for base commit" in summary
+        assert "Push a new commit to the base branch" in summary
+        assert "com.example.app" in summary
 
 
 @cell_silo_test
@@ -969,9 +1029,11 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert "24" in summary
         assert "✅ Uploaded" in summary
         assert (
-            f"No base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha})"
+            f"Base commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce snapshots"
             in summary
         )
+        assert "Did its snapshot job fail?" in summary
+        assert "Try rebasing this branch on a commit with a successful snapshot job." in summary
 
     def test_missing_base_multiple_artifacts(self) -> None:
         artifacts = []
@@ -995,7 +1057,7 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == f"No base snapshot found for {base_sha}"
         for i in range(3):
             assert f"com.example.app{i}" in summary
-        assert f"No base snapshot found for `{base_sha}`" in summary
+        assert f"Base commit `{base_sha}` did not produce snapshots" in summary
 
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format messages for empty artifact list"):
@@ -1027,8 +1089,9 @@ class SnapshotMissingBaseFormattingTest(SnapshotStatusCheckTestBase):
             "| Name | Snapshots | Status |\n"
             "| :--- | :---: | :---: |\n"
             f"| [My App]({artifact_url})<br>`com.example.app` | 15 | ✅ Uploaded |"
-            f"\n\nNo base snapshot found for [`{base_sha}`]({base_repo_url}/commit/{base_sha}). "
-            "Make sure snapshots are uploaded from your main branch."
+            f"\n\nBase commit [`{base_sha}`]({base_repo_url}/commit/{base_sha}) did not produce "
+            "snapshots to compare against. Did its snapshot job fail? "
+            "Try rebasing this branch on a commit with a successful snapshot job."
             f"\n\n{configure_link}"
         )
         assert summary == expected
@@ -1240,3 +1303,28 @@ class SnapshotWaitingForBaseFormattingTest(SnapshotStatusCheckTestBase):
         assert subtitle == "Waiting for base snapshots..."
         assert "App 0" in summary
         assert "App 1" in summary
+
+
+@cell_silo_test
+class SnapshotApprovedWithoutBaseFormattingTest(SnapshotStatusCheckTestBase):
+    def test_approved_without_base_single_artifact(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App", image_count=24
+        )
+        base_sha = "abc123" + "0" * 34
+
+        title, subtitle, summary = format_approved_without_base_snapshot_status_check_messages(
+            [artifact], {artifact.id: metrics}, project=self.project, base_sha=base_sha
+        )
+
+        assert title == "Snapshot Testing"
+        assert subtitle == "Approved without base snapshots"
+        assert "My App" in summary
+        assert "24" in summary
+        assert "✅ Uploaded" in summary
+        assert (
+            f"Base commit `{base_sha}` did not produce snapshots to compare against. "
+            "These snapshots were approved without a comparison." in summary
+        )
+        assert "Did its snapshot job fail?" not in summary
+        assert f"/settings/projects/{self.project.slug}/snapshots/" in summary

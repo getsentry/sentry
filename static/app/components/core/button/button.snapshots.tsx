@@ -3,7 +3,6 @@ import {ThemeProvider} from '@emotion/react';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 
 import {IconEdit} from 'sentry/icons';
-// eslint-disable-next-line no-restricted-imports -- SSR snapshot rendering needs direct theme access
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 import type {ButtonSize} from './types';

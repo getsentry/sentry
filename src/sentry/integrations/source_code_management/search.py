@@ -87,7 +87,9 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
     ) -> Response:
         raise NotImplementedError
 
-    def handle_search_field(self, installation: T, field: str, repo: str | None) -> Response | None:
+    def handle_search_field(
+        self, installation: T, field: str, query: str, repo: str | None
+    ) -> Response | None:
         return None
 
     def get(
@@ -144,7 +146,7 @@ class SourceCodeSearchEndpoint(IntegrationEndpoint, Generic[T], ABC):
                 return self.handle_search_repositories(integration, installation, query)
 
             repo = request.GET.get(self.repository_field) if self.repository_field else None
-            response = self.handle_search_field(installation, field, repo)
+            response = self.handle_search_field(installation, field, query, repo)
             if response is not None:
                 return response
 

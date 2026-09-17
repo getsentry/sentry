@@ -494,7 +494,6 @@ export function CustomerDetails() {
                 ...params,
                 migrated: !subscription.hasMigratedToBillingPlatform,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'recreateBillingPlatformModels',
@@ -506,7 +505,6 @@ export function CustomerDetails() {
             },
             onAction: params =>
               onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',
@@ -905,7 +903,7 @@ export function CustomerDetails() {
           {
             content: (
               <CustomerOverview
-                onAction={onUpdateMutation.mutate}
+                onAction={onUpdateMutation.mutateAsync}
                 customer={subscription}
                 organization={organization}
               />

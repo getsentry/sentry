@@ -18,7 +18,6 @@ interface UseProfileFunctionsOptions<F extends string> {
   limit?: number;
   projects?: Array<number | string>;
   query?: string;
-  refetchOnMount?: boolean;
 }
 
 export function useProfileFunctionsOptions<F extends string>({
@@ -60,7 +59,6 @@ export function useProfileFunctionsOptions<F extends string>({
 
 export function useProfileFunctions<F extends string>({
   enabled,
-  refetchOnMount,
   ...rest
 }: UseProfileFunctionsOptions<F>) {
   const options = useProfileFunctionsOptions(rest);
@@ -68,7 +66,6 @@ export function useProfileFunctions<F extends string>({
   return useQuery({
     ...options,
     refetchOnWindowFocus: false,
-    refetchOnMount,
     retry: false,
     enabled,
   });

@@ -7,11 +7,11 @@ import {
   isMissingInstrumentationNode,
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
-  isSpanNode,
   isTransactionNode,
 } from './../traceGuards';
 import type {BaseNode} from './traceTreeNode/baseNode';
 import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
+import {SpanNode} from './traceTreeNode/spanNode';
 import type {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import type {UptimeCheckTimingNode} from './traceTreeNode/uptimeCheckTimingNode';
 import {TraceShape, TraceTree} from './traceTree';
@@ -543,17 +543,18 @@ describe('TraceTree', () => {
         }),
         {
           meta: {
-            transaction_child_count_map: {
+            transactionChildCountMap: {
               transaction: 10,
               'no-spans-transaction': 1,
               // we have no data for child transaction
             },
-            errors: 0,
-            performance_issues: 0,
-            projects: 0,
-            transactions: 0,
-            span_count: 0,
-            span_count_map: {},
+            errorsCount: 0,
+            logsCount: 0,
+            metricsCount: 0,
+            performanceIssuesCount: 0,
+            spansCount: 0,
+            spansCountMap: {},
+            uptimeCount: 0,
           },
           replay: null,
           organization,
@@ -1042,42 +1043,59 @@ describe('TraceTree', () => {
       expect(lcpIndicators[0]!.node.id).toBe('standalone-lcp-span');
     });
 
-    it('applies standalone LCP measurement offset from trace origin when present', () => {
-      const tree = TraceTree.FromTrace(
-        makeEAPTrace([
-          makeEAPSpan({
-            event_id: 'pageload-span',
-            op: 'pageload',
-            start_timestamp: start,
-            end_timestamp: start + 2,
-            is_transaction: true,
-            additional_attributes: {
-              'tags[performance.timeOrigin,number]': start,
-            },
-            measurements: {
-              'measurements.lcp': 500,
-            },
-            children: [],
-          }),
-          makeEAPSpan({
-            event_id: 'standalone-lcp-span',
-            op: 'ui.webvital.lcp',
-            start_timestamp: start + 1.5,
-            end_timestamp: start + 1.6,
-            is_transaction: false,
-            measurements: {
-              'measurements.lcp': 1240,
-            },
-            children: [],
-          }),
-        ]),
-        {meta: null, replay: null, organization}
-      );
+    it.each<{
+      additionalAttributes: Record<string, string | number>;
+      attributeName: string;
+    }>([
+      {
+        additionalAttributes: {
+          'tags[browser.performance.time_origin,number]': start,
+        },
+        attributeName: 'replacement',
+      },
+      {
+        additionalAttributes: {
+          'tags[performance.timeOrigin,number]': start,
+        },
+        attributeName: 'deprecated',
+      },
+    ])(
+      'applies standalone LCP measurement offset using the $attributeName trace origin attribute',
+      ({additionalAttributes}) => {
+        const tree = TraceTree.FromTrace(
+          makeEAPTrace([
+            makeEAPSpan({
+              event_id: 'pageload-span',
+              op: 'pageload',
+              start_timestamp: start,
+              end_timestamp: start + 2,
+              is_transaction: true,
+              additional_attributes: additionalAttributes,
+              measurements: {
+                'measurements.lcp': 500,
+              },
+              children: [],
+            }),
+            makeEAPSpan({
+              event_id: 'standalone-lcp-span',
+              op: 'ui.webvital.lcp',
+              start_timestamp: start + 1.5,
+              end_timestamp: start + 1.6,
+              is_transaction: false,
+              measurements: {
+                'measurements.lcp': 1240,
+              },
+              children: [],
+            }),
+          ]),
+          {meta: null, replay: null, organization}
+        );
 
-      const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
-      expect(lcpIndicators).toHaveLength(1);
-      expect(lcpIndicators[0]!.start).toBe(start * 1e3 + 1240);
-    });
+        const lcpIndicators = tree.indicators.filter(i => i.type === 'lcp');
+        expect(lcpIndicators).toHaveLength(1);
+        expect(lcpIndicators[0]!.start).toBe(start * 1e3 + 1240);
+      }
+    );
 
     it('handles cycles in EAP trace structure without infinite loop', () => {
       const cyclicSpan = makeEAPSpan({
@@ -1607,7 +1625,7 @@ describe('TraceTree', () => {
         api: new MockApiClient(),
       });
 
-      const spans = tree.root.findAllChildren(n => isSpanNode(n));
+      const spans = tree.root.findAllChildren(n => n instanceof SpanNode);
       expect(spans).toHaveLength(1);
       expect(tree.serialize()).toMatchSnapshot();
     });
@@ -1774,7 +1792,7 @@ describe('TraceTree', () => {
           });
 
           const span = tree.root.findChild(
-            node => isSpanNode(node) && node.value.span_id === '0000'
+            node => node instanceof SpanNode && node.value.span_id === '0000'
           )!;
 
           span.expand(expanded, tree);
@@ -1976,7 +1994,7 @@ describe('TraceTree', () => {
           });
 
           const span = tree.root.findChild(
-            node => isSpanNode(node) && node.value.span_id === '0000'
+            node => node instanceof SpanNode && node.value.span_id === '0000'
           )!;
 
           span.expand(expanded, tree);
@@ -2266,7 +2284,7 @@ describe('TraceTree', () => {
         organization,
       });
 
-      const span = tree.root.findChild(node => isSpanNode(node))!;
+      const span = tree.root.findChild(node => node instanceof SpanNode)!;
       const path = span.pathToNode();
       expect(path).toEqual(['span-span-id', 'txn-child-event-id']);
     });
@@ -2327,7 +2345,7 @@ describe('TraceTree', () => {
         ]);
 
         const requestSpan = tree.root.findChild(
-          node => isSpanNode(node) && node.value.description === 'request'
+          node => node instanceof SpanNode && node.value.description === 'request'
         )!;
         expect(requestSpan.pathToNode()).toEqual([
           'span-child-span-id',

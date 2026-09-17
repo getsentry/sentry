@@ -5,12 +5,13 @@ import {motion} from 'framer-motion';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {AnimatedActivity} from 'sentry/components/animatedActivity';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconArrow} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {
   type SecondFactorAuthResult,
@@ -77,7 +78,8 @@ export function SecondFactorAuth({
     : sortedMethods[0]?.id;
   const auth = useSecondFactorAuth();
   const cancellation = useCancelSecondFactorAuth();
-  const isProcessing = auth.isPending || cancellation.isPending;
+  const isAuthenticating = auth.isPending || Boolean(auth.result);
+  const isProcessing = isAuthenticating || cancellation.isPending;
   const authenticate = (credentials: SecondFactorCredentials) => {
     cancellation.reset();
     auth.authenticate(credentials);
@@ -145,6 +147,7 @@ export function SecondFactorAuth({
                 <MethodInput
                   method={method.id}
                   isActive={isActive}
+                  isAuthenticating={isAuthenticating}
                   isProcessing={isProcessing}
                   resetKey={auth.errorMessage}
                   onAuthenticate={authenticate}
@@ -156,49 +159,58 @@ export function SecondFactorAuth({
         </Grid>
       </MotionContainer>
 
-      <Flex align="center" justify="between">
-        <Button
-          variant="transparent"
-          size="xs"
-          icon={<IconArrow direction="left" />}
-          busy={cancellation.isPending}
-          disabled={auth.isPending}
-          onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
-        >
-          {t('Back to Login')}
-        </Button>
-        {otherMethods.length > 1 ? (
-          <DropdownMenu
-            size="xs"
-            triggerLabel={t('Use Different Method')}
-            triggerProps={{
-              disabled: isProcessing,
-              size: 'xs',
-              variant: 'transparent',
-            }}
-            items={otherMethods.map(method => ({
-              key: method.id,
-              label: METHOD_LABELS[method.id],
-              onAction: () => selectMethod(method.id),
-            }))}
-          />
-        ) : onlyOtherMethod ? (
+      <Stack gap="3xl">
+        <Flex align="center" justify="between">
           <Button
-            size="xs"
             variant="transparent"
+            size="xs"
+            icon={<IconArrow direction="left" />}
+            busy={cancellation.isPending}
             disabled={isProcessing}
-            onClick={() => selectMethod(onlyOtherMethod.id)}
+            onClick={() => cancellation.cancel(undefined, {onSuccess: onBack})}
           >
-            {USE_METHOD_LABELS[onlyOtherMethod.id]}
+            {t('Back to Login')}
           </Button>
-        ) : null}
-      </Flex>
+          {otherMethods.length > 1 ? (
+            <DropdownMenu
+              size="xs"
+              triggerLabel={t('Use Different Method')}
+              triggerProps={{
+                disabled: isProcessing,
+                size: 'xs',
+                variant: 'transparent',
+              }}
+              items={otherMethods.map(method => ({
+                key: method.id,
+                label: METHOD_LABELS[method.id],
+                onAction: () => selectMethod(method.id),
+              }))}
+            />
+          ) : onlyOtherMethod ? (
+            <Button
+              size="xs"
+              variant="transparent"
+              disabled={isProcessing}
+              onClick={() => selectMethod(onlyOtherMethod.id)}
+            >
+              {USE_METHOD_LABELS[onlyOtherMethod.id]}
+            </Button>
+          ) : null}
+        </Flex>
+
+        <Text as="p" align="center" size="sm" variant="muted">
+          {tct('Having trouble logging in? [support:Contact support].', {
+            support: <ExternalLink href="https://www.sentry.help/" />,
+          })}
+        </Text>
+      </Stack>
     </Stack>
   );
 }
 
 interface MethodInputProps {
   isActive: boolean;
+  isAuthenticating: boolean;
   isProcessing: boolean;
   method: MfaMethod['id'];
   onAuthenticate: (credentials: SecondFactorCredentials) => void;
@@ -208,6 +220,7 @@ interface MethodInputProps {
 
 function MethodInput({
   isActive,
+  isAuthenticating,
   isProcessing,
   method,
   onAuthenticate,
@@ -219,6 +232,7 @@ function MethodInput({
       return (
         <WebAuthn2FAMethod
           isActive={isActive}
+          isAuthenticating={isAuthenticating}
           isProcessing={isProcessing}
           submissionFailed={Boolean(resetKey)}
           onRetrySubmission={onResetAuthentication}

@@ -25,10 +25,22 @@ describe('AutomationDetail', () => {
     name: 'Test Automation',
     detectorIds: ['1', '2'],
   });
-  const user = UserFixture({id: '1', name: 'John Doe', email: 'john@example.com'});
+  const user = UserFixture({
+    id: '1',
+    name: 'John Doe',
+    email: 'john@example.com',
+  });
   const detectors = [
-    MetricDetectorFixture({id: '1', name: 'CPU Usage Monitor', projectId: '1'}),
-    MetricDetectorFixture({id: '2', name: 'Memory Usage Monitor', projectId: '2'}),
+    MetricDetectorFixture({
+      id: '1',
+      name: 'CPU Usage Monitor',
+      projectId: '1',
+    }),
+    MetricDetectorFixture({
+      id: '2',
+      name: 'Memory Usage Monitor',
+      projectId: '2',
+    }),
   ];
 
   beforeEach(() => {
@@ -298,6 +310,10 @@ describe('AutomationDetail', () => {
     const noWriteOrg = OrganizationFixture({
       access: ['org:read', 'alerts:read'],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: ['10'], includesAllProjects: false},
+    });
 
     render(<AutomationDetail />, {
       organization: noWriteOrg,
@@ -316,8 +332,43 @@ describe('AutomationDetail', () => {
     );
   });
 
+  it('enables action buttons for a team admin of every connected project', async () => {
+    const teamAdminOrg = OrganizationFixture({
+      access: ['org:read', 'alerts:read'],
+    });
+    const project = ProjectFixture({
+      id: '10',
+      access: ['project:read', 'alerts:write'],
+    });
+    ProjectsStore.loadInitialData([project]);
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/workflows/123/project-scope/',
+      body: {projectIds: [project.id], includesAllProjects: false},
+    });
+
+    render(<AutomationDetail />, {
+      organization: teamAdminOrg,
+      initialRouterConfig: {
+        route: '/alerts/:automationId/',
+        location: {pathname: '/alerts/123/'},
+      },
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Disable'})).toBeEnabled()
+    );
+    expect(screen.getByRole('button', {name: 'Edit'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
   it('displays connected projects and monitors', async () => {
-    const project = ProjectFixture({id: '10', slug: 'my-project', name: 'My Project'});
+    const project = ProjectFixture({
+      id: '10',
+      slug: 'my-project',
+      name: 'My Project',
+    });
     ProjectsStore.loadInitialData([project]);
 
     const monitor = MetricDetectorFixture({

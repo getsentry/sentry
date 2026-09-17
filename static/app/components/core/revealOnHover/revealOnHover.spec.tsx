@@ -138,8 +138,8 @@ describe('RevealOnHover', () => {
   it('supports callback children for custom elements', () => {
     render(
       <RevealOnHover>
-        {({className}) => (
-          <div data-test-id="custom-root" className={className}>
+        {props => (
+          <div data-test-id="custom-root" {...props}>
             <span>Grid content</span>
             <RevealOnHover.Action>
               <Button>Copy</Button>
@@ -160,8 +160,8 @@ describe('RevealOnHover', () => {
 
     render(
       <RevealOnHover>
-        {({className}) => (
-          <div className={className}>
+        {props => (
+          <div {...props}>
             <span>Content</span>
             <RevealOnHover.Action>
               <Button onClick={onClick}>Copy</Button>

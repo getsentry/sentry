@@ -1,184 +1,170 @@
-import {Button} from '@sentry/scraps/button';
-import {CodeBlock, InlineCode} from '@sentry/scraps/code';
+import {useRef} from 'react';
+
+import {Tag} from '@sentry/scraps/badge';
+import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {StatusIndicator} from '@sentry/scraps/statusIndicator';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {Hovercard} from 'sentry/components/hovercard';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {IconBot, IconCheckmark, IconInfo} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {IconBot} from 'sentry/icons';
+import {t} from 'sentry/locale';
+import {selectText} from 'sentry/utils/selectText';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
+import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from 'sentry/views/onboarding/consts';
 
 export type AgentSetupCopySource = 'install_command' | 'prompt';
 
 const INSTALL_PLUGIN_COMMAND = 'npx @sentry/agent-plugin install';
 
-const AGENT_CAPABILITIES = [
-  t('Detect your framework and language'),
-  t('Create and configure a new Sentry project'),
-  t('Install and instrument the Sentry SDK'),
-  t('Verify a real error reaches Sentry'),
-];
+const SUPPORTED_AGENTS = ['Claude Code', 'Codex', 'Cursor', 'Grok'];
+const SUPPORTED_AGENTS_LABEL = new Intl.ListFormat(undefined, {
+  style: 'short',
+  type: 'conjunction',
+}).format(SUPPORTED_AGENTS);
 
 interface AgentSetupCardProps {
   onCopyCommand: (source: AgentSetupCopySource) => void;
+  onSelectSnippet: (source: AgentSetupCopySource) => void;
   prompt: string;
+  hasSetupFailed?: boolean;
   onboardingCode?: string;
 }
 
 export function AgentSetupCard({
+  hasSetupFailed,
   onboardingCode,
   onCopyCommand,
+  onSelectSnippet,
   prompt,
 }: AgentSetupCardProps) {
+  const organization = useOrganization();
+  const installCommand = onboardingCode
+    ? `${INSTALL_PLUGIN_COMMAND} ${organization.slug}#${onboardingCode}`
+    : INSTALL_PLUGIN_COMMAND;
+  const installCommandRef = useRef<HTMLDivElement>(null);
+  const promptRef = useRef<HTMLDivElement>(null);
+
+  const handleSelectSnippet = (
+    event: React.MouseEvent<HTMLElement>,
+    snippet: HTMLDivElement | null,
+    source: AgentSetupCopySource
+  ) => {
+    if (
+      !snippet ||
+      !(event.target instanceof Element) ||
+      !snippet.contains(event.target) ||
+      event.target.closest('button')
+    ) {
+      return;
+    }
+
+    const code = snippet.querySelector('code');
+    if (!code) {
+      return;
+    }
+
+    selectText(code);
+    onSelectSnippet(source);
+  };
+
   return (
-    <Stack height="100%" border="accent" radius="lg" overflow="hidden" gap="0">
-      <Stack padding="xl" gap="xl" flex="1">
-        <Flex align="center" gap="sm">
-          <IconBot size="md" variant="secondary" />
-          {/* The slight offset optically aligns the label with the bot icon. */}
-          <Container paddingTop="2xs">
-            {props => (
-              <Text {...props} variant="muted" size="sm" bold uppercase>
-                {t('Automatic')}
-              </Text>
-            )}
-          </Container>
-        </Flex>
+    <Grid
+      columns={`${SETUP_CARD_MARKER_PX} 1fr`}
+      gap="0 md"
+      border="primary"
+      radius="xl"
+      padding="xl"
+      areas={`
+        "icon  title"
+        ".     meta"
+        "steps steps"
+      `}
+    >
+      <Flex area="icon" align="center" justify="center">
+        <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
+      </Flex>
+      <Flex area="title" align="center" gap="md" wrap="wrap">
+        <Heading as="h3" size="lg">
+          {t('Set up with your coding agent')}
+        </Heading>
+        <Tag variant="info">{t('Recommended')}</Tag>
+      </Flex>
 
-        <Stack gap="md">
-          <Heading as="h3" size="lg">
-            {t('Set up with your coding agent')}
-          </Heading>
-          <Text variant="muted" size="md" density="comfortable">
-            {t(
-              'Install the Sentry plugin, then open your agent in your project and let it handle the rest.'
-            )}
+      <Stack area="meta" gap="xs" paddingTop="md" paddingBottom="2xl">
+        <Flex align="center" gap="xs" wrap="wrap">
+          <Text variant="muted" size="md">
+            {t('Works with')}
           </Text>
-        </Stack>
+          <Text size="md">{SUPPORTED_AGENTS_LABEL}</Text>
+        </Flex>
+        <Flex>
+          <AgentInfo onboardingCode={onboardingCode} />
+        </Flex>
+      </Stack>
 
+      <Container area="steps">
         <List symbol="colored-numeric">
           <ListItem>
-            <Stack gap="md" paddingBottom="xl">
-              <StepLabel>{t('Install Sentry plugin')}</StepLabel>
+            <Stack
+              gap="lg"
+              paddingTop="xs"
+              paddingBottom="2xl"
+              onClick={event =>
+                handleSelectSnippet(event, installCommandRef.current, 'install_command')
+              }
+            >
+              <Text size="md">{t('Install the Sentry plugin for your agent')}</Text>
               <CodeBlock
+                ref={installCommandRef}
+                dark
                 alwaysShowCopyButton
                 onCopy={() => onCopyCommand('install_command')}
                 wrapMode="wrap"
               >
-                {INSTALL_PLUGIN_COMMAND}
+                {installCommand}
+              </CodeBlock>
+            </Stack>
+            <Flex
+              position="absolute"
+              top={SETUP_CARD_MARKER_PX}
+              bottom="0"
+              left="0"
+              width={SETUP_CARD_MARKER_PX}
+              paddingTop="xs"
+              justify="center"
+            >
+              <Separator orientation="vertical" border="muted" />
+            </Flex>
+          </ListItem>
+          <ListItem>
+            <Stack
+              gap="lg"
+              paddingTop="xs"
+              onClick={event => handleSelectSnippet(event, promptRef.current, 'prompt')}
+            >
+              <Stack gap="xs">
+                <Text size="md">{t('Ask your agent to set up Sentry')}</Text>
+                <Text variant="muted" size="md">
+                  {t('Point it to your project folder and paste this.')}
+                </Text>
+              </Stack>
+              <CodeBlock
+                ref={promptRef}
+                dark
+                alwaysShowCopyButton={!hasSetupFailed}
+                hideCopyButton={hasSetupFailed}
+                onCopy={() => onCopyCommand('prompt')}
+                wrapMode="wrap"
+              >
+                {prompt}
               </CodeBlock>
             </Stack>
           </ListItem>
-          <ListItem>
-            <Stack gap="xl">
-              <Stack gap="md">
-                <StepLabel>{t('Then open your agent in your project and ask')}</StepLabel>
-                <Stack gap="sm">
-                  <CodeBlock
-                    alwaysShowCopyButton
-                    onCopy={() => onCopyCommand('prompt')}
-                    wrapMode="wrap"
-                  >
-                    {prompt}
-                  </CodeBlock>
-                  <Flex>
-                    <Hovercard
-                      position="top"
-                      body={
-                        <Stack gap="xl">
-                          <Stack gap="md">
-                            {AGENT_CAPABILITIES.map(capability => (
-                              <Grid
-                                key={capability}
-                                columns="16px 1fr"
-                                align="center"
-                                gap="md"
-                              >
-                                <Flex justify="center">
-                                  <IconCheckmark size="sm" variant="success" />
-                                </Flex>
-                                <Text variant="muted" size="sm">
-                                  {capability}
-                                </Text>
-                              </Grid>
-                            ))}
-                          </Stack>
-                          {onboardingCode ? (
-                            <Grid columns="16px 1fr" align="start" gap="md">
-                              <Flex justify="center" paddingTop="2xs">
-                                <IconInfo size="xs" variant="secondary" />
-                              </Flex>
-                              <Text variant="muted" size="sm">
-                                {tct(
-                                  'Your agent uses ID [onboardingCode] to report setup progress here. Progress updates sent with this ID never include any part of your source code.',
-                                  {
-                                    onboardingCode: (
-                                      <InlineCode>{onboardingCode}</InlineCode>
-                                    ),
-                                  }
-                                )}
-                              </Text>
-                            </Grid>
-                          ) : null}
-                        </Stack>
-                      }
-                    >
-                      <Button
-                        variant="link"
-                        size="zero"
-                        icon={<IconInfo variant="secondary" />}
-                      >
-                        <Text size="sm" variant="muted" underline="dotted">
-                          {t('What will my agent do?')}
-                        </Text>
-                      </Button>
-                    </Hovercard>
-                  </Flex>
-                </Stack>
-              </Stack>
-              <Grid columns="12px 1fr" align="center" gap="sm">
-                <Flex justify="center">
-                  <StatusIndicator variant="accent" />
-                </Flex>
-                <Text size="sm" variant="muted">
-                  {t('Waiting for agent to connect')}
-                </Text>
-              </Grid>
-            </Stack>
-          </ListItem>
         </List>
-      </Stack>
-
-      <Flex
-        align="center"
-        justify="center"
-        background="secondary"
-        borderTop="muted"
-        padding="md xl"
-      >
-        <Text variant="muted" size="sm">
-          {t('Works with: Claude, Codex, Grok, and Cursor')}
-        </Text>
-      </Flex>
-    </Stack>
-  );
-}
-
-/**
- * List's numbered marker is a 24px circle pinned to the top of the item, which
- * assumes a taller first line than this small uppercase label. The padding grows
- * the label's box to match, and needs a block box to take effect.
- */
-function StepLabel({children}: {children: React.ReactNode}) {
-  return (
-    <Container padding="xs 0">
-      {props => (
-        <Text {...props} display="block" size="md">
-          {children}
-        </Text>
-      )}
-    </Container>
+      </Container>
+    </Grid>
   );
 }

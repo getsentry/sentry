@@ -275,6 +275,13 @@ class ControlSiloOrganizationEndpoint(Endpoint):
 
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
 
+    # Control silo endpoints fetch the organization over RPC from the cell silo.
+    # Including projects/teams serializes every row into the response body, which is
+    # expensive for large organizations. Set these to False when the endpoint does not
+    # need them.
+    include_organization_projects: bool = True
+    include_organization_teams: bool = True
+
     def convert_args(
         self,
         request: Request,
@@ -304,11 +311,18 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             # It is ok that `get_organization_by_id` doesn't check for visibility as we
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug), user_id=request.user.id
+                id=int(organization_id_or_slug),
+                user_id=request.user.id,
+                include_projects=self.include_organization_projects,
+                include_teams=self.include_organization_teams,
             )
         else:
             organization_context = organization_service.get_organization_by_slug(
-                slug=str(organization_id_or_slug), only_visible=False, user_id=request.user.id
+                slug=str(organization_id_or_slug),
+                only_visible=False,
+                user_id=request.user.id,
+                include_projects=self.include_organization_projects,
+                include_teams=self.include_organization_teams,
             )
         if organization_context is None:
             raise ResourceDoesNotExist

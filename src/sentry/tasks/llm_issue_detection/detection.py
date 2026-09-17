@@ -310,6 +310,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         seer_issue_detection_connection_pool,
         f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/{org_id}?plan_tier={plan_tier}",
         body=b"",
+        metrics_endpoint=f"{SEER_CHECK_BUDGET_ENDPOINT_PATH}/:organization_id",
         method="GET",
         timeout=SEER_TIMEOUT_S,
     )

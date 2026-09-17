@@ -1,9 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
+  getDeviceInstallUrl,
   getDistributionErrorTooltip,
+  getIpaDownloadUrl,
   InstallDetailsContent,
 } from 'sentry/views/preprod/components/installDetailsContent';
 
@@ -36,12 +38,49 @@ describe('getDistributionErrorTooltip', () => {
   });
 });
 
+describe('getDeviceInstallUrl', () => {
+  it('wraps apple install URLs with the itms-services scheme', () => {
+    expect(getDeviceInstallUrl('apple', 'https://example.com/install')).toBe(
+      'itms-services://?action=download-manifest&url=https%3A%2F%2Fexample.com%2Finstall'
+    );
+  });
+
+  it('returns android install URLs unchanged', () => {
+    expect(getDeviceInstallUrl('android', 'https://example.com/install')).toBe(
+      'https://example.com/install'
+    );
+  });
+});
+
+describe('getIpaDownloadUrl', () => {
+  it('adds the ipa response_format when none is present', () => {
+    expect(getIpaDownloadUrl('https://example.com/install/')).toBe(
+      'https://example.com/install/?response_format=ipa'
+    );
+  });
+
+  it('swaps a plist response_format for ipa', () => {
+    expect(getIpaDownloadUrl('https://example.com/install/?response_format=plist')).toBe(
+      'https://example.com/install/?response_format=ipa'
+    );
+  });
+
+  it('returns the input unchanged when it is not a valid URL', () => {
+    expect(getIpaDownloadUrl('not a url')).toBe('not a url');
+  });
+});
+
 describe('InstallDetailsContent', () => {
   const organization = OrganizationFixture();
   const INSTALL_DETAILS_URL = `/organizations/${organization.slug}/preprodartifacts/artifact-1/private-install-details/`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    Object.assign(navigator, {
+      clipboard: {
+        writeText: jest.fn().mockResolvedValue(''),
+      },
+    });
   });
 
   it('shows settings link on 404 when distribution is disabled', async () => {
@@ -217,7 +256,66 @@ describe('InstallDetailsContent', () => {
     });
 
     expect(await screen.findByText('5 downloads')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Install'})).toHaveAttribute(
+      'href',
+      'itms-services://?action=download-manifest&url=https%3A%2F%2Fexample.com%2Finstall'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More install options'}));
+    const downloadIpaItem = await screen.findByText('Download IPA');
+    expect(downloadIpaItem.closest('a')).toHaveAttribute(
+      'href',
+      'https://example.com/install?response_format=ipa'
+    );
+  });
+
+  it('copies the itms-services URL for apple builds', async () => {
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      body: {
+        platform: 'apple',
+        install_url: 'https://example.com/install',
+        is_code_signature_valid: true,
+      },
+    });
+
+    render(<InstallDetailsContent artifactId="artifact-1" projectSlug="my-project" />, {
+      organization,
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'More install options'})
+    );
+    await userEvent.click(await screen.findByText('Copy Install Link'));
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'itms-services://?action=download-manifest&url=https%3A%2F%2Fexample.com%2Finstall'
+    );
+  });
+
+  it('opens the raw install URL for android downloads', async () => {
+    MockApiClient.addMockResponse({
+      url: INSTALL_DETAILS_URL,
+      body: {
+        platform: 'android',
+        install_url: 'https://example.com/install',
+      },
+    });
+
+    render(<InstallDetailsContent artifactId="artifact-1" projectSlug="my-project" />, {
+      organization,
+    });
+
+    expect(await screen.findByRole('button', {name: 'Download'})).not.toHaveAttribute(
+      'href'
+    );
+
+    const copyButtons = screen.getAllByRole('button', {name: 'Copy Download Link'});
+    await userEvent.click(copyButtons[0]!);
+
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+      'https://example.com/install'
+    );
   });
 
   it('renders install groups when provided', async () => {
@@ -258,7 +356,7 @@ describe('InstallDetailsContent', () => {
       organization,
     });
 
-    expect(await screen.findByRole('button', {name: 'Download'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Install'})).toBeInTheDocument();
     expect(screen.queryByText('Install Groups')).not.toBeInTheDocument();
   });
 });

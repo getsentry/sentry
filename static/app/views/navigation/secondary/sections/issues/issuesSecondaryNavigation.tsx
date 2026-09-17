@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInboxIssueCount} from 'sentry/views/issueList/pages/inbox/useInboxIssueCount';
@@ -35,7 +34,7 @@ const InboxCountBadge = registerLLMContext('navigation', InboxCountBadgeImpl);
 function IssuesSecondaryNavigationImpl() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
-  const hasIssueInbox = orgHasIssueInbox(organization);
+  const hasIssueInbox = organization.features.includes('issue-inbox');
   const hasInbox = hasIssueInbox && orgHasSeerAccess(organization);
   const hasSeerNightShift = organization.features.includes('seer-night-shift-ui');
   const hasAutofixSection = hasSeerNightShift || !hasIssueInbox;
