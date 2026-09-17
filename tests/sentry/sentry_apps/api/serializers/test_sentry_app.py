@@ -5,6 +5,7 @@ from sentry.auth import access
 from sentry.sentry_apps.api.serializers.sentry_app import SentryAppSerializer
 from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_avatar import SentryAppAvatar
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test, no_silo_test
@@ -111,9 +112,11 @@ class SentryAppHiddenClientSecretSerializerTest(TestCase):
         sentry_app = self.create_sentry_app(
             name="Tesla App", organization=self.organization, published=True, scopes=("org:write",)
         )
+        self.create_project(organization=self.organization)
 
         acc = access.from_user(self.user, self.organization)
-        result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
+        with assert_no_organization_resource_hydration():
+            result = serialize(sentry_app, self.user, SentryAppSerializer(), access=acc)
         assert result["clientSecret"] is not None
 
         now = datetime.now()
