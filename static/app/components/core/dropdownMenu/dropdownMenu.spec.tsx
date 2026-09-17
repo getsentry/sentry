@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 describe('DropdownMenu', () => {
   it('renders a basic menu', async () => {

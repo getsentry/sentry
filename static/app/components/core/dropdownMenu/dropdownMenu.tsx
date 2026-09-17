@@ -6,12 +6,12 @@ import {useMenuTrigger} from '@react-aria/menu';
 import {Item, Section} from '@react-stately/collections';
 import type {LocationDescriptor} from 'history';
 
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
-import {DropdownButton} from 'sentry/components/dropdownButton';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
+import type {DropdownButtonProps} from './dropdownButton';
+import {DropdownButton} from './dropdownButton';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuListProps} from './list';
 import {DropdownMenuContext, DropdownMenuList} from './list';

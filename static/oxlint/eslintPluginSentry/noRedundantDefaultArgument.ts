@@ -1,5 +1,5 @@
-import type {Range} from '@oxlint/plugins';
 import {
+  type Range,
   defineRule,
   type ESTree,
   type Fix,

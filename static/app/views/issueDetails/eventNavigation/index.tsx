@@ -5,13 +5,12 @@ import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
-import {DropdownButton} from 'sentry/components/dropdownButton';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
