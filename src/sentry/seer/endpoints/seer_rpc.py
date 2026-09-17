@@ -33,6 +33,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta, TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -166,7 +167,6 @@ from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.groupreference import find_fix_statements
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -288,7 +288,7 @@ class SeerRpcServiceEndpoint(Endpoint):
     permission_classes = ()
     enforce_rate_limit = False
 
-    @trace
+    @traces.trace
     def _is_authorized(self, request: Request) -> bool:
         return bool(request.auth) and isinstance(
             request.successful_authenticator,
@@ -348,7 +348,7 @@ class SeerRpcServiceEndpoint(Endpoint):
         if viewer is None or viewer.organization_id != organization_id:
             raise PermissionDenied("Viewer context organization does not match request")
 
-    @trace
+    @traces.trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -360,7 +360,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return result.dict()
         return result
 
-    @trace
+    @traces.trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)
@@ -498,7 +498,7 @@ def get_organization_features(
 
     feature_set: set[str] = set()
 
-    with start_span(op="features.check", name="check batch features"):
+    with traces.start_span(name="check batch features", attributes={"sentry.op": "features.check"}):
         batch = features.batch_has(
             list(features_to_check),
             actor=actor,
@@ -512,7 +512,9 @@ def get_organization_features(
                     feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])
                 features_to_check.discard(name)
 
-    with start_span(op="features.check", name="check individual features"):
+    with traces.start_span(
+        name="check individual features", attributes={"sentry.op": "features.check"}
+    ):
         for name in features_to_check:
             if features.has(name, organization, actor=actor, skip_entity=True):
                 feature_set.add(name[len(_ORGANIZATION_SCOPE_PREFIX) :])

@@ -6,11 +6,11 @@ from urllib.parse import urlparse
 
 import orjson
 from django.conf import settings
+from sentry_sdk import traces
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
-from sentry.utils.tracing import trace
 from sentry.viewer_context import (
     ViewerContext,
     encode_viewer_context,
@@ -140,7 +140,7 @@ def _resolve_viewer_context(
     )
 
 
-@trace
+@traces.trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,

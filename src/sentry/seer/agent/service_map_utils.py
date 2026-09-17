@@ -15,6 +15,7 @@ from collections import defaultdict
 from typing import Any, cast
 
 import orjson
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.search.eap.types import SearchResolverConfig
@@ -27,7 +28,6 @@ from sentry.seer.signed_seer_api import (
 )
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +79,11 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
 
     # Broad scan: Org-wide — only segments WITH a parent (cross-project candidates).
     page_limit = min(_SNUBA_MAX_ROWS, max_segments)
-    with start_span(
-        op="explorer.service_map.broad_scan", name="explorer.service_map.broad_scan"
+    with traces.start_span(
+        name="explorer.service_map.broad_scan",
+        attributes={"sentry.op": "explorer.service_map.broad_scan"},
     ) as span:
-        set_span_data(span, "limit", page_limit)
+        span.set_attribute("limit", page_limit)
         result = Spans.run_table_query(
             params=snuba_params,
             query_string="is_transaction:true has:parent_span",
@@ -95,8 +96,8 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         )
         rows = result.get("data", [])
         _process_rows(rows)
-        set_span_data(span, "rows_returned", len(rows))
-        set_span_data(span, "covered_projects", len(covered_project_ids))
+        span.set_attribute("rows_returned", len(rows))
+        span.set_attribute("covered_projects", len(covered_project_ids))
 
     # Fallback scan: One scoped query for projects with no representation in the broad scan.
     # No has:parent_span filter — broad scan to give low-traffic projects a second chance.
@@ -108,11 +109,12 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
         )
         uncovered_params = dataclasses.replace(snuba_params, projects=uncovered)
         page_limit = min(_SNUBA_MAX_ROWS, max_segments)
-        with start_span(
-            op="explorer.service_map.fallback_scan", name="explorer.service_map.fallback_scan"
+        with traces.start_span(
+            name="explorer.service_map.fallback_scan",
+            attributes={"sentry.op": "explorer.service_map.fallback_scan"},
         ) as span:
-            set_span_data(span, "uncovered_projects", len(uncovered))
-            set_span_data(span, "limit", page_limit)
+            span.set_attribute("uncovered_projects", len(uncovered))
+            span.set_attribute("limit", page_limit)
             result = Spans.run_table_query(
                 params=uncovered_params,
                 query_string="is_transaction:true",
@@ -131,7 +133,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
             )
             rows = result.get("data", [])
             _process_rows(rows)
-            set_span_data(span, "rows_returned", len(rows))
+            span.set_attribute("rows_returned", len(rows))
 
     unique_parent_span_ids = list(segments_by_parent.keys())
     if not unique_parent_span_ids:
@@ -143,11 +145,12 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
     edges_by_pair: dict[tuple[int, str, int, str], int] = defaultdict(int)
     batch_size = options.get("explorer.service_map.parent_span_batch_size")
 
-    with start_span(
-        op="explorer.service_map.resolve_parents", name="explorer.service_map.resolve_parents"
+    with traces.start_span(
+        name="explorer.service_map.resolve_parents",
+        attributes={"sentry.op": "explorer.service_map.resolve_parents"},
     ) as span:
-        set_span_data(span, "unique_parent_spans", len(unique_parent_span_ids))
-        set_span_data(span, "batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
+        span.set_attribute("unique_parent_spans", len(unique_parent_span_ids))
+        span.set_attribute("batch_count", math.ceil(len(unique_parent_span_ids) / batch_size))
         for i in range(0, len(unique_parent_span_ids), batch_size):
             batch = unique_parent_span_ids[i : i + batch_size]
             span_ids = ",".join(batch)
@@ -179,7 +182,7 @@ def _query_service_dependencies(snuba_params: SnubaParams) -> list[dict]:
                             segment["child_project_slug"],
                         )
                         edges_by_pair[edge_key] += 1
-        set_span_data(span, "edges_found", len(edges_by_pair))
+        span.set_attribute("edges_found", len(edges_by_pair))
 
     edges = [
         {

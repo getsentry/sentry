@@ -39,6 +39,7 @@ from scm.types import (
     ReviewComment,
     ReviewThread,
 )
+from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
@@ -123,7 +124,6 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -191,7 +191,7 @@ def _organization_for_gate(run_id: int, organization_id: int) -> Organization | 
         return None
 
 
-@trace
+@traces.trace
 def trigger_consume_pr_iteration_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -539,7 +539,7 @@ def _discard_iteration(
         )
 
 
-@trace
+@traces.trace
 def _drain_queued_autofix_feedback(
     *,
     log_ctx: PrIterationLogContext,
@@ -1258,12 +1258,13 @@ def trigger_pr_iteration_from_comment(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
+    traces.new_trace()
     with (
         sentry_sdk.isolation_scope(),
-        start_span(
+        traces.start_span(
             name="pr_iteration.trigger_from_comment",
-            op="function",
-            transaction=True,
+            attributes={"sentry.op": "function"},
+            parent_span=None,
         ),
     ):
         _trigger_pr_iteration_from_comment(
@@ -1634,12 +1635,13 @@ def trigger_pr_iteration_from_review(
     four the flow is followed by, and it is joined to the others by the ids in
     ``pr_iteration.tracing`` rather than by the trace it was queued from.
     """
+    traces.new_trace()
     with (
         sentry_sdk.isolation_scope(),
-        start_span(
+        traces.start_span(
             name="pr_iteration.trigger_from_review",
-            op="function",
-            transaction=True,
+            attributes={"sentry.op": "function"},
+            parent_span=None,
         ),
     ):
         _trigger_pr_iteration_from_review(

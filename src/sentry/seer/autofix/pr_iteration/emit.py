@@ -22,6 +22,7 @@ from enum import StrEnum
 from typing import TypeVar
 
 from django.utils import timezone
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
@@ -47,7 +48,6 @@ from sentry.seer.autofix.pr_iteration.logs import LogCtxIteration, PrIterationLo
 from sentry.seer.autofix.pr_iteration.pause import PauseReason
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models.run import SeerRun, SeerRunPrIteration
-from sentry.utils.tracing import trace
 
 EventT = TypeVar("EventT", bound=analytics.Event)
 
@@ -400,7 +400,7 @@ def record_pr_iteration_blocked(
         log_ctx.error("autofix.pr_iteration.details.blocked_failed")
 
 
-@trace
+@traces.trace
 def complete_pr_iteration_details(
     *,
     log_ctx: PrIterationLogContext,
