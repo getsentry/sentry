@@ -2562,6 +2562,10 @@ function buildRoutes(): RouteObject[] {
       }:tagKey/`,
     },
     {
+      path: ':groupId/autofix/',
+      component: make(() => import('sentry/views/issueDetails/autofix')),
+    },
+    {
       path: ':groupId/',
       component: make(() => import('sentry/views/issueDetails/groupDetails')),
       children: [
