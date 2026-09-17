@@ -36,7 +36,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {getIsOnlyCustom} from 'sentry/views/dashboards/manage/utils/getIsOnlyCustom';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
 import {
   CUSTOM_DASHBOARD_LABEL,
@@ -104,7 +103,8 @@ function ManageDashboards() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
-  const isOnlyCustom = getIsOnlyCustom(hasPrebuiltDashboards, urlFilter);
+  const isOnlyCustom =
+    hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
   const pageTitle = isOnlyPrebuilt
     ? PREBUILT_DASHBOARD_LABEL
     : isOnlyCustom
