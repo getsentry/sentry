@@ -68,12 +68,17 @@ export async function bulkDelete(
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  GroupStore.onDelete(id, itemIds);
-
   let responseMeta: any;
   let statusText: string | undefined;
 
   try {
+    if (itemIds?.length === 0) {
+      options?.success?.(undefined);
+      return;
+    }
+
+    GroupStore.onDelete(id, itemIds);
+
     const [data, status, meta] = await api.requestPromise(path, {
       query,
       method: 'DELETE',
@@ -107,16 +112,21 @@ export async function bulkUpdate(
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  const optimisticData: Partial<Group> =
-    typeof data.assignedTo === 'string'
-      ? {...data, assignedTo: parseActorString(data.assignedTo) ?? null}
-      : data;
-  GroupStore.onUpdate(id, itemIds, optimisticData);
-
   let responseMeta: any;
   let statusText: string | undefined;
 
   try {
+    if (itemIds?.length === 0) {
+      options?.success?.(undefined);
+      return;
+    }
+
+    const optimisticData: Partial<Group> =
+      typeof data.assignedTo === 'string'
+        ? {...data, assignedTo: parseActorString(data.assignedTo) ?? null}
+        : data;
+    GroupStore.onUpdate(id, itemIds, optimisticData);
+
     const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
@@ -148,12 +158,17 @@ export async function mergeGroups(
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  GroupStore.onMerge(id, itemIds);
-
   let responseMeta: any;
   let statusText: string | undefined;
 
   try {
+    if (itemIds?.length === 0) {
+      options?.success?.(undefined);
+      return;
+    }
+
+    GroupStore.onMerge(id, itemIds);
+
     const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',

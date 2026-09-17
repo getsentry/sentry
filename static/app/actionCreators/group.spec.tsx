@@ -1,7 +1,35 @@
-import {bulkUpdate, mergeGroups, paramsToQueryArgs} from 'sentry/actionCreators/group';
+import {
+  bulkDelete,
+  bulkUpdate,
+  mergeGroups,
+  paramsToQueryArgs,
+} from 'sentry/actionCreators/group';
 import {GroupStore} from 'sentry/stores/groupStore';
 
 describe('group', () => {
+  it('completes bulk actions without a request when itemIds is empty', async () => {
+    const api = new MockApiClient();
+    const updateRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'DELETE',
+    });
+    const params = {orgId: 'org-slug', itemIds: [], query: 'is:unresolved'};
+    const callbacks = {success: jest.fn(), complete: jest.fn()};
+
+    await bulkUpdate(api, {...params, data: {status: 'resolved'}}, callbacks);
+    await bulkDelete(api, params, callbacks);
+    await mergeGroups(api, params, callbacks);
+
+    expect(updateRequest).not.toHaveBeenCalled();
+    expect(deleteRequest).not.toHaveBeenCalled();
+    expect(callbacks.success).toHaveBeenCalledTimes(3);
+    expect(callbacks.complete).toHaveBeenCalledTimes(3);
+  });
+
   describe('paramsToQueryArgs()', () => {
     it('should convert itemIds properties to id array', () => {
       expect(
