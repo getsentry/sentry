@@ -131,7 +131,20 @@ export function ChartLegend({items, selected, onSelectionChange}: ChartLegendPro
 
   const overflowOptions: Array<SelectOption<string>> = overflowItems.map(item => ({
     value: item.name,
-    label: item.label,
+    // Truncated the same way, and to the same width, as the row's own labels:
+    // a series name reads the same in the menu as it does in the legend. It is
+    // also what keeps the menu narrow enough to sit under its trigger --
+    // sized to its content, a menu of model-written series names comes out
+    // wider than the chart, and Popper pins the overflow to the left where the
+    // surrounding card clips it (CW-2052).
+    label: (
+      <Text size="xs" ellipsis style={{maxWidth: MAX_LABEL_WIDTH}}>
+        {item.label}
+      </Text>
+    ),
+    // React-aria needs the plain string once the label stops being one, or
+    // typeahead and screen readers lose the option's name.
+    textValue: item.label,
     // Suppress the built-in checkmark; we render a custom LegendCheckbox via leadingItems
     hideCheck: true,
     leadingItems: renderLeadingCheckbox(item),

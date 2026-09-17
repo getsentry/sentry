@@ -1,10 +1,9 @@
-import {useId, useRef, type ComponentType, type ReactNode} from 'react';
+import {useRef, type ComponentType, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {useDisclosure} from '@react-aria/disclosure';
 import {usePress} from '@react-aria/interactions';
 import {useDisclosureState} from '@react-stately/disclosure';
 
-import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
@@ -69,13 +68,6 @@ export function SeerEmbedBlock({
   title,
 }: SeerEmbedBlockProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  // Names this card as the boundary for overlays opened inside it. An overlay
-  // positions itself against `<main>` by default, which is the whole page --
-  // so a menu inside a preview sized itself to the page and, anchored to a
-  // control near the card's right edge, hung off to the left and was cut off
-  // by the card (CW-2052). The card is what actually clips, so it is what the
-  // overlay has to measure against.
-  const boundaryId = useId();
   const state = useDisclosureState({defaultExpanded});
   const {buttonProps, panelProps} = useDisclosure({}, state, panelRef);
   // `buttonProps` speaks react-aria's `onPress`; `usePress` turns that into the
@@ -85,57 +77,54 @@ export function SeerEmbedBlock({
   const {pressProps} = usePress(toggleProps);
 
   return (
-    <BoundaryContextProvider value={boundaryId}>
-      <Container
-        background="primary"
-        border="primary"
-        containerType="inline-size"
-        data-test-id={testId}
-        id={boundaryId}
-        overflow="hidden"
-        radius="md"
-        width="100%"
+    <Container
+      background="primary"
+      border="primary"
+      containerType="inline-size"
+      data-test-id={testId}
+      overflow="hidden"
+      radius="md"
+      width="100%"
+    >
+      <HeaderRow
+        align="center"
+        background="secondary"
+        gap="md"
+        justify="between"
+        padding="sm md"
+        wrap="wrap"
       >
-        <HeaderRow
-          align="center"
-          background="secondary"
-          gap="md"
-          justify="between"
-          padding="sm md"
-          wrap="wrap"
+        <ToggleButton
+          {...pressProps}
+          aria-controls={toggleProps['aria-controls']}
+          aria-expanded={toggleProps['aria-expanded']}
+          disabled={isDisabled}
+          size="zero"
+          variant="transparent"
         >
-          <ToggleButton
-            {...pressProps}
-            aria-controls={toggleProps['aria-controls']}
-            aria-expanded={toggleProps['aria-expanded']}
-            disabled={isDisabled}
-            size="zero"
-            variant="transparent"
-          >
-            <Flex align="center" gap="xs" minWidth="0">
-              <Heading as="h3" ellipsis size="sm">
-                {title}
-              </Heading>
-              <IconChevron direction={state.isExpanded ? 'up' : 'down'} size="xs" />
-            </Flex>
-          </ToggleButton>
-          <Flex align="center" gap="md" wrap="wrap">
-            {badge}
-            <ResourceLink icon={icon} href={href} title={linkLabel} />
+          <Flex align="center" gap="xs" minWidth="0">
+            <Heading as="h3" ellipsis size="sm">
+              {title}
+            </Heading>
+            <IconChevron direction={state.isExpanded ? 'up' : 'down'} size="xs" />
           </Flex>
-        </HeaderRow>
-        {/* The panel's padding sits on an inner element, not on the element
-            `panelProps` hides. `hidden="until-found"` hides contents through
-            `content-visibility`, which leaves the hidden element's own padding box
-            behind -- padding out here would strand an empty strip under the header
-            of every collapsed card. */}
-        <Container {...panelProps} ref={panelRef}>
-          <Stack gap={gap} padding="lg">
-            {children}
-          </Stack>
-        </Container>
+        </ToggleButton>
+        <Flex align="center" gap="md" wrap="wrap">
+          {badge}
+          <ResourceLink icon={icon} href={href} title={linkLabel} />
+        </Flex>
+      </HeaderRow>
+      {/* The panel's padding sits on an inner element, not on the element
+          `panelProps` hides. `hidden="until-found"` hides contents through
+          `content-visibility`, which leaves the hidden element's own padding box
+          behind -- padding out here would strand an empty strip under the header
+          of every collapsed card. */}
+      <Container {...panelProps} ref={panelRef}>
+        <Stack gap={gap} padding="lg">
+          {children}
+        </Stack>
       </Container>
-    </BoundaryContextProvider>
+    </Container>
   );
 }
 
