@@ -19,9 +19,9 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     GroupActionActor,
-    publish_action,
     resolve_action_source,
 )
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.read_metrics import (
     ActivityReadResult,
     activity_read_endpoint,

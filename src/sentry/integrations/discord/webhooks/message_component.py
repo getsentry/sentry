@@ -26,7 +26,11 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log import (
+    ActionSource,
+    GroupActionActor,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.grouphistory import STATUS_TO_STRING_LOOKUP, GroupHistoryStatus

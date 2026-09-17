@@ -18,9 +18,9 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
     GroupActionActor,
-    publish_action,
     resolve_action_source,
 )
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import UnlinkPlatformExternalIssueAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue

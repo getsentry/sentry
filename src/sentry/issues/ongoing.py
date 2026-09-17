@@ -4,7 +4,11 @@ from typing import Any
 from django.db.models.signals import post_save
 
 from sentry import options
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import bulk_remove_groups_from_inbox
 from sentry.signals import issue_unresolved

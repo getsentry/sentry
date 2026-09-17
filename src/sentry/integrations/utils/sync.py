@@ -28,7 +28,8 @@ from sentry.integrations.utils.assignee_sync import (
     parse_provider_event_time,
     record_provider_assignee_updated_at,
 )
-from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
+from sentry.issues.action_log import SYSTEM_ACTOR
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee, GroupAssignmentState
 from sentry.models.organization import Organization

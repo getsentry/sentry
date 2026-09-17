@@ -13,10 +13,10 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers.rest_framework import DummyRuleSerializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY
 from sentry.issues.action_log import (
-    action_context_scope,
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.rule import Rule
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.plugins import HIDDEN_PLUGINS

@@ -9,6 +9,8 @@ from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
+)
+from sentry.issues.action_log.publish import (
     action_context_scope,
     publish_action,
 )

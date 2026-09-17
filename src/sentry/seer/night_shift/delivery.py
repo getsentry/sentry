@@ -13,7 +13,11 @@ from sentry import features
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.constants import SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT, ObjectStatus
 from sentry.eventstore import backend as eventstore
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization

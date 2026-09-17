@@ -61,9 +61,9 @@ from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_cont
 from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
-    action_context_scope,
     resolve_action_actor,
 )
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create

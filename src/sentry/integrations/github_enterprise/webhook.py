@@ -40,7 +40,11 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_organization_info
-from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
+from sentry.issues.action_log import (
+    ActionSource,
+    resolve_action_actor,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 

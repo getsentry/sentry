@@ -43,10 +43,10 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.action_log import (
-    publish_action,
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.read_metrics import activity_read_endpoint
 from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (

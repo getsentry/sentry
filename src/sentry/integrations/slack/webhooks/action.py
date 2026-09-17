@@ -52,7 +52,11 @@ from sentry.integrations.slack.webhooks.actions.seer_agent import (
 )
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
+from sentry.issues.action_log import (
+    ActionSource,
+    GroupActionActor,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group

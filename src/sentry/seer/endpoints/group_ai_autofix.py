@@ -31,10 +31,10 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.action_log import (
-    action_context_scope,
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.action_log.types import GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.issues.formatting.autofix import format_autofix

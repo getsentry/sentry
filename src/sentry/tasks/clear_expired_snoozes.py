@@ -1,6 +1,7 @@
 from django.utils import timezone
 
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import ActionSource
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInboxReason

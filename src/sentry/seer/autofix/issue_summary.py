@@ -16,7 +16,11 @@ from sentry import features, quotas
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.constants import DataCategory
-from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
+    ActionSource,
+)
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group

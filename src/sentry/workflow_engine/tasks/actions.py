@@ -2,7 +2,8 @@ from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
-from sentry.issues.action_log import ActionSource, action_context_scope
+from sentry.issues.action_log import ActionSource
+from sentry.issues.action_log.publish import action_context_scope
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
