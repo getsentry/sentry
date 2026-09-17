@@ -85,9 +85,9 @@ export const NAVIGATION_TYPE_BUCKETS: Record<
     label: () => t('Page loads'),
     description: () =>
       t(
-        'Full document loads. Also includes spans sent before the SDK started tagging navigation type.'
+        'Full document loads, including back/forward navigations that missed the bfcache. Also includes spans sent before the SDK started tagging navigation type.'
       ),
-    attributeValues: ['navigate', 'reload'],
+    attributeValues: ['navigate', 'reload', 'back-forward', 'restore'],
     emptyReason: () =>
       t('No page load web vitals were recorded for the current filters.'),
   },
@@ -104,7 +104,7 @@ export const NAVIGATION_TYPE_BUCKETS: Record<
     label: () => t('bfcache restores'),
     description: () =>
       t('Restores from the back/forward cache. Near-instant by construction.'),
-    attributeValues: ['bfcache'],
+    attributeValues: ['back-forward-cache'],
     emptyReason: () =>
       t(
         'No back/forward cache restores were recorded. Restores only happen on pages that are eligible for the bfcache, and older SDK versions do not tag the navigation type.'

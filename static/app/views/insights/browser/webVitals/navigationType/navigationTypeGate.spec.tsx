@@ -72,7 +72,9 @@ describe('NavigationTypeGate', () => {
   });
 
   it('flags that thresholds do not transfer outside page loads', async () => {
-    mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'bfcache', 'count()': 42}]);
+    mockCounts([
+      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'back-forward-cache', 'count()': 42},
+    ]);
 
     renderGate([NavigationTypeBucket.BFCACHE]);
 
@@ -83,7 +85,7 @@ describe('NavigationTypeGate', () => {
   it('calls out a mixed selection as a blend', async () => {
     mockCounts([
       {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', 'count()': 100},
-      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'bfcache', 'count()': 42},
+      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'back-forward-cache', 'count()': 42},
     ]);
 
     renderGate([NavigationTypeBucket.PAGE_LOAD, NavigationTypeBucket.BFCACHE]);

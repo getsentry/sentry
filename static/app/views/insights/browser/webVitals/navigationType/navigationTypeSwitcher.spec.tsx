@@ -57,7 +57,7 @@ describe('NavigationTypeSwitcher', () => {
   it('shows a count for every bucket, including empty ones', async () => {
     mockCounts([
       {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'navigate', 'count()': 1200},
-      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'bfcache', 'count()': 3},
+      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'back-forward-cache', 'count()': 3},
     ]);
 
     renderSwitcher([buildNavigationTypeGlobalFilter([NavigationTypeBucket.PAGE_LOAD])]);
@@ -92,7 +92,9 @@ describe('NavigationTypeSwitcher', () => {
   });
 
   it('adds a bucket to the selection without dropping the other filters', async () => {
-    mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'bfcache', 'count()': 10}]);
+    mockCounts([
+      {[SpanFields.BROWSER_NAVIGATION_TYPE]: 'back-forward-cache', 'count()': 10},
+    ]);
     const onChange = jest.fn();
     const browserFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,
@@ -124,7 +126,7 @@ describe('NavigationTypeSwitcher', () => {
         NavigationTypeBucket.BFCACHE,
       ]).value
     ).toBe(
-      '(browser.navigation.type:[navigate,reload,bfcache] OR !has:browser.navigation.type)'
+      '(browser.navigation.type:[navigate,reload,back-forward,restore,back-forward-cache] OR !has:browser.navigation.type)'
     );
 
     expect(
@@ -132,7 +134,7 @@ describe('NavigationTypeSwitcher', () => {
         NavigationTypeBucket.BFCACHE,
         NavigationTypeBucket.PRERENDER,
       ]).value
-    ).toBe('browser.navigation.type:[bfcache,prerender]');
+    ).toBe('browser.navigation.type:[back-forward-cache,prerender]');
   });
 
   it('reads "All" and filters nothing when everything is selected', async () => {
