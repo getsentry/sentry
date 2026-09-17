@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import sentry_sdk
 from arroyo.processing.strategies.abstract import ProcessingStrategy
 from arroyo.types import Message, TStrategyPayload
-
-from sentry.utils.tracing import start_span
+from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 
 
 class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
@@ -18,12 +19,19 @@ class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
         self.__next_step = next_step
 
     def join(self, timeout: float | None = None):
-        with start_span(
-            op="consumer_join",
-            name="consumer.join",
-            custom_sampling_context={"sample_rate": 1.0},
-            transaction=True,
-        ):
+        traces.new_trace()
+        _start_span_ctx_1 = sentry_sdk.get_current_scope().get_active_propagation_context()
+        _start_span_prev_1 = _start_span_ctx_1.custom_sampling_context
+        Scope.set_custom_sampling_context({"sample_rate": 1.0})
+        try:
+            _start_span_tmp_1 = traces.start_span(
+                name="consumer.join",
+                attributes={"sentry.op": "consumer_join"},
+                parent_span=None,
+            )
+        finally:
+            _start_span_ctx_1.custom_sampling_context = _start_span_prev_1
+        with _start_span_tmp_1:
             self.__next_step.join(timeout)
 
     def submit(self, message: Message[TStrategyPayload]) -> None:
