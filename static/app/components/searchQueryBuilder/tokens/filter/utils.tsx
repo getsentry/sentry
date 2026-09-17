@@ -110,8 +110,6 @@ export function getValidOpsForFilter({
     wildcardOperators.forEach(op => validOps.delete(op));
   }
 
-  // Regex matching reaches the same backend comparison as the wildcard operators, so it
-  // is restricted to the same fields on top of being opt-in.
   if (!patternOperatorsAllowed || !allowRegexOperators) {
     regexOperators.forEach(op => validOps.delete(op));
   }

@@ -161,8 +161,6 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
-// Kept out of `wildcardOperators` because everything in that list is treated as
-// wildcard matching, which rewrites or escapes the value.
 export const regexOperators = [
   TermOperator.MATCHES,
   TermOperator.DOES_NOT_MATCH,
