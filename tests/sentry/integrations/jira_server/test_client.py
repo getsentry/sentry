@@ -69,7 +69,16 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         responses.add(
             method=responses.GET,
             url="https://jira.example.com/rest/api/2/search/",
-            match=[query_param_matcher({"jql": 'id="ABC-123"'})],
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'id="ABC-123"',
+                        "startAt": 0,
+                        "maxResults": 50,
+                        "fields": "summary",
+                    }
+                )
+            ],
             body=json.dumps(body),
             status=200,
             content_type="application/json",
@@ -83,7 +92,16 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         responses.add(
             method=responses.GET,
             url="https://jira.example.com/rest/api/2/search/",
-            match=[query_param_matcher({"jql": 'text ~ "login crash"'})],
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'text ~ "login crash"',
+                        "startAt": 0,
+                        "maxResults": 50,
+                        "fields": "summary",
+                    }
+                )
+            ],
             body=json.dumps(body),
             status=200,
             content_type="application/json",

@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, urlparse
 
 import responses
 from django.urls import reverse
+from responses.matchers import query_param_matcher
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
@@ -22,7 +23,17 @@ class JiraServerSearchEndpointTest(APITestCase):
         integration = self.integration
         responses.add(
             responses.GET,
-            'https://jira.example.org/rest/api/2/search/?jql=text ~ "test"',
+            "https://jira.example.org/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'text ~ "test"',
+                        "startAt": 0,
+                        "maxResults": 50,
+                        "fields": "summary",
+                    }
+                )
+            ],
             body=EXAMPLE_ISSUE_SEARCH,
             content_type="json",
         )
@@ -40,7 +51,17 @@ class JiraServerSearchEndpointTest(APITestCase):
         integration = self.integration
         responses.add(
             responses.GET,
-            'https://jira.example.org/rest/api/2/search/?jql=id="HSP-1"',
+            "https://jira.example.org/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'id="HSP-1"',
+                        "startAt": 0,
+                        "maxResults": 50,
+                        "fields": "summary",
+                    }
+                )
+            ],
             body=EXAMPLE_ISSUE_SEARCH,
             content_type="json",
         )
@@ -58,7 +79,17 @@ class JiraServerSearchEndpointTest(APITestCase):
         integration = self.integration
         responses.add(
             responses.GET,
-            'https://jira.example.org/rest/api/2/search/?jql=id="HSP-1"',
+            "https://jira.example.org/rest/api/2/search/",
+            match=[
+                query_param_matcher(
+                    {
+                        "jql": 'id="HSP-1"',
+                        "startAt": 0,
+                        "maxResults": 50,
+                        "fields": "summary",
+                    }
+                )
+            ],
             status=502,
             body="<p>We are down</p>",
         )
