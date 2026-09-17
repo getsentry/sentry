@@ -38,13 +38,6 @@ const mepQueryParamBase: Record<string, string> = {};
 export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   let queryParams: Record<string, string> = {};
   const base = mepQueryParamBase;
-  if (mepContext.shouldQueryProvideMEPAutoParams) {
-    queryParams = {
-      ...queryParams,
-      ...base,
-      dataset: 'metricsEnhanced',
-    };
-  }
   if (mepContext.shouldQueryProvideMEPTransactionParams) {
     queryParams = {...queryParams, ...base, dataset: 'discover'};
   }

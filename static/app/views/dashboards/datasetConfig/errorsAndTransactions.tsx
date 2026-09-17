@@ -1,14 +1,11 @@
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 
 import {Link} from '@sentry/scraps/link';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {doEventsRequest} from 'sentry/actionCreators/events';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {ResponseMeta} from 'sentry/types/api';
 import type {TagCollection} from 'sentry/types/group';
 import type {
   EventsStats,
@@ -48,8 +45,7 @@ import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/base';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {CUSTOM_EQUATION_VALUE} from 'sentry/views/dashboards/widgetBuilder/components/sortBySelectors';
@@ -427,49 +423,6 @@ export function getCustomEventsFieldRenderer(
     };
   }
   return getFieldRenderer(field, meta, false, widget, dashboardFilters);
-}
-
-export async function doOnDemandMetricsRequest(
-  api: any,
-  requestData: any,
-  widgetType: any
-): Promise<
-  [EventsStats | MultiSeriesEventsStats, string | undefined, ResponseMeta | undefined]
-> {
-  try {
-    const isEditing = location.pathname.endsWith('/edit/');
-
-    const fetchEstimatedStats = () =>
-      `/organizations/${requestData.organization.slug}/metrics-estimation-stats/`;
-
-    const response = await doEventsRequest<true>(api, {
-      ...requestData,
-      includeAllArgs: true,
-      queryExtras: {
-        ...requestData.queryExtras,
-        useOnDemandMetrics: true,
-        onDemandType: 'dynamic_query',
-      },
-      dataset: 'metricsEnhanced',
-      generatePathname: isEditing ? fetchEstimatedStats : undefined,
-    });
-
-    response[0] = {...response[0]};
-
-    if (
-      hasDatasetSelector(requestData.organization) &&
-      widgetType === WidgetType.DISCOVER
-    ) {
-      const meta: any = response[0].meta ?? {};
-      meta.discoverSplitDecision = 'transaction-like';
-      response[0] = {...response[0], ...{meta}};
-    }
-
-    return [response[0], response[1], response[2]];
-  } catch (err: any) {
-    Sentry.captureMessage('Failed to fetch metrics estimation stats', {extra: err});
-    return doEventsRequest<true>(api, requestData);
-  }
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements

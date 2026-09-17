@@ -5,9 +5,7 @@ import type {TagCollection} from 'sentry/types/group';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {isOnDemandAggregate, isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
-import {hasOnDemandMetricAlertFeature} from 'sentry/utils/onDemandMetrics/features';
-import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
 import {TraceSearchBar} from 'sentry/views/detectors/datasetConfig/components/traceSearchBar';
 import {
@@ -33,9 +31,7 @@ type TransactionsSeriesResponse = EventsStats;
 
 const DEFAULT_EVENT_TYPES = [EventTypes.TRANSACTION];
 
-// Because we are not actually using the transactions dataset (we are using metrics_enhanced),
-// some of the fields are not supported. Apdex does not support the satisfaction parameter,
-// so we need to remove that from the config.
+// Apdex does not support the satisfaction parameter, so we need to remove that from the config.
 // As the transaction dataset is deprecated, this entire config will be removed in the future.
 function getAggregateOptions(
   organization: Organization,
@@ -77,15 +73,6 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
     defaultField: TransactionsConfig.defaultField,
     getAggregateOptions,
     getSeriesQueryOptions: options => {
-      const hasMetricDataset =
-        hasOnDemandMetricAlertFeature(options.organization) ||
-        options.organization.features.includes('dashboards-metrics-transition');
-      const isOnDemandQuery =
-        options.dataset === Dataset.GENERIC_METRICS &&
-        isOnDemandQueryString(options.query);
-      const isOnDemand =
-        hasMetricDataset && (isOnDemandAggregate(options.aggregate) || isOnDemandQuery);
-
       const query = DetectorTransactionsConfig.toSnubaQueryString({
         eventTypes: options.eventTypes,
         query: options.query,
@@ -97,7 +84,6 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
         statsPeriod: options.statsPeriod,
         dataset: DetectorTransactionsConfig.getDiscoverDataset(),
         aggregate: translateAggregateTag(options.aggregate),
-        ...(isOnDemand && {extra: {useOnDemandMetrics: 'true'}}),
       });
     },
     getIntervals: ({detectionType}) => {
@@ -120,6 +106,5 @@ export const DetectorTransactionsConfig: DetectorDatasetConfig<TransactionsSerie
       return translateAggregateTagBack(aggregate);
     },
     supportedDetectionTypes: ['static', 'percent', 'dynamic'],
-    // TODO: This will need to fall back to the discover dataset if metrics enhanced is not available?
-    getDiscoverDataset: () => DiscoverDatasets.METRICS_ENHANCED,
+    getDiscoverDataset: () => DiscoverDatasets.TRANSACTIONS,
   };
