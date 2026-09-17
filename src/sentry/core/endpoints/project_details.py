@@ -277,7 +277,7 @@ E.g. `['release', 'environment']`""",
         r"^[-a-zA-Z0-9+/=\s]+$",
         max_length=255,
         allow_blank=True,
-        help_text="Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin.",
+        help_text="Token sent with security reports (CSP) so Sentry can verify their origin.",
     )
     securityTokenHeader = serializers.RegexField(
         r"^[a-zA-Z0-9_\-]+$",
