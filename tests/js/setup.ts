@@ -67,7 +67,7 @@ resetMockDate();
 // updates it schedules; overlay interactions still use the real component code.
 // Positioning tests can opt back in with jest.unmock('react-popper').
 jest.mock('react-popper', () => {
-  const update = async () => ({});
+  const update = () => Promise.resolve({});
   const forceUpdate = () => {};
   const usePopper: typeof import('react-popper').usePopper = (
     _reference,

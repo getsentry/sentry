@@ -2214,14 +2214,22 @@ describe('trace view', () => {
       await userEvent.type(searchInput, '5');
       await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
 
-      await searchToResolve();
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
       await assertHighlightedRowAtIndex(container, 6);
 
-      await userEvent.clear(searchInput);
-      await waitFor(() => expect(searchInput).toHaveValue(''));
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op-none');
-      await searchToResolve();
+      // Keep the previous results until the new search completes. Clearing the
+      // query also resets the results and can make the idle icon look finished.
+      await userEvent.type(searchInput, '-none');
+      expect(searchInput).toHaveValue('transaction-op-5-none');
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          'no results'
+        );
+      });
       await waitFor(() => {
         // eslint-disable-next-line testing-library/no-container
         expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);
