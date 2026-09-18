@@ -345,6 +345,13 @@ export function UptimeMonitorCreateRedirect() {
   return <Redirect to={makeCreateRedirectPath(organization.slug, 'uptime')} />;
 }
 
+export function UptimeMonitorDetailsRedirect() {
+  const organization = useOrganization();
+  const {detectorId} = useParams<{detectorId: string}>();
+
+  return <Redirect to={makeMonitorDetailsPathname(organization.slug, detectorId)} />;
+}
+
 export function withOpenPeriodRedirect<P extends Record<string, any>>(
   Component: React.ComponentType<P>
 ) {

@@ -96,7 +96,7 @@ Shape C wrappers and their consumers. Re-derive with `grep -rl '<SymbolName' sta
 
 Two answer keys worth copying rather than re-deriving:
 
-- **An unlinked leaf that must become a link.** `views/detectors/components/uptime/details.tsx` has `{label: t('Uptime Monitor')}` with no `to`. The destination is not in that file, but `views/detectors/components/details/common/header.tsx` already links `getDetectorTypeLabel(detector.type)` → `makeMonitorTypePathname(organization.slug, detector.type)` for exactly this crumb.
+- **An unlinked leaf that must become a link.** When a leaf crumb is a category descriptor with no `to`, the destination is usually not in that file. `views/detectors/components/details/common/header.tsx` is the worked example: it links `getDetectorTypeLabel(detector.type)` → `makeMonitorTypePathname(organization.slug, detector.type)`.
 - **A spec that renders a wrapper with no TopBar at all.** `components/profiling/profilingBreadcrumbs.spec.tsx` cannot work as written once the wrapper owns two slots. See `tests.md`.
 
 ## Never migrated
