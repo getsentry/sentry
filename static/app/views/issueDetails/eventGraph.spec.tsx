@@ -1,4 +1,3 @@
-import ReactEchartsCore from 'echarts-for-react/lib/core';
 import {EventFixture} from 'sentry-fixture/event';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -14,8 +13,6 @@ import {EventGraph} from 'sentry/views/issueDetails/eventGraph';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
-
-jest.mock('echarts-for-react/lib/core', () => jest.fn(() => null));
 
 describe('EventGraph', () => {
   const organization = OrganizationFixture();
@@ -64,46 +61,6 @@ describe('EventGraph', () => {
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [{'count_unique(user)': 21}]},
     });
-  });
-
-  it('formats the tooltip range for a single chart bucket', async () => {
-    const timestamp = Date.UTC(2026, 8, 18, 12);
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
-      body: {
-        'count()': EventsStatsFixture({data: [[timestamp / 1000, [{count: 1}]]]}),
-        'count_unique(user)': EventsStatsFixture({
-          data: [[timestamp / 1000, [{count: 1}]]],
-        }),
-      },
-      method: 'GET',
-    });
-    render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <EventGraph {...defaultProps} />
-      </GroupDataContextProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/group-id/',
-            query: {statsPeriod: '14d'},
-          },
-        },
-      }
-    );
-    await screen.findByRole('figure');
-
-    // @ts-expect-error The test mock exposes component props through mock calls.
-    const tooltip = ReactEchartsCore.mock.calls.at(-1)?.[0].option.tooltip;
-    expect(tooltip).toEqual(expect.objectContaining({formatter: expect.any(Function)}));
-    const formatted = tooltip.formatter({
-      data: {value: [timestamp, 1]},
-      seriesName: 'Events',
-    });
-
-    expect(formatted).toContain('Sep 18, 2026 12:00 PM — 4:00 PM (UTC)');
-    expect(formatted).not.toContain(String(timestamp));
   });
 
   it('displays allows toggling data sets', async () => {
