@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
@@ -55,22 +55,22 @@ export function HypothesisCard({
   return (
     <Card
       as="li"
-      gap="lg"
-      padding="xl"
+      gap="md"
+      padding="lg"
       radius="md"
       background="primary"
       data-border={getHypothesisCardBorder(hypothesis.effectiveStatus)}
       data-primary={isPrimary}
       data-test-id="investigation-hypothesis"
     >
-      <Flex justify="between" align="start" gap="sm">
-        <Stack gap="xs">
-          <Text size="xs" variant="muted">
+      <Flex justify="between" align="center" gap="sm">
+        <Flex align="center" gap="md" wrap="wrap" minWidth={0}>
+          <HypothesisNumber size="xs" variant="muted" tabular>
             {/* `order` is zero-based in the projection; people count from one. */}
             {t('Hypothesis %s', hypothesis.order + 1)}
-          </Text>
+          </HypothesisNumber>
           <HypothesisStatus hypothesis={hypothesis} />
-        </Stack>
+        </Flex>
         {actions?.length ? (
           <DropdownMenu
             position="bottom-end"
@@ -87,16 +87,14 @@ export function HypothesisCard({
         ) : null}
       </Flex>
 
-      <Stack gap="sm">
-        <Heading as="h3" size="md" wordBreak="break-word">
-          {hypothesis.statement}
-        </Heading>
-        {hypothesis.rationale ? (
-          <Text size="sm" density="comfortable" wordBreak="break-word">
-            {hypothesis.rationale}
-          </Text>
-        ) : null}
-      </Stack>
+      <HypothesisTitle as="h3" size="md" wordBreak="break-word" tabular>
+        {hypothesis.statement}
+      </HypothesisTitle>
+      {hypothesis.rationale ? (
+        <HypothesisDescription size="sm" wordBreak="break-word" tabular>
+          {hypothesis.rationale}
+        </HypothesisDescription>
+      ) : null}
 
       {hypothesis.error ? (
         <Text size="sm" variant="danger" wordBreak="break-word">
@@ -119,6 +117,19 @@ export function HypothesisCard({
     </Card>
   );
 }
+
+const HypothesisNumber = styled(Text)`
+  line-height: 16px;
+`;
+
+const HypothesisTitle = styled(Heading)`
+  color: ${p => p.theme.tokens.content.headings};
+  line-height: 1.2;
+`;
+
+const HypothesisDescription = styled(Text)`
+  line-height: 16px;
+`;
 
 function VerificationStepRow({step}: {step: InvestigationVerificationStep}) {
   const failed = step.status === 'failed';
@@ -256,6 +267,8 @@ const Card = styled(Stack)`
 
   /* The explanation that stands. */
   &[data-border='accent'] {
+    border-width: 2px;
+    border-bottom-width: 3px;
     border-color: ${p => p.theme.tokens.border.accent.vibrant};
   }
 

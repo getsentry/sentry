@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
+from sentry import nodestore
 from sentry.api import client
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
@@ -50,6 +51,7 @@ from sentry.seer.agent.tools import (
 )
 from sentry.seer.sentry_data_models import (
     EAPTrace,
+    ExecuteQuerySuccessResponse,
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     IssueDetailsResponse,
@@ -2792,12 +2794,98 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
         super().setUp()
         self.max_date_range = timedelta(days=14)
 
+    def test_only_loads_selected_event_body(self) -> None:
+        now = datetime.now(UTC)
+        selected = self.store_event_helper(
+            now - timedelta(hours=2), self.project.id, "a" * 32, "1" * 16
+        )
+        self.store_event_helper(now - timedelta(hours=1), self.project.id, "b" * 32, "2" * 16)
+        group = selected.group
+        assert group is not None
+        with (
+            patch(
+                "sentry.seer.agent.tools.execute_table_query",
+                return_value=ExecuteQuerySuccessResponse(
+                    data=[{"trace": "a" * 32, "count(span.duration)": 1}]
+                ),
+            ),
+            patch.object(nodestore.backend, "get", wraps=nodestore.backend.get) as get_body,
+            patch.object(
+                nodestore.backend, "get_multi", wraps=nodestore.backend.get_multi
+            ) as get_bodies,
+        ):
+            result = _get_recommended_event(group, self.organization, now - timedelta(days=1), now)
+
+        assert result is not None
+        assert result.event_id == selected.event_id
+        get_body.assert_called_once_with(selected.data.id)
+        get_bodies.assert_not_called()
+
+    def test_skips_missing_event_body(self) -> None:
+        now = datetime.now(UTC)
+        event = self.store_event_helper(
+            now - timedelta(hours=2), self.project.id, "a" * 32, "1" * 16
+        )
+        missing = self.store_event_helper(
+            now - timedelta(hours=1), self.project.id, "b" * 32, "2" * 16
+        )
+        nodestore.backend.delete(missing.data.id)
+        assert event.group is not None
+
+        with patch(
+            "sentry.seer.agent.tools.execute_table_query",
+            return_value=ExecuteQuerySuccessResponse(
+                data=[
+                    {"trace": "a" * 32, "count(span.duration)": 1},
+                    {"trace": "b" * 32, "count(span.duration)": 1},
+                ]
+            ),
+        ):
+            result = _get_recommended_event(
+                event.group, self.organization, now - timedelta(days=1), now
+            )
+
+        assert result is not None
+        assert result.event_id == event.event_id
+
+    def test_skips_event_if_body_load_fails(self) -> None:
+        now = datetime.now(UTC)
+        fallback = self.store_event_helper(
+            now - timedelta(hours=2), self.project.id, "b" * 32, "2" * 16
+        )
+        self.store_event_helper(now - timedelta(hours=1), self.project.id, "a" * 32, "1" * 16)
+        assert fallback.group is not None
+
+        with (
+            patch(
+                "sentry.seer.agent.tools.execute_table_query",
+                return_value=ExecuteQuerySuccessResponse(
+                    data=[
+                        {"trace": "a" * 32, "count(span.duration)": 1},
+                        {"trace": "b" * 32, "count(span.duration)": 1},
+                    ]
+                ),
+            ),
+            patch.object(
+                nodestore.backend,
+                "get",
+                side_effect=[RuntimeError("read failed"), fallback.data.copy()],
+            ),
+        ):
+            result = _get_recommended_event(
+                fallback.group, self.organization, now - timedelta(days=1), now
+            )
+
+        assert result is not None
+        assert result.event_id == fallback.event_id
+
     def store_event_helper(
         self,
         dt: datetime,
         project_id: int,
         trace_id: str | None = None,
         span_id: str | None = None,
+        sampled: bool | None = None,
     ) -> Event:
         """All events stored with this method should share a group (same exception)"""
         data = load_data("python", timestamp=dt)
@@ -2807,6 +2895,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             data["contexts"]["trace"] = {
                 "trace_id": trace_id,
                 "span_id": span_id,
+                "sampled": sampled,
             }
         return self.store_event(data=data, project_id=project_id)
 
@@ -2876,17 +2965,19 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
                 )
 
     def test_get_recommended_event_fallback_if_no_events_in_clamped_range(self) -> None:
-        """Falls back to most recent event in full range if no events in clamped range."""
         project = self.create_project()
         now = datetime.now(UTC)
         start = now - timedelta(days=30)
         end = now
         clamped_start = end - self.max_date_range
 
-        # 2 events before clamped start - should fallback to most recent
+        # The older sampled trace ranks higher.
         event1 = self.store_event_helper(
             dt=clamped_start - timedelta(hours=12),
             project_id=project.id,
+            trace_id="a" * 32,
+            span_id="b" * 16,
+            sampled=True,
         )
         event2 = self.store_event_helper(
             dt=clamped_start - timedelta(hours=10),
@@ -2902,10 +2993,9 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
             end=end,
         )
         assert isinstance(result, GroupEvent)
-        assert result.event_id == event2.event_id
+        assert result.event_id == event1.event_id
 
     def test_get_recommended_event_fallback_if_no_events_with_spans_in_clamped_range(self) -> None:
-        """Falls back to most recent event if no events with spans in clamped range."""
         project = self.create_project()
         now = datetime.now(UTC)
         start = now - timedelta(days=30)

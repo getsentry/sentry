@@ -1,10 +1,10 @@
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import type {DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';

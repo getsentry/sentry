@@ -61,6 +61,7 @@ export function WidgetSyncContextProvider({
       observerRef.current?.disconnect();
       observerRef.current = null;
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [stableGroupName]);
 
   const register = useCallback(

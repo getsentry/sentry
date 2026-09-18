@@ -10,6 +10,10 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
+  MIN_PINNED_TRACE_WIDTH,
+  TraceColumnLayout,
+} from 'sentry/views/performance/newTraceDetails/traceColumnLayout';
+import {
   getRenderableTraceIssues,
   getTraceIconGroupWidth,
   getTraceIssueTimestamp,
@@ -172,7 +176,9 @@ export class VirtualizedViewManager {
   };
 
   // Column configuration
-  columns: Record<'list' | 'span_list', ViewColumn>;
+  columns: Record<'list' | 'attribute' | 'span_list', ViewColumn>;
+  pinnedColumnLayout: TraceColumnLayout | null = null;
+  private attributeColumnPreferences: TraceColumnLayout | null = null;
   navigate: ReactRouter3Navigate | null = null;
   scheduler: TraceScheduler;
   view: TraceView;
@@ -189,7 +195,18 @@ export class VirtualizedViewManager {
     theme: Theme
   ) {
     this.columns = {
-      list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
+      attribute: {
+        width: 0,
+        column_nodes: [],
+        column_refs: [],
+        translate: [0, 0],
+      },
+      list: {
+        ...columns.list,
+        column_nodes: [],
+        column_refs: [],
+        translate: [0, 0],
+      },
       span_list: {
         ...columns.span_list,
         column_nodes: [],
@@ -220,6 +237,79 @@ export class VirtualizedViewManager {
     this.onWheelStart = this.onWheelStart.bind(this);
     this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
+  }
+
+  setAttributePinningEnabled(enabled: boolean) {
+    if (enabled && !this.attributeColumnPreferences) {
+      this.attributeColumnPreferences = new TraceColumnLayout(this.columns.list.width);
+      this.columns.list.width = this.attributeColumnPreferences.treeRatio;
+      this.columns.span_list.width = 1 - this.columns.list.width;
+      this.updatePinnedColumnSpace();
+    } else if (!enabled) {
+      this.attributeColumnPreferences = null;
+    }
+  }
+
+  setPinnedColumnEnabled(enabled: boolean) {
+    if (enabled === Boolean(this.pinnedColumnLayout)) {
+      return;
+    }
+    if (enabled) {
+      this.pinnedColumnLayout =
+        this.attributeColumnPreferences ?? new TraceColumnLayout(this.columns.list.width);
+    } else {
+      const remaining = this.columns.list.width + this.columns.span_list.width;
+      this.columns.list.width /= remaining;
+      this.columns.span_list.width /= remaining;
+      if (this.attributeColumnPreferences) {
+        this.attributeColumnPreferences.treeRatio = this.columns.list.width;
+        this.attributeColumnPreferences.save();
+      }
+      this.columns.attribute.width = 0;
+      this.pinnedColumnLayout = null;
+    }
+    this.updatePinnedColumnSpace();
+  }
+
+  syncPinnedColumnWidths(containerWidth: number) {
+    if (!this.pinnedColumnLayout) {
+      return;
+    }
+    const available = Math.max(
+      MIN_PINNED_TRACE_WIDTH,
+      containerWidth - this.scrollbar_width
+    );
+    const sizes = this.pinnedColumnLayout.sizes(available);
+    this.columns.list.width = sizes.list / available;
+    this.columns.attribute.width = sizes.attribute / available;
+    this.columns.span_list.width = sizes.span_list / available;
+  }
+
+  resizePinnedColumn(edge: 'left' | 'right', delta: number) {
+    this.pinnedColumnLayout?.resize(
+      edge,
+      delta,
+      this.view.trace_container_physical_space.width - this.scrollbar_width
+    );
+    this.updatePinnedColumnSpace();
+  }
+
+  finishPinnedColumnResize() {
+    this.pinnedColumnLayout?.save();
+    this.enqueueOnScrollEndOutOfBoundsCheck();
+    this.scheduler.dispatch('divider resize end', this.columns.list.width);
+  }
+
+  private updatePinnedColumnSpace() {
+    this.syncPinnedColumnWidths(this.view.trace_container_physical_space.width);
+    this.view.trace_physical_space.width =
+      (this.view.trace_container_physical_space.width - this.scrollbar_width) *
+      this.columns.span_list.width;
+    this.recomputeTimeCompression();
+    this.scheduler.dispatch('divider resize', {
+      list: this.columns.list.width,
+      span_list: this.columns.span_list.width,
+    });
   }
 
   setTimeCompression(compression: TraceTimeCompression) {
@@ -274,6 +364,10 @@ export class VirtualizedViewManager {
 
     this.columns.list.width = list;
     this.columns.span_list.width = span_list;
+    if (this.attributeColumnPreferences) {
+      this.attributeColumnPreferences.treeRatio = list;
+      this.attributeColumnPreferences.save();
+    }
 
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
@@ -2079,6 +2173,19 @@ export class VirtualizedViewManager {
   ) {
     if (!container) {
       return;
+    }
+
+    container.style.setProperty('--trace-scrollbar-width', this.scrollbar_width + 'px');
+    if (this.pinnedColumnLayout) {
+      const width = this.view.trace_container_physical_space.width - this.scrollbar_width;
+      container.style.setProperty(
+        '--pinned-list-width',
+        options.list_width * width + 'px'
+      );
+      container.style.setProperty(
+        '--pinned-attribute-width',
+        this.columns.attribute.width * width + 'px'
+      );
     }
 
     if (this.last_list_column_width !== options.list_width) {
