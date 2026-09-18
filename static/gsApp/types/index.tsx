@@ -615,14 +615,10 @@ export const CREDIT_INVOICE_ITEM_TYPES = [
 type CreditInvoiceItemType = (typeof CREDIT_INVOICE_ITEM_TYPES)[number];
 
 /**
- * Fee-related invoice item types (taxes, penalties, one-time charges).
+ * Fee-related invoice item types (taxes, penalties).
  * Exported as const array to enable runtime usage in filters.
  */
-export const FEE_INVOICE_ITEM_TYPES = [
-  'sales_tax',
-  'cancellation_fee',
-  'one_time_charge',
-] as const;
+export const FEE_INVOICE_ITEM_TYPES = ['sales_tax', 'cancellation_fee'] as const;
 
 type FeeInvoiceItemType = (typeof FEE_INVOICE_ITEM_TYPES)[number];
 
@@ -661,6 +657,11 @@ type SubscriptionInvoiceItemType = 'subscription';
 type BalanceChangeInvoiceItemType = 'balance_change';
 
 /**
+ * A charge that neither the plan nor the usage of a period produces.
+ */
+type OneTimeChargeInvoiceItemType = 'one_time_charge';
+
+/**
  * Unknown invoice item type (empty string).
  */
 type UnknownInvoiceItemType = '';
@@ -673,6 +674,7 @@ type StaticInvoiceItemType =
   | UnknownInvoiceItemType
   | SubscriptionInvoiceItemType
   | BalanceChangeInvoiceItemType
+  | OneTimeChargeInvoiceItemType
   | CreditInvoiceItemType
   | FeeInvoiceItemType
   | SeerInvoiceItemType
