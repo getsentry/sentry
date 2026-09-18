@@ -426,7 +426,7 @@ export function SearchQueryBuilderCombobox<
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
-  const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
+  const {menuPresentation, portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -489,7 +489,7 @@ export function SearchQueryBuilderCombobox<
       shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
-        if (openOnFocus) {
+        if (openOnFocus || menuPresentation === 'panel') {
           state.open();
         }
         onFocus?.(e);
@@ -623,10 +623,14 @@ export function SearchQueryBuilderCombobox<
     e => {
       e.stopPropagation();
       inputProps.onClick?.(e);
-      state.toggle();
+      if (menuPresentation === 'panel') {
+        state.open();
+      } else {
+        state.toggle();
+      }
       onClick?.(e);
     },
-    [inputProps, state, onClick]
+    [inputProps, menuPresentation, state, onClick]
   );
 
   useUpdateOverlayPositionOnContentChange({

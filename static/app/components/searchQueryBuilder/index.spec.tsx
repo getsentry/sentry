@@ -337,12 +337,14 @@ describe('SearchQueryBuilder', () => {
     expect(within(panel).getByRole('listbox')).toHaveStyle({maxWidth: '100%'});
     await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
 
-    expect(
-      await screen.findByRole('row', {name: 'browser.name:Chrome'})
-    ).toBeInTheDocument();
+    expect(within(panel).getByRole('listbox')).toBeInTheDocument();
+
+    await userEvent.click(getLastInput());
+    expect(within(panel).getByRole('listbox')).toBeInTheDocument();
 
     await userEvent.click(document.body);
     expect(within(panel).queryByRole('listbox')).not.toBeInTheDocument();
+    expect(screen.getByRole('row', {name: 'browser.name:Chrome'})).toBeInTheDocument();
   });
 
   it('keeps the date picker below the input in panel mode', async () => {
