@@ -653,6 +653,7 @@ export type KnownSentryApiUrls =
   | '/users/$userId/notification-providers/'
   | '/users/$userId/notifications/'
   | '/users/$userId/notifications/email/'
+  | '/users/$userId/options/'
   | '/users/$userId/organization-integrations/'
   | '/users/$userId/organizations/'
   | '/users/$userId/password/'

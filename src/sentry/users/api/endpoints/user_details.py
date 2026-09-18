@@ -1,13 +1,13 @@
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
-from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, NotRequired, TypedDict
 
 from django.conf import settings
 from django.contrib.auth import logout
+from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone as django_timezone
-from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -33,17 +33,33 @@ from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
 from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
+from sentry.users.api.parsers.user_option import (
+    DEFAULT_ISSUE_EVENT_CHOICES,
+    STACKTRACE_ORDER_CHOICES,
+    THEME_CHOICES,
+    TIMEZONE_CHOICES,
+    UserOptionsData,
+    write_user_options,
+)
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
-from sentry.utils.dates import get_timezone_choices
 
 audit_logger = logging.getLogger("sentry.audit.user")
 delete_logger = logging.getLogger("sentry.deletions.api")
 
 
-TIMEZONE_CHOICES = get_timezone_choices()
+@dataclass(frozen=True)
+class DeletedAccountInfo:
+    """Stand-in for a User row that a hard delete already removed.
+
+    Satisfies `SecurityEmailAccount`, which is all the deletion email needs.
+    """
+
+    id: int
+    email: str
 
 
 def user_can_elevate(target_user: User) -> bool:
@@ -62,7 +78,9 @@ def user_can_elevate(target_user: User) -> bool:
     return org_member_exists
 
 
-def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None:
+def record_user_deactivation(
+    *, user: User, actor: User | RpcUser | AnonymousUser, ip_address: str
+) -> None:
     deactivation_datetime = django_timezone.now()
     scheduled_deletion_datetime = deactivation_datetime + timedelta(days=30)
 
@@ -93,7 +111,7 @@ def record_user_deactivation(*, user: User, actor: Any, ip_address: str) -> None
 
 
 def record_hard_user_deletion(
-    *, user_id: int, user_email: str, actor: Any, ip_address: str
+    *, user_id: int, user_email: str, actor: User | RpcUser | AnonymousUser, ip_address: str
 ) -> None:
     deletion_datetime = django_timezone.now()
 
@@ -109,12 +127,12 @@ def record_hard_user_deletion(
     except Exception as e:
         capture_exception(e)
 
-    # We create a minimal object with id and email since the User was already deleted.
-    # This is only used for email template rendering.
-    account_info = SimpleNamespace(id=user_id, email=user_email)
+    # The User was already deleted, so pass a minimal stand-in. This is only used
+    # for logging and email template rendering.
+    account_info = DeletedAccountInfo(id=user_id, email=user_email)
 
     capture_security_activity(
-        account=cast(Any, account_info),
+        account=account_info,
         type="user.removed",
         actor=actor,
         ip_address=ip_address,
@@ -126,32 +144,11 @@ def record_hard_user_deletion(
 
 class UserOptionsSerializer(serializers.Serializer[UserOption]):
     language = serializers.ChoiceField(choices=LANGUAGES, required=False)
-    stacktraceOrder = serializers.ChoiceField(
-        choices=(
-            ("-1", _("Default (let Sentry decide)")),
-            ("1", _("Most recent call last")),
-            ("2", _("Most recent call first")),
-        ),
-        required=False,
-    )
+    stacktraceOrder = serializers.ChoiceField(choices=STACKTRACE_ORDER_CHOICES, required=False)
     timezone = serializers.ChoiceField(choices=TIMEZONE_CHOICES, required=False)
     clock24Hours = serializers.BooleanField(required=False)
-    theme = serializers.ChoiceField(
-        choices=(
-            ("light", _("Light")),
-            ("dark", _("Dark")),
-            ("system", _("Default to system")),
-        ),
-        required=False,
-    )
-    defaultIssueEvent = serializers.ChoiceField(
-        choices=(
-            ("recommended", _("Recommended")),
-            ("latest", _("Latest")),
-            ("oldest", _("Oldest")),
-        ),
-        required=False,
-    )
+    theme = serializers.ChoiceField(choices=THEME_CHOICES, required=False)
+    defaultIssueEvent = serializers.ChoiceField(choices=DEFAULT_ISSUE_EVENT_CHOICES, required=False)
     prefersIssueDetailsStreamlinedUI = serializers.BooleanField(required=False)
 
 
@@ -256,6 +253,13 @@ class PrivilegedUserSerializer(SuperuserUserSerializer):
         fields = ("name", "username", "is_active", "is_suspended", "is_staff", "is_superuser")
 
 
+class DeleteUserData(TypedDict):
+    """The validated body of a DELETE to this endpoint."""
+
+    organizations: list[str]
+    hardDelete: NotRequired[bool]
+
+
 class DeleteUserSerializer(serializers.Serializer[User]):
     organizations = serializers.ListField(
         child=serializers.CharField(required=False), required=True
@@ -349,9 +353,9 @@ class UserDetailsEndpoint(UserEndpoint):
         # The users have to also be a member of the default organization to be able to elevate
         # to superuser/staff.
         if settings.SENTRY_MODE == SentryMode.SAAS:
-            validated_data = serializer.validated_data
-            requested_superuser = validated_data.get("is_superuser")
-            requested_staff = validated_data.get("is_staff")
+            validated_data: dict[str, Any] = serializer.validated_data
+            requested_superuser: bool | None = validated_data.get("is_superuser")
+            requested_staff: bool | None = validated_data.get("is_staff")
 
             is_updating_superuser = requested_superuser is not None
             is_updating_staff = requested_staff is not None
@@ -370,24 +374,8 @@ class UserDetailsEndpoint(UserEndpoint):
                         status=status.HTTP_403_FORBIDDEN,
                     )
 
-        # map API keys to keys in model
-        key_map = {
-            "theme": "theme",
-            "language": "language",
-            "timezone": "timezone",
-            "stacktraceOrder": "stacktrace_order",
-            "defaultIssueEvent": "default_issue_event",
-            "clock24Hours": "clock_24_hours",
-            "prefersIssueDetailsStreamlinedUI": "prefers_issue_details_streamlined_ui",
-        }
-
-        options_result = serializer_options.validated_data
-
-        for key in key_map:
-            if key in options_result:
-                UserOption.objects.set_value(
-                    user=user, key=key_map.get(key, key), value=options_result.get(key)
-                )
+        options_result: UserOptionsData = serializer_options.validated_data
+        write_user_options(user, options_result)
 
         with transaction.atomic(using=router.db_for_write(User)):
             user = serializer.save()
@@ -409,6 +397,8 @@ class UserDetailsEndpoint(UserEndpoint):
 
         if not serializer.is_valid():
             return Response(status=status.HTTP_400_BAD_REQUEST)
+
+        delete_data: DeleteUserData = serializer.validated_data
 
         # from `frontend/remove_account.py`
         org_mappings = OrganizationMapping.objects.filter(
@@ -432,7 +422,7 @@ class UserDetailsEndpoint(UserEndpoint):
             )
 
         avail_org_ids = {o["organization_id"] for o in org_results}
-        requested_org_slugs_to_remove = set(serializer.validated_data.get("organizations"))
+        requested_org_slugs_to_remove = set(delete_data.get("organizations"))
         requested_org_ids_to_remove = OrganizationMapping.objects.filter(
             slug__in=requested_org_slugs_to_remove
         ).values_list("organization_id", flat=True)
@@ -487,7 +477,7 @@ class UserDetailsEndpoint(UserEndpoint):
             "user_id": user.id,
         }
 
-        hard_delete = serializer.validated_data.get("hardDelete", False)
+        hard_delete = delete_data.get("hardDelete", False)
         can_delete = has_elevated_mode(request) and request.access.has_permission("users.admin")
 
         # Only active superusers can hard delete accounts

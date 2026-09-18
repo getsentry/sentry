@@ -710,6 +710,7 @@ from sentry.users.api.endpoints.user_identity_config import (
 from sentry.users.api.endpoints.user_identity_details import UserIdentityDetailsEndpoint
 from sentry.users.api.endpoints.user_index import UserIndexEndpoint
 from sentry.users.api.endpoints.user_ips import UserIPsEndpoint
+from sentry.users.api.endpoints.user_options import UserOptionsEndpoint
 from sentry.users.api.endpoints.user_password import UserPasswordEndpoint
 from sentry.users.api.endpoints.user_permission_details import UserPermissionDetailsEndpoint
 from sentry.users.api.endpoints.user_permissions import UserPermissionsEndpoint
@@ -1251,6 +1252,11 @@ USER_URLS = [
         r"^(?P<user_id>[^/]+)/$",
         UserDetailsEndpoint.as_view(),
         name="sentry-api-0-user-details",
+    ),
+    re_path(
+        r"^(?P<user_id>[^/]+)/options/$",
+        UserOptionsEndpoint.as_view(),
+        name="sentry-api-0-user-options",
     ),
     re_path(
         r"^(?P<user_id>[^/]+)/regions/$",

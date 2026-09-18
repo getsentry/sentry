@@ -18,10 +18,25 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.api.endpoints.user_details import UserOptionsSerializer
+from sentry.users.api.parsers.user_option import OPTION_KEY_MAP, UserOptionsData
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRole
+
+
+def test_user_option_types_cover_every_serializer_field() -> None:
+    """The option types are declared by hand, so keep them in step with the serializer.
+
+    A field present on the serializer but missing from OPTION_KEY_MAP is accepted by
+    the API and then silently never written. Type checking cannot see DRF's fields,
+    which are declared at runtime, so assert the three agree here instead.
+    """
+    serializer_fields = set(UserOptionsSerializer().fields)
+
+    assert serializer_fields == set(UserOptionsData.__annotations__)
+    assert serializer_fields == set(OPTION_KEY_MAP)
 
 
 class UserDetailsTest(APITestCase):

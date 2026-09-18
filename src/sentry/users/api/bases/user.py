@@ -56,6 +56,46 @@ class UserAndStaffPermission(StaffPermissionMixin, UserPermission):
     """
 
 
+class UserOptionsPermission(UserPermission):
+    """Lets a Seer agent credential read and write the delegating user's own preferences.
+
+    `UserPermission` rejects agent auth outright, because user endpoints are keyed on a
+    `user_id` path param and an agent must never act on another person's account. That
+    rejection is lifted here for the preferences resource only, and replaced with an
+    explicit self-only check against the credential.
+
+    Two deliberate narrowings relative to `UserAndStaffPermission`:
+
+    * No staff or superuser bypass. Preferences are personal, so there is no operator
+      reason to write somebody else's.
+    * `PUT` requires a write scope, so an agent holding only the default read-only scopes
+      gets Sentry's insufficient-scope challenge and the user is asked to approve first.
+    """
+
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:write", "org:admin"],
+    }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if agent_token.is_agent_auth(request.auth):
+            # Skip UserPermission's blanket rejection of agent credentials while keeping
+            # every other check, including the scope_map above. has_object_permission
+            # is what confines the request to the delegating user's own options.
+            return super(UserPermission, self).has_permission(request, view)
+        return super().has_permission(request, view)
+
+    def has_object_permission(
+        self, request: Request, view: APIView, user: User | RpcUser | None
+    ) -> bool:
+        if agent_token.is_agent_auth(request.auth):
+            # Compared against the credential rather than `request.user`: agent auth
+            # synthesizes `request.user` from the token, so checking one against the
+            # other would be circular.
+            return user is not None and request.auth.user_id == user.id
+        return super().has_object_permission(request, view, user)
+
+
 class OrganizationUserPermission(UserAndStaffPermission):
     scope_map = {"DELETE": ["member:admin"]}
 
