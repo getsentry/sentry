@@ -212,7 +212,10 @@ function _getWidgetExploreUrl(
   traceItemDataset?: TraceItemDataset,
   referrer?: string
 ) {
-  const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
+  if (!widget.queries[0]) {
+    return null;
+  }
+  const eventView = eventViewFromWidget(widget.title, widget.queries[0], selection);
   const locationQueryParams = eventView.generateQueryStringObject();
 
   // Pull a max of 3 valid Y-Axis from the widget
