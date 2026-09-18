@@ -230,6 +230,7 @@ export function ListBox<T extends ListItemBase>({
       virtualizer.scrollElementRef,
       scrollContainerRef
     );
+    // oxlint-disable-next-line react/memo-dependencies
   }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (

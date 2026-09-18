@@ -812,6 +812,45 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         mock_send_activity_notifications_delay.assert_called_once_with(activity.id)
 
+    @with_feature("organizations:release-resolution-finalized-order")
+    def test_regression_after_finalizing_cached_release(self) -> None:
+        now = timezone.now()
+        old_build = self.create_release(version="old-build", date_added=now)
+        fixed_build = self.create_release(
+            version="fixed-build", date_added=now - timedelta(minutes=1)
+        )
+        event = EventManager(
+            make_event(
+                checksum="a" * 32,
+                timestamp=(now - timedelta(minutes=2)).timestamp(),
+                release=old_build.version,
+            )
+        ).save(self.project.id)
+        group = event.group
+        assert group is not None
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        self.create_group_resolution(
+            group=group, release=fixed_build, type=GroupResolution.Type.in_release
+        )
+        assert Release.get_or_create(self.project, old_build.version).date_released is None
+
+        with self.capture_on_commit_callbacks(execute=True):
+            old_build.update(date_released=now - timedelta(minutes=3))
+
+        old_event = EventManager(
+            make_event(checksum="a" * 32, timestamp=now.timestamp(), release=old_build.version)
+        ).save(self.project.id)
+        assert old_event.group_id == group.id
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        new_event = EventManager(
+            make_event(checksum="a" * 32, timestamp=now.timestamp(), release="new-build")
+        ).save(self.project.id)
+        assert new_event.group_id == group.id
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_that_release_in_latest_activity_prior_to_regression_is_not_overridden(
         self,

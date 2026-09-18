@@ -96,6 +96,7 @@ export function UsageOverview({
       }
     }
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     location.query.product,
     selectedProduct,
     location.pathname,
@@ -128,7 +129,7 @@ export function UsageOverview({
               })}
             </Heading>
           </Stack>
-          <UsageOverviewActions organization={organization} />
+          <UsageOverviewActions organization={organization} subscription={subscription} />
         </Flex>
         <UsageOverviewTable
           subscription={subscription}

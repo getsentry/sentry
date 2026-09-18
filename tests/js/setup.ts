@@ -6,7 +6,7 @@ import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
 import {type ReactElement} from 'react';
-import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
@@ -63,6 +63,29 @@ resetMockDate();
 /**
  * Mocks
  */
+// jsdom does not lay out elements. Skip Popper's geometry work and the React
+// updates it schedules; overlay interactions still use the real component code.
+// Positioning tests can opt back in with jest.unmock('react-popper').
+jest.mock('react-popper', () => {
+  const update = () => Promise.resolve({});
+  const forceUpdate = () => {};
+  const usePopper: typeof import('react-popper').usePopper = (
+    _reference,
+    _popper,
+    options = {}
+  ) => ({
+    styles: {
+      popper: {position: options.strategy ?? 'absolute', left: 0, top: 0},
+      arrow: {position: 'absolute'},
+    },
+    attributes: {},
+    state: null,
+    update,
+    forceUpdate,
+  });
+  return {...jest.requireActual('react-popper'), usePopper};
+});
+
 jest.mock('lodash/debounce', () =>
   jest.fn(fn => {
     fn.cancel = jest.fn();
@@ -214,7 +237,12 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
-afterEach(resetResizeObservers);
+afterEach(() => {
+  const {toast} =
+    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+  act(() => void toast.dismiss());
+  resetResizeObservers();
+});
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -328,31 +356,11 @@ window.scrollTo = jest.fn();
 
 window.ra = {event: jest.fn()};
 
-// The JSDOM implementation is too slow
-// Especially for dropdowns that try to position themselves
-// perf issue - https://github.com/jsdom/jsdom/issues/3234
+// The full jsdom CSS cascade is too slow, especially for dropdown positioning.
+// Tests only need inline styles here, so reuse the element's declaration directly.
+// See https://github.com/jsdom/jsdom/issues/3234.
 Object.defineProperty(window, 'getComputedStyle', {
-  value: (el: HTMLElement) => {
-    /**
-     * This is based on the jsdom implementation of getComputedStyle
-     * https://github.com/jsdom/jsdom/blob/9dae17bf0ad09042cfccd82e6a9d06d3a615d9f4/lib/jsdom/browser/Window.js#L779-L820
-     *
-     * It is missing global style parsing and will only return styles applied directly to an element.
-     * Will not return styles that are global or from emotion
-     */
-    const declaration = new CSSStyleDeclaration();
-    const {style} = el;
-
-    Array.prototype.forEach.call(style, (property: string) => {
-      declaration.setProperty(
-        property,
-        style.getPropertyValue(property),
-        style.getPropertyPriority(property)
-      );
-    });
-
-    return declaration;
-  },
+  value: (element: HTMLElement) => element.style,
   configurable: true,
   writable: true,
 });
@@ -382,6 +390,8 @@ window.IntersectionObserver = class IntersectionObserver {
   unobserve() {}
   disconnect() {}
 };
+
+HTMLElement.prototype.setPointerCapture ??= jest.fn();
 
 window.ResizeObserver = MockResizeObserver;
 

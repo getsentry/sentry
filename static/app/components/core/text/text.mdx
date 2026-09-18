@@ -177,7 +177,7 @@ Control text alignment with the `align` prop: `left` (default), `center`, `right
 
 ## Density
 
-Control line height with the `density` prop: `compressed` (1.0), default (1.2), or `comfortable` (1.4).
+Control line height with the `density` prop: `compressed` (1.0), `default` (1.2), `comfortable` (1.4), or `fixed` (1rem). Omitting the prop uses the default line height.
 
 <Storybook.Demo>
   <Storybook.SideBySide vertical>
@@ -191,7 +191,7 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
       </Container>
       <Container>
         <Heading as="h4">Default density</Heading>
-        <Text as="p">
+        <Text as="p" density="default">
           Default density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
           Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
         </Text>
@@ -203,13 +203,21 @@ Control line height with the `density` prop: `compressed` (1.0), default (1.2), 
           elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
         </Text>
       </Container>
+      <Container>
+        <Heading as="h4">Fixed density</Heading>
+        <Text as="p" density="fixed">
+          Fixed density text. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed
+          do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+        </Text>
+      </Container>
     </Stack>
   </Storybook.SideBySide>
 </Storybook.Demo>
 ```jsx
 <Text density="compressed">Compressed density text...</Text>
-<Text>Default density text...</Text>
+<Text density="default">Default density text...</Text>
 <Text density="comfortable">Comfortable density text...</Text>
+<Text density="fixed">Fixed density text...</Text>
 ```
 
 ## Ellipsis Overflow

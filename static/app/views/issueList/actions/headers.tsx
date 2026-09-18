@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
@@ -15,7 +14,6 @@ type Props = {
   onSelectStatsPeriod: (statsPeriod: string) => void;
   selection: PageFilters;
   statsPeriod: string;
-  withColumns?: GroupListColumn[];
 };
 
 export function Headers({
@@ -23,7 +21,6 @@ export function Headers({
   statsPeriod,
   onSelectStatsPeriod,
   isReprocessingQuery,
-  withColumns,
 }: Props) {
   return (
     <Fragment>
@@ -111,23 +108,13 @@ export function Headers({
           >
             {t('Users')}
           </IssueStreamHeaderLabel>
-          {withColumns?.includes('progress') ? (
-            <IssueStreamHeaderLabel
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'inline-block'}}
-              align="left"
-              width="124px"
-            >
-              {t('Progress')}
-            </IssueStreamHeaderLabel>
-          ) : (
-            <IssueStreamHeaderLabel
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'inline-block'}}
-              align="left"
-              width="64px"
-            >
-              {t('Priority')}
-            </IssueStreamHeaderLabel>
-          )}
+          <IssueStreamHeaderLabel
+            display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'inline-block'}}
+            align="left"
+            width="64px"
+          >
+            {t('Priority')}
+          </IssueStreamHeaderLabel>
           <IssueStreamHeaderLabel
             display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
             align="right"

@@ -93,6 +93,70 @@ function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
   );
 }
 
+function DashboardRowActions({
+  dashboard,
+  onDelete,
+  onDuplicate,
+}: {
+  dashboard: DashboardListItem;
+  onDelete: ReturnType<typeof useDeleteDashboard>;
+  onDuplicate: ReturnType<typeof useDuplicateDashboard>;
+}) {
+  return (
+    <Flex gap="xs">
+      <DashboardCreateLimitWrapper>
+        {({
+          hasReachedDashboardLimit,
+          isLoading: isLoadingDashboardsLimit,
+          limitMessage,
+        }) => (
+          <StyledButton
+            onClick={e => {
+              e.stopPropagation();
+              openConfirmModal({
+                message: t('Are you sure you want to duplicate this dashboard?'),
+                onConfirm: () => onDuplicate(dashboard, 'table'),
+              });
+            }}
+            variant="transparent"
+            aria-label={t('Duplicate Dashboard')}
+            data-test-id="dashboard-duplicate"
+            icon={<IconCopy />}
+            size="sm"
+            disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+            tooltipProps={{
+              title: limitMessage,
+            }}
+          />
+        )}
+      </DashboardCreateLimitWrapper>
+      <StyledButton
+        onClick={e => {
+          e.stopPropagation();
+          openConfirmModal({
+            message: t('Are you sure you want to delete this dashboard?'),
+            priority: 'danger',
+            onConfirm: () => onDelete(dashboard, 'table'),
+          });
+        }}
+        variant="transparent"
+        aria-label={t('Delete Dashboard')}
+        data-test-id="dashboard-delete"
+        icon={<IconDelete />}
+        size="sm"
+        disabled={defined(dashboard.prebuiltId)}
+        tooltipProps={{
+          title: defined(dashboard.prebuiltId)
+            ? tct('[label] dashboards cannot be deleted', {
+                label: PREBUILT_DASHBOARD_LABEL,
+              })
+            : undefined,
+        }}
+      />
+    </Flex>
+  );
+}
+
 function DashboardTable({
   api,
   organization,
@@ -153,62 +217,6 @@ function DashboardTable({
         {key: ResponseKeys.ACCESS, name: t('Access'), width: COL_WIDTH_UNDEFINED},
         {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
       ];
-
-  const renderActions = (dataRow: DashboardListItem) => {
-    return (
-      <Flex gap="xs">
-        <DashboardCreateLimitWrapper>
-          {({
-            hasReachedDashboardLimit,
-            isLoading: isLoadingDashboardsLimit,
-            limitMessage,
-          }) => (
-            <StyledButton
-              onClick={e => {
-                e.stopPropagation();
-                openConfirmModal({
-                  message: t('Are you sure you want to duplicate this dashboard?'),
-                  onConfirm: () => handleDuplicateDashboard(dataRow, 'table'),
-                });
-              }}
-              variant="transparent"
-              aria-label={t('Duplicate Dashboard')}
-              data-test-id="dashboard-duplicate"
-              icon={<IconCopy />}
-              size="sm"
-              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              tooltipProps={{
-                title: limitMessage,
-              }}
-            />
-          )}
-        </DashboardCreateLimitWrapper>
-        <StyledButton
-          onClick={e => {
-            e.stopPropagation();
-            openConfirmModal({
-              message: t('Are you sure you want to delete this dashboard?'),
-              priority: 'danger',
-              onConfirm: () => handleDeleteDashboard(dataRow, 'table'),
-            });
-          }}
-          variant="transparent"
-          aria-label={t('Delete Dashboard')}
-          data-test-id="dashboard-delete"
-          icon={<IconDelete />}
-          size="sm"
-          disabled={defined(dataRow.prebuiltId)}
-          tooltipProps={{
-            title: defined(dataRow.prebuiltId)
-              ? tct('[label] dashboards cannot be deleted', {
-                  label: PREBUILT_DASHBOARD_LABEL,
-                })
-              : undefined,
-          }}
-        />
-      </Flex>
-    );
-  };
 
   function getColumnSort(column: GridColumnOrder<string>): GridColumnSort | undefined {
     if (!(column.key in SortKeys)) {
@@ -319,7 +327,13 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          {hasUserLastVisited ? undefined : renderActions(dataRow)}
+          {hasUserLastVisited ? undefined : (
+            <DashboardRowActions
+              dashboard={dataRow}
+              onDelete={handleDeleteDashboard}
+              onDuplicate={handleDuplicateDashboard}
+            />
+          )}
         </Flex>
       );
     }
@@ -336,7 +350,11 @@ function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          {renderActions(dataRow)}
+          <DashboardRowActions
+            dashboard={dataRow}
+            onDelete={handleDeleteDashboard}
+            onDuplicate={handleDuplicateDashboard}
+          />
         </Flex>
       );
     }

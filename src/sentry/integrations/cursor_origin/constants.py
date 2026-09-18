@@ -14,6 +14,18 @@ CURSOR_ORIGIN_INSTALL_URL = "https://cursor.com/codebase/apps/install"
 
 CURSOR_ORIGIN_JWT_AUDIENCE = "origin-apps"
 
+CURSOR_ORIGIN_ISSUER = "https://api.cursor.com/v1/origin"
+CURSOR_ORIGIN_RECEIPT_TYP = "origin-installation-receipt+jwt"
+
+CURSOR_ORIGIN_CLOCK_SKEW_SECONDS = 30
+
+CURSOR_ORIGIN_WEBHOOK_SIGNATURE_PREFIX = "v1ed,"
+CURSOR_ORIGIN_WEBHOOK_TOLERANCE_SECONDS = 300
+
+# Covers Origin's automatic retry window (5s, 30s, 1m, 2m, 4m, 8m).
+# API-triggered redeliveries arrive later and should be processed again.
+CURSOR_ORIGIN_WEBHOOK_DEDUPE_SECONDS = 20 * 60
+
 # Origin asks for app JWTs of roughly five minutes.
 JWT_EXPIRY_SECONDS = 240
 
@@ -23,6 +35,12 @@ CURSOR_ORIGIN_JWKS_URL = f"{CURSOR_ORIGIN_API_BASE_URL}/keys"
 
 CURSOR_ORIGIN_JWKS_CACHE_SECONDS = 600
 CURSOR_ORIGIN_JWKS_STALE_SECONDS = 600
+
+# Origin installation tokens last at most 15 minutes. Refresh this far ahead of
+# expiry so a long request can't straddle it.
+TOKEN_MINIMUM_VALIDITY_SECONDS = 180
+
+PAGE_SIZE = 100
 
 CURSOR_ORIGIN_SCOPES = (
     "repository:contents:read",

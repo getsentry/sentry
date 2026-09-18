@@ -197,6 +197,13 @@ export function NewWelcomeUI(props: StepProps) {
     trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
   };
 
+  const handleSelectSnippet = (source: 'install_command' | 'prompt') => {
+    trackAnalytics('onboarding.scm_welcome_agent_snippet_selected', {
+      organization,
+      source,
+    });
+  };
+
   return (
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
@@ -272,6 +279,7 @@ export function NewWelcomeUI(props: StepProps) {
                   onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
                   onRetry={restartRun}
+                  onSelectSnippet={handleSelectSnippet}
                   onSetupInBrowser={handleComplete}
                   run={run}
                 />

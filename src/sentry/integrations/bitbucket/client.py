@@ -55,13 +55,13 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     """
 
     integration_name = IntegrationProviderSlug.BITBUCKET.value
+    base_url = "https://api.bitbucket.org"
 
     # Bitbucket Cloud defaults to pagelen=10 and caps at 100.
     page_size = 100
     page_number_limit = 50
 
     def __init__(self, integration: RpcIntegration | Integration):
-        self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey
         self.subject = integration.external_id
@@ -80,8 +80,9 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         path = path.split("?")[0]
         jwt_payload = {
             "iss": BITBUCKET_KEY,
-            "iat": datetime.datetime.utcnow(),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
+            "iat": datetime.datetime.now(datetime.timezone.utc),
+            "exp": datetime.datetime.now(datetime.timezone.utc)
+            + datetime.timedelta(seconds=5 * 60),
             "qsh": get_query_hash(
                 uri=path, method=prepared_request.method.upper(), query_params=url_params
             ),
