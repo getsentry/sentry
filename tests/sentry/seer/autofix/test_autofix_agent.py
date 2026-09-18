@@ -16,7 +16,6 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.autofix_agent import (
     SEER_FIXES_SENTRY_ISSUE_MARKER,
-    STEP_CONFIGS,
     PrIterationNoPullRequestException,
     _build_repo_pins,
     build_step_prompt,
@@ -259,14 +258,11 @@ class TestBuildStepPrompt(TestCase):
         self.group.culprit = "app.views.handler"
         self.group.save()
 
-    def test_root_cause_prompt_contains_issue_details(self) -> None:
-        prompt = build_step_prompt(AutofixStep.ROOT_CAUSE, self.group)
-
-        assert self.group.qualified_short_id in prompt
-        assert self.group.title in prompt
-        assert "app.views.handler" in prompt
-        assert "ROOT CAUSE" in prompt
-        assert "root_cause artifact" in prompt
+    def test_root_cause_prompt_raises(self) -> None:
+        with pytest.raises(
+            RuntimeError, match="Root cause prompts must run through the Seer Autofix feature"
+        ):
+            build_step_prompt(AutofixStep.ROOT_CAUSE, self.group)
 
     def test_solution_prompt_contains_issue_details(self) -> None:
         prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
@@ -313,12 +309,12 @@ class TestBuildStepPrompt(TestCase):
         self.group.culprit = None
         self.group.save()
 
-        prompt = build_step_prompt(AutofixStep.ROOT_CAUSE, self.group)
+        prompt = build_step_prompt(AutofixStep.SOLUTION, self.group)
 
         assert "unknown" in prompt
 
     def test_all_prompts_are_dedented(self) -> None:
-        for step in STEP_CONFIGS:
+        for step in (AutofixStep.SOLUTION, AutofixStep.CODE_CHANGES, AutofixStep.PR_ITERATION):
             prompt = build_step_prompt(step, self.group)
             # Dedented prompts should not start with whitespace
             assert not prompt.startswith(" "), f"{step} prompt starts with whitespace"

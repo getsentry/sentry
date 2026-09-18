@@ -39,8 +39,7 @@ def root_cause_prompt(
     run_state: "SeerRunState | None" = None,
     should_run_repo_checks: bool = False,
 ) -> str:
-    """DEPRECATED: RCA runs through Seer, see src/seer/automation/features/autofix/feature.py in seer repo to change behavior"""
-    return ""
+    raise RuntimeError("Root cause prompts must run through the Seer Autofix feature")
 
 
 def solution_prompt(
