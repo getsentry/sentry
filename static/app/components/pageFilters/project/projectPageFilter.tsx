@@ -15,6 +15,7 @@ import {Text} from '@sentry/scraps/text';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
@@ -77,7 +78,7 @@ export function ProjectPageFilter({
   // Project data s
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {
-    selection: {projects: urlProjectSelection},
+    selection: {projects: urlProjectSelection, environments: urlEnvironmentSelection},
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
@@ -435,23 +436,25 @@ export function ProjectPageFilter({
       multi: resolvedValue.length > 1,
     });
 
-    updateProjects(
-      toURLSelection({
-        projects,
-        // Preserve the ALL_ACCESS_PROJECTS sentinel before it gets expanded to []
-        // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
-        value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
-      }),
-      location,
-      navigate,
-      {
-        save: true,
-        resetParams: resetParamsOnChange,
-        // Why are we clearing the environments when switching projects?
-        environments: [],
-        storageNamespace,
-      }
+    const urlSelection = toURLSelection({
+      projects,
+      // Preserve the ALL_ACCESS_PROJECTS sentinel before it gets expanded to []
+      // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
+      value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
+    });
+    const availableEnvironments = getAvailableEnvironments(
+      projects,
+      new Set(urlSelection)
     );
+
+    updateProjects(urlSelection, location, navigate, {
+      save: true,
+      resetParams: resetParamsOnChange,
+      environments: urlEnvironmentSelection.filter(environment =>
+        availableEnvironments.has(environment)
+      ),
+      storageNamespace,
+    });
   };
 
   const filterOptionsOnSearch = useCallback(
