@@ -226,10 +226,10 @@ importers:
         version: 5.3.0(encoding@0.1.13)
       '@stripe/react-stripe-js':
         specifier: ^3.9.2
-        version: 3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 3.9.2(@stripe/stripe-js@7.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@stripe/stripe-js':
-        specifier: ^5.10.0
-        version: 5.10.0
+        specifier: ^7.10.0
+        version: 7.10.0
       '@swc/plugin-emotion':
         specifier: 15.0.0
         version: 15.0.0
@@ -3560,8 +3560,8 @@ packages:
       react: '>=16.8.0 <20.0.0'
       react-dom: '>=16.8.0 <20.0.0'
 
-  '@stripe/stripe-js@5.10.0':
-    resolution: {integrity: sha512-PTigkxMdMUP6B5ISS7jMqJAKhgrhZwjprDqR1eATtFfh0OpKVNp110xiH+goeVdrJ29/4LeZJR4FaHHWstsu0A==}
+  '@stripe/stripe-js@7.10.0':
+    resolution: {integrity: sha512-LKrDpCop593iWnPxOHgjYmZGngOdgzPYLjyVzUdQ7f7bSnAEKkBMEwsOmWRrq40TR8KG96woms5xPUmffZkJ0Q==}
     engines: {node: '>=12.16'}
 
   '@swc-contrib/mut-cjs-exports@15.0.0':
@@ -12152,14 +12152,14 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@5.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+  '@stripe/react-stripe-js@3.9.2(@stripe/stripe-js@7.10.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
     dependencies:
-      '@stripe/stripe-js': 5.10.0
+      '@stripe/stripe-js': 7.10.0
       prop-types: 15.8.1
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
-  '@stripe/stripe-js@5.10.0': {}
+  '@stripe/stripe-js@7.10.0': {}
 
   '@swc-contrib/mut-cjs-exports@15.0.0(@swc/core@1.16.2)(@swc/jest@0.2.39(@swc/core@1.16.2))':
     dependencies:
