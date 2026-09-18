@@ -43,7 +43,7 @@ class CacheVersionBase(Model):
     def get_version_map(cls, keys: list[str]) -> Mapping[str, int]:
         return {
             row[0]: row[1]
-            for row in cls.objects.filter(keyname__in=keys).values_list("key", "version")
+            for row in cls.objects.filter(keyname__in=keys).values_list("keyname", "version")
         }
 
 
