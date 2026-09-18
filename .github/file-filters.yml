@@ -49,7 +49,7 @@ embed_widget_schema:
 embed_widget_codegen:
   - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
 
-backend_test_only_paths:
+test_utility_only_paths:
   - 'src/sentry/replays/testutils.py'
   - 'fixtures/search-syntax/**/*'
 
