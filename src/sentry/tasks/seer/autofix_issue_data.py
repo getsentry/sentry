@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Literal
+from typing import Any, Literal
 
 from django.db.models import F, Window
 from django.db.models.functions import PercentRank
@@ -103,7 +103,7 @@ def schedule_judging() -> None:
     namespace=seer_tasks,
     processing_deadline_duration=5 * 60,
 )
-def schedule_judging_for_org(organization_id: int) -> None:
+def schedule_judging_for_org(organization_id: int, *args: Any, **kwargs: Any) -> None:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization is None or not features.has(FEATURE_FLAG, organization):
         return
@@ -137,7 +137,7 @@ def _parse_response(content: str) -> JudgeResponse:
     processing_deadline_duration=60,
     retry=Retry(times=2, delay=30, on=(Exception,)),
 )
-def judge_issue_data(issue_data_id: int, event_id: str) -> None:
+def judge_issue_data(issue_data_id: int, event_id: str, *args: Any, **kwargs: Any) -> None:
     issue_data = (
         SeerAutofixIssueData.objects.select_related("organization").filter(id=issue_data_id).first()
     )
