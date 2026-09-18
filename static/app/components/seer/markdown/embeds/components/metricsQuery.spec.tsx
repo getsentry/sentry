@@ -40,6 +40,11 @@ function renderEmbed({
 }
 
 describe('metrics query embed', () => {
+  beforeAll(async () => {
+    // Compile the lazy block before assertions so shard load cannot race its import.
+    await import('./metricsQueryBlock');
+  });
+
   it('qualifies a bare y-axis with the metric it measures', () => {
     renderEmbed({
       data: {...METRIC, mode: 'aggregate', query: '', yAxes: ['p95(value)']},
@@ -96,9 +101,7 @@ describe('metrics query embed', () => {
       },
     });
 
-    expect(
-      await screen.findByTestId('seer-chart-content', undefined, {timeout: 5000})
-    ).toBeInTheDocument();
+    expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(await screen.findByText('checkout')).toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
 
