@@ -10,7 +10,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {exportDashboard} from 'sentry/views/dashboards/exportDashboard';
+
 import {DashboardBreadcrumbTitle} from './dashboardBreadcrumbTitle';
+
+jest.mock('sentry/views/dashboards/exportDashboard');
 
 const REVISIONS_URL = '/organizations/org-slug/dashboards/1/revisions/';
 const REVISION_DETAILS_URL = '/organizations/org-slug/dashboards/1/revisions/1/';
@@ -69,6 +73,17 @@ describe('DashboardBreadcrumbTitle actions', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
 
     expect(screen.getByTestId('dashboard-edit')).toHaveTextContent('Edit');
+  });
+
+  it('exports the dashboard without needing a feature flag', async () => {
+    renderTitle();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Export'}));
+
+    expect(exportDashboard).toHaveBeenCalledWith(
+      expect.objectContaining({id: '1', title: 'My Dashboard'})
+    );
   });
 });
 

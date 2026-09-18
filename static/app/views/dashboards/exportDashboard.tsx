@@ -1,152 +1,127 @@
-import cloneDeep from 'lodash/cloneDeep';
-
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 
-import type {DashboardDetails} from './types';
+import type {DashboardDetails, DashboardFilters, Widget, WidgetQuery} from './types';
 
-type ExcludedProperties = 'createdBy' | 'dateCreated' | 'id' | 'dashboardId' | 'widgetId';
+export const DASHBOARD_EXPORT_VERSION = 1;
 
-export async function exportDashboard() {
-  try {
-    const structure = {
-      base_url: null,
-      dashboard_id: null,
-      org_slug: null,
-    };
+type ExportedWidgetQuery = {
+  aggregates: string[];
+  columns: string[];
+  conditions: string;
+  name: string;
+  orderby: string;
+  fieldAliases?: string[];
+  fields?: string[];
+  isHidden?: boolean | null;
+  selectedAggregate?: number;
+};
 
-    const params = getAPIParams(structure);
-    const apiUrl = `https://${params.base_url}/api/0/organizations/${params.org_slug}/dashboards/${params.dashboard_id}/`;
-    const response = await fetch(apiUrl);
-    const jsonData = await response.json();
-    const normalized = normalizeData(jsonData);
-    normalized.projects = [];
+type ExportedWidget = {
+  displayType: Widget['displayType'];
+  interval: string;
+  queries: ExportedWidgetQuery[];
+  title: string;
+  axisRange?: Widget['axisRange'];
+  description?: string;
+  layout?: Widget['layout'];
+  legendType?: Widget['legendType'];
+  limit?: number | null;
+  thresholds?: Widget['thresholds'];
+  widgetType?: Widget['widgetType'];
+};
 
-    downloadObjectAsJson(normalized, cleanTitle(normalized.title));
-  } catch (error) {
-    addErrorMessage(
-      'Could not export dashboard. Please wait or try again with a different dashboard'
+type ExportedDashboard = {
+  title: string;
+  widgets: ExportedWidget[];
+  environment?: string[];
+  filters?: DashboardFilters;
+  period?: string;
+};
+
+type DashboardExportV1 = {
+  dashboard: ExportedDashboard;
+  version: typeof DASHBOARD_EXPORT_VERSION;
+};
+
+function stripQuery(query: WidgetQuery): ExportedWidgetQuery {
+  return {
+    name: query.name,
+    conditions: query.conditions,
+    aggregates: query.aggregates,
+    columns: query.columns,
+    orderby: query.orderby,
+    ...(query.fields?.length ? {fields: query.fields} : {}),
+    ...(query.fieldAliases?.length ? {fieldAliases: query.fieldAliases} : {}),
+    ...(defined(query.isHidden) ? {isHidden: query.isHidden} : {}),
+    ...(defined(query.selectedAggregate)
+      ? {selectedAggregate: query.selectedAggregate}
+      : {}),
+  };
+}
+
+function stripWidget(widget: Widget): ExportedWidget {
+  return {
+    title: widget.title,
+    displayType: widget.displayType,
+    interval: widget.interval,
+    queries: widget.queries.map(stripQuery),
+    ...(widget.widgetType ? {widgetType: widget.widgetType} : {}),
+    ...(widget.description ? {description: widget.description} : {}),
+    ...(widget.layout ? {layout: widget.layout} : {}),
+    ...(defined(widget.limit) ? {limit: widget.limit} : {}),
+    ...(widget.thresholds ? {thresholds: widget.thresholds} : {}),
+    ...(widget.legendType ? {legendType: widget.legendType} : {}),
+    ...(widget.axisRange ? {axisRange: widget.axisRange} : {}),
+  };
+}
+
+export function exportDashboard(dashboard: DashboardDetails) {
+  const exported: DashboardExportV1 = {
+    version: DASHBOARD_EXPORT_VERSION,
+    dashboard: {
+      title: dashboard.title,
+      widgets: dashboard.widgets.map(stripWidget),
+      ...(dashboard.filters && Object.keys(dashboard.filters).length > 0
+        ? {filters: dashboard.filters}
+        : {}),
+      ...(dashboard.environment?.length ? {environment: dashboard.environment} : {}),
+      ...(dashboard.period ? {period: dashboard.period} : {}),
+    },
+  };
+
+  const slug = dashboard.title.replace(/[^a-z0-9]/gi, '-');
+  downloadObjectAsJson(exported, `${slug}-${new Date().toISOString()}`);
+}
+
+export function parseDashboardExport(data: unknown): ExportedDashboard {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Invalid export file: expected a JSON object');
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (!('version' in obj)) {
+    if ('title' in obj && 'widgets' in obj) {
+      return data as ExportedDashboard;
+    }
+    throw new Error('Invalid export file: missing version field');
+  }
+
+  if (obj.version !== DASHBOARD_EXPORT_VERSION) {
+    throw new Error(
+      `Unsupported export version: ${obj.version}. Expected version ${DASHBOARD_EXPORT_VERSION}.`
     );
   }
-}
 
-function getAPIParams(structure: any) {
-  const url = window.location.href;
-  const regex = {
-    base_url: /(\/\/)(.*?)(\/)/,
-    dashboard_id: /(dashboard\/)(.*?)(\/)/,
-    org_slug: /(\/\/)(.+?)(?=\.)/,
-  };
-
-  for (const attr in regex) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    const match = url.match(regex[attr]);
-    if (match?.length) {
-      structure[attr] = match.length >= 3 ? match[2] : null;
-    }
+  if (!obj.dashboard || typeof obj.dashboard !== 'object') {
+    throw new Error('Invalid export file: missing dashboard data');
   }
 
-  return structure;
-}
-
-function normalizeData(
-  source: DashboardDetails
-): Omit<DashboardDetails, ExcludedProperties> {
-  const payload: Omit<DashboardDetails, ExcludedProperties> = {
-    title: '',
-    filters: {},
-    projects: [],
-    widgets: [],
-    environment: [],
-  };
-
-  for (const property in payload) {
-    if (property in source) {
-      let data: any[] = [];
-
-      // if there is a nested object with properties that should be deleted
-      if (['widgets'].includes(property)) {
-        // get the object properties so that we can loop through them
-        const type = getPropertyStructure(property);
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        data = normalizeNestedObject(source[property], type);
-      } else {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-        data = source[property];
-      }
-
-      // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-      payload[property] = data;
-    }
+  const dashboard = obj.dashboard as Record<string, unknown>;
+  if (!dashboard.title || !Array.isArray(dashboard.widgets)) {
+    throw new Error('Invalid export file: dashboard must have a title and widgets');
   }
 
-  return payload;
-}
-
-function normalizeNestedObject(object: any, structure: any) {
-  const nestedObjectArray: any[] = [];
-
-  for (const index in object) {
-    const nestedObject = cloneDeep(structure);
-
-    for (const property in structure) {
-      if (property in object[index]) {
-        let data: any[] = [];
-
-        if (['queries'].includes(property)) {
-          // get the object properties so that we can loop through them
-          const type = getPropertyStructure(property);
-          data = normalizeNestedObject(object[index][property], type);
-        } else {
-          data = object[index][property];
-        }
-
-        nestedObject[property] = data;
-      }
-    }
-
-    nestedObjectArray.push(nestedObject);
-  }
-
-  return nestedObjectArray;
-}
-
-function getPropertyStructure(property: any) {
-  let structure = {};
-
-  switch (property) {
-    case 'widgets':
-      structure = {
-        title: '',
-        description: '',
-        interval: '',
-        queries: [],
-        displayType: '',
-        widgetType: '',
-        layout: [],
-      };
-      break;
-    case 'queries':
-      structure = {
-        aggregates: [],
-        columns: [],
-        conditions: [],
-        name: '',
-        orderby: '',
-        fieldAliases: [],
-        fields: [],
-      };
-      break;
-    default:
-      structure = {};
-  }
-
-  return structure;
-}
-
-function cleanTitle(title: any) {
-  const regex = /[^a-z0-9]/gi;
-  const formattedTitle = title.replace(regex, '-');
-  const date = new Date();
-  return `${formattedTitle}-${date.toISOString()}`;
+  return obj.dashboard as ExportedDashboard;
 }

@@ -7,6 +7,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ManageDashboards from 'sentry/views/dashboards/manage';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
 const FEATURES = [
@@ -63,6 +64,20 @@ describe('Dashboards > Detail', () => {
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
 
     expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0);
+  });
+
+  it('offers dashboard import without needing a feature flag', async () => {
+    render(
+      <TopBar.Slot.Provider>
+        <TopBar />
+        <ManageDashboards />
+      </TopBar.Slot.Provider>,
+      {organization: mockAuthorizedOrg}
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Import Dashboard from JSON'})
+    ).toBeEnabled();
   });
 
   it('shows error message when receiving error', async () => {

@@ -22,7 +22,7 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -434,21 +434,14 @@ function ManageDashboards() {
                   />
                 </Layout.Title>
                 <TopBar.Slot name="actions">
-                  <Feature features="dashboards-import">
-                    <Button
-                      onClick={() => {
-                        openImportDashboardFromFileModal({
-                          organization,
-                          api,
-                          location,
-                        });
-                      }}
-                      variant="primary"
-                      icon={<IconAdd />}
-                    >
-                      {t('Import Dashboard from JSON')}
-                    </Button>
-                  </Feature>
+                  <Button
+                    onClick={() => {
+                      openImportDashboardFromFileModal({organization});
+                    }}
+                    icon={<IconUpload />}
+                  >
+                    {t('Import Dashboard from JSON')}
+                  </Button>
                 </TopBar.Slot>
                 <TopBar.Slot name="feedback">
                   <FeedbackButton
