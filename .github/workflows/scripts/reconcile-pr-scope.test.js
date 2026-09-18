@@ -16,6 +16,7 @@ function pathFilterOutputs(overrides = {}) {
     api_url_codegen_count: '0',
     embed_widget_codegen_count: '0',
     integration_test_utils_count: '0',
+    search_syntax_fixtures_count: '0',
     ...overrides,
   };
 }
@@ -57,6 +58,32 @@ describe('reconcilePrScope', () => {
         })
       ),
       {frontend: true, backend: true, shouldWarn: false}
+    );
+  });
+
+  it('does not warn when the only backend change is a shared search-syntax fixture', () => {
+    assert.deepEqual(
+      deriveScopeState(
+        pathFilterOutputs({
+          frontend_all_count: '17',
+          backend_src_count: '1',
+          search_syntax_fixtures_count: '1',
+        })
+      ),
+      {frontend: true, backend: true, shouldWarn: false}
+    );
+  });
+
+  it('warns when a search-syntax fixture comes with a deployed backend change', () => {
+    assert.deepEqual(
+      deriveScopeState(
+        pathFilterOutputs({
+          frontend_all_count: '17',
+          backend_src_count: '2',
+          search_syntax_fixtures_count: '1',
+        })
+      ),
+      {frontend: true, backend: true, shouldWarn: true}
     );
   });
 

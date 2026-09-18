@@ -24,7 +24,8 @@ export function deriveScopeState(pathFilterOutputs) {
   const frontendWarningExemptions = count(pathFilterOutputs, 'api_url_codegen_count');
   const backendWarningExemptions =
     count(pathFilterOutputs, 'embed_widget_codegen_count') +
-    count(pathFilterOutputs, 'integration_test_utils_count');
+    count(pathFilterOutputs, 'integration_test_utils_count') +
+    count(pathFilterOutputs, 'search_syntax_fixtures_count');
 
   return {
     frontend: frontendChanges > 0,

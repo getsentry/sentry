@@ -52,6 +52,13 @@ embed_widget_codegen:
 integration_test_utils:
   - added|deleted|modified: 'src/sentry/replays/testutils.py'
 
+# The search-syntax corpus is parsed by both static/app/components/searchSyntax/parser.spec.tsx
+# and tests/sentry/api/test_event_search.py, so it sits in the test triggers on both sides
+# (`testable_modified` and `backend_src`). None of it is deployed, so it cannot make the two
+# halves of a pull request interdependent.
+search_syntax_fixtures:
+  - 'fixtures/search-syntax/**/*'
+
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'
