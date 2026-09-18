@@ -177,6 +177,26 @@ class MockGroupedDetectorHandler(DetectorHandler[dict[str, Any], int]):
         return build_mock_occurrence_and_event(self, values, PriorityLevel(priority))
 
 
+class MockGroupedEventIdDetectorHandler(MockGroupedDetectorHandler):
+    """Uses grouping and sources event_id from packet data"""
+
+    event_id = "fedcba9876543210fedcba9876543210"
+
+    def create_occurrence(
+        self,
+        evaluation: DataConditionGroupEvaluation,
+        data_packet: DataPacket[dict[str, Any]],
+        priority: DetectorPriorityLevel,
+    ) -> tuple[DetectorOccurrence, dict[str, Any]]:
+        detector_occurrence, event_data = super().create_occurrence(
+            evaluation, data_packet, priority
+        )
+
+        event_data["event_id"] = self.event_id
+
+        return detector_occurrence, event_data
+
+
 class BaseDetectorHandlerTest(BaseGroupTypeTest):
     __test__ = Abstract(__module__, __qualname__)
 
@@ -802,6 +822,22 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
         assert isinstance(second, IssueOccurrence)
 
         assert UUID(first.event_id) != UUID(second.event_id)
+
+    def test_evaluate__groups_share_a_source_event_id_but_not_an_occurrence_id(self) -> None:
+        handler = MockGroupedEventIdDetectorHandler(self.detector)
+
+        result = handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
+
+        first = result.result["group-one"].result
+        second = result.result["group-two"].result
+
+        assert isinstance(first, IssueOccurrence)
+        assert isinstance(second, IssueOccurrence)
+
+        assert first.event_id == MockGroupedEventIdDetectorHandler.event_id
+        assert second.event_id == MockGroupedEventIdDetectorHandler.event_id
+
+        assert first.id != second.id
 
     def test_evaluate__event_data_matches_each_groups_occurrence(self) -> None:
         result = self.handler.evaluate(self.packet({"group-one": 10, "group-two": 20}))
