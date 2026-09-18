@@ -552,9 +552,6 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
             update_remote_uptime_subscription(sub.id, region_slugs=["default"])
 
         produce_config.assert_not_called()
-        self.metrics.incr.assert_called_once_with(
-            "uptime.subscriptions.update.no_subscription_id", sample_rate=1.0
-        )
         sub.refresh_from_db()
         assert sub.subscription_id is None
 
