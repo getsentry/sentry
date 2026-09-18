@@ -139,7 +139,6 @@ from sentry.core.endpoints.team_unresolved_issue_age import TeamUnresolvedIssueA
 from sentry.dashboards.endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
     OrganizationDashboardFavoriteEndpoint,
-    OrganizationDashboardHiddenEndpoint,
     OrganizationDashboardVisitEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboard_generate import (
@@ -1681,11 +1680,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/favorite/$",
         OrganizationDashboardFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-favorite",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/hidden/$",
-        OrganizationDashboardHiddenEndpoint.as_view(),
-        name="sentry-api-0-organization-dashboard-hidden",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/(?P<dashboard_id>[^/]+)/revisions/$",

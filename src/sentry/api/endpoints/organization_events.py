@@ -717,7 +717,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         paginator, cursor_cls = paginator_factory(dataset)
 
-        max_per_page = 9999 if dataset in (OurLogs, TraceMetrics) else None
+        max_per_page = 9999 if dataset in RPC_DATASETS else None
 
         def _handle_results(results):
             # Apply error upsampling for regular Events API

@@ -46,9 +46,8 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     This is meant to be used over ExploreSavedQueryStarredOrderEndpoint
 
 
-    Discover and Explore stars share a single ``position``. A payload naming one
-    product can permute that product's queries. Thus, send the complete starred list
-    to reorder all the queries.
+    Discover and Explore stars share a single ``position``. A payload containing
+    a subset of starred queries will only permute on that subset.
     """
 
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
