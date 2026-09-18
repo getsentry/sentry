@@ -294,7 +294,7 @@ class TestBuildStepPrompt(TestCase):
         prompt = build_step_prompt(AutofixStep.SOLUTION, self.group, should_run_repo_checks=True)
 
         assert "Do NOT include testing as part of your plan." not in prompt
-        assert "End your plan with a verification step" in prompt
+        assert "End your plan with a best-effort verification step" in prompt
 
     def test_code_changes_prompt_without_should_run_repo_checks_omits_checks(self) -> None:
         prompt = build_step_prompt(AutofixStep.CODE_CHANGES, self.group)
