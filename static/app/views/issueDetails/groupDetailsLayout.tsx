@@ -250,7 +250,12 @@ const NavigationSidebarWrapper = styled(Sticky, {
   shouldForwardProp: prop => prop !== 'hasToggleSidebar',
 })<{hasToggleSidebar: boolean}>`
   isolation: isolate;
-  z-index: ${p => p.theme.zIndex.initial};
+  /* The tab list's overflow menu opens downward over the event title, a sibling
+     sticky that otherwise carries the same z-index and so wins on DOM order.
+     Isolating this context traps the menu inside it, and CompactSelect cannot
+     portal out, so the context itself has to outrank that sibling in both the
+     resting and the stuck state. */
+  z-index: ${p => p.theme.zIndex.initial + 1};
   display: flex;
   gap: ${p => p.theme.space.xs};
   padding: ${p =>
@@ -275,7 +280,7 @@ const NavigationSidebarWrapper = styled(Sticky, {
   }
 
   &[data-stuck] {
-    z-index: ${p => p.theme.zIndex.stickyHeader};
+    z-index: ${p => p.theme.zIndex.stickyHeader + 1};
   }
 `;
 
