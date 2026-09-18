@@ -70,10 +70,10 @@ describe('IssuesSecondaryNavigation', () => {
     expect(await screen.findByText('99+')).toBeInTheDocument();
   });
 
-  it('does not render Inbox or request its count without Autofix access', async () => {
+  it('does not render Inbox or request its count without the inbox feature', async () => {
     const request = mockInboxCount({});
     const organizationWithoutAutofix = OrganizationFixture({
-      features: ['issue-inbox', 'gen-ai-features'],
+      features: ['gen-ai-features', 'seat-based-seer-enabled'],
     });
 
     renderNavigation(organizationWithoutAutofix);
@@ -170,7 +170,7 @@ describe('IssuesSecondaryNavigation', () => {
         );
 
         // The "issues" node also has an InboxCountBadge child in this fixture
-        // (Autofix access is on), so pick the starred-views child by shape
+        // (Inbox access is on), so pick the starred-views child by shape
         // rather than assuming it's the only — or the first — sibling.
         const starredViewsNode = issuesNode!.children.find(
           child =>

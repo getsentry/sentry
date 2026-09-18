@@ -142,6 +142,7 @@ export function FilterSelector({
         },
       })),
     };
+    // oxlint-disable-next-line react/memo-dependencies
   }, [pickerToken, filterToken, noValueToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
@@ -330,6 +331,7 @@ export function FilterSelector({
       }
     });
     return prependNoValueOption([...fixedOptionMap.values(), ...optionMap.values()]);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     fetchedFilterValues,
     predefinedValues,

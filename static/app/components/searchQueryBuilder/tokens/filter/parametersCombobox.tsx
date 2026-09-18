@@ -353,6 +353,7 @@ export function SearchQueryBuilderParametersCombobox({
         }
       }
     },
+    // oxlint-disable-next-line react/memo-dependencies
     [
       dispatch,
       inputValue,

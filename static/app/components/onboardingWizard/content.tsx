@@ -363,6 +363,7 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
     // opening of the group
     await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
     markTasksAsSeen();
+    // oxlint-disable-next-line react/memo-dependencies
   }, [markTasksAsSeen]);
 
   useEffect(() => {
