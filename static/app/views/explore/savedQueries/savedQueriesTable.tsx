@@ -27,7 +27,7 @@ import {
   getSavedQueryDatasetLabel,
   getSavedQueryTraceItemDataset,
   useGetSavedQueries,
-  type ExploreSavedQuery,
+  type SavedQuery,
   type SortOption,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -120,7 +120,7 @@ export function SavedQueriesTable({
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
-    (savedQuery: ExploreSavedQuery) => {
+    (savedQuery: SavedQuery) => {
       return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
@@ -131,7 +131,7 @@ export function SavedQueriesTable({
     [updateQueryFromSavedQuery]
   );
 
-  const duplicateQuery = async (savedQuery: ExploreSavedQuery) => {
+  const duplicateQuery = async (savedQuery: SavedQuery) => {
     await saveQueryFromSavedQuery({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,

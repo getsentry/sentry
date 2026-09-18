@@ -17,7 +17,7 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-export enum SavedQueryType {
+enum SavedQueryType {
   DISCOVER = 'discover',
   EXPLORE = 'explore',
 }
@@ -192,7 +192,7 @@ export class ExploreSavedQuery {
   }
 }
 
-export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+type DiscoverSavedQuery = DiscoverSavedQueryBase & {
   queryType: SavedQueryType.DISCOVER;
   lastVisited?: string;
   position?: number | null;
@@ -200,12 +200,6 @@ export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
 };
 
 export type SavedQuery = ExploreSavedQuery | DiscoverSavedQuery;
-
-export function isExploreSavedQuery(
-  savedQuery: SavedQuery
-): savedQuery is ExploreSavedQuery {
-  return savedQuery.queryType === SavedQueryType.EXPLORE;
-}
 
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];

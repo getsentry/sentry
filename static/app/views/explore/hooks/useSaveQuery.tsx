@@ -14,7 +14,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
-  type ExploreSavedQuery,
+  type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
@@ -140,7 +140,7 @@ export function useFromSavedQuery() {
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
   const saveQueryFromSavedQuery = useCallback(
-    async (savedQuery: ExploreSavedQuery) => {
+    async (savedQuery: SavedQuery) => {
       const {queryType: _queryType, ...query} = savedQuery;
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
@@ -163,7 +163,7 @@ export function useFromSavedQuery() {
   );
 
   const updateQueryFromSavedQuery = useCallback(
-    async (savedQuery: ExploreSavedQuery) => {
+    async (savedQuery: SavedQuery) => {
       const {queryType: _queryType, ...query} = savedQuery;
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
