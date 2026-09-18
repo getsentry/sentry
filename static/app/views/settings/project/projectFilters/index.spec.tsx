@@ -43,15 +43,8 @@ describe('ProjectFilters', () => {
 
   const inboundFiltersV2Org = OrganizationFixture({
     ...organization,
-    features: ['inbound-filters-v2'],
+    features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
   });
-
-  const inboundFiltersRouterConfig = {
-    location: {
-      pathname: `/settings/${organization.slug}/projects/${project.slug}/filters/custom-filters/`,
-    },
-    route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
-  };
 
   type CustomInboundFilter = {
     active: boolean;
@@ -86,7 +79,7 @@ describe('ProjectFilters', () => {
     const result = render(<ProjectFilters />, {
       organization: inboundFiltersV2Org,
       outletContext: {project},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
     renderGlobalModal();
     return result;
@@ -403,11 +396,7 @@ describe('ProjectFilters', () => {
     );
   });
 
-  it('shows inbound filters v2 tab between data filters and discarded issues', async () => {
-    const organizationWithFlag = OrganizationFixture({
-      ...organization,
-      features: ['inbound-filters-v2'],
-    });
+  it('shows the custom filters table below the legacy custom filters', async () => {
     const projectWithDiscardGroups = ProjectFixture({
       ...project,
       features: ['discard-groups'],
@@ -427,21 +416,21 @@ describe('ProjectFilters', () => {
     });
 
     render(<ProjectFilters />, {
-      organization: organizationWithFlag,
+      organization: inboundFiltersV2Org,
       outletContext: {project: projectWithDiscardGroups},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
 
     expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual([
       'Data Filters',
-      'Custom Filters',
       'Discarded Issues',
     ]);
-    expect(screen.getByRole('tab', {name: 'Custom Filters'})).toHaveAttribute(
+    expect(screen.getByRole('tab', {name: 'Data Filters'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(await screen.findByRole('table')).toBeInTheDocument();
+
+    const table = await screen.findByRole('table');
     for (const column of [
       'Active',
       'Name',
@@ -454,16 +443,49 @@ describe('ProjectFilters', () => {
     }
     expect(screen.getByText('Ignore flaky connection errors')).toBeInTheDocument();
     expect(screen.getByText('Drop debug log spam')).toBeInTheDocument();
+
+    const legacySaveButton = screen.getByRole('button', {name: 'Save'});
+    expect(
+      legacySaveButton.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('hides the custom filters table without the ui flag', async () => {
+    const listMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
+    });
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: ['inbound-filters-v2'],
+      }),
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(
+      await screen.findByRole('textbox', {name: 'IP Addresses'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Add Filter'})).not.toBeInTheDocument();
+    expect(listMock).not.toHaveBeenCalled();
   });
 
   it('falls back to the data filters tab for unknown filter type segments', async () => {
-    // Stale link using the pre-rename segment (was renamed to custom-filters)
+    // Stale link to the tab the custom filters table used to live in
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
+    });
     render(<ProjectFilters />, {
       organization: inboundFiltersV2Org,
-      outletContext: {project},
+      outletContext: {
+        project: ProjectFixture({...project, features: ['discard-groups']}),
+      },
       initialRouterConfig: {
         location: {
-          pathname: `/settings/${organization.slug}/projects/${project.slug}/filters/inbound-filters/`,
+          pathname: `/settings/${organization.slug}/projects/${project.slug}/filters/custom-filters/`,
         },
         route: '/settings/:orgId/projects/:projectId/filters/:filterType/',
       },
@@ -473,9 +495,53 @@ describe('ProjectFilters', () => {
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('tab', {name: 'Custom Filters'})).toHaveAttribute(
-      'aria-selected',
-      'false'
+    expect(await screen.findByText('A filter')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'IP Addresses'})).toBeInTheDocument();
+  });
+
+  it('keeps legacy custom filter edits while a filter is created in the modal', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const projectMock = MockApiClient.addMockResponse({
+      url: PROJECT_URL,
+      method: 'PUT',
+    });
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Block spam messages'}),
+    });
+
+    const ipAddresses = screen.getByRole('textbox', {name: 'IP Addresses'});
+    await userEvent.type(ipAddresses, '10.0.0.0/8');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.type(
+      within(dialog).getByRole('textbox', {name: 'Name'}),
+      'Block spam messages'
+    );
+    await userEvent.type(
+      within(dialog).getByRole('textbox', {name: 'Condition value'}),
+      'spam'
+    );
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '10', name: 'Block spam messages'})],
+    });
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+    expect(await screen.findByText('Block spam messages')).toBeInTheDocument();
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(projectMock).not.toHaveBeenCalled();
+
+    // The unsaved legacy edit survived the modal round trip and still saves.
+    expect(ipAddresses).toHaveValue('10.0.0.0/8');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await waitFor(() => expect(projectMock).toHaveBeenCalledTimes(1));
+    expect(projectMock.mock.calls[0][1].data.options['filters:blacklisted_ips']).toBe(
+      '10.0.0.0/8'
     );
   });
 
@@ -496,8 +562,9 @@ describe('ProjectFilters', () => {
 
     expect(await screen.findByText('Ignore flaky connection errors')).toBeInTheDocument();
     expect(screen.getByText('Drop debug log spam')).toBeInTheDocument();
-    expect(screen.getByText('Error Message')).toBeInTheDocument();
-    expect(screen.getByText('*ConnectionError*')).toBeInTheDocument();
+    const table = screen.getByRole('table');
+    expect(within(table).getByText('Error Message')).toBeInTheDocument();
+    expect(within(table).getByText('*ConnectionError*')).toBeInTheDocument();
 
     const searchInput = screen.getByRole('textbox', {name: 'Search rules'});
     await userEvent.type(searchInput, 'ConnectionError');
@@ -663,7 +730,7 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: inboundFiltersV2Org,
       outletContext: {project},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
 
     expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
@@ -924,10 +991,15 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+        features: [
+          'inbound-filters-v2',
+          'inbound-filters-v2-ui',
+          'ourlogs-ingestion',
+          'tracemetrics-ingestion',
+        ],
       }),
       outletContext: {project},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -946,10 +1018,15 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+        features: [
+          'inbound-filters-v2',
+          'inbound-filters-v2-ui',
+          'ourlogs-ingestion',
+          'tracemetrics-ingestion',
+        ],
       }),
       outletContext: {project},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -979,10 +1056,10 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion'],
+        features: ['inbound-filters-v2', 'inbound-filters-v2-ui', 'ourlogs-ingestion'],
       }),
       outletContext: {project},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
@@ -1133,22 +1210,28 @@ describe('ProjectFilters', () => {
     render(<ProjectFilters />, {
       organization: OrganizationFixture({
         ...organization,
-        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+        features: [
+          'inbound-filters-v2',
+          'inbound-filters-v2-ui',
+          'ourlogs-ingestion',
+          'tracemetrics-ingestion',
+        ],
       }),
       outletContext: {project},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
     renderGlobalModal();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
-    expect(screen.getByText('Error Message')).toBeInTheDocument();
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Error Message')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Data Type'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Metrics'}));
 
     // The existing condition row is remapped to the new type's primary property
-    expect(screen.getByText('Metric Name')).toBeInTheDocument();
-    expect(screen.queryByText('Error Message')).not.toBeInTheDocument();
+    expect(within(dialog).getByText('Metric Name')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Error Message')).not.toBeInTheDocument();
   });
 
   it('disables custom filter controls without project:write access', async () => {
@@ -1160,10 +1243,10 @@ describe('ProjectFilters', () => {
       organization: OrganizationFixture({
         ...organization,
         access: [],
-        features: ['inbound-filters-v2'],
+        features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
       }),
       outletContext: {project},
-      initialRouterConfig: inboundFiltersRouterConfig,
+      initialRouterConfig,
     });
     renderGlobalModal();
 

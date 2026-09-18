@@ -7,7 +7,7 @@ import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, FieldGroup, useScrapsForm} from '@sentry/scraps/form';
 import {InfoText} from '@sentry/scraps/info';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -960,7 +960,7 @@ export function CustomFilters({project}: {project: Project}) {
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
 
   return (
-    <Stack gap="lg">
+    <FieldGroup title={t('Filter Rules')}>
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -1134,7 +1134,7 @@ export function CustomFilters({project}: {project: Project}) {
           </CustomFiltersTable>
         </Container>
       )}
-    </Stack>
+    </FieldGroup>
   );
 }
 
