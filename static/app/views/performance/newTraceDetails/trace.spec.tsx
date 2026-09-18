@@ -1,3 +1,4 @@
+import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
@@ -22,6 +23,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import * as analytics from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
   makeEAPError,
@@ -912,6 +914,22 @@ describe('trace view', () => {
   });
 
   describe('attribute pinning', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    function SyncWindowLocation({children}: {children: React.ReactNode}) {
+      const location = useLocation();
+      useLayoutEffect(() => {
+        // The memory router does not update the browser URL, which the waterfall's
+        // debounced selection and zoom callbacks read when merging query parameters.
+        setWindowLocation(
+          `http://localhost${location.pathname}${location.search}${location.hash}`
+        );
+      }, [location]);
+      return children;
+    }
+
     function setupPinnedTrace(features = ['trace-waterfall-attribute-pinning']) {
       jest
         .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
@@ -985,6 +1003,7 @@ describe('trace view', () => {
         );
         return render(<TraceView />, {
           organization,
+          additionalWrapper: SyncWindowLocation,
           initialRouterConfig: {
             ...initialRouterConfig,
             location: {
@@ -1234,6 +1253,8 @@ describe('trace view', () => {
     });
 
     it('preserves pinned child values, selection and zoom when expanding an EAP parent', async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
       const {renderTrace, root, traceRequest} = setupPinnedTrace();
       const attributeRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
@@ -1252,24 +1273,25 @@ describe('trace view', () => {
       const {router} = renderTrace(query);
       expect(await screen.findByText('child-region')).toBeInTheDocument();
       const rootDescription = screen.getByText('pinnable root');
-      await userEvent.click(rootDescription);
+      await user.click(rootDescription);
       await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
       const rootRow = rootDescription.closest<HTMLElement>('.TraceRow')!;
       const expandButton = within(rootRow).getByRole('button', {name: '1'});
 
-      await userEvent.click(expandButton);
+      await user.click(expandButton);
       expect(screen.queryByText('child-region')).not.toBeInTheDocument();
-      await userEvent.click(expandButton);
+      await user.click(expandButton);
 
       const childRow = (await screen.findByText('pinnable child')).closest<HTMLElement>(
         '.TraceRow'
       )!;
       expect(within(childRow).getByText('child-region')).toBeInTheDocument();
       expect(within(rootRow).getByText('root-region')).toBeInTheDocument();
-      await waitFor(() => {
-        expect(router.location.query.node).toBe('span-pin-root');
-        expect(router.location.query.fov).toBe('100,500');
-      });
+      // Let the debounced field-of-view URL update finish before checking selection.
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(router.location.query.node).toBe('span-pin-root');
+      expect(router.location.query.fov).toBe('100,500');
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
       expect(traceRequest).toHaveBeenCalledTimes(1);
       expect(attributeRequest).toHaveBeenCalledTimes(1);
     });
