@@ -73,6 +73,13 @@ type NavigationTypeBucketConfig = {
   emptyReason: () => string;
   label: () => string;
   description?: () => string;
+  /**
+   * Values older SDKs sent for this bucket, matched alongside the current ones
+   * so data from before the rename still lands somewhere. Kept off
+   * `attributeValues` so that stays a description of what the SDK sends today.
+   * Safe to delete once no SDK in the wild reports them.
+   */
+  legacyAttributeValues?: string[];
 };
 
 const KEY = SpanFields.BROWSER_NAVIGATION_TYPE;
@@ -105,6 +112,8 @@ export const NAVIGATION_TYPE_BUCKETS: Record<
     description: () =>
       t('Restores from the back/forward cache. Near-instant by construction.'),
     attributeValues: ['back-forward-cache'],
+    // SDKs before the web-vitals rename reported this bucket as `bfcache`.
+    legacyAttributeValues: ['bfcache'],
     emptyReason: () =>
       t(
         'No back/forward cache restores were recorded. Restores only happen on pages that are eligible for the bfcache, and older SDK versions do not tag the navigation type.'
@@ -119,6 +128,12 @@ export const NAVIGATION_TYPE_BUCKETS: Record<
       t('No prerendered page loads were recorded for the current filters.'),
   },
 };
+
+/** Every value that puts a span in this bucket, current and legacy. */
+export function bucketAttributeValues(bucket: NavigationTypeBucket): string[] {
+  const {attributeValues, legacyAttributeValues = []} = NAVIGATION_TYPE_BUCKETS[bucket];
+  return [...attributeValues, ...legacyAttributeValues];
+}
 
 /** Selection in canonical order, deduped. */
 export function normalizeBuckets(
@@ -167,9 +182,7 @@ function navigationTypeQuery(buckets: NavigationTypeBucket[]): string {
     return ALL_NAVIGATION_TYPES_VALUE;
   }
 
-  const values = selected.flatMap(
-    bucket => NAVIGATION_TYPE_BUCKETS[bucket].attributeValues
-  );
+  const values = selected.flatMap(bucket => bucketAttributeValues(bucket));
   const valueClause = `${KEY}:[${values.join(',')}]`;
 
   // Spans predating the attribute were all full document loads, so they ride

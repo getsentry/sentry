@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 
 import {
+  bucketAttributeValues,
   NAVIGATION_TYPE_BUCKET_ORDER,
-  NAVIGATION_TYPE_BUCKETS,
   NavigationTypeBucket,
 } from 'sentry/views/insights/browser/webVitals/navigationType/settings';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
@@ -69,7 +69,7 @@ export function useNavigationTypeCounts({
       }
 
       const bucket = NAVIGATION_TYPE_BUCKET_ORDER.find(candidate =>
-        (NAVIGATION_TYPE_BUCKETS[candidate].attributeValues as string[]).includes(value)
+        bucketAttributeValues(candidate).includes(value)
       );
 
       if (bucket) {
