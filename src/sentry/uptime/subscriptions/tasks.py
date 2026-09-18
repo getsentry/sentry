@@ -7,6 +7,7 @@ from uuid import uuid4
 from django.conf import settings
 from django.utils import timezone
 from taskbroker_client.retry import Retry
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import audit_log, options
 from sentry.tasks.base import instrumented_task
@@ -296,7 +297,7 @@ def _find_store(cluster: str, key_prefix: str) -> ConfigStore | None:
     namespace=uptime_tasks,
     processing_deadline_duration=60,
     expires=SWEEP_RUN_INTERVAL,
-    retry=Retry(times=3, delay=120, on=(Exception,)),
+    retry=Retry(times=3, delay=120, on=(Exception, ProcessingDeadlineExceeded)),
 )
 def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix: str, **kwargs):
     """
@@ -327,7 +328,7 @@ def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix:
     namespace=uptime_tasks,
     processing_deadline_duration=60,
     expires=SWEEP_RUN_INTERVAL,
-    retry=Retry(times=3, delay=120, on=(Exception,)),
+    retry=Retry(times=3, delay=120, on=(Exception, ProcessingDeadlineExceeded)),
 )
 def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwargs):
     """
