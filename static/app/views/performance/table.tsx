@@ -13,6 +13,7 @@ import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {GridColumn} from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -472,14 +473,10 @@ export function Table({
     column: TableColumn<keyof TableDataRow>,
     title: ColumnTitle
   ): React.ReactNode {
-    const label = title.title || column.name;
-    const content = title.tooltip ? (
-      <Tooltip title={title.tooltip} showUnderline>
-        {label}
-      </Tooltip>
-    ) : (
-      label
-    );
+    const content = renderColumnLabel({
+      column: {name: title.title || column.name},
+      tooltip: title.tooltip,
+    });
 
     return column.name.startsWith('user_misery') ? (
       <GuideAnchor target="project_transaction_threshold" position="top">

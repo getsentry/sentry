@@ -13,6 +13,7 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -188,20 +189,20 @@ export function PageOverviewWebVitalsDetailPanel({
   const spansSamplesColumnOrder = getSpansSamplesColumnOrder(webVital);
 
   const renderHeadCell = (col: Column) => {
-    if (col.key === 'transaction') {
-      return <NoOverflow>{col.name}</NoOverflow>;
-    }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital}`}</AlignRight>;
+      return renderColumnLabel({align: 'right', column: {name: `${webVital}`}});
     }
     if (col.key === 'score' || col.key === 'measurements.score.inp') {
-      return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+      return renderColumnLabel({
+        align: 'center',
+        column: {name: `${webVital} ${col.name}`},
+      });
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
-      return <AlignCenter>{col.name}</AlignCenter>;
+      return renderColumnLabel({align: 'center', column: col});
     }
 
-    return <NoOverflow>{col.name}</NoOverflow>;
+    return renderColumnLabel({column: col});
   };
 
   const getFormattedDuration = (value: number) => {

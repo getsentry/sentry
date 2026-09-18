@@ -18,10 +18,10 @@ import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridEditable,
-  type GridColumnHeader,
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
+import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -286,20 +286,6 @@ export function ConversationsTable() {
     [navigate, organization.slug, selection.projects]
   );
 
-  const renderHeadCell = useCallback(
-    (column: GridColumnHeader<ColumnKey>) => (
-      <Flex
-        flex="1"
-        align="center"
-        gap="xs"
-        justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
-      >
-        {column.name}
-      </Flex>
-    ),
-    []
-  );
-
   const getColumnSort = useCallback(
     (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
       const field = SORT_FIELD_BY_COLUMN[column.key];
@@ -342,7 +328,11 @@ export function ConversationsTable() {
           bodyStyle={{marginBottom: 0}}
           grid={{
             getColumnSort,
-            renderHeadCell,
+            renderHeadCell: column =>
+              renderColumnLabel({
+                align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : 'left',
+                column,
+              }),
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
             staticColumnWidths,

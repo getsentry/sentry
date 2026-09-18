@@ -20,6 +20,7 @@ import {
   GridEditable,
   type GridColumnHeader,
 } from 'sentry/components/tables/gridEditable';
+import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -43,10 +44,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {
-  getColumnSort,
-  renderHeadCell,
-} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {getColumnSort} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -257,7 +255,7 @@ export function SampledEventsTable({
                 </Fragment>
               );
             }
-            return renderHeadCell({column});
+            return renderColumnLabel({column});
           },
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, navigate, organization, theme),

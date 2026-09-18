@@ -1,7 +1,4 @@
-import styled from '@emotion/styled';
 import type {Location} from 'history';
-
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import type {
@@ -66,15 +63,6 @@ export const getColumnSort = ({
   };
 };
 
-export const renderHeadCell = ({column}: Pick<Options, 'column'>) =>
-  column.tooltip ? (
-    <StyledTooltip showUnderline title={column.tooltip}>
-      {column.name}
-    </StyledTooltip>
-  ) : (
-    column.name
-  );
-
 export const getAlignment = (key: string): ColumnAlign => {
   const result = parseFunction(key);
 
@@ -90,8 +78,3 @@ export const getAlignment = (key: string): ColumnAlign => {
   }
   return 'left';
 };
-
-const StyledTooltip = styled(Tooltip)`
-  top: 1px;
-  position: relative;
-`;
