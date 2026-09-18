@@ -21,6 +21,7 @@ from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     AutofixFeaturePayload,
+    CodeChangesStepArgs,
     RCAStepArgs,
     SolutionStepArgs,
 )
@@ -38,7 +39,7 @@ logger = logging.getLogger(__name__)
 class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs | SolutionStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
