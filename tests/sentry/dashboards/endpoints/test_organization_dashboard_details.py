@@ -2038,7 +2038,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400, response.data
         assert b"Invalid conditions" in response.content
 
-    def test_update_widget_with_thresholds_and_preferred_polarity(self) -> None:
+    def test_update_widget_with_thresholds_preferred_polarity_and_time_period(self) -> None:
         data = {
             "title": "Dashboard",
             "widgets": [
@@ -2050,6 +2050,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
                         "max_values": {"max1": 100, "max2": 200},
                         "unit": "count",
                         "preferred_polarity": "+",
+                        "timePeriod": "10m",
                     },
                     "queries": [
                         {
@@ -2070,6 +2071,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "max_values": {"max1": 100, "max2": 200},
             "unit": "count",
             "preferredPolarity": "+",
+            "timePeriod": "10m",
         }
 
         widget = DashboardWidget.objects.get(id=self.widget_1.id)
@@ -2077,6 +2079,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "max_values": {"max1": 100, "max2": 200},
             "unit": "count",
             "preferred_polarity": "+",
+            "time_period": "10m",
         }
 
     def test_update_widget_with_invalid_preferred_polarity(self) -> None:
@@ -2110,6 +2113,35 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             response.data["widgets"][0]["thresholds"]["preferredPolarity"]
             == "Must be '+', '-', or empty string."
         )
+
+    def test_update_widget_with_invalid_threshold_time_period(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Invalid Threshold Time Period",
+                    "displayType": "line",
+                    "thresholds": {
+                        "max_values": {"max1": 100, "max2": 200},
+                        "unit": "count",
+                        "timePeriod": "invalid",
+                    },
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert response.data["widgets"][0]["thresholds"]["timePeriod"] == "Invalid time period."
 
     def test_update_widget_with_axis_range(self) -> None:
         data = {

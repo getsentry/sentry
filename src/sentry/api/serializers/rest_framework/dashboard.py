@@ -868,6 +868,16 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 raise serializers.ValidationError(
                     {"thresholds": {"preferred_polarity": "Must be '+', '-', or empty string."}}
                 )
+            time_period = thresholds.get("time_period")
+            parsed_time_period = (
+                parse_stats_period(time_period) if isinstance(time_period, str) else None
+            )
+            if time_period is not None and (
+                parsed_time_period is None or parsed_time_period <= timedelta(0)
+            ):
+                raise serializers.ValidationError(
+                    {"thresholds": {"time_period": "Invalid time period."}}
+                )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(
                 list(all_columns), self.context["organization"], max_cardinality_allowed
