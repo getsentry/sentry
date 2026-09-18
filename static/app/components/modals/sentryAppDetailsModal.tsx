@@ -108,12 +108,8 @@ export function SentryAppDetailsModal(props: Props) {
     permissions.write.length > 0 ||
     permissions.admin.length > 0;
 
-  const renderPermissions = () => {
-    if (!hasStandardPermissions && specialPermissions.length === 0) {
-      return null;
-    }
-
-    return (
+  const permissionsContent =
+    !hasStandardPermissions && specialPermissions.length === 0 ? null : (
       <Fragment>
         <Title>Permissions</Title>
         {permissions.read.length > 0 && (
@@ -163,7 +159,6 @@ export function SentryAppDetailsModal(props: Props) {
         ))}
       </Fragment>
     );
-  };
 
   // Prepare the features list
   const features = (featureData || []).map(f => ({
@@ -192,7 +187,7 @@ export function SentryAppDetailsModal(props: Props) {
       <IntegrationFeatures {...featureProps}>
         {({disabled, disabledReason}) => (
           <Fragment>
-            {!disabled && renderPermissions()}
+            {!disabled && permissionsContent}
             <Footer>
               <Author>{t('Authored By %s', sentryApp.author)}</Author>
               <div>
