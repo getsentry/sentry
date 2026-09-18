@@ -47,6 +47,10 @@ interface CategoricalSeriesWidgetVisualizationProps {
    */
   plottables: CategoricalPlottable[];
   /**
+   * Colors for plottables that don't set their own. Defaults to the theme's chart palette.
+   */
+  colorPalette?: readonly string[];
+  /**
    * A mapping of series name to boolean. If the value is `false`, the series is hidden.
    */
   legendSelection?: LegendSelection;
@@ -178,7 +182,10 @@ export function CategoricalSeriesWidgetVisualization(
 
   // Set up color palette for plottables without explicit colors
   const paletteSize = props.plottables.filter(plottable => plottable.needsColor).length;
-  const palette = paletteSize > 0 ? theme.chart.getColorPalette(paletteSize - 1) : [];
+  const palette =
+    paletteSize > 0
+      ? (props.colorPalette ?? theme.chart.getColorPalette(paletteSize - 1))
+      : [];
 
   // Create aliases lookup for tooltips and legends
   const aliases = Object.fromEntries(

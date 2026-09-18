@@ -168,6 +168,7 @@ export type Widget = {
   title: string;
   axisRange?: AxisRange;
   changedReason?: WidgetChangedReason[];
+  chartPalette?: string;
   dashboardId?: string;
   datasetSource?: DatasetSource;
   description?: string;

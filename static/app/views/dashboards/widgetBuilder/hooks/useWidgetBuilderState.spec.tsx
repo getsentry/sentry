@@ -1603,6 +1603,29 @@ describe('useWidgetBuilderState', () => {
     });
   });
 
+  describe('chartPalette', () => {
+    it('can decode and update chartPalette', () => {
+      const {result} = renderWidgetBuilderState({chartPalette: 'cool'});
+
+      expect(result.current.state.chartPalette).toBe('cool');
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_CHART_PALETTE,
+          payload: 'warm',
+        });
+      });
+
+      expect(result.current.state.chartPalette).toBe('warm');
+    });
+
+    it('reads a missing chartPalette as unset', () => {
+      const {result} = renderWidgetBuilderState();
+
+      expect(result.current.state.chartPalette).toBeUndefined();
+    });
+  });
+
   describe('selectedAggregate', () => {
     it('can decode and update selectedAggregate', () => {
       const {result} = renderWidgetBuilderState({

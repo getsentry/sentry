@@ -73,6 +73,7 @@ export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
 
 export type WidgetBuilderStateQueryParams = {
   axisRange?: AxisRange;
+  chartPalette?: string;
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -123,6 +124,7 @@ export const BuilderStateAction = {
   SET_CATEGORICAL_AGGREGATE: 'SET_CATEGORICAL_AGGREGATE',
   DELETE_AGGREGATE: 'DELETE_AGGREGATE',
   SET_AXIS_RANGE: 'SET_AXIS_RANGE',
+  SET_CHART_PALETTE: 'SET_CHART_PALETTE',
 } as const;
 
 type WidgetAction =
@@ -163,7 +165,8 @@ type WidgetAction =
       payload: AxisRange | undefined;
       type: typeof BuilderStateAction.SET_AXIS_RANGE;
     }
-  | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
+  | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT}
+  | {payload: string | undefined; type: typeof BuilderStateAction.SET_CHART_PALETTE};
 type WidgetBuilderStateActionOptions = {
   /**
    * Hold the URL write back while a field is still being typed into. The next
@@ -174,6 +177,7 @@ type WidgetBuilderStateActionOptions = {
 
 export interface WidgetBuilderState {
   axisRange?: AxisRange;
+  chartPalette?: string;
   dataset?: WidgetType;
   description?: string;
   displayType?: DisplayType;
@@ -425,6 +429,10 @@ export function useWidgetBuilderState(): {
     parseAsLinkedDashboards
   );
   const [axisRange, setAxisRange] = useSeededQueryState('axisRange', parseAsAxisRange);
+  const [chartPalette, setChartPalette] = useSeededQueryState(
+    'chartPalette',
+    parseAsChartPalette
+  );
 
   const [textContent, setTextContent, _removeTextContent] = useSessionStorage<
     string | undefined
@@ -444,6 +452,7 @@ export function useWidgetBuilderState(): {
       limit,
       legendAlias,
       legendType,
+      chartPalette,
       thresholds,
       linkedDashboards,
       axisRange,
@@ -481,6 +490,7 @@ export function useWidgetBuilderState(): {
       limit,
       legendAlias,
       legendType,
+      chartPalette,
       thresholds,
       linkedDashboards,
       axisRange,
@@ -1041,6 +1051,9 @@ export function useWidgetBuilderState(): {
             setLinkedDashboards([], options);
           }
           break;
+        case BuilderStateAction.SET_CHART_PALETTE:
+          setChartPalette(action.payload, options);
+          break;
         case BuilderStateAction.SET_SELECTED_AGGREGATE:
           setSelectedAggregate(action.payload, options);
           // For categorical bar, sync sort to the selected aggregate so
@@ -1083,6 +1096,7 @@ export function useWidgetBuilderState(): {
           }
           setLegendAlias(action.payload.legendAlias, options);
           setLegendType(action.payload.legendType, options);
+          setChartPalette(action.payload.chartPalette, options);
           setLimit(action.payload.limit, options);
           setQuery(action.payload.query, options);
           setSelectedAggregate(action.payload.selectedAggregate, options);
@@ -1295,6 +1309,7 @@ export function useWidgetBuilderState(): {
       setAxisRange,
       setThresholds,
       yAxis,
+      setChartPalette,
       setLinkedDashboards,
       setTextContent,
       setYAxis,
@@ -1546,6 +1561,12 @@ const parseAsThresholds = createParser<ThresholdsConfig | null>({
 const parseAsAxisRange = createParser({
   parse: (value: string) => getAxisRange(value) ?? null,
   serialize: (value: AxisRange) => value,
+});
+
+// An absent param has to read as "no palette" rather than an empty string.
+const parseAsChartPalette = createParser({
+  parse: (value: string) => value || null,
+  serialize: (value: string) => value,
 });
 
 function isSortFieldStillAvailable(
