@@ -719,11 +719,15 @@ function ModelCallBreakdown({
       title={
         <Stack gap="sm">
           {sortedBreakdowns.map(breakdown => (
-            <Flex key={breakdown.model} align="center" justify="between" gap="xl">
-              <ModelName modelId={breakdown.model} size={14} gap="sm" />
-              <Text tabular>
-                <Count value={breakdown.calls} />
-              </Text>
+            <Flex key={breakdown.model} align="center" gap="xl" width="100%">
+              <Container minWidth={0} flex={1} overflow="hidden">
+                <ModelName modelId={breakdown.model} size={14} gap="sm" />
+              </Container>
+              <Container flexShrink={0}>
+                <Text tabular align="right">
+                  <Count value={breakdown.calls} />
+                </Text>
+              </Container>
             </Flex>
           ))}
         </Stack>
@@ -750,11 +754,15 @@ function ModelCostBreakdown({
       title={
         <Stack gap="sm">
           {sortedBreakdowns.map(breakdown => (
-            <Flex key={breakdown.model} align="center" justify="between" gap="xl">
-              <ModelName modelId={breakdown.model} size={14} gap="sm" />
-              <Text tabular>
-                <LLMCosts cost={breakdown.cost} />
-              </Text>
+            <Flex key={breakdown.model} align="center" gap="xl" width="100%">
+              <Container minWidth={0} flex={1} overflow="hidden">
+                <ModelName modelId={breakdown.model} size={14} gap="sm" />
+              </Container>
+              <Container flexShrink={0}>
+                <Text tabular align="right">
+                  <LLMCosts cost={breakdown.cost} />
+                </Text>
+              </Container>
             </Flex>
           ))}
         </Stack>
