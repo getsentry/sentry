@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component, Fragment, useRef, type RefObject} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
@@ -10,7 +10,9 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {
   createDashboard,
@@ -33,6 +35,7 @@ import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -53,6 +56,8 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useFullscreen} from 'sentry/utils/window/useFullscreen';
+import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {
   useUpdateDashboard,
@@ -131,9 +136,12 @@ type RouteParams = {
 type Props = {
   api: Client;
   dashboard: DashboardDetails;
+  fullscreenRef: RefObject<HTMLDivElement | null>;
   initialState: DashboardState;
+  isFullscreen: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
+  onToggleFullscreen: () => void;
   organization: Organization;
   params: RouteParams;
   projects: Project[];
@@ -1155,8 +1163,11 @@ class DashboardDetail extends Component<Props, State> {
       navigate,
       organization,
       dashboard,
+      fullscreenRef,
+      isFullscreen,
       location,
       onDashboardUpdate,
+      onToggleFullscreen,
       pageAlerts,
       theme,
       updateDashboard,
@@ -1205,6 +1216,7 @@ class DashboardDetail extends Component<Props, State> {
                         })
                       }
                       onEdit={this.onEdit}
+                      onToggleFullscreen={onToggleFullscreen}
                     />
                   </TopBar.Slot>
                 </Fragment>
@@ -1453,11 +1465,42 @@ class DashboardDetail extends Component<Props, State> {
           }}
         />
 
-        {this.isEmbedded ? (
-          pageContent
-        ) : (
-          <DashboardPageFilters skipLoadLastUsed>{pageContent}</DashboardPageFilters>
-        )}
+        {/* Only this subtree is visible while fullscreen, so it carries its own
+            title and exit control in place of the top bar. */}
+        <Stack
+          ref={fullscreenRef}
+          flex={1}
+          {...(isFullscreen && {background: 'primary', overflowY: 'auto'})}
+          // The sticky filters offset themselves by the top bar, which is not
+          // rendered in fullscreen.
+          style={
+            isFullscreen
+              ? ({[TOP_BAR_HEIGHT_CSS_VAR]: '0px'} as React.CSSProperties)
+              : undefined
+          }
+        >
+          {isFullscreen && (
+            <Flex
+              align="center"
+              justify="between"
+              gap="md"
+              padding="md xl"
+              borderBottom="primary"
+            >
+              <Heading as="h2" size="lg">
+                {dashboard.title}
+              </Heading>
+              <Button size="sm" icon={<IconClose />} onClick={onToggleFullscreen}>
+                {t('Exit Fullscreen')}
+              </Button>
+            </Flex>
+          )}
+          {this.isEmbedded ? (
+            pageContent
+          ) : (
+            <DashboardPageFilters skipLoadLastUsed>{pageContent}</DashboardPageFilters>
+          )}
+        </Stack>
       </SentryDocumentTitle>
     );
   }
@@ -1484,6 +1527,9 @@ interface DashboardDetailWithInjectedPropsProps extends Omit<
   | 'params'
   | 'queryClient'
   | 'updateDashboard'
+  | 'fullscreenRef'
+  | 'isFullscreen'
+  | 'onToggleFullscreen'
 > {}
 
 export function DashboardDetailWithInjectedProps(
@@ -1499,6 +1545,9 @@ export function DashboardDetailWithInjectedProps(
   const [chartInterval] = useDashboardChartInterval();
   const queryClient = useQueryClient();
   const updateDashboard = useUpdateDashboard();
+  const fullscreenRef = useRef<HTMLDivElement>(null);
+  const {toggle: toggleFullscreen} = useFullscreen({elementRef: fullscreenRef});
+  const isFullscreen = useIsFullscreen();
   // Always use the validated chart interval so the UI dropdown and widget
   // requests stay in sync. chartInterval is validated against the current page
   // filter period (e.g. won't return 1m for a 30d range) and always has a value.
@@ -1517,6 +1566,9 @@ export function DashboardDetailWithInjectedProps(
       widgetInterval={widgetInterval}
       queryClient={queryClient}
       updateDashboard={updateDashboard.mutateAsync}
+      fullscreenRef={fullscreenRef}
+      isFullscreen={isFullscreen}
+      onToggleFullscreen={toggleFullscreen}
     />
   );
 }

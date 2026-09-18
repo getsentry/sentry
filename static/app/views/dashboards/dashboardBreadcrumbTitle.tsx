@@ -13,6 +13,7 @@ import {
   IconDownload,
   IconEdit,
   IconEllipsis,
+  IconExpand,
   IconStar,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -71,6 +72,23 @@ function DashboardFavoriteButton({
   );
 }
 
+/**
+ * Enter fullscreen. Sits beside the star for the same reason the star does: it
+ * is a frequent, cheaply reversible action.
+ */
+function DashboardFullscreenButton({onToggle}: {onToggle: () => void}) {
+  return (
+    <Button
+      size="zero"
+      variant="transparent"
+      aria-label={t('Fullscreen')}
+      tooltipProps={{title: t('Fullscreen')}}
+      icon={<IconExpand />}
+      onClick={onToggle}
+    />
+  );
+}
+
 interface DashboardBreadcrumbTitleProps {
   dashboard: DashboardDetails;
   hasUnsavedFilters: boolean;
@@ -79,6 +97,7 @@ interface DashboardBreadcrumbTitleProps {
   isSaving: boolean;
   onChange: (title: string) => void;
   onEdit: () => void;
+  onToggleFullscreen?: () => void;
 }
 
 function DashboardTitle({
@@ -94,6 +113,7 @@ function DashboardTitle({
   canViewRevisions,
   onEdit,
   onToggleFavorite,
+  onToggleFullscreen,
   openDashboardRevisions,
   organization,
 }: {
@@ -111,6 +131,7 @@ function DashboardTitle({
   organization: Organization;
   duplicateDisabledReason?: ReactNode;
   isDuplicateDisabled?: boolean;
+  onToggleFullscreen?: () => void;
 }) {
   const revisionItem = {
     key: 'revisions',
@@ -182,6 +203,12 @@ function DashboardTitle({
               />
             ),
           },
+          onToggleFullscreen
+            ? {
+                type: 'button',
+                element: <DashboardFullscreenButton onToggle={onToggleFullscreen} />,
+              }
+            : null,
         ],
       }}
     />
@@ -196,6 +223,7 @@ export function DashboardBreadcrumbTitle({
   isSaving,
   onChange,
   onEdit,
+  onToggleFullscreen,
 }: DashboardBreadcrumbTitleProps) {
   // Lives here rather than in `DashboardFavoriteButton` because the button
   // unmounts while editing or previewing, and a toggle never writes back to
@@ -289,6 +317,7 @@ export function DashboardBreadcrumbTitle({
         isSaving={isSaving}
         onEdit={onEdit}
         onToggleFavorite={handleToggleFavorite}
+        onToggleFullscreen={onToggleFullscreen}
         openDashboardRevisions={openDashboardRevisions}
         organization={organization}
       />
@@ -311,6 +340,7 @@ export function DashboardBreadcrumbTitle({
           isSaving={isSaving}
           onEdit={onEdit}
           onToggleFavorite={handleToggleFavorite}
+          onToggleFullscreen={onToggleFullscreen}
           openDashboardRevisions={openDashboardRevisions}
           organization={organization}
         />
