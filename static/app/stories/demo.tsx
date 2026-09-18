@@ -395,7 +395,17 @@ const TickButton = styled('button')`
 
 const DemoChrome = styled(Container)`
   overflow: hidden;
-  background: ${p => p.theme.tokens.background.tertiary};
+  --bg: ${p => p.theme.tokens.background.tertiary};
+  --fill: ${p => p.theme.tokens.background.secondary};
+  background-color: var(--bg);
+  background-image: conic-gradient(
+    var(--fill) 25%,
+    var(--bg) 0 50%,
+    var(--fill) 0 75%,
+    var(--bg) 0
+  );
+  background-size: 8px 8px;
+  background-position: center;
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md} ${p => p.theme.radius.md} 0 0;
 
