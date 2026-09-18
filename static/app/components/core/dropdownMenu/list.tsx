@@ -88,6 +88,94 @@ type DropdownMenuCollectionProps = {
   size?: MenuItemProps['size'];
 };
 
+interface DropdownMenuCollectionItemProps extends Omit<
+  DropdownMenuCollectionProps,
+  'collection'
+> {
+  node: Node<MenuItemProps>;
+}
+
+function DropdownMenuCollectionItem({
+  node,
+  closeOnSelect,
+  disableTextSelection,
+  onClose,
+  separatorProps,
+  size,
+  state,
+}: DropdownMenuCollectionItemProps): React.ReactNode {
+  if (node.type === 'section') {
+    return (
+      <DropdownMenuSection node={node}>
+        <DropdownMenuCollection
+          collection={[...node.childNodes]}
+          closeOnSelect={closeOnSelect}
+          disableTextSelection={disableTextSelection}
+          onClose={onClose}
+          separatorProps={separatorProps}
+          size={size}
+          state={state}
+        />
+      </DropdownMenuSection>
+    );
+  }
+
+  if (node.value?.submenu) {
+    if (!node.value.children) {
+      return null;
+    }
+
+    const submenuConfig = node.value.submenu;
+    const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
+
+    return (
+      <DropdownMenu
+        isOpen={state.selectionManager.isSelected(node.key)}
+        items={node.value.children}
+        trigger={triggerProps => (
+          <DropdownMenuItem
+            renderAs="div"
+            node={node}
+            state={state}
+            closeOnSelect={false}
+            {...omit(triggerProps, [
+              'onClick',
+              'onDragStart',
+              'onKeyDown',
+              'onKeyUp',
+              'onMouseDown',
+              'onPointerDown',
+              'onPointerUp',
+            ])}
+          />
+        )}
+        onClose={onClose}
+        closeOnSelect={closeOnSelect}
+        disableTextSelection={disableTextSelection}
+        menuTitle={submenuOptions.title}
+        shouldCloseOnBlur={false}
+        preventOverflowOptions={{
+          boundary: document.body,
+          altAxis: true,
+        }}
+        renderWrapAs="li"
+        position={submenuOptions.position ?? 'right-start'}
+        offset={-4}
+        size={size}
+      />
+    );
+  }
+
+  return (
+    <DropdownMenuItem
+      node={node}
+      state={state}
+      onClose={onClose}
+      closeOnSelect={closeOnSelect}
+    />
+  );
+}
+
 function DropdownMenuCollection({
   closeOnSelect,
   collection,
@@ -105,79 +193,17 @@ function DropdownMenuCollection({
           !isLastNode &&
           (node.type === 'section' || collection[i + 1]?.type === 'section');
 
-        let itemToRender: React.ReactNode;
-
-        if (node.type === 'section') {
-          itemToRender = (
-            <DropdownMenuSection node={node}>
-              <DropdownMenuCollection
-                collection={[...node.childNodes]}
-                closeOnSelect={closeOnSelect}
-                disableTextSelection={disableTextSelection}
-                onClose={onClose}
-                separatorProps={separatorProps}
-                size={size}
-                state={state}
-              />
-            </DropdownMenuSection>
-          );
-        } else if (node.value?.submenu) {
-          if (node.value.children) {
-            const submenuConfig = node.value.submenu;
-            const submenuOptions = typeof submenuConfig === 'object' ? submenuConfig : {};
-            itemToRender = (
-              <DropdownMenu
-                isOpen={state.selectionManager.isSelected(node.key)}
-                items={node.value.children}
-                trigger={triggerProps => (
-                  <DropdownMenuItem
-                    renderAs="div"
-                    node={node}
-                    state={state}
-                    closeOnSelect={false}
-                    {...omit(triggerProps, [
-                      'onClick',
-                      'onDragStart',
-                      'onKeyDown',
-                      'onKeyUp',
-                      'onMouseDown',
-                      'onPointerDown',
-                      'onPointerUp',
-                    ])}
-                  />
-                )}
-                onClose={onClose}
-                closeOnSelect={closeOnSelect}
-                disableTextSelection={disableTextSelection}
-                menuTitle={submenuOptions.title}
-                shouldCloseOnBlur={false}
-                preventOverflowOptions={{
-                  boundary: document.body,
-                  altAxis: true,
-                }}
-                renderWrapAs="li"
-                position={submenuOptions.position ?? 'right-start'}
-                offset={-4}
-                size={size}
-              />
-            );
-          } else {
-            itemToRender = null;
-          }
-        } else {
-          itemToRender = (
-            <DropdownMenuItem
-              node={node}
-              state={state}
-              onClose={onClose}
-              closeOnSelect={closeOnSelect}
-            />
-          );
-        }
-
         return (
           <Fragment key={node.key}>
-            {itemToRender}
+            <DropdownMenuCollectionItem
+              node={node}
+              closeOnSelect={closeOnSelect}
+              disableTextSelection={disableTextSelection}
+              onClose={onClose}
+              separatorProps={separatorProps}
+              size={size}
+              state={state}
+            />
             {showSeparator && <Separator {...separatorProps} />}
           </Fragment>
         );
