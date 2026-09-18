@@ -124,7 +124,7 @@
     "@swc/plugin-emotion": "15.0.0",
     "@tanstack/query-async-storage-persister": "5.101.4",
     "@tanstack/react-devtools": "0.9.9",
-    "@tanstack/react-form": "1.28.6",
+    "@tanstack/react-form": "1.33.5",
     "@tanstack/react-form-devtools": "0.2.20",
     "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-pacer-devtools": "0.7.1",
