@@ -64,51 +64,46 @@ export function Version({
     releaseDetailProjectId = projectId;
   }
 
-  const versionContent =
-    anchor && organization?.slug ? (
-      <Link
-        to={makeReleaseDrawerPathname({
-          location,
-          release: version,
-          projectId: releaseDetailProjectId,
-          source: 'release-version-link',
-        })}
-        className={className}
-      >
-        <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
-          {versionToDisplay}
-        </VersionText>
-      </Link>
-    ) : (
-      <VersionText
-        className={className}
-        truncate={truncate}
-        shouldWrapText={shouldWrapText}
-      >
-        {versionToDisplay}
-      </VersionText>
-    );
-
-  const tooltipContent = (
-    <Flex as="span" align="center">
-      <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
-      <CopyToClipboardButton
-        variant="transparent"
-        text={version}
-        size="zero"
-        aria-label={t('Copy version to clipboard')}
-      />
-    </Flex>
-  );
-
   return (
     <Tooltip
-      title={tooltipContent}
+      title={
+        <Flex as="span" align="center">
+          <TooltipVersionWrapper>{version}</TooltipVersionWrapper>
+          <CopyToClipboardButton
+            variant="transparent"
+            text={version}
+            size="zero"
+            aria-label={t('Copy version to clipboard')}
+          />
+        </Flex>
+      }
       disabled={!tooltipRawVersion}
       containerDisplayMode={truncate ? 'block' : 'inline-block'}
       maxWidth={isHashVersion ? undefined : 400}
     >
-      {versionContent}
+      {anchor && organization?.slug ? (
+        <Link
+          to={makeReleaseDrawerPathname({
+            location,
+            release: version,
+            projectId: releaseDetailProjectId,
+            source: 'release-version-link',
+          })}
+          className={className}
+        >
+          <VersionText truncate={truncate} shouldWrapText={shouldWrapText}>
+            {versionToDisplay}
+          </VersionText>
+        </Link>
+      ) : (
+        <VersionText
+          className={className}
+          truncate={truncate}
+          shouldWrapText={shouldWrapText}
+        >
+          {versionToDisplay}
+        </VersionText>
+      )}
     </Tooltip>
   );
 }
