@@ -444,6 +444,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         required=False,
         allow_null=True,
     )
+    chart_palette = serializers.CharField(required=False, allow_null=True, max_length=50)
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
         choices=DatasetSourcesTypes.as_text_choices(),
@@ -1206,6 +1207,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 "layout": widget_data.get("layout"),
                 "axis_range": widget_data.get("axis_range"),
                 "legend_type": widget_data.get("legend_type"),
+                "chart_palette": widget_data.get("chart_palette"),
             },
             dataset_source=widget_data.get("dataset_source", DatasetSourcesTypes.USER.value),
         )
@@ -1407,6 +1409,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         prev_layout = widget.detail.get("layout") if widget.detail else None
         prev_axis_range = widget.detail.get("axis_range") if widget.detail else None
         prev_legend_type = widget.detail.get("legend_type") if widget.detail else None
+        prev_chart_palette = widget.detail.get("chart_palette") if widget.detail else None
         is_text_widget = data.get("display_type") == DashboardWidgetDisplayTypes.TEXT
 
         widget.title = data.get("title", widget.title)
@@ -1425,6 +1428,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             "layout": data.get("layout", prev_layout),
             "axis_range": data.get("axis_range", prev_axis_range),
             "legend_type": data.get("legend_type", prev_legend_type),
+            "chart_palette": data.get("chart_palette", prev_chart_palette),
         }
 
         # Text widgets don't have widget_type or dataset_source

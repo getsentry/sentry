@@ -2193,6 +2193,119 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widget = DashboardWidget.objects.get(dashboard=self.dashboard, title="New Line Chart")
         assert widget.detail["axis_range"] == "dataMin"
 
+    def test_update_widget_with_chart_palette(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Palette",
+                    "displayType": "line",
+                    "chartPalette": "cool",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["chartPalette"] == "cool"
+
+        widget = DashboardWidget.objects.get(id=self.widget_1.id)
+        assert widget.detail["chart_palette"] == "cool"
+
+    def test_update_widget_preserves_chart_palette_when_omitted(self) -> None:
+        self.widget_1.detail = {"chart_palette": "warm"}
+        self.widget_1.save()
+
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Renamed Line Chart",
+                    "displayType": "line",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["chartPalette"] == "warm"
+
+        widget = DashboardWidget.objects.get(id=self.widget_1.id)
+        assert widget.detail["chart_palette"] == "warm"
+
+    def test_update_widget_with_too_long_chart_palette(self) -> None:
+        data = {
+            "title": "Dashboard",
+            "widgets": [
+                {
+                    "id": str(self.widget_1.id),
+                    "title": "Line Chart with Invalid Palette",
+                    "displayType": "line",
+                    "chartPalette": "x" * 51,
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+
+    def test_create_widget_with_chart_palette(self) -> None:
+        data = {
+            "title": "Dashboard with Palette Widget",
+            "widgets": [
+                {
+                    "title": "New Palette Chart",
+                    "displayType": "line",
+                    "chartPalette": "cool",
+                    "widgetType": "error-events",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()"],
+                            "columns": [],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+        assert response.data["widgets"][0]["chartPalette"] == "cool"
+
+        widget = DashboardWidget.objects.get(dashboard=self.dashboard, title="New Palette Chart")
+        assert widget.detail["chart_palette"] == "cool"
+
     def test_update_migrated_spans_widget_reset_changed_reason(self) -> None:
         new_dashboard = Dashboard.objects.create(
             title="New dashboard",
