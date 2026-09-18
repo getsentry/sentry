@@ -663,6 +663,7 @@ const config = defineConfig({
     'react/no-is-mounted': 'error',
     'react/no-render-return-value': 'error',
     'react/no-string-refs': 'error',
+    'react/no-unstable-nested-components': ['error', {allowAsProps: true}],
     'react/no-unknown-property': [
       'error',
       {
