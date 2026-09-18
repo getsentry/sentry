@@ -148,6 +148,14 @@ export function getNavigationConfiguration({
             !isSelfHostedErrorsOnly,
         },
         {
+          path: `${pathPrefix}/logs/`,
+          title: t('Logs'),
+          keywords: [t('log'), t('logs'), t('attributes'), t('json')],
+          show: () =>
+            !!organization?.features?.includes('explore-automatic-json-expansion-ui') &&
+            !isSelfHostedErrorsOnly,
+        },
+        {
           path: `${pathPrefix}/playstation/`,
           title: t('PlayStation'),
           show: () => !!(organization && hasTempestAccess(organization)) && !isSelfHosted,
