@@ -3,10 +3,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import type {WebVitalFrame} from 'sentry/utils/replays/types';
-import {BreadcrumbWebVital} from 'sentry/components/replays/breadcrumbs/breadcrumbWebVital';
 
 jest.mock('sentry/utils/replays/playback/providers/replayReaderProvider');
 
