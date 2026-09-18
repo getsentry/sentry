@@ -336,6 +336,9 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(
         backend=sdk_options.pop("sentry_mirror_dsn", None),
     )
+    # Remove legacy keys to avoid cross-deploy problems.
+    sdk_options.pop("dsn", None)
+    sdk_options.pop("relay_dsn", None)
 
     return sdk_options, dsns
 
