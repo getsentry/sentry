@@ -41,7 +41,6 @@ export interface KeyValueTableDataRowProps {
    * Metadata pertaining to content item
    */
   meta?: Record<string, any>;
-  striped?: boolean;
 }
 
 export function KeyValueTableDataRow({
@@ -108,14 +107,9 @@ export function KeyValueTableDataRow({
   );
 }
 
-type RowState = {hasErrors: boolean; isSuspectFlag: boolean; striped?: boolean};
+type RowState = {hasErrors: boolean; isSuspectFlag: boolean};
 
-const rowStateStyles = ({
-  theme,
-  hasErrors,
-  isSuspectFlag,
-  striped,
-}: RowState & {theme: Theme}) => {
+const rowStateStyles = ({theme, hasErrors, isSuspectFlag}: RowState & {theme: Theme}) => {
   const [content, tint] = hasErrors
     ? [theme.colors.red500, theme.colors.red100]
     : isSuspectFlag
@@ -126,13 +120,8 @@ const rowStateStyles = ({
     color: ${content};
     box-shadow: inset 0 0 0 1px ${tint ?? 'transparent'};
     background-color: ${tint ?? theme.tokens.background.primary};
-    ${
-      striped &&
-      css`
-        &:nth-child(odd) {
-          background-color: ${tint ?? theme.tokens.background.secondary};
-        }
-      `
+    &:nth-child(odd) {
+      background-color: ${tint ?? theme.tokens.background.tertiary};
     }
   `;
 };

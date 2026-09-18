@@ -8,17 +8,10 @@ type Props = {
   type?: undefined | 'error' | 'warning';
 };
 
-export const KeyValueTable = styled('dl')<{margin?: boolean; striped?: boolean}>`
+export const KeyValueTable = styled('dl')<{margin?: boolean}>`
   display: grid;
   grid-template-columns: 50% 50%;
   ${p => (p.margin ? null : 'margin-bottom: 0;')}
-  ${p =>
-    p.striped &&
-    css`
-      > :nth-of-type(2n-1) {
-        background-color: ${p.theme.tokens.background.secondary};
-      }
-    `}
 `;
 
 export function KeyValueTableRow({keyName, value, type}: Props) {
@@ -48,6 +41,9 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
         ? theme.colors.yellow100 + ' !important'
         : 'inherit'
   };
+  &:nth-of-type(2n-1) {
+    background-color: ${theme.tokens.background.tertiary};
+  }
 `;
 
 const Key = styled('dt')<{type: Props['type']}>`
