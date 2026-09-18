@@ -10,7 +10,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {isEquation, parseFunction} from 'sentry/utils/discover/fields';
 import {prettifyTagKey} from 'sentry/utils/fields';
@@ -239,9 +238,7 @@ export function AggregatesTab({traceMetric, isMetricOptionsEmpty}: AggregatesTab
       </AggregatesStyledHeader>
 
       {result.isError ? (
-        <SimpleTable.Empty>
-          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-        </SimpleTable.Empty>
+        <SimpleTable.Error />
       ) : result.data?.length ? (
         result.data.map((row, i) => {
           const displayRow =

@@ -7,14 +7,12 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -242,13 +240,9 @@ export function SpansTable({
         </DataTable.Head>
         <DataTable.Body>
           {(result.isPending || isLoadingDifferentTable) && !displayedData ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
+            <DataTable.Loading />
           ) : result.isError && !isRetainedError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
+            <DataTable.Error />
           ) : displayedData?.length ? (
             displayedData.map((row, i) => (
               <SpanSampleRow
@@ -262,11 +256,7 @@ export function SpansTable({
               />
             ))
           ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
+            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </DataTable>

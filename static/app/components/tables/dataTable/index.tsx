@@ -10,17 +10,15 @@ import {
   type TableColumnConfig,
   TABLE_HEAD_ROW_HEIGHT,
   TableResizer,
-  TableStatusCell,
 } from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
+import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/statusRows';
 import {defined} from 'sentry/utils/defined';
 
 export const DATA_TABLE_ROW_HEIGHT = 42;
-
-const STATUS_MESSAGE_HEIGHT = DATA_TABLE_ROW_HEIGHT * 4;
 
 const Frame = styled(
   ({
@@ -189,20 +187,6 @@ const Cell = styled(Table.Cell)`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const StatusCell = styled(TableStatusCell)`
-  min-height: ${STATUS_MESSAGE_HEIGHT}px;
-  background-color: transparent;
-  font-size: ${p => p.theme.font.size.md};
-`;
-
-function Status({children}: {children: ReactNode}) {
-  return (
-    <Row>
-      <StatusCell>{children}</StatusCell>
-    </Row>
-  );
-}
-
 export interface DataTableColumnOptions {
   fields?: readonly string[];
   minimumColumnWidth?: number;
@@ -277,9 +261,11 @@ export function DataTable({
 
 DataTable.Body = Table.Body;
 DataTable.Cell = Cell;
+DataTable.Empty = TableEmpty;
+DataTable.Error = TableError;
 DataTable.Frame = Frame;
 DataTable.Grid = Grid;
 DataTable.Head = Head;
 DataTable.HeadCell = HeadCell;
+DataTable.Loading = TableLoading;
 DataTable.Row = Row;
-DataTable.Status = Status;
