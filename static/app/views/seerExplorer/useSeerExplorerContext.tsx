@@ -31,6 +31,7 @@ import {
   useSeerExplorerDrawer,
 } from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {SeerExplorerErrorBoundary} from 'sentry/views/seerExplorer/components/seerExplorerErrorBoundary';
 import {useSeerExplorerPolling} from 'sentry/views/seerExplorer/hooks/useSeerExplorerPolling';
 import {
   useSeerExplorerChatDispatch,
@@ -459,22 +460,24 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
         {children}
         {pipWindow && (
           <PictureInPicturePortal pipWindow={pipWindow}>
-            {/* Pop out the content of whichever surface is active: the decoupled
-              sidebar content when the flag is on (there is no drawer then), or
-              the drawer content otherwise. */}
-            {isSidebarMode ? (
-              <SeerExplorerContent
-                key={sidebarKey}
-                getPageReferrer={getPageReferrer}
-                initialQuery={sidebarInitialQuery}
-                appendInitialQuery={sidebarAppendInitialQuery}
-                onClose={closeSeerExplorer}
-                sidebarPosition={sidebarPosition}
-                onSidebarPositionChange={setSidebarPosition}
-              />
-            ) : (
-              <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
-            )}
+            <SeerExplorerErrorBoundary>
+              {/* Pop out the content of whichever surface is active: the decoupled
+                sidebar content when the flag is on (there is no drawer then), or
+                the drawer content otherwise. */}
+              {isSidebarMode ? (
+                <SeerExplorerContent
+                  key={sidebarKey}
+                  getPageReferrer={getPageReferrer}
+                  initialQuery={sidebarInitialQuery}
+                  appendInitialQuery={sidebarAppendInitialQuery}
+                  onClose={closeSeerExplorer}
+                  sidebarPosition={sidebarPosition}
+                  onSidebarPositionChange={setSidebarPosition}
+                />
+              ) : (
+                <ExplorerDrawerContent getPageReferrer={getPageReferrer} />
+              )}
+            </SeerExplorerErrorBoundary>
           </PictureInPicturePortal>
         )}
       </AutofixChatProvider>

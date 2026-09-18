@@ -58,7 +58,7 @@ export const useExploreTimeseries = ({
   );
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
-    queryHookImplementation: useExploreTimeseriesImpl,
+    queryHookImplementation: useExploreTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {query, enabled, queryExtras, includeAnnotations},
     queryOptions: {
       canTriggerHighAccuracy,

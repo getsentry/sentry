@@ -336,7 +336,7 @@ describe('Dashboards > Detail', () => {
           ],
           title: 'Errors',
           interval: '1d',
-          widgetType: types.WidgetType.DISCOVER,
+          widgetType: types.WidgetType.ERRORS,
           id: '1',
         }),
         WidgetFixture({
@@ -352,7 +352,7 @@ describe('Dashboards > Detail', () => {
           ],
           title: 'Transactions',
           interval: '1d',
-          widgetType: types.WidgetType.DISCOVER,
+          widgetType: types.WidgetType.TRANSACTIONS,
           id: '2',
         }),
         WidgetFixture({
@@ -2086,7 +2086,7 @@ describe('Dashboards > Detail', () => {
         ],
         title: 'Transactions',
         id: '1',
-        widgetType: types.WidgetType.DISCOVER,
+        widgetType: types.WidgetType.TRANSACTIONS,
       };
       const mockDashboard = DashboardFixture([widget], {
         id: '1',

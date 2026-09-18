@@ -36,6 +36,7 @@ export type GroupListColumn =
   | 'priority'
   | 'progress'
   | 'assignee'
+  | 'assigneeAvatar'
   | 'lastTriggered'
   | 'firstSeen'
   | 'lastSeen';

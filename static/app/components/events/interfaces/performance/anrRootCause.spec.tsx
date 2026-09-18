@@ -11,10 +11,8 @@ import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/trace
 jest.mock('sentry/views/performance/newTraceDetails/traceApi/useTrace', () => {
   return {
     useTrace: jest.fn(() => ({
-      data: {
-        transactions: [],
-        orphan_errors: [],
-      },
+      data: [],
+      status: 'success',
     })),
   };
 });
