@@ -1,3 +1,4 @@
+from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -17,12 +18,14 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
+from sentry.models.rule import Rule
 from sentry.workflow_engine.endpoints.serializers.alertrule_workflow_serializer import (
     AlertRuleWorkflowSerializer,
 )
 from sentry.workflow_engine.endpoints.validators.alertrule_workflow import (
     AlertRuleWorkflowValidator,
 )
+from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 
@@ -67,6 +70,32 @@ class OrganizationAlertRuleWorkflowIndexEndpoint(OrganizationEndpoint):
 
         if rule_id:
             queryset = queryset.filter(rule_id=rule_id)
+
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        accessible_detectors = AlertRuleDetector.objects.filter(detector__project__in=projects)
+        # Limit source lookups to these candidates, rather than every accessible alert.
+        candidate_ids = list(queryset.values_list("rule_id", "alert_rule_id"))
+        candidate_rule_ids = [rule_id for rule_id, _ in candidate_ids if rule_id is not None]
+        candidate_alert_rule_ids = [
+            alert_rule_id for _, alert_rule_id in candidate_ids if alert_rule_id is not None
+        ]
+        accessible_rules = Rule.objects.filter(id__in=candidate_rule_ids, project__in=projects)
+        # Authorize the rule being mapped, not any project connected to its workflow:
+        # deduplicated workflows can contain mappings from several projects.
+        # Legacy rules also cover migrations without an AlertRuleDetector (e.g. cron).
+        queryset = queryset.filter(
+            Q(rule_id__in=accessible_rules.values("id"))
+            | Q(
+                rule_id__in=accessible_detectors.filter(rule_id__in=candidate_rule_ids).values(
+                    "rule_id"
+                )
+            )
+            | Q(
+                alert_rule_id__in=accessible_detectors.filter(
+                    alert_rule_id__in=candidate_alert_rule_ids
+                ).values("alert_rule_id")
+            )
+        )
 
         alert_rule_workflow = queryset.first()
         if not alert_rule_workflow:
