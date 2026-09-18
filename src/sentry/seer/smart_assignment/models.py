@@ -14,7 +14,7 @@ Also includes some utility functions for validating assignments.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 
 from django.db import models
 from pydantic import BaseModel, Field
@@ -86,10 +86,22 @@ class SmartAssignmentScore(models.TextChoices):
     MISS = "miss"  # none of the above
 
 
+class PrefetchedToolCall(BaseModel):
+    name: Literal[
+        "get_issue_details_agentic_triage",
+        "get_event_details_agentic_triage",
+        "get_issue_committers",
+        "get_issue_ownership",
+    ]
+    arguments: dict[str, Any]
+    result: dict[str, Any]
+
+
 class SmartAssignmentPayload(BaseModel):
     group_id: int
     project_slug: str | None = None
     connected_repos: list[str] = Field(default_factory=list)
+    prefetched_tool_calls: list[PrefetchedToolCall] = Field(default_factory=list)
 
 
 class RankedCandidate(BaseModel):
