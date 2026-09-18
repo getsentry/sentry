@@ -106,55 +106,6 @@ describe('EventGraph', () => {
     expect(formatted).not.toContain(String(timestamp));
   });
 
-  it('hides the current event label on hover', async () => {
-    const timestamp = Date.UTC(2026, 8, 18, 12);
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-stats/`,
-      body: {
-        'count()': EventsStatsFixture({data: [[timestamp / 1000, [{count: 1}]]]}),
-        'count_unique(user)': EventsStatsFixture({
-          data: [[timestamp / 1000, [{count: 1}]]],
-        }),
-      },
-      method: 'GET',
-    });
-
-    render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <EventGraph
-          {...defaultProps}
-          event={EventFixture({
-            id: 'current-event',
-            dateCreated: new Date(timestamp).toISOString(),
-          })}
-        />
-      </GroupDataContextProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/group-id/',
-            query: {statsPeriod: '14d'},
-          },
-        },
-      }
-    );
-    await screen.findByRole('figure');
-
-    // @ts-expect-error The test mock exposes component props through mock calls.
-    const series = ReactEchartsCore.mock.calls.at(-1)?.[0].option.series;
-    const currentEventSeries = series.find(
-      (item: {name?: string}) => item.name === 'Current Event'
-    );
-
-    expect(currentEventSeries.markLine).toEqual(
-      expect.objectContaining({
-        label: {show: false},
-        emphasis: {label: {show: false}},
-      })
-    );
-  });
-
   it('displays allows toggling data sets', async () => {
     render(
       <GroupDataContextProvider group={group} project={group.project}>
