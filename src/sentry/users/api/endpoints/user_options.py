@@ -86,10 +86,10 @@ class UserOptionsEndpoint(UserEndpoint):
 
     @staticmethod
     def _serialize_options(user: User) -> _UserOptions:
-        # Serialized as the user rather than as `request.user`: the `options` key is only
-        # emitted when the serializer sees the requester as the subject, and an agent
-        # credential supplies a synthesized `request.user`. The permission class has
-        # already confined the request to this user's own options.
+        # Serialized with `user` as its own requester: the serializer only emits the
+        # `options` key when it sees the requester as the subject, so this makes that
+        # hold whatever `request.user` was built from. The permission class has already
+        # confined the request to this user's own options, so the two are the same person.
         serialized = serialize(user, user, DetailedSelfUserSerializer())
         options: _UserOptions = serialized["options"]
         return options
