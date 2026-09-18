@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from sentry.notifications.platform.provider import NotificationProvider
@@ -69,7 +69,7 @@ class NotificationRendererRegistry:
         import sentry.notifications.platform.slack.renderers.seer_agent_write_approval  # noqa: F401
 
     def register[RenderableT](
-        self, provider_key: NotificationProviderKey, *sources: NotificationSource
+        self, provider_key: NotificationProviderKey, sources: Sequence[NotificationSource]
     ) -> Callable[
         [type[NotificationRenderer[RenderableT]]], type[NotificationRenderer[RenderableT]]
     ]:
