@@ -4,25 +4,32 @@ from typing import Any
 
 import pytest
 
-from sentry.integrations.messaging.message_builder import build_attachment_title, build_footer
-from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
+from sentry.integrations.messaging.message_builder import (
+    build_attachment_title,
+    build_footer,
+    format_actor_options_non_slack,
+)
+from sentry.integrations.msteams.card_builder import ME, MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
-    Action,
     ActionType,
     AdaptiveCard,
     ContentAlignment,
-    OpenUrlAction,
+    ShowCardAction,
     TextSize,
     TextWeight,
+    create_action_set_block,
     create_column_block,
     create_column_set_block,
+    create_container_block,
     create_footer_column_block,
     create_footer_logo_block,
     create_footer_text_block,
     create_text_block,
 )
+from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.notifications.platform.msteams.provider import (
@@ -125,11 +132,61 @@ class IssueMSTeamsRendererTest(TestCase):
             ),
         )
 
-        actions: list[Action] = [
-            OpenUrlAction(type=ActionType.OPEN_URL, title="View Issue", url=issue_url)
+        def payload(action_type: ACTION_TYPE) -> dict[str, Any]:
+            return {
+                "payload": {
+                    "actionType": action_type,
+                    "groupId": group.id,
+                    "eventId": event.event_id,
+                    "rules": [1],
+                }
+            }
+
+        teams = group.project.teams.all().order_by("slug")
+        assignee_choices = [("Me", ME)] + [
+            (team["text"], team["value"]) for team in format_actor_options_non_slack(teams)
         ]
 
-        return MSTeamsMessageBuilder().build(title=title, fields=[footer], actions=actions)
+        actions = create_container_block(
+            create_action_set_block(
+                ShowCardAction(
+                    type=ActionType.SHOW_CARD,
+                    title=IssueConstants.RESOLVE,
+                    card=MSTeamsIssueMessageBuilder.build_input_choice_card(
+                        data=payload(ACTION_TYPE.RESOLVE),
+                        card_title=IssueConstants.RESOLVE,
+                        submit_button_title=IssueConstants.RESOLVE,
+                        input_id=IssueConstants.RESOLVE_INPUT_ID,
+                        choices=IssueConstants.RESOLVE_INPUT_CHOICES,
+                    ),
+                ),
+                ShowCardAction(
+                    type=ActionType.SHOW_CARD,
+                    title=IssueConstants.ARCHIVE,
+                    card=MSTeamsIssueMessageBuilder.build_input_choice_card(
+                        data=payload(ACTION_TYPE.ARCHIVE),
+                        card_title=IssueConstants.ARCHIVE_INPUT_TITLE,
+                        submit_button_title=IssueConstants.ARCHIVE,
+                        input_id=IssueConstants.ARCHIVE_INPUT_ID,
+                        choices=IssueConstants.ARCHIVE_INPUT_CHOICES,
+                    ),
+                ),
+                ShowCardAction(
+                    type=ActionType.SHOW_CARD,
+                    title=IssueConstants.ASSIGN,
+                    card=MSTeamsIssueMessageBuilder.build_input_choice_card(
+                        data=payload(ACTION_TYPE.ASSIGN),
+                        card_title=IssueConstants.ASSIGN_INPUT_TITLE,
+                        submit_button_title=IssueConstants.ASSIGN,
+                        input_id=IssueConstants.ASSIGN_INPUT_ID,
+                        choices=assignee_choices,
+                        default_choice=ME,
+                    ),
+                ),
+            )
+        )
+
+        return MSTeamsMessageBuilder().build(title=title, fields=[footer, actions])
 
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError

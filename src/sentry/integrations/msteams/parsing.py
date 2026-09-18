@@ -70,6 +70,20 @@ def get_integration_from_card_action(data: Mapping[str, Any]) -> RpcIntegration 
     )
 
 
+def get_integration_from_request_data(data: Mapping[str, Any]) -> RpcIntegration | None:
+    """
+    Resolve the integration a request belongs to, preferring the card action context and falling
+    back to the conversation it arrived on. Cards built by the notification platform cannot embed
+    an integration id, since the renderer has no access to the target it is being sent to.
+    """
+    integration = get_integration_from_card_action(data=data)
+    if integration is None:
+        integration = get_integration_from_channel_data(data=data)
+    if integration is None:
+        integration = get_integration_for_tenant(data=data)
+    return integration
+
+
 def can_infer_integration(data: Mapping[str, Any]) -> bool:
     return (
         _infer_integration_id_from_card_action(data=data) is not None

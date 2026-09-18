@@ -553,7 +553,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         tenant_id = channel_data["tenant"]["id"]
         payload = data["value"]["payload"]
         group_id = payload["groupId"]
-        integration_id = payload["integrationId"]
+        integration_id = payload.get("integrationId")
         user_id = data["from"]["id"]
         activity_id = data["replyToId"]
         conversation = data["conversation"]
@@ -562,7 +562,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
         else:
             conversation_id = channel_data["channel"]["id"]
 
-        integration = parsing.get_integration_from_card_action(data=data)
+        integration = parsing.get_integration_from_request_data(data=data)
         if integration is None:
             logger.info(
                 "msteams.action.missing-integration", extra={"integration_id": integration_id}
