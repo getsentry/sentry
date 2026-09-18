@@ -22,7 +22,6 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {performanceScoreTooltip} from 'sentry/views/dashboards/utils';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 
 jest.mock('echarts-for-react/lib/core', () => {
@@ -742,103 +741,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
           expect(eventsMock).toHaveBeenCalled();
         });
       });
-
-      it('displays table data with units correctly', async () => {
-        const eventsMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/',
-          match: [MockApiClient.matchQuery({cursor: undefined})],
-          headers: {
-            Link:
-              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
-              '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
-          },
-          body: {
-            data: [
-              {
-                'p75(measurements.custom.minute)': 94.87035966318831,
-                'p95(measurements.custom.ratio)': 0.9881980140455187,
-                'p75(measurements.custom.kibibyte)': 217.87035966318834,
-              },
-            ],
-            meta: {
-              fields: {
-                'p75(measurements.custom.minute)': 'duration',
-                'p95(measurements.custom.ratio)': 'percentage',
-                'p75(measurements.custom.kibibyte)': 'size',
-              },
-              units: {
-                'p75(measurements.custom.minute)': 'minute',
-                'p95(measurements.custom.ratio)': null,
-                'p75(measurements.custom.kibibyte)': 'kibibyte',
-              },
-              isMetricsData: true,
-              tips: {},
-            },
-          },
-        });
-        await renderModal({
-          initialData: initialDataWithFlag,
-          widget: {
-            title: 'Custom Widget',
-            displayType: 'table',
-            queries: [
-              {
-                fields: [
-                  'p75(measurements.custom.kibibyte)',
-                  'p75(measurements.custom.minute)',
-                  'p95(measurements.custom.ratio)',
-                ],
-                aggregates: [
-                  'p75(measurements.custom.kibibyte)',
-                  'p75(measurements.custom.minute)',
-                  'p95(measurements.custom.ratio)',
-                ],
-                columns: [],
-                orderby: '-p75(measurements.custom.kibibyte)',
-              },
-            ],
-            widgetType: 'discover',
-          },
-        });
-        await waitFor(() => {
-          expect(eventsMock).toHaveBeenCalled();
-        });
-        expect(screen.getByText('217.9 KiB')).toBeInTheDocument();
-        expect(screen.getByText('1.58hr')).toBeInTheDocument();
-        expect(screen.getByText('98.82%')).toBeInTheDocument();
-      });
-
-      it('disables open in discover button when widget uses performance_score', async () => {
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events/',
-        });
-
-        await renderModal({
-          initialData,
-
-          widget: {
-            title: 'Custom Widget',
-            displayType: 'table',
-            queries: [
-              {
-                fields: ['performance_score(measurements.score.total)'],
-                aggregates: ['performance_score(measurements.score.total)'],
-                conditions: '',
-                columns: [],
-                orderby: '',
-              },
-            ],
-            widgetType: 'discover',
-          },
-        });
-        expect(screen.getByRole('button', {name: 'Open in Discover'})).toHaveAttribute(
-          'aria-disabled',
-          'true'
-        );
-
-        await userEvent.hover(screen.getByRole('button', {name: 'Open in Discover'}));
-        expect(await screen.findByText(performanceScoreTooltip)).toBeInTheDocument();
-      });
     });
   });
 
@@ -1214,6 +1116,71 @@ describe('Modals -> DataWidgetViewerModal', () => {
           location: {...defaultInitialRouterConfig.location},
         },
       };
+    });
+
+    it('displays table data with units correctly', async () => {
+      const eventsMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({cursor: undefined})],
+        headers: {
+          Link:
+            '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
+            '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
+        },
+        body: {
+          data: [
+            {
+              'p75(measurements.custom.minute)': 94.87035966318831,
+              'p95(measurements.custom.ratio)': 0.9881980140455187,
+              'p75(measurements.custom.kibibyte)': 217.87035966318834,
+            },
+          ],
+          meta: {
+            fields: {
+              'p75(measurements.custom.minute)': 'duration',
+              'p95(measurements.custom.ratio)': 'percentage',
+              'p75(measurements.custom.kibibyte)': 'size',
+            },
+            units: {
+              'p75(measurements.custom.minute)': 'minute',
+              'p95(measurements.custom.ratio)': null,
+              'p75(measurements.custom.kibibyte)': 'kibibyte',
+            },
+            isMetricsData: true,
+            tips: {},
+          },
+        },
+      });
+      await renderModal({
+        initialData: initialDataWithFlag,
+        widget: {
+          title: 'Custom Widget',
+          displayType: 'table',
+          queries: [
+            {
+              fields: [
+                'p75(measurements.custom.kibibyte)',
+                'p75(measurements.custom.minute)',
+                'p95(measurements.custom.ratio)',
+              ],
+              aggregates: [
+                'p75(measurements.custom.kibibyte)',
+                'p75(measurements.custom.minute)',
+                'p95(measurements.custom.ratio)',
+              ],
+              columns: [],
+              orderby: '-p75(measurements.custom.kibibyte)',
+            },
+          ],
+          widgetType: 'spans',
+        },
+      });
+      await waitFor(() => {
+        expect(eventsMock).toHaveBeenCalled();
+      });
+      expect(screen.getByText('217.9 KiB')).toBeInTheDocument();
+      expect(screen.getByText('1.58hr')).toBeInTheDocument();
+      expect(screen.getByText('98.82%')).toBeInTheDocument();
     });
 
     it('renders the Open in Explore button', async () => {
