@@ -373,6 +373,12 @@ function ngettext(singular: string, plural: string, ...args: FormatArg[]): strin
   return mark(format(getClient().ngettext(singular, plural, countArg), args) as string);
 }
 
+function pgettext(context: string, string: string): string {
+  const val: string = getClient().pgettext(context, string);
+  staticTranslations.add(val);
+  return mark(val);
+}
+
 /**
  * special form of gettext where you can render nested react components in
  * template strings.
@@ -420,4 +426,5 @@ export {
   gettextComponentTemplate as tct,
   ngettext as tn,
   gettextDescription as td,
+  pgettext,
 };
