@@ -486,39 +486,21 @@ type ChartWithReleasesProps = ChartImplementationProps &
   >;
 
 function ChartImplementation({
-  zoomRenderProps,
   releaseSeries,
   errored,
   loading,
   reloading,
   results,
   timeseriesData,
-  previousTimeseriesData,
-  timeframe,
   tableData,
-  timeseriesResultsTypes,
-  additionalSeries,
-  chartComponent,
   chartHeader,
-  chartOptions,
   colors,
-  currentSeriesNames,
   disableableSeries,
-  forceChartType,
-  fromDiscover,
   height,
   isStacked,
-  legendOptions,
   loadingAdditionalSeries,
-  minutesThresholdToDisplaySeconds,
-  previousSeriesNames,
-  previousSeriesTransformer,
-  seriesTransformer,
   reloadingAdditionalSeries,
-  showDaily,
-  showLegend,
-  yAxis,
-  topEvents,
+  ...chartProps
 }: ChartImplementationProps) {
   if (errored) {
     return (
@@ -540,34 +522,16 @@ function ChartImplementation({
       {isValidElement(chartHeader) && chartHeader}
 
       <ThemedChart
-        forceChartType={forceChartType}
-        zoomRenderProps={zoomRenderProps}
         loading={loading || !!loadingAdditionalSeries}
         reloading={reloading || !!reloadingAdditionalSeries}
-        showLegend={showLegend}
-        minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
         releaseSeries={releaseSeries || []}
         timeseriesData={seriesData ?? []}
-        previousTimeseriesData={previousTimeseriesData}
-        currentSeriesNames={currentSeriesNames}
-        previousSeriesNames={previousSeriesNames}
-        seriesTransformer={seriesTransformer}
-        additionalSeries={additionalSeries}
-        previousSeriesTransformer={previousSeriesTransformer}
-        stacked={isStacked}
-        yAxis={yAxis}
-        showDaily={showDaily}
         colors={colors}
-        legendOptions={legendOptions}
-        chartOptions={chartOptions}
+        stacked={isStacked}
+        {...chartProps}
         disableableSeries={disableableSeries}
-        chartComponent={chartComponent}
         height={height}
-        timeframe={timeframe}
-        topEvents={topEvents}
         tableData={tableData ?? []}
-        fromDiscover={fromDiscover}
-        timeseriesResultsTypes={timeseriesResultsTypes}
       />
     </TransitionChart>
   );

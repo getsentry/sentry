@@ -155,16 +155,14 @@ export function EditAccessSelector({
     };
   }
 
-  // Creates tooltip for the + bubble in avatar list
-  const collapsedAvatarTooltip =
-    getDashboardPermissions().teamsWithEditAccess.length > 1 ? (
-      <CollapsedAvatarTooltipContent teams={allSelectedTeams} />
-    ) : null;
-
   const renderCollapsedAvatars = (_avatarSize: number, numCollapsedAvatars: number) => {
     return (
       <Tooltip
-        title={collapsedAvatarTooltip}
+        title={
+          getDashboardPermissions().teamsWithEditAccess.length > 1 ? (
+            <CollapsedAvatarTooltipContent teams={allSelectedTeams} />
+          ) : null
+        }
         overlayStyle={{
           pointerEvents: 'auto',
           zIndex: 1000,
@@ -370,9 +368,7 @@ export function EditAccessSelector({
   );
 
   const tooltipTitle = disabled
-    ? tct('[label] dashboards cannot be edited', {
-        label: PREBUILT_DASHBOARD_LABEL,
-      })
+    ? tct('[label] dashboards cannot be edited', {label: PREBUILT_DASHBOARD_LABEL})
     : t('Only the creator of this dashboard can manage editor access');
 
   return (
