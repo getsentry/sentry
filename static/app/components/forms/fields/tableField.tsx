@@ -5,6 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
+import {singleLineRenderer} from '@sentry/scraps/markdown';
 
 import {Confirm} from 'sentry/components/confirm';
 import {FormField} from 'sentry/components/forms/formField';
@@ -12,7 +13,6 @@ import type {TableType} from 'sentry/components/forms/types';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
-import {singleLineRenderer} from 'sentry/utils/marked/marked';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
@@ -112,24 +112,21 @@ export function TableField({
       return <div>{button}</div>;
     }
 
-    const renderConfirmMessage = () => {
-      return (
-        <Fragment>
-          <Alert.Container>
-            <Alert variant="danger" showIcon={false}>
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(
-                    confirmDeleteMessage ||
-                      t('Are you sure you want to delete this item?')
-                  ),
-                }}
-              />
-            </Alert>
-          </Alert.Container>
-        </Fragment>
-      );
-    };
+    const confirmMessage = (
+      <Fragment>
+        <Alert.Container>
+          <Alert variant="danger" showIcon={false}>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(
+                  confirmDeleteMessage || t('Are you sure you want to delete this item?')
+                ),
+              }}
+            />
+          </Alert>
+        </Alert.Container>
+      </Fragment>
+    );
 
     return (
       <Fragment>
@@ -158,7 +155,7 @@ export function TableField({
                     priority="danger"
                     disabled={disabled}
                     onConfirm={() => removeRow(rowIndex)}
-                    message={renderConfirmMessage()}
+                    message={confirmMessage}
                   >
                     <RemoveButton>
                       <Button

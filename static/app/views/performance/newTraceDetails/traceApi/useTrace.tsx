@@ -137,7 +137,7 @@ type UseTraceOptions = {
   traceSlug?: string;
 };
 
-export type TraceQueryResult = UseApiQueryResult<TraceTree.Trace, RequestError>;
+export type TraceQueryResult = UseApiQueryResult<TraceTree.EAPTrace, RequestError>;
 
 export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const filters = usePageFilters();

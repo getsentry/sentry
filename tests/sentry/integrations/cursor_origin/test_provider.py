@@ -3,7 +3,11 @@ from __future__ import annotations
 from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
+import jwt as pyjwt
 import pytest
+import responses
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from sentry.integrations.base import (
     INTEGRATION_TYPE_TO_PROVIDER,
@@ -11,7 +15,10 @@ from sentry.integrations.base import (
     IntegrationFeatures,
     is_provider_enabled,
 )
-from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_SCOPES
+from sentry.integrations.cursor_origin.constants import (
+    CURSOR_ORIGIN_API_BASE_URL,
+    CURSOR_ORIGIN_SCOPES,
+)
 from sentry.integrations.cursor_origin.integration import (
     CursorOriginIntegration,
     CursorOriginIntegrationProvider,
@@ -23,13 +30,23 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 INSTALLATION_ID = "i_01example"
 APP_ID = "app_01example"
 CLIENT = "sentry.integrations.cursor_origin.integration.CursorOriginSetupApiClient"
+PRIVATE_KEY_PEM = (
+    Ed25519PrivateKey.generate()
+    .private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    .decode()
+)
 SYNC_TASK = "sentry.integrations.cursor_origin.integration.sync_repos_for_org"
 
 
@@ -68,29 +85,59 @@ class CursorOriginProviderRegistrationTest(TestCase):
 
 
 @control_silo_test
+@override_options(
+    {"cursor-origin-app.id": APP_ID, "cursor-origin-app.private-key": PRIVATE_KEY_PEM}
+)
 class BuildIntegrationTest(TestCase):
+    url = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}"
+
+    def _installation(self, **overrides: object) -> dict[str, object]:
+        return {
+            "target": {"slug": "acme", "id": "ns_1"},
+            "scopes": ["repository:contents:read"],
+            "repoSelectionMode": "selected",
+            **overrides,
+        }
+
+    @responses.activate
     def test_names_the_integration_after_the_codebase(self) -> None:
-        with mock.patch(f"{CLIENT}.get_installation") as mock_get:
-            mock_get.return_value = {
-                "target": {"slug": "acme", "id": "ns_1"},
-                "scopes": ["repository:contents:read"],
-                "repoSelectionMode": "selected",
-            }
-            data = CursorOriginIntegrationProvider().build_integration(
-                {"installation_id": INSTALLATION_ID}
-            )
+        responses.add(responses.GET, self.url, json=self._installation())
+
+        data = CursorOriginIntegrationProvider().build_integration(
+            {"installation_id": INSTALLATION_ID}
+        )
 
         assert data["name"] == "acme"
         assert data["external_id"] == INSTALLATION_ID
         assert data["metadata"]["domain_name"] == "https://cursor.com/codebase/acme"
         assert data["metadata"]["repo_selection_mode"] == "selected"
+        token = responses.calls[0].request.headers["Authorization"].removeprefix("Bearer ")
+        assert pyjwt.get_unverified_header(token)["kid"] == APP_ID
 
+    @responses.activate
+    def test_a_suspended_installation_is_refused(self) -> None:
+        """Installing cannot unsuspend, so enabling would claim a health we cannot deliver."""
+        responses.add(
+            responses.GET,
+            self.url,
+            json=self._installation(suspendedAt="2026-09-18T00:00:00Z"),
+        )
+
+        with pytest.raises(IntegrationError) as excinfo:
+            CursorOriginIntegrationProvider().build_integration(
+                {"installation_id": INSTALLATION_ID}
+            )
+
+        assert "suspended" in str(excinfo.value)
+
+    @responses.activate
     def test_an_unreadable_installation_is_rejected(self) -> None:
-        with mock.patch(f"{CLIENT}.get_installation", side_effect=ApiError("nope", code=404)):
-            with pytest.raises(IntegrationError):
-                CursorOriginIntegrationProvider().build_integration(
-                    {"installation_id": INSTALLATION_ID}
-                )
+        responses.add(responses.GET, self.url, json={"code": 5, "message": "nope"}, status=404)
+
+        with pytest.raises(IntegrationError):
+            CursorOriginIntegrationProvider().build_integration(
+                {"installation_id": INSTALLATION_ID}
+            )
 
 
 class BuildInstallUrlTest(TestCase):

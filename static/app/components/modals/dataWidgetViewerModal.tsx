@@ -17,9 +17,7 @@ import {Select, SelectOption, components} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {fetchTotalCount} from 'sentry/actionCreators/events';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t, tct} from 'sentry/locale';
@@ -163,29 +161,6 @@ const MemoizedWidgetCardChartContainer = memo(
   shouldWidgetCardChartMemo
 );
 
-async function fetchDiscoverTotal(
-  api: Client,
-  organization: Organization,
-  location: Location,
-  eventView: EventView
-): Promise<string | undefined> {
-  if (!eventView.isValid()) {
-    return undefined;
-  }
-
-  try {
-    const total = await fetchTotalCount(
-      api,
-      organization.slug,
-      eventView.getEventsAPIPayload(location)
-    );
-    return total.toLocaleString();
-  } catch (err) {
-    Sentry.captureException(err);
-    return undefined;
-  }
-}
-
 function DataWidgetViewerModal(props: Props) {
   const {
     organization,
@@ -255,6 +230,7 @@ function DataWidgetViewerModal(props: Props) {
   // We need to use useEffect to prevent infinite looping rerenders due to the setModalSelection call
   useEffect(() => {
     if (location.action === 'POP') {
+      // oxlint-disable-next-line react/set-state-in-effect -- Synchronize modal state with browser back navigation.
       setModalSelection(locationPageFilter);
     }
   }, [location, locationPageFilter]);
@@ -350,8 +326,8 @@ function DataWidgetViewerModal(props: Props) {
       DisplayType.BIG_NUMBER,
       DisplayType.BAR,
     ].includes(widget.displayType) &&
-    widget.widgetType &&
-    [WidgetType.DISCOVER, WidgetType.RELEASE].includes(widget.widgetType) &&
+    widget.widgetType !== undefined &&
+    [WidgetType.ERRORS, WidgetType.RELEASE].includes(widget.widgetType) &&
     !hasGroupBy;
 
   // Updates fields by adding any individual terms from equation fields as a column
@@ -375,21 +351,16 @@ function DataWidgetViewerModal(props: Props) {
   });
 
   if (shouldReplaceTableColumns) {
-    switch (widget.widgetType) {
-      case WidgetType.DISCOVER:
-        if (fields.length === 1) {
-          tableWidget.queries[0]!.orderby =
-            tableWidget.queries[0]!.orderby || `-${fields[0]}`;
-        }
-        fields.unshift('title');
-        columns.unshift('title');
-        break;
-      case WidgetType.RELEASE:
-        fields.unshift('release');
-        columns.unshift('release');
-        break;
-      default:
-        break;
+    if (widget.widgetType === WidgetType.ERRORS) {
+      if (fields.length === 1) {
+        tableWidget.queries[0]!.orderby =
+          tableWidget.queries[0]!.orderby || `-${fields[0]}`;
+      }
+      fields.unshift('title');
+      columns.unshift('title');
+    } else {
+      fields.unshift('release');
+      columns.unshift('release');
     }
   }
 
@@ -424,7 +395,7 @@ function DataWidgetViewerModal(props: Props) {
             getFilterTokenWarning={
               shouldDisplayOnDemandWidgetWarning(
                 query,
-                widget.widgetType ?? WidgetType.DISCOVER,
+                widget.widgetType ?? WidgetType.ERRORS,
                 organization
               )
                 ? getOnDemandFilterWarning
@@ -442,24 +413,11 @@ function DataWidgetViewerModal(props: Props) {
     };
   });
 
-  // Get discover result totals
-  useEffect(() => {
-    const getDiscoverTotals = async () => {
-      if (widget.widgetType === WidgetType.DISCOVER) {
-        setTotalResults(await fetchDiscoverTotal(api, organization, location, eventView));
-      }
-    };
-    getDiscoverTotals();
-    // Disabling this for now since this effect should only run on initial load and query index changes
-    // Including all exhaustive deps would cause fetchDiscoverTotal on nearly every update
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedQueryIndex]);
-
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
     widgetLegendState.setWidgetSelectionState(selected, widget);
     trackAnalytics('dashboards_views.widget_viewer.toggle_legend', {
       organization,
-      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      widget_type: widget.widgetType ?? WidgetType.ERRORS,
       display_type: widget.displayType,
     });
   }
@@ -538,7 +496,7 @@ function DataWidgetViewerModal(props: Props) {
     });
     trackAnalytics('dashboards_views.widget_viewer.zoom', {
       organization,
-      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      widget_type: widget.widgetType ?? WidgetType.ERRORS,
       display_type: widget.displayType,
     });
   };
@@ -589,7 +547,6 @@ function DataWidgetViewerModal(props: Props) {
             {renderTable}
           </ReleaseWidgetQueries>
         );
-      case WidgetType.DISCOVER:
       default:
         return (
           <WidgetQueries
@@ -716,7 +673,7 @@ function DataWidgetViewerModal(props: Props) {
 
                 trackAnalytics('dashboards_views.widget_viewer.select_query', {
                   organization,
-                  widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                  widget_type: widget.widgetType ?? WidgetType.ERRORS,
                   display_type: widget.displayType,
                 });
               }}
@@ -828,7 +785,7 @@ function DataWidgetViewerModal(props: Props) {
                             onEdit();
                             trackAnalytics('dashboards_views.widget_viewer.edit', {
                               organization,
-                              widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                              widget_type: widget.widgetType ?? WidgetType.ERRORS,
                               display_type: widget.displayType,
                             });
                           }}
@@ -930,7 +887,6 @@ function OpenButton({
     case WidgetType.PREPROD_APP_SIZE:
       // Mobile app size widgets are not integrated with Explore or Discover
       return null;
-    case WidgetType.DISCOVER:
     default:
       openLabel = getDiscoverDeprecation(organization)
         ? t('Open in Explore')
@@ -953,7 +909,7 @@ function OpenButton({
         onClick={() => {
           trackAnalytics('dashboards_views.widget_viewer.open_source', {
             organization,
-            widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+            widget_type: widget.widgetType ?? WidgetType.ERRORS,
             display_type: widget.displayType,
           });
         }}
@@ -975,15 +931,6 @@ function renderTotalResults(totalResults?: string, widgetType?: WidgetType) {
           {tct('[description:Total Issues:] [total]', {
             description: <strong />,
             total: totalResults === '1000' ? '1000+' : totalResults,
-          })}
-        </span>
-      );
-    case WidgetType.DISCOVER:
-      return (
-        <span>
-          {tct('[description:Sampled Events:] [total]', {
-            description: <strong />,
-            total: totalResults,
           })}
         </span>
       );
@@ -1085,7 +1032,7 @@ function ViewerTableV2({
   function onChangeSort(newSort: Sort) {
     trackAnalytics('dashboards_views.widget_viewer.sort', {
       organization,
-      widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+      widget_type: widget.widgetType ?? WidgetType.ERRORS,
       display_type: widget.displayType,
       column: newSort.field,
       order: newSort.kind,
@@ -1210,7 +1157,7 @@ function ViewerTableV2({
 
               trackAnalytics('dashboards_views.widget_viewer.paginate', {
                 organization,
-                widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+                widget_type: widget.widgetType ?? WidgetType.ERRORS,
                 display_type: widget.displayType,
               });
             }}

@@ -35,7 +35,7 @@ export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesO
     [topEvents, visualizes]
   );
   return useProgressiveQuery<typeof useMetricTimeseriesImpl>({
-    queryHookImplementation: useMetricTimeseriesImpl,
+    queryHookImplementation: useMetricTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {traceMetric, queryExtras: undefined, enabled},
     queryOptions: {
       canTriggerHighAccuracy,

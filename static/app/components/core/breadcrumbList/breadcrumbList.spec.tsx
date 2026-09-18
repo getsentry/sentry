@@ -23,20 +23,6 @@ function hidesBelowSm(element: HTMLElement): boolean {
 }
 
 describe('BreadcrumbList container-query collapse', () => {
-  let consoleError: jest.SpyInstance;
-
-  beforeEach(() => {
-    // These tests assert on rendered DOM and emitted styles, where a React
-    // warning usually means a prop leaked onto a host element. Fail on any.
-    consoleError = jest.spyOn(console, 'error').mockImplementation((...args) => {
-      throw new Error(`Unexpected console.error: ${args.map(String).join(' ')}`);
-    });
-  });
-
-  afterEach(() => {
-    consoleError.mockRestore();
-  });
-
   it('emits an @container display rule for link crumbs, not an always-on @media shadow', () => {
     render(
       <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />

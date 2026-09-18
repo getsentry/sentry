@@ -7,15 +7,15 @@ describe('groupIntoBuckets', () => {
     expect(groupIntoBuckets([])).toEqual([]);
   });
 
-  it('collapses annotations sharing a (start, end) and sums droppedCount', () => {
+  it('collapses annotations sharing a (start, end) and sums eventCount', () => {
     const buckets = groupIntoBuckets([
       AnnotationFixture({
         start: 0,
         end: 60_000,
-        droppedCount: 10,
+        eventCount: 10,
         reason: 'rate_limited',
       }),
-      AnnotationFixture({start: 0, end: 60_000, droppedCount: 5, reason: 'quota'}),
+      AnnotationFixture({start: 0, end: 60_000, eventCount: 5, reason: 'quota'}),
     ]);
 
     expect(buckets).toHaveLength(1);
@@ -26,8 +26,8 @@ describe('groupIntoBuckets', () => {
 
   it('keeps distinct (start, end) ranges as separate buckets', () => {
     const buckets = groupIntoBuckets([
-      AnnotationFixture({start: 0, end: 60_000, droppedCount: 10}),
-      AnnotationFixture({start: 60_000, end: 120_000, droppedCount: 20}),
+      AnnotationFixture({start: 0, end: 60_000, eventCount: 10}),
+      AnnotationFixture({start: 60_000, end: 120_000, eventCount: 20}),
     ]);
 
     expect(buckets).toHaveLength(2);
@@ -38,8 +38,8 @@ describe('groupIntoBuckets', () => {
 
   it('assigns MAX_SEVERITY to the bucket with the largest total', () => {
     const buckets = groupIntoBuckets([
-      AnnotationFixture({start: 0, end: 60_000, droppedCount: 100}),
-      AnnotationFixture({start: 60_000, end: 120_000, droppedCount: 26}),
+      AnnotationFixture({start: 0, end: 60_000, eventCount: 100}),
+      AnnotationFixture({start: 60_000, end: 120_000, eventCount: 26}),
     ]);
 
     const [worst, lesser] = buckets;

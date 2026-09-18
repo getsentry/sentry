@@ -1,13 +1,13 @@
 /* eslint no-script-url:0 */
 
+import {loadPrismLanguage} from '@sentry/scraps/code';
 import {
   asyncSanitizedMarked,
   markdownRendersVisibleContent,
   markdownToPlainText,
   sanitizedMarked,
   singleLineRenderer,
-} from 'sentry/utils/marked/marked';
-import {loadPrismLanguage} from 'sentry/utils/prism';
+} from '@sentry/scraps/markdown';
 
 jest.unmock('prismjs');
 
