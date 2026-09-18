@@ -223,9 +223,8 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   width: 100%;
   min-width: 0;
   position: relative;
-  /* Stay above chart content throughout the closing animation, below CompactSelect
-   * overlays (dropdown) and AttributeDetails (tooltip). */
-  z-index: ${p => p.theme.zIndex.header};
+  /* Keep inactive rows below the active filter's suggestions. */
+  z-index: ${p => p.theme.zIndex.header - 1};
   /* Clip long queries while collapsed; overlays escape once expanded. */
   overflow: hidden;
   transition: width ${p => p.theme.motion.smooth.moderate};
@@ -236,6 +235,14 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   }
 
   &[data-collapsed='true']:not(:focus-within) {
+    /* Retain elevation until closing finishes, then return below active filters. */
+    animation: ${p => keyframes`
+        from, to {
+          z-index: ${p.theme.zIndex.header};
+        }
+      `}
+      ${p => p.theme.motion.smooth.moderate};
+
     ${FIELD_SELECTOR} {
       /* Use an opaque fill during closing, then return to the input's default fill. */
       animation: ${p => keyframes`
@@ -256,6 +263,7 @@ const ExpandableFilterSearchBarWrapper = styled('div')`
   &:focus-within {
     overflow: visible;
     flex-shrink: 0;
+    z-index: ${p => p.theme.zIndex.header};
 
     ${FIELD_SELECTOR} {
       background-color: ${p => p.theme.tokens.background.primary};
