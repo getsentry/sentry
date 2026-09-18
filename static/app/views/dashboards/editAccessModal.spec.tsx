@@ -187,6 +187,21 @@ describe('EditAccessModal', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('will not edit individual teams while the list is incomplete', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: teams,
+      headers: {
+        Link: '<http://localhost/api/0/organizations/org-slug/teams/?cursor=next>; rel="next"; results="true"; cursor="next"',
+      },
+    });
+
+    await openEditAccessModal();
+
+    expect(await screen.findByRole('checkbox', {name: 'team1'})).toBeDisabled();
+    expect(selectAllCheckbox()).toBeEnabled();
+  });
+
   it('filters the team list by search', async () => {
     await openEditAccessModal();
 

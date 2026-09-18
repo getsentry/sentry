@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
 import sortBy from 'lodash/sortBy';
+import uniqBy from 'lodash/uniqBy';
 
 import {Alert} from '@sentry/scraps/alert';
 import {TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -79,14 +80,14 @@ function useAllOrgTeams() {
   );
 
   const pageCount = result.data?.pages.length ?? 0;
-  useFetchAllPages({result, enabled: pageCount + 1 < MAX_TEAM_PAGES});
-
-  const isLoading = result.isPending || result.isFetchingNextPage;
+  const hasReachedPageCap = pageCount >= MAX_TEAM_PAGES;
+  useFetchAllPages({result, enabled: !hasReachedPageCap});
 
   return {
-    teams: result.data?.pages.flatMap(page => page.json) ?? [],
-    isLoading,
-    isEveryTeamLoaded: !isLoading && !result.hasNextPage,
+    teams: uniqBy(result.data?.pages.flatMap(page => page.json) ?? [], team => team.id),
+    isLoading: result.isPending || result.isFetchingNextPage,
+    isEveryTeamLoaded: !result.isPending && !result.hasNextPage,
+    isTeamListTruncated: hasReachedPageCap,
   };
 }
 
@@ -142,7 +143,7 @@ function EditAccessModal({
   const [pending, setPending] = useState<PendingPermissions>(savedPermissions);
   const [search, setSearch] = useState('');
 
-  const {teams, isLoading, isEveryTeamLoaded} = useAllOrgTeams();
+  const {teams, isLoading, isEveryTeamLoaded, isTeamListTruncated} = useAllOrgTeams();
   const allTeamIds = useMemo(() => teams.map(team => team.id), [teams]);
 
   const sortedTeams = useMemo(() => {
@@ -231,6 +232,14 @@ function EditAccessModal({
           {!userCanEditDashboardPermissions && (
             <Alert variant="info">
               {t('These settings can only be edited by the owner of this dashboard')}
+            </Alert>
+          )}
+
+          {userCanEditDashboardPermissions && isTeamListTruncated && (
+            <Alert variant="warning">
+              {t(
+                'This organization has too many teams to list here. You can still grant or revoke access for everyone.'
+              )}
             </Alert>
           )}
 
@@ -331,7 +340,9 @@ function EditAccessModal({
                         <Switch
                           checked={isTeamChecked(team.id)}
                           onChange={() => handleToggleTeam(team.id)}
-                          disabled={!userCanEditDashboardPermissions}
+                          disabled={
+                            !userCanEditDashboardPermissions || !isEveryTeamLoaded
+                          }
                           aria-labelledby={`${TEAM_LABEL_PREFIX}${team.id}`}
                         />
                       </Flex>
