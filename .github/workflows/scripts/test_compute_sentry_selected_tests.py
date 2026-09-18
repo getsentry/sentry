@@ -72,6 +72,19 @@ def _run(args: list[str], env: dict[str, str] | None = None):
         return main()
 
 
+def _file_list_args(
+    tmp_path: Path, changed_files: str, previous_filenames: str | None = None
+) -> list[str]:
+    changed_files_path = tmp_path / "changed-files"
+    changed_files_path.write_text(changed_files)
+    args = ["--changed-files-file", str(changed_files_path)]
+    if previous_filenames is not None:
+        previous_filenames_path = tmp_path / "previous-filenames"
+        previous_filenames_path.write_text(previous_filenames)
+        args.extend(["--previous-filenames-file", str(previous_filenames_path)])
+    return args
+
+
 class TestQueryCoverage:
     def test_sentry_source_maps_to_sentry_tests(self, tmp_path):
         db = str(tmp_path / "coverage.db")
@@ -138,7 +151,32 @@ class TestMain:
         gh_output.write_text("")
 
         _run(
-            ["--coverage-db", str(db_path), "--changed-files", "", "--github-output"],
+            [
+                "--coverage-db",
+                str(db_path),
+                *_file_list_args(tmp_path, ""),
+                "--github-output",
+            ],
+            {"GITHUB_OUTPUT": str(gh_output)},
+        )
+        assert "has-selected-tests=false" in gh_output.read_text()
+
+    def test_changed_files_file_triggers_full_suite(self, tmp_path):
+        db_path = tmp_path / "coverage.db"
+        _create_coverage_db(str(db_path), {})
+        changed_files = tmp_path / "changed-files"
+        changed_files.write_text("pyproject.toml")
+        gh_output = tmp_path / "gh_output"
+        gh_output.write_text("")
+
+        _run(
+            [
+                "--coverage-db",
+                str(db_path),
+                "--changed-files-file",
+                str(changed_files),
+                "--github-output",
+            ],
             {"GITHUB_OUTPUT": str(gh_output)},
         )
         assert "has-selected-tests=false" in gh_output.read_text()
@@ -150,7 +188,12 @@ class TestMain:
         gh_output.write_text("")
 
         _run(
-            ["--coverage-db", str(db_path), "--changed-files", "pyproject.toml", "--github-output"],
+            [
+                "--coverage-db",
+                str(db_path),
+                *_file_list_args(tmp_path, "pyproject.toml"),
+                "--github-output",
+            ],
             {"GITHUB_OUTPUT": str(gh_output)},
         )
         assert "has-selected-tests=false" in gh_output.read_text()
@@ -165,8 +208,7 @@ class TestMain:
             [
                 "--coverage-db",
                 str(db_path),
-                "--changed-files",
-                "src/sentry/migrations/0042_add_field.py",
+                *_file_list_args(tmp_path, "src/sentry/migrations/0042_add_field.py"),
                 "--github-output",
             ],
             {"GITHUB_OUTPUT": str(gh_output)},
@@ -192,8 +234,7 @@ class TestMain:
                 [
                     "--coverage-db",
                     str(db_path),
-                    "--changed-files",
-                    "src/sentry/models/org.py",
+                    *_file_list_args(tmp_path, "src/sentry/models/org.py"),
                     "--output",
                     str(output),
                     "--github-output",
@@ -228,8 +269,7 @@ class TestMain:
                 [
                     "--coverage-db",
                     str(db_path),
-                    "--changed-files",
-                    "src/sentry/models/org.py",
+                    *_file_list_args(tmp_path, "src/sentry/models/org.py"),
                     "--output",
                     str(output),
                     "--github-output",
@@ -252,8 +292,7 @@ class TestMain:
                 [
                     "--coverage-db",
                     str(db_path),
-                    "--changed-files",
-                    "tests/sentry/test_new.py",
+                    *_file_list_args(tmp_path, "tests/sentry/test_new.py"),
                     "--output",
                     f"{tmp_path}/output.txt",
                     "--github-output",
@@ -277,8 +316,7 @@ class TestMain:
                 [
                     "--coverage-db",
                     str(db_path),
-                    "--changed-files",
-                    "tests/acceptance/test_foo.py tests/js/test_bar.py",
+                    *_file_list_args(tmp_path, "tests/acceptance/test_foo.py tests/js/test_bar.py"),
                     "--github-output",
                 ],
                 {"GITHUB_OUTPUT": str(gh_output)},
@@ -298,8 +336,7 @@ class TestMain:
             [
                 "--coverage-db",
                 str(db_path),
-                "--changed-files",
-                "src/sentry/some_new_file.py",
+                *_file_list_args(tmp_path, "src/sentry/some_new_file.py"),
                 "--output",
                 str(output),
                 "--github-output",
@@ -333,10 +370,11 @@ class TestMain:
                 [
                     "--coverage-db",
                     str(db_path),
-                    "--changed-files",
-                    "src/sentry/models/new_name.py",
-                    "--previous-filenames",
-                    "src/sentry/models/old_name.py",
+                    *_file_list_args(
+                        tmp_path,
+                        "src/sentry/models/new_name.py",
+                        "src/sentry/models/old_name.py",
+                    ),
                     "--output",
                     str(output),
                     "--github-output",
@@ -351,7 +389,7 @@ class TestMain:
         assert output.read_text().splitlines() == expected_output
 
     def test_renamed_file_without_previous_misses_coverage(self, tmp_path):
-        """Without --previous-filenames, a renamed file gets no coverage hits."""
+        """Without a previous-filenames file, a renamed file gets no coverage hits."""
         db_path = tmp_path / "coverage.db"
         _create_coverage_db(
             str(db_path),
@@ -368,8 +406,7 @@ class TestMain:
             [
                 "--coverage-db",
                 str(db_path),
-                "--changed-files",
-                "src/sentry/models/new_name.py",
+                *_file_list_args(tmp_path, "src/sentry/models/new_name.py"),
                 "--github-output",
             ],
             {"GITHUB_OUTPUT": str(gh_output)},
@@ -404,8 +441,7 @@ class TestMain:
                     [
                         "--coverage-db",
                         str(db_path),
-                        "--changed-files",
-                        "src/sentry/seer/explorer/client_models.py",
+                        *_file_list_args(tmp_path, "src/sentry/seer/explorer/client_models.py"),
                         "--output",
                         str(output),
                         "--github-output",
@@ -425,8 +461,14 @@ class TestMain:
         )
         assert output.read_text().splitlines() == expected
 
-    def test_missing_db_returns_error(self):
-        ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])
+    def test_missing_db_returns_error(self, tmp_path):
+        ret = _run(
+            [
+                "--coverage-db",
+                "/nonexistent/coverage.db",
+                *_file_list_args(tmp_path, "foo.py"),
+            ]
+        )
         assert ret == 1
 
     def test_endpoint_path_force_includes_public_api_matrix(self, tmp_path):
@@ -441,8 +483,7 @@ class TestMain:
                 [
                     "--coverage-db",
                     str(db_path),
-                    "--changed-files",
-                    "src/sentry/api/endpoints/views.py",
+                    *_file_list_args(tmp_path, "src/sentry/api/endpoints/views.py"),
                     "--output",
                     str(output),
                     "--github-output",
@@ -467,8 +508,7 @@ class TestMain:
                 [
                     "--coverage-db",
                     str(db_path),
-                    "--changed-files",
-                    "src/sentry/utils/thing.py",
+                    *_file_list_args(tmp_path, "src/sentry/utils/thing.py"),
                     "--output",
                     str(output),
                     "--github-output",
