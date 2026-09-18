@@ -19,7 +19,9 @@ from sentry.notifications.platform.types import (
 )
 
 
-@renderer_registry.register(NotificationProviderKey.SLACK, NotificationSource.METRIC_ALERT)
+@renderer_registry.register(
+    NotificationProviderKey.SLACK, sources=[NotificationSource.METRIC_ALERT]
+)
 class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](

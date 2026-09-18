@@ -90,12 +90,14 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
 
 @renderer_registry.register(
     NotificationProviderKey.SLACK,
-    NotificationSource.SEER_AUTOFIX_TRIGGER,
-    NotificationSource.SEER_AUTOFIX_ERROR,
-    NotificationSource.SEER_AUTOFIX_SUCCESS,
-    NotificationSource.SEER_AUTOFIX_UPDATE,
-    NotificationSource.SEER_AGENT_RESPONSE,
-    NotificationSource.SEER_AGENT_ERROR,
+    sources=[
+        NotificationSource.SEER_AUTOFIX_TRIGGER,
+        NotificationSource.SEER_AUTOFIX_ERROR,
+        NotificationSource.SEER_AUTOFIX_SUCCESS,
+        NotificationSource.SEER_AUTOFIX_UPDATE,
+        NotificationSource.SEER_AGENT_RESPONSE,
+        NotificationSource.SEER_AGENT_ERROR,
+    ],
 )
 class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod

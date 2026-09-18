@@ -19,7 +19,9 @@ from sentry.notifications.platform.types import (
 )
 
 
-@renderer_registry.register(NotificationProviderKey.DISCORD, NotificationSource.METRIC_ALERT)
+@renderer_registry.register(
+    NotificationProviderKey.DISCORD, sources=[NotificationSource.METRIC_ALERT]
+)
 class DiscordMetricAlertRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[DataT: NotificationData](

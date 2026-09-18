@@ -14,7 +14,7 @@ from sentry.notifications.platform.types import (
 )
 
 
-@renderer_registry.register(NotificationProviderKey.SLACK, NotificationSource.ISSUE)
+@renderer_registry.register(NotificationProviderKey.SLACK, sources=[NotificationSource.ISSUE])
 class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod
     def render[DataT: NotificationData](

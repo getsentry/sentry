@@ -16,7 +16,7 @@ from sentry.notifications.platform.types import (
 
 
 @renderer_registry.register(
-    NotificationProviderKey.SLACK, NotificationSource.SEER_AGENT_WRITE_APPROVAL
+    NotificationProviderKey.SLACK, sources=[NotificationSource.SEER_AGENT_WRITE_APPROVAL]
 )
 class SeerAgentWriteApprovalSlackRenderer(NotificationRenderer[SlackRenderable]):
     @classmethod

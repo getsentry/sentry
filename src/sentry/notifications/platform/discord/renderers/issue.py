@@ -17,7 +17,7 @@ from sentry.notifications.platform.types import (
 from sentry.services.eventstore.models import Event
 
 
-@renderer_registry.register(NotificationProviderKey.DISCORD, NotificationSource.ISSUE)
+@renderer_registry.register(NotificationProviderKey.DISCORD, sources=[NotificationSource.ISSUE])
 class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
     @classmethod
     def render[DataT: NotificationData](
