@@ -679,12 +679,13 @@ def _get_eligible_projects(
 
     When project_ids is provided, the org's projects are restricted to that set.
     Manual triggers bypass the tweaks.enabled gate — the user explicitly asked
-    for this run. Scheduler runs respect it, and are additionally restricted to
-    the org's allowed_project_slugs when that override is set."""
+    for this run. Scheduler runs respect it. Both scheduler and org-wide manual
+    runs respect allowed_project_slugs; explicitly targeted manual runs bypass
+    that allowlist."""
     project_qs = Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE)
     if project_ids is not None:
         project_qs = project_qs.filter(id__in=project_ids)
-    if source == "cron":
+    if source == "cron" or project_ids is None:
         org_tweaks = get_night_shift_org_tweaks(organization.id)
         if org_tweaks is not None and org_tweaks.allowed_project_slugs is not None:
             project_qs = project_qs.filter(slug__in=org_tweaks.allowed_project_slugs)
@@ -749,7 +750,7 @@ def _get_eligible_projects(
 
 def _should_use_per_project_quotas(source: WorkflowRunSource, organization_id: int) -> bool:
     """When allowed_project_slugs (org_tweaks) is set, give each project its
-    own quota. Manual runs bypass allowed_project_slugs, so never per-project."""
+    own quota. Manual runs use a single candidate cap across projects."""
     if source != "cron":
         return False
     org_tweaks = get_night_shift_org_tweaks(organization_id)
