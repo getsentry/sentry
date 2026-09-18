@@ -10,6 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -23,10 +24,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import {
-  getAlignment,
-  renderHeadCell,
-} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {getAlignment} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
 import {
@@ -160,7 +158,7 @@ export function SegmentSpansTable({
         columnOrder={SEGMENT_SPANS_COLUMN_ORDER}
         grid={{
           getColumnSort: column => ({align: getAlignment(column.key)}),
-          renderHeadCell: column => renderHeadCell({column}),
+          renderHeadCell: column => renderColumnLabel({column}),
           renderBodyCell: (column, row) =>
             renderBodyCell(
               column,

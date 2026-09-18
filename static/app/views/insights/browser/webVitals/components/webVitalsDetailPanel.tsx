@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {
   GridColumnHeader,
@@ -12,6 +11,7 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
+import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -139,41 +139,38 @@ export function WebVitalsDetailPanel({
 
   const renderHeadCell = (col: Column) => {
     if (col.key === 'transaction') {
-      return <NoOverflow>{col.name}</NoOverflow>;
+      return renderColumnLabel({column: col});
     }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital} P75`}</AlignRight>;
+      return renderColumnLabel({align: 'right', column: {name: `${webVital} P75`}});
     }
     if (col.key === 'score') {
-      return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+      return renderColumnLabel({
+        align: 'center',
+        column: {name: `${webVital} ${col.name}`},
+      });
     }
     if (col.key === 'opportunity') {
-      return (
-        <Tooltip
-          showUnderline
-          title={
-            <span>
-              {tct(
-                "A number rating how impactful a performance improvement on this page would be to your application's [webVital] Performance Score.",
-                {webVital: webVital?.toUpperCase() ?? ''}
-              )}
-              <br />
-              <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
-                {t('How is this calculated?')}
-              </ExternalLink>
-            </span>
-          }
-        >
-          {col.name}
-        </Tooltip>
-      );
+      return renderColumnLabel({
+        column: col,
+        tooltip: (
+          <span>
+            {tct(
+              "A number rating how impactful a performance improvement on this page would be to your application's [webVital] Performance Score.",
+              {webVital: webVital?.toUpperCase() ?? ''}
+            )}
+            <br />
+            <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
+              {t('How is this calculated?')}
+            </ExternalLink>
+          </span>
+        ),
+      });
     }
-    if (col.key === 'count') {
-      if (webVital === 'inp') {
-        return <AlignRight>{t('Interactions')}</AlignRight>;
-      }
+    if (col.key === 'count' && webVital === 'inp') {
+      return renderColumnLabel({align: 'right', column: {name: t('Interactions')}});
     }
-    return <AlignRight>{col.name}</AlignRight>;
+    return renderColumnLabel({align: 'right', column: col});
   };
 
   const getFormattedDuration = (value: number) => {

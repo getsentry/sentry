@@ -183,10 +183,7 @@ export default function SeerRunsDemo() {
               isLoading={isPending}
               data={runs}
               columnOrder={columnOrder}
-              grid={{
-                renderHeadCell: column => column.name,
-                renderBodyCell,
-              }}
+              grid={{renderBodyCell}}
               emptyMessage={t('No Seer runs found for this organization.')}
             />
             <Pagination pageLinks={pageLinks} />
