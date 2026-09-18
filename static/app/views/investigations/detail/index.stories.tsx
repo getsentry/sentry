@@ -248,6 +248,8 @@ const runningInvestigation = InvestigationRunningDetailFixture({
  * few minutes ago rather than one dated to whenever this fixture was written.
  */
 const agenticRunStartedAt = new Date(Date.now() - 4 * 60 * 1000 - 12 * 1000).toISOString();
+/* A finished run's total is measured to the projection's last update. */
+const agenticRunFinishedAt = new Date(Date.now() - 48 * 1000).toISOString();
 const agenticRunningInvestigation = InvestigationAgenticDetailFixture({
   id: 'agentic-running-investigation',
   title: 'Checkout latency after payments-api deploy',
@@ -454,6 +456,7 @@ export default Storybook.story('Investigations — Detail', story => {
           investigationId: agenticCompletedInvestigation.id,
           status: 'completed',
           phase: 'completed',
+          updatedAt: agenticRunFinishedAt,
         }),
       }}
     >

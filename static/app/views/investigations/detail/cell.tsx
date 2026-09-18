@@ -12,7 +12,6 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
@@ -44,6 +43,12 @@ import type {
   InvestigationQueryOutput,
   InvestigationTranscriptBlock,
 } from 'sentry/views/investigations/types';
+import {
+  ElapsedDuration,
+  getElapsedMilliseconds,
+  useElapsedTime,
+  useNow,
+} from 'sentry/views/investigations/detail/elapsedTime';
 import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
@@ -1042,42 +1047,6 @@ function adaptTranscriptBlock(block: InvestigationTranscriptBlock): Block {
     tool_links: block.toolLinks,
     tool_results: block.toolResults,
   };
-}
-
-function useElapsedTime(start: string | null, end: string | null, active: boolean) {
-  const now = useNow(active);
-  return getElapsedMilliseconds(start, end ?? (active ? now : null));
-}
-
-function useNow(active: boolean) {
-  const [now, setNow] = useState(() => new Date().toISOString());
-  useEffect(() => {
-    if (!active) {
-      return;
-    }
-    const interval = window.setInterval(() => setNow(new Date().toISOString()), 250);
-    return () => window.clearInterval(interval);
-  }, [active]);
-  return now;
-}
-
-function getElapsedMilliseconds(start: string | null, end: string | null) {
-  if (!start || !end) {
-    return null;
-  }
-  const duration = Date.parse(end) - Date.parse(start);
-  if (!Number.isFinite(duration) || duration < 0) {
-    return null;
-  }
-  return duration;
-}
-
-function ElapsedDuration({milliseconds}: {milliseconds: number}) {
-  return (
-    <Text monospace variant="muted">
-      <Duration seconds={milliseconds / 1000} fixedDigits={1} abbreviation />
-    </Text>
-  );
 }
 
 function getExecutionTitle(status: InvestigationExecutionStatus | undefined) {

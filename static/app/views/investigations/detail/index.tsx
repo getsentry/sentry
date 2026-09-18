@@ -165,6 +165,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
       : null;
+  /*
+   * A finished run's total is frozen at the projection's last update, which is
+   * the closest thing the contract carries to a finish time. Without one there
+   * is no total to state, so the header says nothing rather than leaving a
+   * counter running on a run that has stopped.
+   */
+  const runEndedAt =
+    runStatus?.variant === 'complete' ? (orchestration?.updatedAt ?? null) : null;
+  const showRunTimer = runStatus?.variant === 'running' || Boolean(runEndedAt);
 
   useEffect(() => {
     const status = titleGenerationQuery.data?.status;
@@ -373,13 +382,11 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                   <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
                     {runStatus.statusLabel}
                   </Tag>
-                  {/*
-                   * Only while the run is moving: a stopped run's badge already
-                   * says how it ended, and a clock beside it would keep
-                   * counting past the work it claims to measure.
-                   */}
-                  {runStatus.variant === 'running' ? (
-                    <InvestigationRunTimer startedAt={investigation.dateCreated} />
+                  {showRunTimer ? (
+                    <InvestigationRunTimer
+                      startedAt={investigation.dateCreated}
+                      endedAt={runEndedAt}
+                    />
                   ) : null}
                 </Flex>
               ) : null}
