@@ -267,14 +267,20 @@ describe('autofix embed', () => {
     expect(screen.getByText('Empty the cart.')).toBeInTheDocument();
   });
 
-  it('renders the plan steps', async () => {
+  it('renders long plan content across multiple list items', async () => {
+    const longFilename =
+      'src/components/checkout/ThisFilenameIsLongEnoughToOverflowTheAutofixContentPanel.tsx';
     renderAutofixEmbed({
       step: 'solution',
-      result: 'Seed the reduction with `0`.',
+      result: `Update ${longFilename}.`,
       steps: [
         {
           title: 'Pass an initial accumulator',
-          description: 'Pass `0` as the second argument to `reduce`.',
+          description: `Add the guard in ${longFilename}.`,
+        },
+        {
+          title: 'Cover the regression',
+          description: `Add a test for ${longFilename}.`,
         },
       ],
     });
@@ -282,10 +288,10 @@ describe('autofix embed', () => {
     await expand('Plan');
 
     expect(screen.getByText('Steps to Resolve')).toBeInTheDocument();
-    expect(screen.getByText('Pass an initial accumulator')).toBeInTheDocument();
-    expect(
-      screen.getByText('Pass `0` as the second argument to `reduce`.')
-    ).toBeInTheDocument();
+    const list = screen.getByText('Pass an initial accumulator').closest('ol');
+    expect(list).toContainElement(screen.getByText('Cover the regression'));
+    expect(screen.getByText(`Update ${longFilename}.`).closest('p')).toBeInTheDocument();
+    expect(screen.getByText(`Add the guard in ${longFilename}.`)).toBeInTheDocument();
   });
 
   // Seer writes this embed itself, so the structured fields can be absent even
