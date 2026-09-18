@@ -197,6 +197,14 @@ describe('EventNavigation', () => {
       // Autofix sits second, right after the events tab.
       expect(screen.getAllByRole('tab')[1]).toHaveAccessibleName('Autofix');
 
+      // Counts ride along inside the tab label; Autofix is a single ongoing
+      // analysis, so it has none.
+      const eventsTab = screen.getAllByRole('tab')[0]!;
+      expect(within(eventsTab).getByText('0')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('tab', {name: 'Autofix'})).queryByText('0')
+      ).not.toBeInTheDocument();
+
       // The tab is the <li role="tab">; the anchor it navigates through is nested.
       const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
       expect(within(autofixTab).getByRole('link')).toHaveAttribute(

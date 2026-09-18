@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
+import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -51,7 +52,10 @@ interface IssueEventNavigationProps {
 }
 
 interface ContentTab {
-  /** Trailing count for the tab, or null when the tab has nothing to count. */
+  /**
+   * The bare count, unstyled: tabs put it in a Badge, the dropdown right-aligns
+   * it in muted text. Null when the tab has nothing to count.
+   */
   count: React.ReactNode;
   hidden: boolean;
   key: Tab;
@@ -135,7 +139,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     {
       key: Tab.DETAILS,
       name: TabName[Tab.DETAILS]!,
-      count: <ItemCount value={eventCount ?? 0} />,
+      count: <Count value={eventCount ?? 0} />,
       hidden: false,
     },
     {
@@ -148,28 +152,19 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     {
       key: Tab.REPLAYS,
       name: TabName[Tab.REPLAYS]!,
-      count:
-        replaysCount > 50 ? (
-          <CustomItemCount>50+</CustomItemCount>
-        ) : (
-          <ItemCount value={replaysCount} />
-        ),
+      count: replaysCount > 50 ? '50+' : <Count value={replaysCount} />,
       hidden: !issueTypeConfig.pages.replays.enabled,
     },
     {
       key: Tab.ATTACHMENTS,
       name: TabName[Tab.ATTACHMENTS]!,
-      count: (
-        <CustomItemCount>
-          {hasManyAttachments ? '50+' : attachments.attachments.length}
-        </CustomItemCount>
-      ),
+      count: hasManyAttachments ? '50+' : attachments.attachments.length,
       hidden: !issueTypeConfig.pages.attachments.enabled,
     },
     {
       key: Tab.USER_FEEDBACK,
       name: TabName[Tab.USER_FEEDBACK]!,
-      count: <ItemCount value={group.userReportCount} />,
+      count: <Count value={group.userReportCount} />,
       hidden: !issueTypeConfig.pages.userFeedback.enabled,
     },
   ];
@@ -231,7 +226,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               >
                 <TabLabel>
                   {tab.name}
-                  {tab.count}
+                  {tab.count === null ? null : <Badge variant="muted">{tab.count}</Badge>}
                 </TabLabel>
               </TabList.Item>
             ))}
@@ -247,7 +242,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               key: tab.key,
               label: (
                 <DropdownCountWrapper isCurrentTab={currentTab === tab.key}>
-                  {tab.name} {tab.count}
+                  {tab.name} <MutedCount>{tab.count}</MutedCount>
                 </DropdownCountWrapper>
               ),
               textValue: tab.name,
@@ -485,10 +480,6 @@ const DropdownCountWrapper = styled('div')<{isCurrentTab: boolean}>`
     p.isCurrentTab ? p.theme.font.weight.sans.medium : p.theme.font.weight.sans.regular};
 `;
 
-const ItemCount = styled(Count)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const CustomItemCount = styled('div')`
+const MutedCount = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
 `;
