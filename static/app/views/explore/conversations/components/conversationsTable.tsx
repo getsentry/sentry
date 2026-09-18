@@ -21,7 +21,6 @@ import {
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
-import {renderColumnLabel} from 'sentry/components/tables/renderColumnLabel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -328,11 +327,6 @@ export function ConversationsTable() {
           bodyStyle={{marginBottom: 0}}
           grid={{
             getColumnSort,
-            renderHeadCell: column =>
-              renderColumnLabel({
-                align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : 'left',
-                column,
-              }),
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
             staticColumnWidths,
