@@ -186,6 +186,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
           <Fragment>
             <StyledListBox
               {...listBoxProps}
+              fullWidth={menuPresentation === 'panel'}
               ref={listBoxRefCallback}
               listState={state}
               hasSearch={!!filterValue}
@@ -226,9 +227,11 @@ const SectionedOverlay = styled(Overlay)`
   width: min-content;
 `;
 
-const StyledListBox = styled(ListBox)`
-  width: min-content;
-  min-width: 200px;
+const StyledListBox = styled(ListBox, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth: boolean}>`
+  width: ${p => (p.fullWidth ? '100%' : 'min-content')};
+  min-width: ${p => (p.fullWidth ? '0' : '200px')};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`

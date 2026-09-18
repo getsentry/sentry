@@ -104,6 +104,7 @@ export function SpecificDatePicker({
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SearchBarDatePickerOverlay
         data-test-id="specific-date-picker"
+        data-menu-presentation={menuPresentation}
         ref={popoverRef}
         // Otherwise clicks will propagate to the grid and close the dropdown
         onClick={e => e.stopPropagation()}
@@ -273,6 +274,13 @@ const SearchBarDatePickerOverlay = styled(Overlay)`
   min-width: 332px;
   min-height: 380px;
   cursor: default;
+
+  &[data-menu-presentation='panel'] {
+    .rdrCalendarWrapper,
+    .rdrMonth {
+      width: 100%;
+    }
+  }
 `;
 
 const StyledInput = styled(Input)`
