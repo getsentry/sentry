@@ -6,7 +6,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {useTimezone} from '@sentry/scraps/datetime';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {defined} from 'sentry/utils/defined';

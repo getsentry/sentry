@@ -5,7 +5,7 @@ import type {Query} from 'history';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconChevron} from 'sentry/icons';
 import {parseCursor} from 'sentry/utils/cursor';

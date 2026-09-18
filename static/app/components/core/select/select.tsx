@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';

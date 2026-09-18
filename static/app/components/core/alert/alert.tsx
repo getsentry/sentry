@@ -7,7 +7,7 @@ import type {DistributedOmit} from 'type-fest';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
 import {defined} from 'sentry/utils/defined';

@@ -6,7 +6,7 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {QueryStatus} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useOverlay} from 'sentry/utils/useOverlay';

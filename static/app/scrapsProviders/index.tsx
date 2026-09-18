@@ -1,5 +1,5 @@
 import {ToastProvider} from '@sentry/scraps/toast';
-import {TranslationContextProvider} from '@sentry/scraps/translationContext';
+import {TranslationContextProvider} from '@sentry/scraps/translation';
 
 import {t, tct} from 'sentry/locale';
 
