@@ -221,7 +221,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     <EventNavigationWrapper role="navigation" ref={navigationRef}>
       {showAutofixTab ? (
         <Tabs value={currentTab} onChange={key => trackContentSelected(key as Tab)}>
-          <TabList variant="floating">
+          <TabList>
             {contentTabs.map(tab => (
               <TabList.Item
                 key={tab.key}
