@@ -42,7 +42,7 @@ const commonStyles = ({theme, type}: {type: Props['type']} & {theme: Theme}) => 
         : 'inherit'
   };
   &:nth-of-type(2n-1) {
-    background-color: ${theme.tokens.background.tertiary};
+    background-color: ${theme.tokens.background.secondary};
   }
 `;
 

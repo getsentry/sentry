@@ -121,7 +121,7 @@ const rowStateStyles = ({theme, hasErrors, isSuspectFlag}: RowState & {theme: Th
     box-shadow: inset 0 0 0 1px ${tint ?? 'transparent'};
     background-color: ${tint ?? theme.tokens.background.primary};
     &:nth-child(odd) {
-      background-color: ${tint ?? theme.tokens.background.tertiary};
+      background-color: ${tint ?? theme.tokens.background.secondary};
     }
   `;
 };
