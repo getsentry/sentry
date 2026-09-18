@@ -10,7 +10,6 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {EventInputName} from 'sentry/views/discover/eventInputName';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 type Props = {
   eventView: EventView;
@@ -44,7 +43,7 @@ export function DiscoverBreadcrumb({
       isHomepage && eventView
         ? eventView.getResultsViewUrlTarget(organization, isHomepage)
         : discoverTarget,
-    label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+    label: t('Errors'),
   });
 
   if (!isHomepage && eventView?.isValid()) {

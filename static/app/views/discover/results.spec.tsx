@@ -10,10 +10,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SavedSearchType} from 'sentry/types/group';
 import {EventView} from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
-import {
-  DEFAULT_EVENT_VIEW,
-  getTransactionViews,
-} from 'sentry/views/discover/results/data';
+import {DEFAULT_EVENT_VIEW, getAllViews} from 'sentry/views/discover/results/data';
 
 const FIELDS = [
   {
@@ -242,10 +239,10 @@ describe('Results', () => {
       const {router} = render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {query: 'tag:value'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -253,7 +250,7 @@ describe('Results', () => {
       // Should redirect and retain the old query value
       expect(await screen.findByText(eventTitle)).toBeInTheDocument();
       expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/explore/discover/results/`
+        `/organizations/${organization.slug}/explore/errors/results/`
       );
       expect(router.location.query).toEqual(
         expect.objectContaining({
@@ -276,13 +273,13 @@ describe('Results', () => {
       const {router} = render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {
               ...generateFields(),
               cursor: '0%3A50%3A0',
             },
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -313,7 +310,7 @@ describe('Results', () => {
       await waitFor(() => {
         expect(router.location).toEqual(
           expect.objectContaining({
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: expect.objectContaining({
               ...generateFields(),
               query: 'geo:canada',
@@ -336,10 +333,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), yAxis: 'count()'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -363,10 +360,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -390,10 +387,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), display: 'previous'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -416,16 +413,16 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), statsPeriod: '60d', project: '-1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
-      await screen.findByRole('tab', {name: 'Errors'});
+      await screen.findByText('Errors');
     });
 
     it('needs confirmation on long query with explicit projects', async () => {
@@ -440,20 +437,20 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {
               ...generateFields(),
               statsPeriod: '60d',
               project: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(String),
             },
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
 
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
-      await screen.findByRole('tab', {name: 'Errors'});
+      await screen.findByText('Errors');
     });
 
     it('does not need confirmation on short queries', async () => {
@@ -468,10 +465,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), statsPeriod: '30d', project: '-1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -493,14 +490,14 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {
               ...generateFields(),
               statsPeriod: '90d',
               project: [1, 2, 3, 4].map(String),
             },
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -523,10 +520,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {id: '1', statsPeriod: '24h'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -573,7 +570,7 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {
               id: '1',
               statsPeriod: '7d',
@@ -581,7 +578,7 @@ describe('Results', () => {
               environment: ['production'],
             },
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -610,10 +607,10 @@ describe('Results', () => {
       const {router} = render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), yAxis: 'count()'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -665,10 +662,10 @@ describe('Results', () => {
       const {router} = render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count()'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -721,10 +718,10 @@ describe('Results', () => {
       const {router} = render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count()'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -777,10 +774,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -831,10 +828,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), display: 'default', yAxis: 'count'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -867,10 +864,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {...generateFields(), yAxis: 'count()'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -892,10 +889,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {showUnparameterizedBanner: 'true', id: '1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -922,11 +919,11 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             // These fields take priority and should be sent in the request
             query: {field: ['title', 'user'], id: '1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -965,10 +962,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: generateFields(),
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -1013,10 +1010,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {id: '1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -1042,11 +1039,11 @@ describe('Results', () => {
         url: '/organizations/org-slug/discover/homepage/',
         method: 'PUT',
         statusCode: 200,
-        body: {...getTransactionViews(organization)[0], name: ''},
+        body: {...getAllViews(organization)[0], name: ''},
       });
 
       const initialQuery = EventView.fromNewQueryWithLocation(
-        getTransactionViews(organization)[0]!,
+        getAllViews(organization)[0]!,
         LocationFixture()
       ).generateQueryStringObject();
 
@@ -1056,15 +1053,15 @@ describe('Results', () => {
       const {router} = render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: initialQuery as Record<string, string | string[]>,
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
 
-      await screen.findAllByText(getTransactionViews(organization)[0]!.name);
+      await screen.findAllByText(getAllViews(organization)[0]!.name);
       await userEvent.click(
         await screen.findByRole('button', {name: 'Discover Context Menu'})
       );
@@ -1114,21 +1111,19 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {id: '1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
 
-      expect(await screen.findByRole('link', {name: 'Discover'})).toBeInTheDocument();
+      expect(await screen.findByRole('link', {name: 'Errors'})).toBeInTheDocument();
 
-      expect(screen.getByRole('link', {name: 'Discover'})).toHaveAttribute(
+      expect(screen.getByRole('link', {name: 'Errors'})).toHaveAttribute(
         'href',
-        expect.stringMatching(
-          new RegExp('^/organizations/org-slug/explore/discover/homepage/')
-        )
+        expect.stringMatching(new RegExp('^/organizations/org-slug/explore/errors/'))
       );
     });
 
@@ -1143,20 +1138,20 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {id: '1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
 
-      expect(await screen.findByRole('link', {name: 'Discover'})).toBeInTheDocument();
+      expect(await screen.findByRole('link', {name: 'Errors'})).toBeInTheDocument();
 
       expect(screen.getByRole('link', {name: 'Saved Queries'})).toHaveAttribute(
         'href',
         expect.stringMatching(
-          new RegExp('^/organizations/org-slug/explore/discover/queries/')
+          new RegExp('^/organizations/org-slug/explore/errors/queries/')
         )
       );
     });
@@ -1177,10 +1172,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: initialQuery as Record<string, string | string[]>,
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -1209,15 +1204,15 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: initialQuery as Record<string, string | string[]>,
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
 
-      expect(await screen.findByRole('link', {name: 'Discover'})).toBeInTheDocument();
+      expect(await screen.findByRole('link', {name: 'Errors'})).toBeInTheDocument();
 
       expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
     });
@@ -1258,10 +1253,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {id: '1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -1270,10 +1265,8 @@ describe('Results', () => {
         expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
       });
 
-      expect(screen.getByRole('tab', {name: 'Errors'})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
+      expect(screen.queryByRole('tab', {name: 'Errors'})).not.toBeInTheDocument();
+      expect(screen.getByText('Errors')).toBeInTheDocument();
 
       expect(mockRequests.eventsStatsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
@@ -1367,10 +1360,10 @@ describe('Results', () => {
       render(<Results />, {
         initialRouterConfig: {
           location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
+            pathname: `/organizations/${organization.slug}/explore/errors/results/`,
             query: {id: '1'},
           },
-          route: '/organizations/:orgId/explore/discover/results/',
+          route: '/organizations/:orgId/explore/errors/results/',
         },
         organization,
       });
@@ -1385,127 +1378,13 @@ describe('Results', () => {
         await screen.findByRole('option', {name: 'event.type:error'})
       ).toBeInTheDocument();
     });
-
-    it('shows the search history for the transaction dataset', async () => {
-      const organization = OrganizationFixture({
-        features: ['discover-basic', 'discover-query'],
-      });
-
-      ProjectsStore.loadInitialData([ProjectFixture()]);
-
-      renderMockRequests();
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/recent-searches/',
-        body: [
-          {
-            query: 'event.type:error',
-          },
-        ],
-        match: [
-          (_url, options) => {
-            return options.query?.type === SavedSearchType.ERROR;
-          },
-        ],
-      });
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/recent-searches/',
-        body: [
-          {
-            query: 'transaction.status:ok',
-          },
-        ],
-        match: [
-          (_url, options) => {
-            return options.query?.type === SavedSearchType.TRANSACTION;
-          },
-        ],
-      });
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/',
-        body: {
-          meta: {
-            fields: {
-              id: 'string',
-              title: 'string',
-              'project.name': 'string',
-              timestamp: 'date',
-              'user.id': 'string',
-            },
-            discoverSplitDecision: 'transaction-like',
-          },
-          data: [
-            {
-              trace: 'test',
-              id: 'deadbeef',
-              'user.id': 'alberto leal',
-              title: eventTitle,
-              'project.name': 'project-slug',
-              timestamp: '2019-05-23T22:12:48+00:00',
-            },
-          ],
-        },
-      });
-
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/discover/saved/1/',
-        method: 'GET',
-        statusCode: 200,
-        body: {
-          id: '1',
-          name: 'new',
-          projects: [],
-          version: 2,
-          expired: false,
-          dateCreated: '2021-04-08T17:53:25.195782Z',
-          dateUpdated: '2021-04-09T12:13:18.567264Z',
-          createdBy: {
-            id: '2',
-          },
-          environment: [],
-          fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
-          widths: ['-1', '-1', '-1', '-1', '-1'],
-          range: '24h',
-          orderby: '-user.display',
-          queryDataset: 'transaction-like',
-        },
-      });
-
-      render(<Results />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
-            query: {id: '1'},
-          },
-          route: '/organizations/:orgId/explore/discover/results/',
-        },
-        organization,
-      });
-
-      // Wait for data to load
-      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
-
-      await userEvent.click(
-        screen.getByPlaceholderText('Search for events, users, tags, and more')
-      );
-
-      expect(
-        await screen.findByRole('option', {name: 'transaction.status:ok'})
-      ).toBeInTheDocument();
-    });
   });
 
   describe('transactions deprecation', () => {
-    const deprecationFeatures = [
-      'discover-basic',
-      'deprecate-discover',
-      'discover-saved-queries-deprecation',
-    ];
+    const features = ['discover-basic'];
 
     it('blocks the transactions dataset and points users to Explore', async () => {
-      const organization = OrganizationFixture({features: deprecationFeatures});
+      const organization = OrganizationFixture({features});
 
       const mockRequests = renderMockRequests();
 
@@ -1534,7 +1413,7 @@ describe('Results', () => {
     });
 
     it('still renders the table for the errors dataset', async () => {
-      const organization = OrganizationFixture({features: deprecationFeatures});
+      const organization = OrganizationFixture({features});
 
       const mockRequests = renderMockRequests();
 
@@ -1547,33 +1426,6 @@ describe('Results', () => {
             query: {...generateFields(), queryDataset: 'error-events'},
           },
           route: '/organizations/:orgId/explore/errors/results/',
-        },
-        organization,
-      });
-
-      expect(await screen.findByText(eventTitle)).toBeInTheDocument();
-      expect(mockRequests.eventsResultsMock).toHaveBeenCalled();
-      expect(mockRequests.eventsStatsMock).toHaveBeenCalled();
-      await waitFor(() => expect(mockRequests.eventsMetaMock).toHaveBeenCalled());
-      expect(
-        screen.queryByRole('link', {name: 'Explore Queries'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('does not block transactions when the deprecation is disabled', async () => {
-      const organization = OrganizationFixture({features: ['discover-basic']});
-
-      const mockRequests = renderMockRequests();
-
-      ProjectsStore.loadInitialData([ProjectFixture()]);
-
-      render(<Results />, {
-        initialRouterConfig: {
-          location: {
-            pathname: `/organizations/${organization.slug}/explore/discover/results/`,
-            query: {...generateFields(), queryDataset: 'transaction-like'},
-          },
-          route: '/organizations/:orgId/explore/discover/results/',
         },
         organization,
       });

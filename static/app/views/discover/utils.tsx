@@ -53,11 +53,7 @@ import {
   type WidgetQuery,
 } from 'sentry/views/dashboards/types';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {
-  getAllViews,
-  getTransactionViews,
-  getWebVitalsViews,
-} from 'sentry/views/discover/results/data';
+import {getAllViews} from 'sentry/views/discover/results/data';
 import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
 import type {FieldValue, TableColumn} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -148,17 +144,15 @@ export function generateTitle({
   eventView,
   event,
   isHomepage,
-  organization,
 }: {
   eventView: EventView;
-  organization: Organization;
   event?: Event;
   isHomepage?: boolean;
 }) {
-  const titles = [getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')];
+  const titles = [t('Errors')];
 
   if (isHomepage) {
-    return getDiscoverDeprecation(organization) ? t('Errors') : t('Discover');
+    return t('Errors');
   }
 
   const eventViewName = eventView.name;
@@ -178,17 +172,7 @@ export function generateTitle({
 }
 
 export function getPrebuiltQueries(organization: Organization) {
-  const views = [...getAllViews(organization)];
-  if (
-    organization.features.includes('performance-view') &&
-    !getDiscoverDeprecation(organization)
-  ) {
-    // insert transactions queries at index 2
-    views.splice(2, 0, ...getTransactionViews(organization));
-    views.push(...getWebVitalsViews(organization));
-  }
-
-  return views;
+  return getAllViews(organization);
 }
 
 function disableMacros(value: string | null | boolean | number) {
