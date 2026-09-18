@@ -645,7 +645,6 @@ export function StreamGroup({
 
   const groupUsersCount = (
     <Tooltip
-      disabled={!usePageFilters}
       title={
         <CountTooltipContent>
           <h4>{t('Affected Users')}</h4>

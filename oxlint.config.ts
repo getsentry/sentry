@@ -638,7 +638,7 @@ const config = defineConfig({
     'react/exhaustive-effect-dependencies': 'error',
     'react/function-component-definition': 'error',
     'react/globals': 'error',
-    'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/hooks': 'error',
     'react/immutability': 'error',
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/invariant': 'error',

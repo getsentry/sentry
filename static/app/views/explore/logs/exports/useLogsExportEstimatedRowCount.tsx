@@ -55,7 +55,7 @@ export function useLogsExportEstimatedRowCount(
   const isTopN = !!baseRequest.topEvents;
 
   const timeseriesResult = useProgressiveQuery<typeof useLogsExportEstimateTimeseries>({
-    queryHookImplementation: useLogsExportEstimateTimeseries,
+    queryHookImplementation: useLogsExportEstimateTimeseries, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
       baseRequest,
       enabled: true,

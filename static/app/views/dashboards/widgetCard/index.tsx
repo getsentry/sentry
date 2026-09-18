@@ -527,6 +527,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   } = usePageFilters();
   const useRetentionLimit =
     getOverride('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
+  // oxlint-disable-next-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });
