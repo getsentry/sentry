@@ -10,7 +10,7 @@ import type {DataConditionGroup} from 'sentry/types/workflowEngine/dataCondition
  * Fields are enumerated rather than spread: `Action.data` is an untyped bag
  * that carries integration payloads, and nothing here needs it.
  */
-export function actionToLLMContext(action: Action) {
+function actionToLLMContext(action: Action) {
   return {
     type: action.type,
     targetType: action.config.targetType,
