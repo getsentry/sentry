@@ -19,7 +19,8 @@ import {isValidElement, type Ref, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import {getInteractionModality} from '@react-aria/interactions';
 import {mergeRefs} from '@react-aria/utils';
-import {useVirtualizer} from '@tanstack/react-virtual';
+
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 const OPTION_HEIGHT = 36;
 const GROUP_HEADING_HEIGHT = 24;
@@ -122,7 +123,7 @@ export function ScmVirtualizedMenuList({
   );
   const alignedMaxHeight = visibleOptionCount * optionHeight + MENU_PADDING * 2;
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     // Estimates only; rows are measured on mount below. Headings differ in
@@ -131,14 +132,12 @@ export function ScmVirtualizedMenuList({
     // Keep measurements attached to rows (not indices) when filtering shifts
     // the list.
     getItemKey: index => rows[index]?.key ?? index,
-    overscan: 5,
     paddingStart: MENU_PADDING,
     paddingEnd: MENU_PADDING,
     scrollPaddingStart: MENU_PADDING,
     scrollPaddingEnd: MENU_PADDING,
   });
 
-  const virtualItems = virtualizer.getVirtualItems();
   // react-select shares focused option identity with each Option child's data.
   // The focused DOM node may be virtualized out, so scroll by its row index.
   const focusedIndex = rows.findIndex(
@@ -167,7 +166,7 @@ export function ScmVirtualizedMenuList({
       {...innerProps}
       style={{maxHeight: alignedMaxHeight, overflowY: 'auto'}}
     >
-      <div style={{height: virtualizer.getTotalSize(), position: 'relative'}}>
+      <div style={{height: totalSize, position: 'relative'}}>
         {virtualItems.map(virtualRow => {
           const row = rows[virtualRow.index];
           return (
