@@ -18,34 +18,11 @@ interface UseVirtualRowsOptions {
 }
 
 export function useVirtualRows({
-  count,
   estimateKey,
-  estimateSize,
-  gap,
-  getItemKey,
-  getScrollElement,
-  initialRect,
   overscan = 5,
-  paddingEnd,
-  paddingStart,
-  scrollPaddingEnd,
-  scrollPaddingStart,
-  useAnimationFrameWithResizeObserver,
+  ...options
 }: UseVirtualRowsOptions) {
-  const virtualizer = useVirtualizer<HTMLElement, Element>({
-    count,
-    estimateSize,
-    gap,
-    getItemKey,
-    getScrollElement,
-    initialRect,
-    overscan,
-    paddingEnd,
-    paddingStart,
-    scrollPaddingEnd,
-    scrollPaddingStart,
-    useAnimationFrameWithResizeObserver,
-  });
+  const virtualizer = useVirtualizer<HTMLElement, Element>({...options, overscan});
 
   // @tanstack/react-virtual does not rebuild its measurements cache when
   // estimateSize starts returning new values. Without this the total size and item
