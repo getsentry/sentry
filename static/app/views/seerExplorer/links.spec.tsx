@@ -1003,6 +1003,31 @@ describe('search links', () => {
     }
   );
 
+  it.each(['events', 'releases'])(
+    'does not add an empty project id for an unloaded slug on %s links',
+    endpoint => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: `/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/${endpoint}/`,
+          path_params: {
+            organization_id_or_slug: 'org-slug',
+            project_id_or_slug: 'unloaded-project',
+          },
+          resolved_path: `/api/0/projects/org-slug/unloaded-project/${endpoint}/`,
+        }),
+        ctx
+      );
+      expect(result?.url).toEqual(
+        expect.objectContaining({
+          query: expect.not.objectContaining({project: ['']}),
+        })
+      );
+    }
+  );
+
   it('keeps sample fields and absolute dates on a spans API link', () => {
     const result = resolveLink(
       subjectFromCallRecord({

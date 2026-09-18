@@ -1019,7 +1019,7 @@ function projectIdsFromApiCall(
     return [pathProject];
   }
   const project = resolveProject(pathProject, projects);
-  return project ? [project.id] : undefined;
+  return project?.id ? [project.id] : undefined;
 }
 
 /**
