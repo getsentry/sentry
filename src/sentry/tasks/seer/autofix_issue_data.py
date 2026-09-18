@@ -25,7 +25,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import json, metrics
 
 FEATURE_FLAG = "organizations:seer-fixability-training-data"
-MAX_REVIEWS_PER_ORG_PER_DAY = 20
+MAX_REVIEWS_PER_ORG_PER_RUN = 20
 
 SYSTEM_PROMPT = """Night Shift reviews software issues and may trigger Autofix to investigate
 and open a pull request. Your job is to identify issues where opening a pull request would be
@@ -48,7 +48,7 @@ class JudgeResponse(BaseModel):
 
 
 def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
-    # Randomly sample 20 of the issues from bottom 40% of the fixability score
+    # Randomly sample 20 of the issues from bottom 50% of the fixability score
     rows = (
         SeerAutofixIssueData.objects.filter(
             organization_id=organization_id,
@@ -64,7 +64,7 @@ def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
             )
         )
     )
-    return list(rows.filter(score_percentile__lte=0.4).order_by("?")[:MAX_REVIEWS_PER_ORG_PER_DAY])
+    return list(rows.filter(score_percentile__lte=0.5).order_by("?")[:MAX_REVIEWS_PER_ORG_PER_RUN])
 
 
 @instrumented_task(
@@ -73,7 +73,7 @@ def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
     processing_deadline_duration=10 * 60,
 )
 def schedule_judging() -> None:
-    """Daily cron entry point for negative-label curation.
+    """Twice-daily cron entry point for negative-label curation.
 
     Finds orgs that had a Night Shift run in the last 48 hours, keeps those that
     are active and have the feature flag, and dispatches one
@@ -114,8 +114,8 @@ def schedule_judging_for_org(organization_id: int) -> None:
             continue
         if ratelimiter.is_limited(
             f"autofix_issue_data_judge:org:{organization.id}",
-            limit=MAX_REVIEWS_PER_ORG_PER_DAY,
-            window=24 * 60 * 60,
+            limit=MAX_REVIEWS_PER_ORG_PER_RUN,
+            window=12 * 60 * 60,
         ):
             break
         judge_issue_data.apply_async(
