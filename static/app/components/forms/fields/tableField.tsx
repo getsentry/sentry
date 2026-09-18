@@ -112,24 +112,21 @@ export function TableField({
       return <div>{button}</div>;
     }
 
-    const renderConfirmMessage = () => {
-      return (
-        <Fragment>
-          <Alert.Container>
-            <Alert variant="danger" showIcon={false}>
-              <span
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(
-                    confirmDeleteMessage ||
-                      t('Are you sure you want to delete this item?')
-                  ),
-                }}
-              />
-            </Alert>
-          </Alert.Container>
-        </Fragment>
-      );
-    };
+    const confirmMessage = (
+      <Fragment>
+        <Alert.Container>
+          <Alert variant="danger" showIcon={false}>
+            <span
+              dangerouslySetInnerHTML={{
+                __html: singleLineRenderer(
+                  confirmDeleteMessage || t('Are you sure you want to delete this item?')
+                ),
+              }}
+            />
+          </Alert>
+        </Alert.Container>
+      </Fragment>
+    );
 
     return (
       <Fragment>
@@ -158,7 +155,7 @@ export function TableField({
                     priority="danger"
                     disabled={disabled}
                     onConfirm={() => removeRow(rowIndex)}
-                    message={renderConfirmMessage()}
+                    message={confirmMessage}
                   >
                     <RemoveButton>
                       <Button
