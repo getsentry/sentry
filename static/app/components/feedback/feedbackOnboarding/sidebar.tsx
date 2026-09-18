@@ -95,6 +95,7 @@ function SidebarContent() {
         platform: currentProject?.platform ?? 'unknown',
       });
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [currentProject, organization, setCurrentProject]);
 
   const projectSelectOptions = useMemo(() => {

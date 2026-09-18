@@ -255,6 +255,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         execution_id = block.current_execution_id
         assert block.current_execution.started_at == started_at
         assert block.current_execution.completed_at == completed_at
+        assert block.current_execution.input_snapshot["source"] == self.orchestration_run.source
 
         self.deliver(
             self.event(

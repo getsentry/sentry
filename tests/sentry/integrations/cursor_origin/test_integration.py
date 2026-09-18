@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from base64 import b64encode
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
@@ -7,11 +8,15 @@ import pytest
 
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
+from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.cursor_origin.client import (
     CursorOriginApiClient,
     CursorOriginSetupApiClient,
 )
-from sentry.integrations.cursor_origin.integration import CursorOriginIntegration
+from sentry.integrations.cursor_origin.integration import (
+    CursorOriginIntegration,
+    CursorOriginIntegrationProvider,
+)
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -52,7 +57,11 @@ class CursorOriginIntegrationTest(TestCase):
         self.install = CursorOriginIntegration(self.integration, self.organization.id)
 
     def _repo(self, name: str = REPO, default_branch: str = "main") -> Repository:
-        return Repository(name=name, config={"default_branch": default_branch})
+        return Repository(
+            organization_id=self.organization.id,
+            name=name,
+            config={"default_branch": default_branch},
+        )
 
     def test_get_repositories_maps_to_the_shared_shape(self) -> None:
         with mock.patch.object(
@@ -156,12 +165,41 @@ class CursorOriginIntegrationTest(TestCase):
 
         assert url == f"{WEB}/{REPO}/blob/danf%2Ftest-branch/AGENTS.md"
 
+    def test_the_stacktrace_link_keeps_the_encoded_branch(self) -> None:
+        repo = self._repo()
+        source_url = self.install.format_source_url(repo, "src/app.py", "release/test")
+
+        with mock.patch.object(self.install, "check_file", return_value=source_url):
+            link = self.install.get_stacktrace_link(repo, "src/app.py", "main", "release/test")
+
+        assert link == f"{WEB}/{REPO}/blob/release%2Ftest/src/app.py"
+
     def test_the_slashed_branch_round_trips(self) -> None:
         repo = self._repo()
         url = self.install.format_source_url(repo, "src/deep/app.py", "danf/test-branch")
 
         assert self.install.extract_branch_from_source_url(repo, url) == "danf/test-branch"
         assert self.install.extract_source_path_from_source_url(repo, url) == "src/deep/app.py"
+
+    def test_a_repo_name_needing_encoding_round_trips(self) -> None:
+        """Nothing re-encodes the URL after us, so the name is encoded on both sides."""
+        repo = self._repo(name="acme/my repo")
+        url = self.install.format_source_url(repo, "src/app.py", "release/test")
+
+        assert url == f"{WEB}/acme/my%20repo/blob/release%2Ftest/src/app.py"
+        assert self.install.extract_branch_from_source_url(repo, url) == "release/test"
+        assert self.install.extract_source_path_from_source_url(repo, url) == "src/app.py"
+
+    def test_a_decoded_url_still_extracts(self) -> None:
+        """`project_repo_path_parsing` unquotes the path before extraction."""
+        repo = self._repo(name="acme/my repo")
+
+        assert (
+            self.install.extract_source_path_from_source_url(
+                repo, f"{WEB}/acme/my repo/blob/main/src/app.py"
+            )
+            == "src/app.py"
+        )
 
     def test_a_path_needing_encoding_round_trips(self) -> None:
         repo = self._repo()
@@ -202,6 +240,50 @@ class CursorOriginIntegrationTest(TestCase):
     def test_a_longer_org_name_is_not_a_match(self) -> None:
         """An install on "acme" must not claim URLs owned by "acme-corp"."""
         assert self.install.source_url_matches(f"{WEB}/acme-corp/repo/blob/main/a.py") is False
+
+    def test_the_provider_advertises_codeowners_import(self) -> None:
+        """Sentry only offers the import when the frozenset and the metadata both list it."""
+        provider = CursorOriginIntegrationProvider()
+        assert IntegrationFeatures.CODEOWNERS in provider.features
+        assert IntegrationFeatures.CODEOWNERS in {
+            feature.featureGate for feature in provider.metadata.features
+        }
+
+    def test_get_codeowner_file_walks_past_the_root_location(self) -> None:
+        """Origin has no HEAD route, so check_file and get_file are both contents reads."""
+        repo = self._repo()
+        raw = "docs/*  @acme/eng\n* @acme/rocket\n"
+        contents = {
+            "type": "file",
+            "encoding": "base64",
+            "content": b64encode(raw.encode()).decode(),
+        }
+
+        with mock.patch.object(
+            CursorOriginApiClient,
+            "get_contents",
+            side_effect=[ApiError("resource not found", code=404), contents, contents],
+        ) as mock_contents:
+            result = self.install.get_codeowner_file(repo, ref="main")
+
+        assert result == {
+            "filepath": ".github/CODEOWNERS",
+            "html_url": f"{WEB}/{REPO}/blob/main/.github/CODEOWNERS",
+            "raw": raw,
+        }
+        assert [call.args[1] for call in mock_contents.call_args_list] == [
+            "CODEOWNERS",
+            ".github/CODEOWNERS",
+            ".github/CODEOWNERS",
+        ]
+
+    def test_get_codeowner_file_returns_nothing_when_no_location_has_one(self) -> None:
+        with mock.patch.object(
+            CursorOriginApiClient,
+            "get_contents",
+            side_effect=ApiError("resource not found", code=404),
+        ):
+            assert self.install.get_codeowner_file(self._repo(), ref="main") is None
 
     def test_uninstall_removes_the_origin_installation(self) -> None:
         with mock.patch.object(CursorOriginSetupApiClient, "delete_installation") as mock_delete:

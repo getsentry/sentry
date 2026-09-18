@@ -512,6 +512,7 @@ export function SeerExplorerContent({
     if (!userScrolledUpRef.current && scrollContainerRef.current) {
       scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [blocks]);
 
   // Track scroll position to detect if user scrolled up

@@ -307,6 +307,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setLastViewedAt(Date.now());
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [runId]);
 
   const [isWindowVisible, setIsWindowVisible] = useState(

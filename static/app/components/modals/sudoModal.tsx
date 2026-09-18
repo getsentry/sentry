@@ -276,6 +276,7 @@ function SudoModal({
     if (ssoExpired) {
       logout(api, getAuthLoginPath());
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [api, ssoExpired]);
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
