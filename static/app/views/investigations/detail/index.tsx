@@ -165,12 +165,10 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     investigation.orchestration && orchestration
       ? getSeerStatusBlock(orchestration)
       : null;
-  /*
-   * A finished run's total is frozen at the projection's last update, which is
-   * the closest thing the contract carries to a finish time. Without one there
-   * is no total to state, so the header says nothing rather than leaving a
-   * counter running on a run that has stopped.
-   */
+  // A finished run's total is frozen at the projection's last update, which is
+  // the closest thing the contract carries to a finish time. Without one there
+  // is no total to state, so the header says nothing rather than leaving a
+  // counter running on a run that has stopped.
   const runEndedAt =
     runStatus?.variant === 'complete' ? (orchestration?.updatedAt ?? null) : null;
   const showRunTimer = runStatus?.variant === 'running' || Boolean(runEndedAt);

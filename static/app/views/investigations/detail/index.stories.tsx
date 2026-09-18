@@ -241,14 +241,12 @@ const runningInvestigation = InvestigationRunningDetailFixture({
   ],
 });
 
-/*
- * The header's status chip — and the wall clock beside it — only appear on an
- * agentic run, since `orchestration` being present is the only thing that marks
- * one. Both times are relative to page load, so the counter reads like a live
- * run rather than one dated to whenever this fixture was written.
- */
+// The header's status chip — and the wall clock beside it — only appear on an
+// agentic run, since `orchestration` being present is the only thing that marks
+// one. Both times are relative to page load, so the counter reads like a live
+// run rather than one dated to whenever this fixture was written.
 const agenticRunStartedAt = new Date(Date.now() - 12 * 1000).toISOString();
-/* A finished run's total is measured to the projection's last update. */
+// A finished run's total is measured to the projection's last update.
 const agenticRunFinishedAt = new Date(
   Date.parse(agenticRunStartedAt) + 47_300
 ).toISOString();
