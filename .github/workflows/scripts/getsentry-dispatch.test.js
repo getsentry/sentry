@@ -63,14 +63,16 @@ describe('dispatch', () => {
       core,
       mergeCommitSha: 'deadbeef',
       fileChanges: {backend_all: 'true', gsapp: 'true'},
-      sentryChangedFiles: 'src/sentry/foo.py',
-      sentryPreviousFilenames: '',
     });
 
     assert.equal(github.calls.length, 2);
     const workflows = github.calls.map(c => c.workflow_id);
     assert.ok(workflows.includes('backend.yml'));
     assert.ok(workflows.includes('acceptance.yml'));
+    for (const call of github.calls) {
+      assert.ok(!('sentry-changed-files' in call.inputs));
+      assert.ok(!('sentry-previous-filenames' in call.inputs));
+    }
   });
 
   it('sets skip=true when pathFilter does not match', async () => {
@@ -81,8 +83,6 @@ describe('dispatch', () => {
       core: mockCore(),
       mergeCommitSha: 'deadbeef',
       fileChanges: {backend_all: 'false', gsapp: 'false'},
-      sentryChangedFiles: '',
-      sentryPreviousFilenames: '',
     });
 
     for (const call of github.calls) {
@@ -98,8 +98,6 @@ describe('dispatch', () => {
       core: mockCore(),
       mergeCommitSha: 'deadbeef',
       fileChanges: {backend_all: 'true', gsapp: 'true'},
-      sentryChangedFiles: '',
-      sentryPreviousFilenames: '',
     });
 
     for (const call of github.calls) {
@@ -115,33 +113,12 @@ describe('dispatch', () => {
       core: mockCore(),
       mergeCommitSha: 'merge111',
       fileChanges: {backend_all: 'true', gsapp: 'true'},
-      sentryChangedFiles: '',
-      sentryPreviousFilenames: '',
     });
 
     for (const call of github.calls) {
       assert.equal(call.inputs['sentry-sha'], 'merge111');
       assert.equal(call.inputs['sentry-pr-sha'], 'head999');
     }
-  });
-
-  it('falls back to the full suite when changed files exceed the dispatch limit', async () => {
-    const github = makeGithub();
-    const core = mockCore();
-    await dispatch({
-      github,
-      context: mockContext(),
-      core,
-      mergeCommitSha: 'deadbeef',
-      fileChanges: {backend_all: 'true'},
-      sentryChangedFiles: 'src/sentry/very-long-file.py '.repeat(3000),
-      sentryPreviousFilenames: 'src/sentry/old-very-long-file.py '.repeat(3000),
-      targetWorkflow: 'backend.yml',
-    });
-
-    assert.equal(github.calls[0].inputs['sentry-changed-files'], '');
-    assert.equal(github.calls[0].inputs['sentry-previous-filenames'], '');
-    assert.ok(core.logs.warning.some(m => m.includes('payload limit')));
   });
 
   it('dispatches only targetWorkflow when specified', async () => {
@@ -152,8 +129,6 @@ describe('dispatch', () => {
       core: mockCore(),
       mergeCommitSha: 'deadbeef',
       fileChanges: {backend_all: 'true', gsapp: 'true'},
-      sentryChangedFiles: '',
-      sentryPreviousFilenames: '',
       targetWorkflow: 'backend.yml',
     });
 
@@ -171,8 +146,6 @@ describe('dispatch', () => {
         core,
         mergeCommitSha: 'deadbeef',
         fileChanges: {backend_all: 'true', gsapp: 'false'},
-        sentryChangedFiles: '',
-        sentryPreviousFilenames: '',
         targetWorkflow: 'backend.yml',
       })
     );
@@ -194,8 +167,6 @@ describe('dispatch', () => {
             core,
             mergeCommitSha: 'deadbeef',
             fileChanges: {backend_all: 'true', gsapp: 'false'},
-            sentryChangedFiles: '',
-            sentryPreviousFilenames: '',
             targetWorkflow: 'backend.yml',
           })
         ),
