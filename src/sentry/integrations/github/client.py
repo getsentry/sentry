@@ -13,6 +13,7 @@ import orjson
 import sentry_sdk
 from django.core.cache import cache
 from requests import PreparedRequest, Response
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.constants import ObjectStatus
@@ -69,7 +70,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.iterators import chunked
 from sentry.utils.safe import get_path
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger("sentry.integrations.github")
 
@@ -908,9 +908,9 @@ class GitHubBaseClient(
         def page_items(resp: Any) -> Any:
             return resp[response_key] if response_key else resp
 
-        with start_span(
-            op=f"{self.integration_type}.http.pagination",
+        with traces.start_span(
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
+            attributes={"sentry.op": f"{self.integration_type}.http.pagination"},
         ):
             # Fetch the first page serially. Besides returning its data, this
             # warms up any lazily-initialized client state (auth token, session)
