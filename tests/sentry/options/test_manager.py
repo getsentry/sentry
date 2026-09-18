@@ -237,6 +237,44 @@ class OptionsManagerTest(TestCase):
         # By leaving the value as it is.
         self.manager.set("option", "value", channel=UpdateChannel.AUTOMATOR)
 
+    def test_get_many(self) -> None:
+        self.manager.register("stored")
+        self.manager.register("defaulted", default="fallback")
+        self.manager.register("nostore", flags=FLAG_NOSTORE)
+        self.manager.register("prioritize_disk", flags=FLAG_PRIORITIZE_DISK)
+        self.manager.set("stored", "bar")
+        self.manager.set("prioritize_disk", "from-db")
+        self.store.flush_local_cache()
+
+        with self.settings(SENTRY_OPTIONS={"nostore": "disk", "prioritize_disk": "disk-wins"}):
+            with patch.object(self.store.cache, "get", side_effect=RuntimeError()):
+                assert self.manager.get_many(
+                    ["stored", "defaulted", "nostore", "prioritize_disk", "foo"]
+                ) == {
+                    "stored": "bar",
+                    "defaulted": "fallback",
+                    "nostore": "disk",
+                    "prioritize_disk": "disk-wins",
+                    "foo": "",
+                }
+
+        with pytest.raises(UnknownOption):
+            self.manager.get_many(["stored", "does-not-exist"])
+
+        for key in ("stored", "defaulted", "nostore", "prioritize_disk"):
+            self.manager.unregister(key)
+
+    def test_get_many_read_hook(self) -> None:
+        self.manager.register("hooked")
+        self.manager.set_read_hook(
+            lambda key, opt: "hooked-value" if key == "hooked" else READ_HOOK_FALLBACK
+        )
+        try:
+            assert self.manager.get_many(["hooked", "foo"]) == {"hooked": "hooked-value", "foo": ""}
+        finally:
+            self.manager.set_read_hook(None)
+            self.manager.unregister("hooked")
+
     def test_flag_prioritize_disk(self) -> None:
         self.manager.register("prioritize_disk", flags=FLAG_PRIORITIZE_DISK)
         assert self.manager.get("prioritize_disk") == ""

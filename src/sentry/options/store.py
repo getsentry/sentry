@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+from collections.abc import Iterable
 from random import random
 from time import time
 from typing import Any
@@ -104,6 +105,36 @@ class OptionsStore:
         if result is not None:
             return result
 
+        return self._get_after_cache_miss(key, silent=silent)
+
+    def get_many(self, keys: Iterable[Key], silent=False) -> dict[str, Any]:
+        """
+        Fetches many values from the options store with a single network cache
+        round trip. Maps each key name to its value, or to None when the key is
+        missing, exactly as ``get`` would answer for that key alone.
+        """
+        results: dict[str, Any] = {}
+        misses: list[Key] = []
+        for key in keys:
+            value = self.get_local_cache(key)
+            if value is not None:
+                results[key.name] = value
+            else:
+                misses.append(key)
+
+        if not misses:
+            return results
+
+        cached = self._get_cache_many(misses, silent=silent)
+        for key in misses:
+            value = cached.get(key.cache_key)
+            if value is None:
+                value = self._get_after_cache_miss(key, silent=silent)
+            results[key.name] = value
+
+        return results
+
+    def _get_after_cache_miss(self, key, silent=False):
         should_log = random() < LOGGING_SAMPLE_RATE
         if should_log:
             # Log some percentage of our cache misses for option retrieval to
@@ -149,6 +180,30 @@ class OptionsStore:
             self._local_cache[cache_key] = _make_cache_value(key, value)
 
         return value
+
+    def _get_cache_many(self, keys: list[Key], silent=False) -> dict[str, Any]:
+        """
+        Reads the network cache for keys that missed the local cache. Maps cache
+        key to value for the keys the network cache holds.
+        """
+        assert self.cache is not None, (
+            f"Option '{keys[0].name}' requested before cache initialization, which could result in excessive store queries"
+        )
+
+        try:
+            values = self.cache.get_many([key.cache_key for key in keys])
+        except Exception:
+            if not silent:
+                names = [key.name for key in keys]
+                logger.warning(CACHE_FETCH_ERR, names, extra={"keys": names}, exc_info=True)
+            return {}
+
+        for key in keys:
+            value = values.get(key.cache_key)
+            if value is not None and key.ttl > 0:
+                self._local_cache[key.cache_key] = _make_cache_value(key, value)
+
+        return values
 
     def get_local_cache(self, key, force_grace=False):
         """
