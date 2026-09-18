@@ -1,10 +1,11 @@
 import type {LocationDescriptor} from 'history';
-import queryString from 'query-string';
+import queryString, {type ParsedQuery} from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
@@ -17,10 +18,14 @@ import {
 } from 'sentry/views/detectors/pathnames';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {
+  LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {
+  LOGS_AGGREGATE_SORT_BYS_KEY,
+  LOGS_SORT_BYS_KEY,
+} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
@@ -104,7 +109,7 @@ export type LinkSubject = {
   /** Which external provider served the call, if any. */
   provider?: string;
   /** The requested query string, parsed — params the route template does not name. */
-  query?: Record<string, string>;
+  query?: ParsedQuery;
   status?: number;
   /** The title seer shipped for this call. Absent on a seer-emitted link. */
   title?: string;
@@ -580,8 +585,7 @@ export const LINK_RULES: LinkRule[] = [
   },
 
   // --- Searches / composites. Not a single entity: a result set or a section home, reproduced as a
-  // page URL. Query routes pull filter state from the call's query string (merged into `params` by
-  // `subjectFromCallRecord`). ---
+  // page URL. API query routes translate their query string into the search parameter vocabulary. ---
 
   {
     id: 'telemetry_live_search',
@@ -589,7 +593,8 @@ export const LINK_RULES: LinkRule[] = [
     // entity id (e.g. `/issues/{issue_id}/events/`) — those inherit the parent via longest-prefix.
     prefix:
       /\/(?:organizations\/\{organization_id_or_slug\}|projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\})\/(?:events(?:-timeseries|-stats|-meta|-facets)?|traces|issues)\/?$/,
-    resolve: ({kind, params, path, title}, {projects}) => {
+    resolve: (subject, {projects}) => {
+      const {kind, params, title} = subject;
       // Lib/bus: the bus link always carries the translated query. The call row starts with only
       // `dataset` + `question`; seer stamps the translated params onto the record after the search
       // returns. Older rows without a query still decline here and keep the residual bus link.
@@ -600,7 +605,10 @@ export const LINK_RULES: LinkRule[] = [
       // API rows: map Sentry query-string keys onto the searchUrl vocabulary, and infer dataset
       // from the route when the agent did not send one (project error-event listing, issue search).
       const searchParams =
-        kind === 'api' ? searchParamsFromApiCall(params, path) : params;
+        kind === 'api' ? searchParamsFromApiCall(subject, projects) : params;
+      if (!searchParams) {
+        return null;
+      }
 
       // A bare list with no filter still deep-links to the section home — better than an unlinked
       // "Listing issues" row. Metrics still need a metric identity and decline without one.
@@ -622,17 +630,21 @@ export const LINK_RULES: LinkRule[] = [
   {
     id: 'list_replays',
     prefix: /\/organizations\/\{organization_id_or_slug\}\/replays\/?$/,
-    resolve: ({params, title}, {organization, projects}) => {
-      const projectIds = projectIdsFromApiCall(params, projects);
+    resolve: (subject, {organization, projects}) => {
+      const {query = {}, title} = subject;
+      const projectIds = projectIdsFromApiCall(subject, projects);
       return {
         label: title ?? t('View replays'),
         url: {
           pathname: makeReplaysPathname({organization, path: '/'}),
           query: {
-            ...(typeof params.query === 'string' ? {query: params.query} : {}),
-            ...(params.statsPeriod || params.stats_period
-              ? {statsPeriod: params.statsPeriod || params.stats_period}
-              : {}),
+            query: decodeScalar(query.query),
+            statsPeriod: decodeScalar(query.statsPeriod),
+            start: decodeScalar(query.start)?.replace(/Z$/, ''),
+            end: decodeScalar(query.end)?.replace(/Z$/, ''),
+            environment: query.environment
+              ? getStringArray(query.environment)
+              : undefined,
             ...(projectIds ? {project: projectIds} : {}),
           },
         },
@@ -644,8 +656,12 @@ export const LINK_RULES: LinkRule[] = [
     // Org or project release *collection* only — detail rows already match get_release_details.
     prefix:
       /\/(?:organizations\/\{organization_id_or_slug\}|projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\})\/releases\/?$/,
-    resolve: ({params, title}, {organization, projects}) => {
-      const projectIds = projectIdsFromApiCall(params, projects);
+    resolve: (subject, {organization, projects}) => {
+      const {title} = subject;
+      const projectIds = projectIdsFromApiCall(subject, projects);
+      if (projectIds === null) {
+        return null;
+      }
       return {
         label: title ?? t('View releases'),
         url: {
@@ -713,23 +729,6 @@ export const LINK_RULES: LinkRule[] = [
       label: title ?? t('View projects'),
       url: {pathname: makeProjectsPathname({organization, path: '/'})},
     }),
-  },
-  {
-    id: 'get_explore_saved_query',
-    prefix: /\/explore\/saved\/\{id\}/,
-    resolve: ({params, title}) => {
-      const id = asUrlSegment(params.id);
-      if (!id) {
-        return null;
-      }
-      // Explore has no saved-query detail route; open spans Explore with the saved id. Dataset is
-      // not on the path — spans is the default surface and still loads the saved query when it is
-      // a logs/metrics/replays one via redirect.
-      return {
-        label: title ?? t('View saved query'),
-        url: {pathname: '/traces/', query: {id}},
-      };
-    },
   },
   {
     id: 'get_discover_saved_query',
@@ -826,19 +825,12 @@ export function resolveLink(
 /** A call Code Mode reported, as something the rules can match on. */
 export function subjectFromCallRecord(record: CallRecord): LinkSubject {
   const [pathname, queryStringPart] = (record.resolved_path ?? '').split('?');
-  const query = queryStringPart
-    ? (queryString.parse(queryStringPart) as Record<string, any>)
-    : undefined;
-
-  // Lib rows keep scalar args. API rows merge path params with the requested query string so a
-  // composite rule can read `dataset` / `query` / `project` the same way a lib search does — seer
-  // only carries the query on `resolved_path`, never beside `path_params`.
-  const params =
-    record.kind === 'lib' ? (record.params ?? {}) : {...record.path_params, ...query};
+  const query = queryStringPart ? queryString.parse(queryStringPart) : undefined;
+  const params = record.kind === 'lib' ? record.params : record.path_params;
 
   return {
     kind: record.kind === 'lib' ? 'lib' : 'api',
-    params,
+    params: params ?? {},
     name: record.kind === 'lib' ? record.name : undefined,
     method: record.method,
     path: record.path,
@@ -946,80 +938,76 @@ function telemetryDatasetLabel(dataset: unknown): string | undefined {
   }
 }
 
-/**
- * Map a raw Sentry API call's query string (+ path) onto the `searchUrl` param vocabulary.
- *
- * Lib/bus searches already speak that vocabulary. HTTP Explore/issue routes use Sentry's wire
- * names (`statsPeriod`, `yAxis`, `field`, `project` as ids) and sometimes omit `dataset` entirely
- * (project error-event listing, org issue search).
- */
+/** Translate API parameters once; lib and bus searches already use the search vocabulary. */
 function searchParamsFromApiCall(
-  params: Record<string, any>,
-  path: string | undefined
-): Record<string, any> {
-  const next: Record<string, any> = {...params};
-
-  if (next.stats_period === undefined && next.statsPeriod !== undefined) {
-    next.stats_period = next.statsPeriod;
-  }
-  if (next.y_axes === undefined && next.yAxis !== undefined) {
-    next.y_axes = getStringArray(next.yAxis);
-  }
-  if (next.group_by === undefined && next.groupBy !== undefined) {
-    next.group_by = getStringArray(next.groupBy);
-  }
-  // Discover/events table columns.
-  if (next.field !== undefined && next.fields === undefined) {
-    next.fields = getStringArray(next.field);
+  subject: LinkSubject,
+  projects: LinkContext['projects']
+): Record<string, unknown> | null {
+  const {query = {}, path} = subject;
+  const projectIds = projectIdsFromApiCall(subject, projects);
+  if (projectIds === null) {
+    return null;
   }
 
-  if (!next.dataset) {
+  let dataset = decodeScalar(query.dataset);
+  if (!dataset) {
     if (path?.includes('/issues/')) {
-      next.dataset = 'issues';
+      dataset = 'issues';
     } else if (path?.includes('/traces/')) {
-      next.dataset = 'spans';
-    } else if (path?.includes('/events')) {
-      // Org events* and project events listings default to the errors Explore surface when the
-      // agent did not name a dataset. Spans/logs/metrics calls always send one.
-      next.dataset = 'errors';
+      dataset = 'spans';
+    } else if (path?.includes('/projects/')) {
+      dataset = 'errors';
+    } else {
+      // Organization events default to legacy Discover, which can include transactions.
+      // Its query cannot be reproduced faithfully on the errors or spans surface.
+      return null;
+    }
+  }
+  const fields = getStringArray(query.field);
+  const yAxes = getStringArray(query.yAxis);
+  const aggregates = fields.filter(isAggregateField);
+  const isAggregate =
+    (dataset === 'spans' || dataset === 'logs') &&
+    (aggregates.length > 0 || yAxes.length > 0);
+  let groupBy = query.groupBy ? getStringArray(query.groupBy) : undefined;
+  if (isAggregate) {
+    groupBy ??= fields.filter(field => !isAggregateField(field));
+    if (!yAxes.length) {
+      yAxes.push(...aggregates);
     }
   }
 
-  // Events tables put aggregates in `field`; stats/timeseries routes use `yAxis`.
-  // Explore needs separate chart axes, groupings, and an explicit aggregate mode.
-  if (next.dataset === 'spans') {
-    const fields = getStringArray(next.fields);
-    const aggregates = fields.filter(isAggregateField);
-    if (aggregates.length || getStringArray(next.y_axes).length) {
-      next.y_axes ??= aggregates;
-      next.group_by ??= fields.filter(field => !isAggregateField(field));
-      next.mode ??= 'aggregates';
-    }
-  }
-
-  // Wire `project` is an id (or list of ids). searchUrl also accepts `project_slugs` from the lib.
-  if (next.project !== undefined && next.project_ids === undefined) {
-    next.project_ids = getStringArray(next.project);
-  }
-
-  return next;
+  return {
+    dataset,
+    query: decodeScalar(query.query),
+    stats_period: decodeScalar(query.statsPeriod),
+    start: decodeScalar(query.start),
+    end: decodeScalar(query.end),
+    sort: decodeScalar(query.sort),
+    environment: query.environment ? getStringArray(query.environment) : undefined,
+    project_ids: projectIds,
+    fields: fields.length ? fields : undefined,
+    y_axes: yAxes.length ? yAxes : undefined,
+    group_by: groupBy,
+    mode: isAggregate ? 'aggregates' : decodeScalar(query.mode),
+  };
 }
 
-/** Keep wire project ids even when the viewer's project list is only partially loaded. */
+/** Keep wire ids without a loaded project list; null means a scoped slug cannot be resolved. */
 function projectIdsFromApiCall(
-  params: Record<string, any>,
-  projects?: Array<{id: string; slug: string}>
-): string[] | undefined {
-  const ids = getStringArray(params.project);
-  if (ids.length) {
-    return ids;
-  }
+  {params, query}: LinkSubject,
+  projects: LinkContext['projects']
+): string[] | null | undefined {
   const pathProject = asUrlSegment(params.project_id_or_slug);
-  if (pathProject && /^\d+$/.test(pathProject)) {
-    return [pathProject];
+  if (pathProject) {
+    if (/^\d+$/.test(pathProject)) {
+      return [pathProject];
+    }
+    const project = projects?.find(p => p.slug === pathProject);
+    return project ? [project.id] : null;
   }
-  const project = resolveProject(pathProject, projects);
-  return project?.id ? [project.id] : undefined;
+  const ids = getStringArray(query?.project);
+  return ids.length ? ids : undefined;
 }
 
 /**
@@ -1061,19 +1049,12 @@ function searchUrl(
     }
   } else if (project_ids?.length) {
     queryParams.project = getStringArray(project_ids);
-  } else if (params.project_id_or_slug) {
-    // Project-scoped API routes carry the project in the path, not the query string.
-    const projectIds = projectIdsFromApiCall(params, projects);
-    if (projectIds) {
-      queryParams.project = projectIds;
-    }
   }
 
   if (dataset === 'issues') {
     return {pathname: '/issues/', query: queryParams};
   }
-  if (dataset === 'errors' || dataset === 'discover') {
-    // Events API default dataset is `discover`; treat it like the inferred errors Explore surface.
+  if (dataset === 'errors') {
     return {
       pathname: '/explore/discover/homepage/',
       query: errorsQuery(queryParams, params),
@@ -1088,8 +1069,7 @@ function searchUrl(
       ? {pathname: '/explore/metrics/', query: {...queryParams, metric}}
       : null;
   }
-  if (dataset === 'spans' || dataset === 'transactions' || !dataset) {
-    // Spans is the default Explore surface when dataset is missing on a traces-family route.
+  if (dataset === 'spans' || !dataset) {
     return {pathname: '/traces/', query: spansQuery(queryParams, params)};
   }
   // Unknown dataset — fail closed rather than guess a page.
@@ -1137,12 +1117,21 @@ function logsQuery(
   queryParams: Record<string, any>,
   params: Record<string, any>
 ): Record<string, any> {
-  const {group_by, mode} = params;
+  const {y_axes, group_by, mode} = params;
   const {query, sort, ...rest} = queryParams;
   const next: Record<string, any> = {...rest, [LOGS_QUERY_KEY]: query || ''};
 
   if (sort) {
-    next[LOGS_SORT_BYS_KEY] = sort;
+    next[mode === 'aggregates' ? LOGS_AGGREGATE_SORT_BYS_KEY : LOGS_SORT_BYS_KEY] = sort;
+  }
+  if (params.fields && mode !== 'aggregates') {
+    next[LOGS_FIELDS_KEY] = getStringArray(params.fields);
+  }
+  if (y_axes) {
+    next.aggregateField = [
+      JSON.stringify({yAxes: getStringArray(y_axes)}),
+      ...getStringArray(group_by).map(groupBy => JSON.stringify({groupBy})),
+    ];
   }
   if (group_by) {
     next[LOGS_GROUP_BY_KEY] = getStringArray(group_by);
