@@ -1,4 +1,5 @@
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
@@ -221,6 +222,80 @@ class DisassociateOrganizationIntegrationTest(TestCase):
 
         repo.refresh_from_db()
         assert repo.integration_id is None
+
+
+@cell_silo_test
+class TransferRepositoryToIntegrationTest(TestCase):
+    def setUp(self) -> None:
+        self.provider = "integrations:github"
+        self.old_integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="github"
+        )
+        self.old_org_integration = self.old_integration.organizationintegration_set.get()
+        self.new_integration = self.create_integration(
+            organization=self.organization, external_id="2", provider="github"
+        )
+        self.new_org_integration = self.new_integration.organizationintegration_set.get()
+        self.repo = self.create_repo(
+            project=self.project,
+            name="old-org/sentry",
+            external_id="100",
+            provider=self.provider,
+            integration_id=self.old_integration.id,
+        )
+        self.code_mapping = self.create_code_mapping(
+            project=self.project,
+            repo=self.repo,
+            organization_integration=self.old_org_integration,
+        )
+
+    def _transfer(self) -> bool:
+        update = serialize_repository(self.repo)
+        update.name = "new-org/sentry"
+        update.integration_id = self.new_integration.id
+        update.status = ObjectStatus.ACTIVE
+        return repository_service.transfer_repository_to_integration(
+            organization_id=self.organization.id,
+            update=update,
+            organization_integration_id=self.new_org_integration.id,
+        )
+
+    def test_moves_repo_and_code_mappings(self) -> None:
+        assert self._transfer() is True
+
+        self.repo.refresh_from_db()
+        assert self.repo.integration_id == self.new_integration.id
+        assert self.repo.name == "new-org/sentry"
+        self.code_mapping.refresh_from_db()
+        assert self.code_mapping.integration_id == self.new_integration.id
+        assert self.code_mapping.organization_integration_id == self.new_org_integration.id
+
+    def test_returns_false_when_repo_deleted(self) -> None:
+        update = serialize_repository(self.repo)
+        self.repo.delete()
+
+        assert (
+            repository_service.transfer_repository_to_integration(
+                organization_id=self.organization.id,
+                update=update,
+                organization_integration_id=self.new_org_integration.id,
+            )
+            is False
+        )
+        assert not Repository.objects.filter(id=update.id).exists()
+
+    def test_returns_false_when_repo_pending_deletion(self) -> None:
+        Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.PENDING_DELETION)
+
+        assert self._transfer() is False
+
+        self.repo.refresh_from_db()
+        assert self.repo.status == ObjectStatus.PENDING_DELETION
+        assert self.repo.integration_id == self.old_integration.id
+        assert self.repo.name == "old-org/sentry"
+        self.code_mapping.refresh_from_db()
+        assert self.code_mapping.integration_id == self.old_integration.id
+        assert self.code_mapping.organization_integration_id == self.old_org_integration.id
 
 
 @cell_silo_test

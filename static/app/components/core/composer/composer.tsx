@@ -65,6 +65,7 @@ function useEditorValueSync({mentions, text}: ComposerValue) {
       setEditorSelection(input, selectionToRestore);
       selectionToRestoreRef.current = null;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [mentions, nativeEditVersion, text]);
 
   return {inputRef, isComposingRef, requestValueSync, selectionToRestoreRef};
@@ -127,6 +128,7 @@ function useCaretAnchorPosition({
     const resizeObserver = new ResizeObserver(updatePosition);
     resizeObserver.observe(input);
     return () => resizeObserver.disconnect();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputRef, trigger, updatePosition, value]);
 
   return {anchorRef, updatePosition};

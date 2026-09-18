@@ -118,6 +118,7 @@ export function FunctionTrendsWidget({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setExpandedIndex(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [trendsQuery.data]);
 
   const hasTrends = (trendsQuery.data?.json?.length || 0) > 0;

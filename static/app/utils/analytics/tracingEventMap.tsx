@@ -116,6 +116,9 @@ export type TracingEventParameters = {
     value: string | number;
   };
   'trace.trace_layout.ai_tab_clicked': Record<string, unknown>;
+  'trace.trace_layout.attribute_pin_changed': {
+    action: 'added' | 'removed';
+  };
   'trace.trace_layout.change': {
     layout: string;
   };
@@ -237,6 +240,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_drawer_details.gen_ai_span_details_viewed':
     'Viewed Gen AI Span Details in Trace',
   'trace.trace_layout.ai_tab_clicked': 'Clicked AI Tab in Trace',
+  'trace.trace_layout.attribute_pin_changed': 'Trace Waterfall: Attribute Pin Changed',
   'trace.tracing_onboarding': 'Tracing Onboarding UI',
   'trace.tracing_onboarding_platform_docs_viewed':
     'Viewed Platform Docs for Onboarding UI',

@@ -1093,6 +1093,7 @@ export function ResultGrid({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     fetchData();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [requestSignal, region]);
 
   useEffect(() => {

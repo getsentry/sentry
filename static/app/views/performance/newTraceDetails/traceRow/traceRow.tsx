@@ -45,6 +45,7 @@ export interface TraceRowProps<T extends TraceTree.Node> {
   theme: Theme;
   trace_id: string | undefined;
   virtualized_index: number;
+  pinnedAttributeCell?: React.ReactNode;
 }
 
 export function maybeFocusTraceRow(

@@ -190,6 +190,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
+        assert response.data["commentId"] == str(activity.id)
         assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {"text": "hi haters", "external_id": "123"}
@@ -246,6 +247,7 @@ class GroupNotesDetailsTest(APITestCase):
         )
         # `id` is the Activity id (comment_id), matching the flag-off contract
         assert response.data["id"] == str(activity_id)
+        assert response.data["commentId"] == str(activity_id)
         assert response.data["type"] == "note"
         assert response.data["user"]["id"] == str(self.user.id)
         # the fresh text is re-derived from the edited activity, not the stale GALE entry
@@ -339,6 +341,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data["id"] == str(self.activity.id)
+        assert response.data["commentId"] == str(self.activity.id)
         assert response.data["data"]["text"] == "updated"
 
     @with_feature("projects:issue-action-log-write-to-db")
