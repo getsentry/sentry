@@ -10,7 +10,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconChat, IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {NoteType} from 'sentry/types/alerts';
-import type {Group, GroupActivity} from 'sentry/types/group';
+import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,9 +37,15 @@ interface ActivityFeedRowProps {
   group: Group;
   inputVariant: 'compact' | 'full';
   item: DisplayedActivityFeedItem;
-  onCommentDelete: (item: GroupActivity) => Promise<void>;
-  onCommentUpdate: (item: GroupActivity, data: NoteType) => Promise<void>;
+  onCommentDelete: (item: GroupActivityNote) => Promise<void>;
+  onCommentUpdate: (item: GroupActivityNote, data: NoteType) => Promise<void>;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
+}
+
+function getActivityKey(activity: GroupActivity): string {
+  return isActivityNote(activity)
+    ? `comment:${activity.commentId ?? activity.id}`
+    : `activity:${activity.id}`;
 }
 
 function ActivityFeedRow({
@@ -59,7 +65,7 @@ function ActivityFeedRow({
             onCommentDelete={onCommentDelete}
             onCommentUpdate={onCommentUpdate}
             group={group}
-            key={activity.activity.id}
+            key={getActivityKey(activity.activity)}
             inputVariant={inputVariant}
             timestampUnitStyle={timestampUnitStyle}
           />
@@ -144,20 +150,31 @@ export function ActivitySection({
     }
   }
 
-  async function handleDelete(item: GroupActivity) {
-    await deleteComment(item.id);
+  async function handleDelete(item: GroupActivityNote) {
+    const commentId = item.commentId ?? item.id;
+    await deleteComment(commentId);
     trackAnalytics('issue_details.comment_deleted', {organization});
     addSuccessMessage(t('Comment removed'));
-    onActivityChange?.(activities.filter(activity => activity.id !== item.id));
+    onActivityChange?.(
+      activities.filter(
+        activity =>
+          !isActivityNote(activity) || (activity.commentId ?? activity.id) !== commentId
+      )
+    );
   }
 
-  async function handleUpdate(item: GroupActivity, data: NoteType) {
+  async function handleUpdate(item: GroupActivityNote, data: NoteType) {
     try {
-      const result = await updateComment(item.id, data);
+      const commentId = item.commentId ?? item.id;
+      const result = await updateComment(commentId, data);
       trackAnalytics('issue_details.comment_updated', {organization});
       addSuccessMessage(t('Comment updated'));
       onActivityChange?.(
-        activities.map(activity => (activity.id === result.id ? result : activity))
+        activities.map(activity =>
+          isActivityNote(activity) && (activity.commentId ?? activity.id) === commentId
+            ? {...activity, commentId, data: {...activity.data, ...result.data}}
+            : activity
+        )
       );
     } catch (error) {
       addErrorMessage(t('Unable to update comment'));
@@ -194,7 +211,7 @@ export function ActivitySection({
       onCommentDelete={handleDelete}
       onCommentUpdate={handleUpdate}
       group={group}
-      key={item.activity.id}
+      key={getActivityKey(item.activity)}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
     />
