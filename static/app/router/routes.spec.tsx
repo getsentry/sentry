@@ -190,6 +190,19 @@ describe('buildRoutes()', () => {
     });
   });
 
+  it('redirects the legacy uptime alert details route to the monitor detail page', () => {
+    // Three live call sites still link here (the uptime overview row, the
+    // detector link on an uptime issue, and the post-create redirect), so the
+    // route has to keep resolving to the detector even though the page it used
+    // to render is gone.
+    expect(
+      getRedirectTarget(
+        buildRoutes(),
+        '/organizations/test-org/alerts/rules/uptime/my-project/42/details/'
+      )
+    ).toBe('/organizations/test-org/monitors/42/');
+  });
+
   it('matches legacy project event redirects under the organization layout', () => {
     const matchedPaths = getMatchedPaths(
       buildRoutes(),
