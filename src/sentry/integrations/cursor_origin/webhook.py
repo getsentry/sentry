@@ -65,7 +65,7 @@ def _release_delivery(delivery_id: str) -> None:
     cache.delete(f"cursor_origin:webhook:{delivery_id}")
 
 
-def _timestamp_is_fresh(timestamp: str) -> bool:
+def timestamp_is_fresh(timestamp: str) -> bool:
     try:
         sent_at = int(timestamp)
     except ValueError:
@@ -86,7 +86,7 @@ def verify_delivery(request: HttpRequest, body: bytes) -> Verification:
         logger.warning("cursor_origin.webhook.unsigned")
         return Verification.REFUSED
 
-    if not _timestamp_is_fresh(timestamp):
+    if not timestamp_is_fresh(timestamp):
         logger.warning("cursor_origin.webhook.stale_timestamp", extra={"delivery_id": delivery_id})
         return Verification.REFUSED
 
