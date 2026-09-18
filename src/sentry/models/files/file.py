@@ -40,7 +40,10 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
         self, blobs_with_offsets: list[tuple[FileBlob, int]]
     ) -> list[FileBlobIndex]:
         return FileBlobIndex.objects.bulk_create(
-            [FileBlobIndex(file=self, blob=blob, offset=offset) for blob, offset in blobs_with_offsets]
+            [
+                FileBlobIndex(file=self, blob=blob, offset=offset)
+                for blob, offset in blobs_with_offsets
+            ]
         )
 
     def _create_blob_from_file(self, contents: ContentFile, logger: Any) -> FileBlob:
