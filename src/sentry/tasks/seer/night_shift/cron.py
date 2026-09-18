@@ -282,6 +282,10 @@ def run_night_shift_for_org(
     if organization is None:
         return None
 
+    if not _is_night_shift_enabled(organization):
+        logger.info("night_shift.disabled", extra={"organization_id": organization.id})
+        return None
+
     sentry_sdk.set_tags(
         {"organization_id": organization.id, "organization_slug": organization.slug}
     )
@@ -378,6 +382,12 @@ def run_night_shift_for_org(
     else:
         run_night_shift_execution(run.id, **task_kwargs)
     return run.id
+
+
+def _is_night_shift_enabled(organization: Organization) -> bool:
+    return options.get("seer.night_shift.enable") and features.has(
+        "organizations:seer-night-shift", organization
+    )
 
 
 @instrumented_task(

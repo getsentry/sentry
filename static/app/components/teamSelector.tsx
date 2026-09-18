@@ -213,6 +213,7 @@ export function TeamSelector(props: Props) {
 
       closeSelectMenu();
     },
+    // oxlint-disable-next-line react/memo-dependencies
     [api, createTeamOption, multiple, onChange, organization, project, value]
   );
 
@@ -380,6 +381,7 @@ export function TeamSelector(props: Props) {
     }
     // We only want to do this once when the component is finished loading for teams and mounted.
     // If the user decides they do not want the default, we should not add the default value back.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [fetching, loadingSelectedTeams, useTeamDefaultIfOnlyOne]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (

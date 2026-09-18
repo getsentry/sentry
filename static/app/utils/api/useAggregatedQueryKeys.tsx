@@ -167,6 +167,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
     } catch (error) {
       onError?.(error as Error);
     }
+    // oxlint-disable-next-line react/memo-dependencies
   }, [bufferLimit, cache, cacheKey, getQueryOptions, url, onError, queryClient]);
 
   const clearTimer = useCallback(() => {

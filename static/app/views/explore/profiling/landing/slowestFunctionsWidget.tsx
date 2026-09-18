@@ -108,6 +108,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     setExpandedIndex,
     // we want to reset the sorting option and expanded index to the default
     // every time the breakdown function changes.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     breakdownFunction,
   ]);
 

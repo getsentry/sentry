@@ -153,6 +153,17 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * Default: `auto`
    */
   showYAxis?: 'auto' | 'never';
+
+  /**
+   * Truncate the legend's "+n more" menu labels to the width the legend row
+   * already caps its own at, instead of letting the menu size to its content.
+   *
+   * For charts in a box narrow enough to clip the menu. A Seer embed's card is
+   * one, and the series names it charts are model-written, so the menu came out
+   * wider than the card and was cut off (CW-2052). A full-width surface has the
+   * room and should keep the untruncated names, which is the default.
+   */
+  truncateLegendMenuLabels?: boolean;
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
@@ -714,6 +725,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           items={chartLegendItems}
           selected={normalizedLegendSelection}
           onSelectionChange={handleLegendSelectionChange}
+          truncateMenuLabels={props.truncateLegendMenuLabels}
         />
       )}
       <Container flex="1 1 0%" minHeight="0">

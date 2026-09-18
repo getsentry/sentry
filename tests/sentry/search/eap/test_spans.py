@@ -564,6 +564,37 @@ class SearchResolverQueryTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="Could not parse"):
             resolver.resolve_query(f"count_unique({hidden_attribute}):>0")
 
+    def test_wildcard_on_virtual_column_rejected(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with device.class"):
+            self.resolver.resolve_query("device.class:*high*")
+
+    def test_wildcard_on_virtual_column_rejected_for_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        with pytest.raises(InvalidSearchQuery, match="Cannot use wildcards with device.class"):
+            resolver.resolve_query("device.class:*high*")
+
+    def test_virtual_column_remaps_value_for_timeseries_request(self) -> None:
+        resolver = SearchResolver(
+            params=SnubaParams(granularity_secs=60),
+            config=SearchResolverConfig(),
+            definitions=SPAN_DEFINITIONS,
+        )
+
+        where, having, _ = resolver.resolve_query("device.class:high")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="sentry.device.class", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="3"),
+            )
+        )
+        assert having is None
+
     def test_query_hides_internal_api_attributes_in_if_subquery(self) -> None:
         resolver = SearchResolver(
             params=SnubaParams(),
