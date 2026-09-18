@@ -86,6 +86,49 @@ type GridEditableProps<
   title?: ReactNode;
 };
 
+type GridEditableHeadProps<DataRow, Order extends GridColumnOrder<unknown>> = {
+  columnOrder: Order[];
+  grid: GridData<DataRow, Order>;
+};
+
+function GridEditableHead<DataRow, Order extends GridColumnOrder<unknown>>({
+  columnOrder,
+  grid,
+}: GridEditableHeadProps<DataRow, Order>) {
+  const prependColumns = grid.renderPrependColumns ? grid.renderPrependColumns(true) : [];
+
+  return (
+    <DataTable.Row data-test-id="grid-head-row">
+      {prependColumns &&
+        columnOrder.length > 0 &&
+        prependColumns.map((item, i) => (
+          <GridHeadCellStatic data-test-id="grid-head-cell-static" key={`prepend-${i}`}>
+            {item}
+          </GridHeadCellStatic>
+        ))}
+      {columnOrder.map((column, i) => {
+        const columnSort = grid.getColumnSort?.(column, i);
+
+        return (
+          <DataTable.HeadCell
+            align={columnSort?.align}
+            columnIndex={i}
+            data-test-id="grid-head-cell"
+            key={`${i}.${String(column.key)}`}
+            isFirst={i === 0}
+            onSort={columnSort?.onSort}
+            replace={columnSort?.replace}
+            sort={columnSort?.direction}
+            to={columnSort?.to}
+          >
+            {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
+          </DataTable.HeadCell>
+        );
+      })}
+    </DataTable.Row>
+  );
+}
+
 export function GridEditable<
   DataRow extends Record<string, any>,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
@@ -127,43 +170,6 @@ export function GridEditable<
       width,
     });
   };
-
-  function renderGridHead() {
-    const prependColumns = grid.renderPrependColumns
-      ? grid.renderPrependColumns(true)
-      : [];
-
-    return (
-      <DataTable.Row data-test-id="grid-head-row">
-        {prependColumns &&
-          props.columnOrder?.length > 0 &&
-          prependColumns.map((item, i) => (
-            <GridHeadCellStatic data-test-id="grid-head-cell-static" key={`prepend-${i}`}>
-              {item}
-            </GridHeadCellStatic>
-          ))}
-        {props.columnOrder.map((column, i) => {
-          const columnSort = grid.getColumnSort?.(column, i);
-
-          return (
-            <DataTable.HeadCell
-              align={columnSort?.align}
-              columnIndex={i}
-              data-test-id="grid-head-cell"
-              key={`${i}.${String(column.key)}`}
-              isFirst={i === 0}
-              onSort={columnSort?.onSort}
-              replace={columnSort?.replace}
-              sort={columnSort?.direction}
-              to={columnSort?.to}
-            >
-              {grid.renderHeadCell ? grid.renderHeadCell(column, i) : column.name}
-            </DataTable.HeadCell>
-          );
-        })}
-      </DataTable.Row>
-    );
-  }
 
   const renderGridBody = () => {
     if (error) {
@@ -255,7 +261,9 @@ export function GridEditable<
             prependColumnWidths={grid.prependColumnWidths}
             scrollable={scrollable}
           >
-            <DataTable.Head sticky={stickyHeader}>{renderGridHead()}</DataTable.Head>
+            <DataTable.Head sticky={stickyHeader}>
+              <GridEditableHead columnOrder={props.columnOrder} grid={grid} />
+            </DataTable.Head>
             <Table.Body>{renderGridBody()}</Table.Body>
           </DataTable.Grid>
         </DataTable.Frame>

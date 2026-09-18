@@ -9,6 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -74,6 +75,139 @@ type OtherDownload = BaseDownload & {
 };
 
 type Download = ExploreDownload | OtherDownload;
+
+function ExpiredDownload({actionLink}: {actionLink: string}) {
+  return (
+    <Fragment>
+      <Header>
+        <h3>{t('This is awkward.')}</h3>
+      </Header>
+      <Body>
+        <p>
+          {t(
+            "That link expired, so your download doesn't live here anymore. Just picked up one day and left town."
+          )}
+        </p>
+        <p>
+          {t(
+            'Make a new one with your latest data. Your old download will never see it coming.'
+          )}
+        </p>
+        <DownloadButton href={actionLink} variant="primary">
+          {t('Start a New Download')}
+        </DownloadButton>
+      </Body>
+    </Fragment>
+  );
+}
+
+function OpenInButton({
+  onOpenInDiscover,
+  onOpenInExplore,
+  organization,
+  type,
+}: {
+  onOpenInDiscover: () => void;
+  onOpenInExplore: () => void;
+  organization: Organization | null;
+  type: Download['query']['type'];
+}) {
+  // default to IssuesByTag because we don't want to
+  // display this unless we're sure its a discover query
+  if (
+    type !== ExportQueryType.DISCOVER &&
+    type !== ExportQueryType.EXPLORE &&
+    type !== ExportQueryType.TRACE_ITEM_FULL_EXPORT
+  ) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <p>{t('Need to make changes?')}</p>
+      <Button
+        variant="primary"
+        onClick={type === ExportQueryType.DISCOVER ? onOpenInDiscover : onOpenInExplore}
+      >
+        {type === ExportQueryType.DISCOVER
+          ? organization && getDiscoverDeprecation(organization)
+            ? t('Open in Explore')
+            : t('Open in Discover')
+          : t('Open in Explore')}
+      </Button>
+      <br />
+    </Fragment>
+  );
+}
+
+function ValidDownload({
+  dataExportId,
+  download,
+  onOpenInDiscover,
+  onOpenInExplore,
+  organization,
+  orgSlug,
+}: {
+  dataExportId: string;
+  download: Download;
+  onOpenInDiscover: () => void;
+  onOpenInExplore: () => void;
+  orgSlug: string;
+  organization: Organization | null;
+}) {
+  const {dateExpired, checksum, export_format} = download;
+  const exportFormatLabel = export_format?.toUpperCase() ?? 'CSV';
+
+  return (
+    <Fragment>
+      <Header>
+        <h3>{t('All done.')}</h3>
+      </Header>
+      <Body>
+        <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
+        <LinkButton
+          variant="primary"
+          icon={<IconDownload />}
+          href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
+        >
+          {t('Download %s', exportFormatLabel)}
+        </LinkButton>
+        <p>
+          {t("That link won't last forever — it expires:")}
+          <br />
+          {dateExpired ? (
+            <strong>
+              <DateTime date={new Date(dateExpired)} />
+            </strong>
+          ) : null}
+        </p>
+        <OpenInButton
+          onOpenInDiscover={onOpenInDiscover}
+          onOpenInExplore={onOpenInExplore}
+          organization={organization}
+          type={download.query.type}
+        />
+        <p>
+          <small>
+            <strong>SHA1:{checksum}</strong>
+          </small>
+          <br />
+          {tct('Need help verifying? [link].', {
+            link: (
+              <a
+                href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('Check out our docs')}
+              </a>
+            ),
+          })}
+        </p>
+      </Body>
+    </Fragment>
+  );
+}
 
 export default function DataDownload() {
   const {dataExportId, orgId: orgSlug} = useParams<{
@@ -144,76 +278,25 @@ export default function DataDownload() {
     }
   };
 
-  const renderDate = (date: string | undefined): React.ReactNode => {
-    if (!date) {
-      return null;
-    }
-    const d = new Date(date);
-    return (
-      <strong>
-        <DateTime date={d} />
-      </strong>
-    );
-  };
-
-  const renderEarly = (): React.ReactNode => {
-    return (
-      <Fragment>
-        <Header>
-          <h3>
-            {t('What are')}
-            <i>{t(' you ')}</i>
-            {t('doing here?')}
-          </h3>
-        </Header>
-        <Body>
-          <p>
-            {t(
-              "Not that its any of our business, but were you invited to this page? It's just that we don't exactly remember emailing you about it."
-            )}
-          </p>
-          <p>{t("Close this window and we'll email you when your download is ready.")}</p>
-        </Body>
-      </Fragment>
-    );
-  };
-
-  const renderExpired = (): React.ReactNode => {
-    const {query} = download;
-    let actionLink: string;
-
-    if (
-      query.type === ExportQueryType.EXPLORE ||
-      query.type === ExportQueryType.TRACE_ITEM_FULL_EXPORT
-    ) {
-      const traceItemDataset = query.info.dataset;
-      actionLink = getActionLink(query.type, traceItemDataset);
-    } else {
-      actionLink = getActionLink(query.type);
-    }
-    return (
-      <Fragment>
-        <Header>
-          <h3>{t('This is awkward.')}</h3>
-        </Header>
-        <Body>
-          <p>
-            {t(
-              "That link expired, so your download doesn't live here anymore. Just picked up one day and left town."
-            )}
-          </p>
-          <p>
-            {t(
-              'Make a new one with your latest data. Your old download will never see it coming.'
-            )}
-          </p>
-          <DownloadButton href={actionLink} variant="primary">
-            {t('Start a New Download')}
-          </DownloadButton>
-        </Body>
-      </Fragment>
-    );
-  };
+  const early = (
+    <Fragment>
+      <Header>
+        <h3>
+          {t('What are')}
+          <i>{t(' you ')}</i>
+          {t('doing here?')}
+        </h3>
+      </Header>
+      <Body>
+        <p>
+          {t(
+            "Not that its any of our business, but were you invited to this page? It's just that we don't exactly remember emailing you about it."
+          )}
+        </p>
+        <p>{t("Close this window and we'll email you when your download is ready.")}</p>
+      </Body>
+    </Fragment>
+  );
 
   const openInDiscover = () => {
     const {
@@ -277,7 +360,9 @@ export default function DataDownload() {
     const mode = aggregates.length + equations.length > 0 ? Mode.AGGREGATE : Mode.SAMPLES;
 
     const groupBy = fields.map(field => ({groupBy: field}));
-    const aggregateFields = aggregates.map(aggregate => ({yAxes: [aggregate]}));
+    const aggregateFields = aggregates.map(aggregate => ({
+      yAxes: [aggregate],
+    }));
     const equationFields = equations.map(equation => ({yAxes: [equation]}));
 
     const aggregateInfo = {
@@ -294,102 +379,42 @@ export default function DataDownload() {
 
     const to = {
       pathname: `/organizations/${orgSlug}/explore/traces/`,
-      query: {...info, ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo)},
+      query: {
+        ...info,
+        ...(mode === Mode.AGGREGATE ? aggregateInfo : samplesInfo),
+      },
     };
 
     navigate(normalizeUrl(to));
   };
 
-  const renderOpenInButton = () => {
-    const {query} = download;
+  const {query} = download;
+  const actionLink =
+    query.type === ExportQueryType.EXPLORE ||
+    query.type === ExportQueryType.TRACE_ITEM_FULL_EXPORT
+      ? getActionLink(query.type, query.info.dataset)
+      : getActionLink(query.type);
 
-    // default to IssuesByTag because we don't want to
-    // display this unless we're sure its a discover query
-    const {type} = query;
-
-    return type === ExportQueryType.DISCOVER ||
-      type === ExportQueryType.EXPLORE ||
-      type === ExportQueryType.TRACE_ITEM_FULL_EXPORT ? (
-      <Fragment>
-        <p>{t('Need to make changes?')}</p>
-        <Button
-          variant="primary"
-          onClick={() =>
-            type === ExportQueryType.DISCOVER ? openInDiscover() : openInExplore()
-          }
-        >
-          {type === ExportQueryType.DISCOVER
-            ? organization && getDiscoverDeprecation(organization)
-              ? t('Open in Explore')
-              : t('Open in Discover')
-            : t('Open in Explore')}
-        </Button>
-        <br />
-      </Fragment>
-    ) : null;
-  };
-
-  const renderValid = (): React.ReactNode => {
-    const {dateExpired, checksum, export_format} = download;
-    const exportFormatLabel = export_format?.toUpperCase() ?? 'CSV';
-
-    return (
-      <Fragment>
-        <Header>
-          <h3>{t('All done.')}</h3>
-        </Header>
-        <Body>
-          <p>{t("See, that wasn't so bad. Your data is all ready for download.")}</p>
-          <LinkButton
-            variant="primary"
-            icon={<IconDownload />}
-            href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
-          >
-            {t('Download %s', exportFormatLabel)}
-          </LinkButton>
-          <p>
-            {t("That link won't last forever — it expires:")}
-            <br />
-            {renderDate(dateExpired)}
-          </p>
-          {renderOpenInButton()}
-          <p>
-            <small>
-              <strong>SHA1:{checksum}</strong>
-            </small>
-            <br />
-            {tct('Need help verifying? [link].', {
-              link: (
-                <a
-                  href="https://docs.sentry.io/product/discover-queries/query-builder/#filter-by-table-columns"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {t('Check out our docs')}
-                </a>
-              ),
-            })}
-          </p>
-        </Body>
-      </Fragment>
+  const content =
+    download.status === DownloadStatus.EARLY ? (
+      early
+    ) : download.status === DownloadStatus.EXPIRED ? (
+      <ExpiredDownload actionLink={actionLink} />
+    ) : (
+      <ValidDownload
+        dataExportId={dataExportId}
+        download={download}
+        onOpenInDiscover={openInDiscover}
+        onOpenInExplore={openInExplore}
+        organization={organization}
+        orgSlug={orgSlug}
+      />
     );
-  };
-
-  const renderContent = () => {
-    switch (download.status) {
-      case DownloadStatus.EARLY:
-        return renderEarly();
-      case DownloadStatus.EXPIRED:
-        return renderExpired();
-      default:
-        return renderValid();
-    }
-  };
 
   return (
     <SentryDocumentTitle title={t('Download Center')}>
       <Layout>
-        <main>{renderContent()}</main>
+        <main>{content}</main>
       </Layout>
     </SentryDocumentTitle>
   );
