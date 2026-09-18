@@ -25,9 +25,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteQuery} from 'sentry/views/explore/hooks/useDeleteQuery';
 import {
   getSavedQueryDatasetLabel,
+  getSavedQueryKey,
   getSavedQueryTraceItemDataset,
+  isExploreSavedQuery,
   useGetSavedQueries,
-  type SavedQuery,
+  type AllSavedQuery,
   type SortOption,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
@@ -76,22 +78,26 @@ export function SavedQueriesTable({
   const {starQuery} = useStarQuery();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
 
-  const [starredIds, setStarredIds] = useState<number[]>([]);
+  const [starredKeys, setStarredKeys] = useState<string[]>([]);
 
-  // Initialize starredIds state when queries have been fetched
   useEffect(() => {
     if (isFetched) {
       // oxlint-disable-next-line react/set-state-in-effect
-      setStarredIds(data?.filter(row => row.starred).map(row => row.id) ?? []);
+      setStarredKeys(data?.filter(row => row.starred).map(getSavedQueryKey) ?? []);
     }
   }, [isFetched, data]);
 
   const starQueryHandler = useCallback(
-    (id: number, starred: boolean, dataset: TraceItemDataset) => {
+    (query: AllSavedQuery, starred: boolean, dataset: TraceItemDataset) => {
+      const key = getSavedQueryKey(query);
+      if (!isExploreSavedQuery(query)) {
+        return;
+      }
+      const id = query.id;
       if (starred) {
-        setStarredIds(prev => [...prev, id]);
+        setStarredKeys(prev => [...prev, key]);
       } else {
-        setStarredIds(prev => prev.filter(starredId => starredId !== id));
+        setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
       }
       if (dataset === TraceItemDataset.SPANS) {
         trackAnalytics('trace_explorer.star_query', {
@@ -107,12 +113,12 @@ export function SavedQueriesTable({
         });
       }
       starQuery(id, starred).catch(() => {
-        // If the starQuery call fails, we need to revert the starredIds state
+        // If the starQuery call fails, we need to revert the starredKeys state
         addErrorMessage(t('Unable to star query'));
         if (starred) {
-          setStarredIds(prev => prev.filter(starredId => starredId !== id));
+          setStarredKeys(prev => prev.filter(starredKey => starredKey !== key));
         } else {
-          setStarredIds(prev => [...prev, id]);
+          setStarredKeys(prev => [...prev, key]);
         }
       });
     },
@@ -120,7 +126,7 @@ export function SavedQueriesTable({
   );
 
   const getHandleUpdateFromSavedQuery = useCallback(
-    (savedQuery: SavedQuery) => {
+    (savedQuery: AllSavedQuery) => {
       return ({name}: {name: string}) => {
         return updateQueryFromSavedQuery({
           ...savedQuery,
@@ -131,7 +137,7 @@ export function SavedQueriesTable({
     [updateQueryFromSavedQuery]
   );
 
-  const duplicateQuery = async (savedQuery: SavedQuery) => {
+  const duplicateQuery = async (savedQuery: AllSavedQuery) => {
     await saveQueryFromSavedQuery({
       ...savedQuery,
       name: `${savedQuery.name} (Copy)`,
@@ -148,14 +154,14 @@ export function SavedQueriesTable({
   const debouncedOnClick = useMemo(
     () =>
       debounce(
-        (id, starred, dataset) => {
+        (query: AllSavedQuery, starred: boolean, dataset: TraceItemDataset) => {
           if (starred) {
             addLoadingMessage(t('Unstarring query...'));
-            starQueryHandler(id, false, dataset);
+            starQueryHandler(query, false, dataset);
             addSuccessMessage(t('Query unstarred'));
           } else {
             addLoadingMessage(t('Starring query...'));
-            starQueryHandler(id, true, dataset);
+            starQueryHandler(query, true, dataset);
             addSuccessMessage(t('Query starred'));
           }
         },
@@ -211,16 +217,16 @@ export function SavedQueriesTable({
       >
         {filteredData.map((query, index) => (
           <SavedEntityTable.Row
-            key={query.id}
+            key={getSavedQueryKey(query)}
             isFirst={index === 0}
             data-test-id={`table-row-${index}`}
           >
             <SavedEntityTable.Cell hasButton columnKey="star">
               <SavedEntityTable.CellStar
-                isStarred={starredIds.includes(query.id)}
+                isStarred={starredKeys.includes(getSavedQueryKey(query))}
                 onClick={() =>
                   debouncedOnClick(
-                    query.id,
+                    query,
                     query.starred,
                     getSavedQueryTraceItemDataset(query.dataset)
                   )
@@ -236,7 +242,7 @@ export function SavedQueriesTable({
             </SavedEntityTable.Cell>
             {hasLogsSavedQueriesEnabled && (
               <SavedEntityTable.Cell columnKey="dataset">
-                {getSavedQueryDatasetLabel(query.dataset)}
+                {getSavedQueryDatasetLabel(query)}
               </SavedEntityTable.Cell>
             )}
             <SavedEntityTable.Cell columnKey="project">
@@ -333,6 +339,9 @@ export function SavedQueriesTable({
                               handleDelete: async () => {
                                 addLoadingMessage(t('Deleting query...'));
                                 try {
+                                  if (!isExploreSavedQuery(query)) {
+                                    return;
+                                  }
                                   await deleteQuery(query.id);
                                   addSuccessMessage(t('Query deleted'));
                                 } catch (error) {

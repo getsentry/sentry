@@ -192,7 +192,8 @@ export class SavedQuery {
   }
 }
 
-type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+  id: string;
   queryType: SavedQueryType.DISCOVER;
   lastVisited?: string;
   position?: number | null;
@@ -200,10 +201,18 @@ type DiscoverSavedQuery = DiscoverSavedQueryBase & {
 };
 
 /**
- * This is for the all-queries view. If you aren't dealing with error dataset
+ * This is for the all-queries view. If you aren't dealing with discover
  * queries, use SavedQuery instead.
  */
 export type AllSavedQuery = SavedQuery | DiscoverSavedQuery;
+
+export function isExploreSavedQuery(savedQuery: AllSavedQuery): savedQuery is SavedQuery {
+  return savedQuery.queryType === SavedQueryType.EXPLORE;
+}
+
+export function getSavedQueryKey(savedQuery: AllSavedQuery): string {
+  return `${savedQuery.queryType}:${savedQuery.id}`;
+}
 
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
@@ -347,6 +356,10 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   ai_conversations: TraceItemDataset.SPANS,
 };
 
-export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {
-  return DATASET_LABEL_MAP[dataset];
+export function getSavedQueryDatasetLabel(savedQuery: AllSavedQuery): string {
+  if (isExploreSavedQuery(savedQuery)) {
+    return DATASET_LABEL_MAP[savedQuery.dataset];
+  }
+
+  return 'Errors';
 }
