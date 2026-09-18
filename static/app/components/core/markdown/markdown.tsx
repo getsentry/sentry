@@ -177,6 +177,7 @@ export function Markdown({raw, components = {}, variant = 'static'}: MarkdownPro
     if (changed) {
       prevTextLensRef.current = nextLens;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [isStreaming, elements]);
 
   return (

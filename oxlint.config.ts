@@ -535,6 +535,9 @@ const config = defineConfig({
     'import/no-duplicates': 'error',
     'import/no-named-default': 'error',
     'import/no-nodejs-modules': 'error',
+    // Catches the parent-relative forms that `@sentry/no-relative-import-paths`
+    // lets through: dynamic `import()`, a bare `'..'`, and `'./../foo'`.
+    'import/no-relative-parent-imports': 'error',
     'import/no-webpack-loader-syntax': 'error',
     '@sentry/no-calling-components-as-functions': 'error',
     '@sentry/no-digits-in-tn': 'error',
@@ -632,7 +635,7 @@ const config = defineConfig({
     '@tanstack/query/mutation-property-order': 'error',
     'react/capitalized-calls': 'error',
     'react/error-boundaries': 'error',
-    'react/exhaustive-effect-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/exhaustive-effect-dependencies': 'error',
     'react/function-component-definition': 'error',
     'react/globals': 'error',
     'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
@@ -666,8 +669,8 @@ const config = defineConfig({
         ignore: ['css'],
       },
     ],
-    'react/memo-dependencies': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
-    'react/no-deriving-state-in-effects': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/memo-dependencies': 'error',
+    'react/no-deriving-state-in-effects': 'error',
     'react/preserve-manual-memoization': 'error',
     'react/purity': 'error',
     'react/refs': 'error',
@@ -786,8 +789,7 @@ const config = defineConfig({
     'unicorn/no-negation-in-equality-check': 'error',
     'unicorn/no-new-array': 'error',
     'unicorn/no-new-buffer': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/no-single-promise-in-promise-methods': 'warn',
+    'unicorn/no-single-promise-in-promise-methods': 'error',
     'unicorn/no-typeof-undefined': 'error',
     'unicorn/no-unnecessary-await': 'error',
     'unicorn/no-unreadable-iife': 'error',
@@ -821,8 +823,7 @@ const config = defineConfig({
     'unicorn/prefer-native-coercion-functions': 'error',
     'unicorn/prefer-negative-index': 'error',
     'unicorn/prefer-node-protocol': 'error',
-    // TODO(ryan953): Fix violations and promote this warning to an error.
-    'unicorn/prefer-prototype-methods': 'warn',
+    'unicorn/prefer-prototype-methods': 'error',
     'unicorn/prefer-reflect-apply': 'error',
     'unicorn/prefer-response-static-json': 'error',
     'unicorn/prefer-set-size': 'error',
@@ -1439,14 +1440,22 @@ const config = defineConfig({
       {
         terms: ['todo', 'fixme', 'xxx'],
         ignore: [],
-        ignoreDates: false,
-        ignoreDatesOnPullRequests: true,
+        // Dates are never enforced: a TODO quietly reaching its expiry should not
+        // be what breaks master for everyone else.
+        checkDates: false,
         allowWarningComments: true,
       },
     ],
-    'unicorn-js/no-array-push-push': ['error'],
     'unicorn-js/no-unnecessary-polyfills': ['error'],
-    'unicorn-js/prefer-simple-condition-first': ['error'],
+    // The successor to `no-array-push-push`, which unicorn 74 removed. Off for now:
+    // it also covers `unshift` and non-adjacent calls, so it flags 38 sites, and its
+    // fix folds long object literals into one argument list, which reads worse.
+    'unicorn-js/prefer-single-call': 'off',
+    // Off since unicorn 73 started treating `x == null` as a simple condition,
+    // which flags ~600 call sites here. Every one is the rule's "unsafe" variant:
+    // reordering the operands can change what the short-circuit guards against, so
+    // they need to be read individually rather than swept through.
+    'unicorn-js/prefer-simple-condition-first': 'off',
   },
   overrides: [
     {
@@ -1655,6 +1664,30 @@ const config = defineConfig({
       files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
       rules: {
         '@sentry/no-calling-components-as-functions': 'off',
+      },
+    },
+    // The lint plugins are standalone packages loaded by oxlint itself, so none
+    // of the `sentry/*` aliases resolve inside them.
+    {
+      files: ['static/oxlint/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Scraps is its own component library rather than ordinary app code, and a
+    // handful of its internal imports are deliberately parent-relative.
+    {
+      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+      },
+    },
+    // Build scripts run outside the app bundle and are kept as bare as
+    // possible, so they reach for source with a plain relative path.
+    {
+      files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
       },
     },
     {

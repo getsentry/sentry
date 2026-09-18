@@ -80,6 +80,12 @@ export function getTraceDetailsUrl({
       [PAGE_URL_PARAM.PAGE_END]: dateSelection.end,
     };
 
+  if (
+    normalizeUrl(location.pathname) !== normalizeUrl(`${baseUrl}/trace/${traceSlug}/`)
+  ) {
+    delete queryParams.pinnedAttribute;
+  }
+
   if (shouldForceRouteToOldView(organization, timestamp)) {
     return {
       pathname: normalizeUrl(`${baseUrl}/trace/${traceSlug}/`),

@@ -63,7 +63,7 @@ export function ReleasesSelectControl({
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setActiveReleases(selectedReleases);
   }, [selectedReleases]);
 

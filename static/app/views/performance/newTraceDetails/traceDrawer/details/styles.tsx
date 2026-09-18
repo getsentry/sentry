@@ -1014,7 +1014,7 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   );
 }
 
-export type SectionCardKeyValueList = KeyValueListData;
+type SectionCardKeyValueList = KeyValueListData;
 
 const SECTION_CARD_TRUNCATE_LENGTH = 5;
 

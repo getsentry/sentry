@@ -165,6 +165,7 @@ export default function IntegrationOrganizationLink() {
     if (customerDomain?.subdomain) {
       selectOrganization(customerDomain.subdomain);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organizations, location.search, selectOrganization]);
 
   const hasAccess = organization?.access.includes('org:integrations');

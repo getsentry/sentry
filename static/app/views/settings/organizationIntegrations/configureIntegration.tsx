@@ -204,6 +204,7 @@ function ConfigureIntegration() {
 
   useEffect(() => {
     refetchIntegration();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [projects, refetchIntegration]);
 
   useEffect(() => {

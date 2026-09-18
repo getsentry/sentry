@@ -61,6 +61,7 @@ export function MarkedText<T extends React.ElementType = typeof defaultElement>(
         setRenderedHtml(html);
       }
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [markedHtmlPromise, text, inline, isMountedRef]);
 
   const Component = as || defaultElement;
