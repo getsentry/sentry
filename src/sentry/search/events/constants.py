@@ -21,6 +21,9 @@ filter on the transaction field or tags.
 TIMEOUT_RPC_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects.
 """
+INVALID_RPC_REQUEST_MESSAGE = """
+Invalid query. Please check the query syntax and try again.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -326,6 +329,20 @@ WILDCARD_OPERATOR_MAP = {
     "starts_with": f"{WILDCARD_UNICODE}StartsWith{WILDCARD_UNICODE}",
     "ends_with": f"{WILDCARD_UNICODE}EndsWith{WILDCARD_UNICODE}",
 }
+
+# Deliberately kept out of WILDCARD_OPERATOR_MAP: it shares the marker encoding, but a regex
+# pattern must reach the backend verbatim rather than being rewritten into a wildcard pattern.
+REGEX_OPERATOR = f"{WILDCARD_UNICODE}Matches{WILDCARD_UNICODE}"
+
+# RE2, which backs the ClickHouse `match` this compiles to, rejects the PCRE extensions that
+# Python's `re` accepts, and ClickHouse only reports that as a query failure once the pattern
+# has already reached it. The first branch consumes escaped backslashes, so that a pattern
+# like `\\1` reads as a literal backslash followed by a digit.
+UNSUPPORTED_REGEX_SYNTAX = re.compile(r"\\\\|(?P<unsupported>\\[1-9]|\\Z|\(\?(?:[=!>#(]|<[=!]|P=))")
+
+# The reverse: syntax RE2 accepts that Python's `re` cannot parse, so `re` alone cannot say
+# whether one of these patterns is well formed.
+RE2_LIKE_ONLY_SYNTAX = re.compile(r"\\[pPzCQE]|\\x\{|\(\?[imsU-]*U")
 
 MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
