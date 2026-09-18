@@ -1,7 +1,7 @@
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 const ASSIGNMENT_QUERY_PARAM = 'assignment';
-const ASSIGNMENT_FILTERS = ['my_teams', 'all'] as const;
+const ASSIGNMENT_FILTERS = ['my_teams', 'subscribed', 'all'] as const;
 
 export type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 

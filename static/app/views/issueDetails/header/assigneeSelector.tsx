@@ -6,6 +6,7 @@ import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import type {AssignmentDetails} from 'sentry/components/assigneeBadge';
+import type {SuggestedAssignee} from 'sentry/components/assigneeSelectorDropdown';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
   AssigneeSelector,
@@ -33,6 +34,8 @@ interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
   group: Group;
   project: Project;
+  additionalMenuFooterItems?: React.ReactNode;
+  onDismissSuggestion?: (assignee: SuggestedAssignee) => void;
   /**
    * Show the assignee name next to the avatar. Defaults to true.
    */
@@ -101,6 +104,8 @@ export function GroupHeaderAssigneeSelector({
   project,
   event,
   showLabel = true,
+  additionalMenuFooterItems: extraFooterItems,
+  onDismissSuggestion,
 }: GroupHeaderAssigneeSelectorProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -133,23 +138,27 @@ export function GroupHeaderAssigneeSelector({
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
       assignmentDetails={assignmentDetails}
+      onDismissSuggestion={onDismissSuggestion}
       showLabel={showLabel}
       useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
-        <MenuComponents.CTAButton
-          onClick={() => {
-            openIssueOwnershipRuleModal({
-              project,
-              organization,
-              issueId: group.id,
-              eventData: event!,
-              theme,
-            });
-          }}
-          icon={<IconSettings />}
-        >
-          {t('Ownership')}
-        </MenuComponents.CTAButton>
+        <>
+          <MenuComponents.CTAButton
+            onClick={() => {
+              openIssueOwnershipRuleModal({
+                project,
+                organization,
+                issueId: group.id,
+                eventData: event!,
+                theme,
+              });
+            }}
+            icon={<IconSettings />}
+          >
+            {t('Ownership')}
+          </MenuComponents.CTAButton>
+          {extraFooterItems}
+        </>
       }
     />
   );

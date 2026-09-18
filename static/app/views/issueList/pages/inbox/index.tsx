@@ -82,6 +82,7 @@ type RestoreSelectedIssueScroll = (issueId: string, element: HTMLDivElement) => 
 interface AssignmentCounts {
   all: number;
   my_teams: number;
+  subscribed: number;
 }
 
 interface AlternateInbox {
@@ -91,6 +92,7 @@ interface AlternateInbox {
 
 const ASSIGNMENT_QUERY_SUFFIXES: Record<AssignmentFilter, string> = {
   my_teams: ' assigned_or_suggested:[me,my_teams]',
+  subscribed: ' subscribed:me !assigned_or_suggested:[me,my_teams]',
   all: '',
 };
 const ASSIGNMENT_COUNT_QUERY =
@@ -210,10 +212,11 @@ function useSelectFirstLoadedIssue({
   };
 }
 
-// Fetch counts for the assignment filter tabs (my teams/all)
+// Fetch counts for the assignment filter tabs (owned/subscribed/all)
 function useAssignmentCounts(): AssignmentCounts | null {
   const organization = useOrganization();
   const myTeamsQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.my_teams}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
+  const subscribedQuery = `${ASSIGNMENT_COUNT_QUERY}${ASSIGNMENT_QUERY_SUFFIXES.subscribed}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
   const allQuery = `${ALL_ASSIGNMENT_COUNT_QUERY}${INBOX_AUTOFIX_CATEGORY_FILTER}`;
 
   const {data} = useQuery({
@@ -221,7 +224,7 @@ function useAssignmentCounts(): AssignmentCounts | null {
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {query: [myTeamsQuery, allQuery]},
+        query: {query: [myTeamsQuery, subscribedQuery, allQuery]},
         staleTime: 180_000,
       }
     ),
@@ -233,6 +236,7 @@ function useAssignmentCounts(): AssignmentCounts | null {
 
   return {
     my_teams: data[myTeamsQuery] ?? 0,
+    subscribed: data[subscribedQuery] ?? 0,
     all: data[allQuery] ?? 0,
   };
 }
@@ -241,7 +245,7 @@ function getAlternateInbox(
   assignmentFilter: AssignmentFilter,
   assignmentCounts: AssignmentCounts | null
 ): AlternateInbox | null {
-  if (assignmentFilter === 'my_teams' && assignmentCounts?.all) {
+  if (assignmentFilter !== 'all' && assignmentCounts?.all) {
     return {filter: 'all', label: t('View all inbox')};
   }
 
@@ -262,6 +266,7 @@ function AssignmentTabs({
       ? {
           assignment_filter: assignmentFilter,
           count_my_teams: assignmentCounts.my_teams,
+          count_subscribed: assignmentCounts.subscribed,
           count_all: assignmentCounts.all,
         }
       : {
@@ -271,15 +276,21 @@ function AssignmentTabs({
 
   return (
     <SegmentedControl
-      aria-label={t('Issue assignee')}
+      aria-label={t('Issue filter')}
       size="xs"
       value={assignmentFilter}
       onChange={onChange}
     >
-      <SegmentedControl.Item key="my_teams" textValue={t('Me')}>
+      <SegmentedControl.Item key="my_teams" textValue={t('Owned')}>
         <Flex as="span" align="center" gap="sm">
-          {t('Me')}
+          {t('Owned')}
           <AssignmentCountBadge count={assignmentCounts?.my_teams} />
+        </Flex>
+      </SegmentedControl.Item>
+      <SegmentedControl.Item key="subscribed" textValue={t('Subscribed')}>
+        <Flex as="span" align="center" gap="sm">
+          {t('Subscribed')}
+          <AssignmentCountBadge count={assignmentCounts?.subscribed} />
         </Flex>
       </SegmentedControl.Item>
       <SegmentedControl.Item key="all" textValue={t('All')}>

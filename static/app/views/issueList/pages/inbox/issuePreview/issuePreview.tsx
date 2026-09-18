@@ -1,11 +1,15 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {bulkUpdate} from 'sentry/actionCreators/group';
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
@@ -16,12 +20,15 @@ import {
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconOpen} from 'sentry/icons';
+import {IconOpen, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,7 +45,7 @@ import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assi
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
 import {IssueIdBreadcrumb} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryKey, useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useMarkGroupSeen} from 'sentry/views/issueDetails/useMarkGroupSeen';
 import {
   getGroupReprocessingStatus,
@@ -249,7 +256,12 @@ function IssuePreviewContent() {
             project={project}
             event={null}
             showLabel={false}
+            onDismissSuggestion={() => {
+              // TODO: Backend endpoint to remove GroupOwner suggestion for the current user
+              addSuccessMessage(t('Removed yourself as a suggested assignee'));
+            }}
           />
+          <SubscribeToggle group={group} project={project} />
         </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
@@ -299,6 +311,61 @@ function IssuePreviewContent() {
         </Dividers>
       )}
     </IssueDetailsContextProvider>
+  );
+}
+
+function SubscribeToggle({group, project}: {group: Group; project: Project}) {
+  const api = useApi();
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const disabledNotifications = group.subscriptionDetails?.disabled ?? false;
+
+  function handleToggle() {
+    bulkUpdate(
+      api,
+      {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data: {isSubscribed: !group.isSubscribed},
+      },
+      {
+        success: () => {
+          addSuccessMessage(
+            group.isSubscribed ? t('Unsubscribed from issue') : t('Subscribed to issue')
+          );
+        },
+        complete: () => {
+          queryClient.invalidateQueries({
+            queryKey: groupQueryKey({
+              organizationSlug: organization.slug,
+              groupId: group.id,
+            }),
+          });
+        },
+      }
+    );
+    IssueListCacheStore.reset();
+  }
+
+  return (
+    <Button
+      size="xs"
+      disabled={disabledNotifications}
+      tooltipProps={{
+        title: disabledNotifications
+          ? t('Notifications disabled for this project')
+          : group.isSubscribed
+            ? t('Unsubscribe from this issue')
+            : t('Subscribe to this issue'),
+        delay: 300,
+      }}
+      icon={
+        group.isSubscribed ? <IconSubscribed size="xs" /> : <IconUnsubscribed size="xs" />
+      }
+      onClick={handleToggle}
+      aria-label={group.isSubscribed ? t('Unsubscribe') : t('Subscribe')}
+    />
   );
 }
 

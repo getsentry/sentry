@@ -59,7 +59,7 @@ interface SetPriorityParams extends CommonGroupAnalyticsData {
 }
 
 interface IssueInboxItemParams extends CommonGroupAnalyticsData {
-  assignment_filter: 'my_teams' | 'all';
+  assignment_filter: 'my_teams' | 'subscribed' | 'all';
   last_progressed_at: string | null;
   progress: ProgressState | undefined;
 }
@@ -201,7 +201,7 @@ export type IssueEventParameters = {
     platform?: string;
   };
   'issue_inbox.assignment_filter_changed': {
-    assignment_filter: 'my_teams' | 'all';
+    assignment_filter: 'my_teams' | 'subscribed' | 'all';
   };
   'issue_inbox.issue_viewed': IssueInboxItemParams;
   'issue_inbox.item_clicked': IssueInboxItemParams;

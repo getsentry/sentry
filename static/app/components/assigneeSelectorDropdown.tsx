@@ -31,7 +31,7 @@ import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
-import {IconAdd, IconUser} from 'sentry/icons';
+import {IconAdd, IconCheckmark, IconClose, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Actor} from 'sentry/types/core';
@@ -108,6 +108,11 @@ interface AssigneeSelectorDropdownProps {
    * Callback for when the assignee is cleared
    */
   onClear?: (clearedAssignee: User | Actor) => void;
+  /**
+   * Callback for when a suggested assignee is dismissed.
+   * The parent should remove the GroupOwner record for the dismissed user.
+   */
+  onDismissSuggestion?: (assignee: SuggestedAssignee) => void;
   /**
    * Optional list of suggested owners of the group
    */
@@ -295,6 +300,7 @@ export function AssigneeSelectorDropdown({
   memberList,
   onAssign,
   onClear,
+  onDismissSuggestion,
   owners,
   showLabel = false,
   sizeLimit = 150,
@@ -449,6 +455,34 @@ export function AssigneeSelectorDropdown({
         ),
         value: `user:${assignee.id}`,
         textValue: assignee.name,
+        ...(isCurrentUser &&
+          onDismissSuggestion && {
+            trailingItems: ({isFocused}: {isFocused: boolean}) => (
+              <Flex gap="xs" align="center" onClick={e => e.stopPropagation()}>
+                <SuggestionActionButton
+                  data-visible={isFocused || undefined}
+                  title={t('Accept suggestion')}
+                  onClick={() => {
+                    onAssign?.({
+                      assignee: assignee.assignee as User,
+                      id: assignee.id,
+                      type: 'user',
+                      suggestedAssignee: assignee,
+                    });
+                  }}
+                >
+                  <IconCheckmark size="xs" />
+                </SuggestionActionButton>
+                <SuggestionActionButton
+                  data-visible={isFocused || undefined}
+                  title={t('Remove suggestion')}
+                  onClick={() => onDismissSuggestion(assignee)}
+                >
+                  <IconClose size="xs" />
+                </SuggestionActionButton>
+              </Flex>
+            ),
+          }),
       };
     }
     const assignedTeam = assignee.assignee as AssignableTeam;
@@ -716,5 +750,30 @@ const TooltipSubExternalLink = styled(ExternalLink)`
 
   :hover {
     color: ${p => p.theme.tokens.content.secondary};
+  }
+`;
+
+const SuggestionActionButton = styled('button')`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: ${p => p.theme.radius.sm};
+  background: transparent;
+  color: ${p => p.theme.tokens.content.secondary};
+  cursor: pointer;
+  opacity: 0;
+
+  &[data-visible] {
+    opacity: 1;
+  }
+
+  &:hover {
+    background: ${p => p.theme.tokens.background.secondary};
+    color: ${p => p.theme.tokens.content.primary};
+    border-color: ${p => p.theme.tokens.border.primary};
   }
 `;

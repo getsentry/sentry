@@ -26,6 +26,7 @@ interface AssigneeSelectorProps {
   additionalMenuFooterItems?: React.ReactNode;
   assignmentDetails?: AssignmentDetails;
   memberList?: User[];
+  onDismissSuggestion?: (assignee: SuggestedAssignee) => void;
   owners?: Array<Omit<SuggestedAssignee, 'assignee'>>;
   showLabel?: boolean;
   useOwnerAssignmentDetails?: boolean;
@@ -87,6 +88,7 @@ export function AssigneeSelector({
   owners,
   additionalMenuFooterItems,
   assignmentDetails,
+  onDismissSuggestion,
   showLabel = false,
   useOwnerAssignmentDetails = true,
 }: AssigneeSelectorProps) {
@@ -117,6 +119,7 @@ export function AssigneeSelector({
         handleAssigneeChange(assignedActor)
       }
       onClear={() => handleAssigneeChange(null)}
+      onDismissSuggestion={onDismissSuggestion}
       trigger={
         shouldUseNewUI
           ? undefined
