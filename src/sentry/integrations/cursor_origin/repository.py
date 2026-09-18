@@ -4,6 +4,8 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.utils import timezone
+
 from sentry import options
 from sentry.integrations.cursor_origin.client import (
     CursorOriginApiClient,
@@ -18,7 +20,11 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.plugins.providers.integration_repository import RepositoryConfig
+from sentry.plugins.providers.integration_repository import (
+    CommitData,
+    CommitPatchFile,
+    RepositoryConfig,
+)
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 logger = logging.getLogger("sentry.integrations.cursor_origin")
@@ -65,7 +71,7 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
 
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str
-    ) -> Sequence[Mapping[str, Any]]:
+    ) -> Sequence[CommitData]:
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         name = repo.config["name"]
@@ -112,7 +118,7 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
 
     def _format_commit(
         self, client: CursorOriginApiClient, name: str, commit: OriginCommit
-    ) -> Mapping[str, Any]:
+    ) -> CommitData:
         author = commit["commit"]["author"]
         return {
             "id": commit["sha"],
@@ -120,13 +126,14 @@ class CursorOriginRepositoryProvider(IntegrationRepositoryProvider[CursorOriginI
             "author_email": author["email"],
             "author_name": author["name"][:128],
             "message": commit["commit"]["message"],
-            "timestamp": self.format_date(author["date"]),
+            # `format_date` gives None for an empty date, and `set_commits` sorts on this.
+            "timestamp": self.format_date(author["date"]) or timezone.now(),
             "patch_set": self._patch_set(client.get_commit_files(name, commit["sha"])),
         }
 
-    def _patch_set(self, files: Sequence[OriginCommitFile]) -> Sequence[Mapping[str, str]]:
+    def _patch_set(self, files: Sequence[OriginCommitFile]) -> list[CommitPatchFile]:
         """File changes in the shape `Release.set_commits` expects."""
-        changes: list[Mapping[str, str]] = []
+        changes: list[CommitPatchFile] = []
         for file in files:
             status = file["status"]
             if status == "modified":
