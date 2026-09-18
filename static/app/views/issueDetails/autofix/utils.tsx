@@ -4,7 +4,7 @@ import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
-export const AUTOFIX_PAGE_FEATURE = 'autofix-page';
+const AUTOFIX_PAGE_FEATURE = 'autofix-page';
 
 export function hasAutofixPage(organization: Organization) {
   return organization.features.includes(AUTOFIX_PAGE_FEATURE);
