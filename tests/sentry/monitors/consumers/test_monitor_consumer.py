@@ -1126,6 +1126,36 @@ class MonitorConsumerTest(TestCase):
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
+    def test_reserved_logrecord_key_in_payload_does_not_raise(self) -> None:
+        """
+        Regression test: payloads containing a key that is reserved by
+        Python's LogRecord (e.g. 'message') must not cause a KeyError when
+        those payloads are logged on validation failure paths.
+        """
+        # monitor_validation_failed path: check-in for a non-existent monitor
+        # with a reserved LogRecord key ('message') in the payload.
+        self.send_checkin(
+            "nonexistent-monitor-slug",
+            message="reserved-key-value",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}]
+            ),
+        )
+
+        # checkin_validation_failed path: invalid status value combined with
+        # a reserved LogRecord key ('message') in the payload.
+        self.send_checkin(
+            "nonexistent-monitor-slug",
+            status="invalid-status",
+            message="reserved-key-value",
+            expected_error=ProcessingErrorsException(
+                [
+                    {"type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED},
+                    {"type": ProcessingErrorType.MONITOR_NOT_FOUND},
+                ]
+            ),
+        )
+
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_limits(self) -> None:
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):
