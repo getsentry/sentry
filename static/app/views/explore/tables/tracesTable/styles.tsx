@@ -45,7 +45,9 @@ const TablePanelHeader = styled(PanelHeader)`
   border-radius: 0;
 `;
 
-export const StyledPanelItem = styled(PanelItem)<{
+export const StyledPanelItem = styled(PanelItem, {
+  shouldForwardProp: prop => prop !== 'overflow',
+})<{
   align?: 'left' | 'center' | 'right';
   overflow?: boolean;
   span?: number;
