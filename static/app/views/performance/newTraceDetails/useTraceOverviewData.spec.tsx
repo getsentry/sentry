@@ -124,7 +124,7 @@ describe('useTraceOverviewData', () => {
       url: `/organizations/${organization.slug}/trace-logs/`,
       body: {
         data: [representativeLog],
-        meta: {fields: {}, units: {}, routing_hint: 'representative-hint'},
+        meta: {fields: {}, units: {}, routingHint: 'representative-hint'},
       },
     });
 

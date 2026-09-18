@@ -106,10 +106,7 @@ export interface LogRowItem {
 
 export interface EventsLogsResult {
   data: OurLogsResponseItem[];
-  meta?: EventsMetaType & {
-    /** The trace-logs endpoint returns raw metadata rather than the events envelope. */
-    routing_hint?: string;
-  };
+  meta?: EventsMetaType;
 }
 
 export type OurLogsAggregate =

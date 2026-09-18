@@ -159,11 +159,11 @@ describe('useInfiniteLogsQuery', () => {
     expect(result.current.data.every(row => !('routingHint' in row))).toBe(true);
   });
 
-  it('reads raw routing metadata from trace log responses', async () => {
+  it('reads the routing hint from trace log responses', async () => {
     const body = createMockLogsData([
       {id: '1', timestamp_precise: '100', timestamp: '100'},
     ]);
-    body.meta!.routing_hint = 'trace-log-hint';
+    body.meta!.routingHint = 'trace-log-hint';
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-logs/`,
       body,

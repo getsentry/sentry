@@ -665,7 +665,7 @@ export function useInfiniteLogsQuery({
           }
 
           usedRowIds.add(row[OurLogKnownFieldKey.ID]);
-          hints.set(row, page.json.meta?.routingHint ?? page.json.meta?.routing_hint);
+          hints.set(row, page.json.meta?.routingHint);
           return true;
         })
       ) ?? [];

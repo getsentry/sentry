@@ -300,9 +300,7 @@ export function useTraceOverviewData({
       availability: logsAvailability,
       count: logsCount,
       representative: representativeLogResult.data?.data,
-      routingHint:
-        representativeLogResult.data?.meta?.routingHint ??
-        representativeLogResult.data?.meta?.routing_hint,
+      routingHint: representativeLogResult.data?.meta?.routingHint,
     },
     metrics: {
       availability: metricsAvailability,
