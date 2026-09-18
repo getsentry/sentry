@@ -723,71 +723,69 @@ function DataWidgetViewerModal(props: Props) {
 
   return (
     <Fragment>
-      <Fragment>
-        <Header closeButton>
-          <Stack gap="md">
-            <Flex align="center" gap="sm">
-              <h3>{widget.title}</h3>
-            </Flex>
-            {widget.description && (
-              <Tooltip
-                title={widget.description}
-                containerDisplayMode="grid"
-                showOnlyOnOverflow
-                position="bottom"
-              >
-                <WidgetDescription>{widget.description}</WidgetDescription>
-              </Tooltip>
-            )}
-          </Stack>
-        </Header>
-        <Body>{renderWidgetViewer()}</Body>
-        <Footer>
-          <Flex align="center" justify="between" gap="md" flex="1">
-            {renderTotalResults(totalResults, widget.widgetType)}
-            <Grid flow="column" align="center" gap="md">
-              {onEdit && widget.id && (
-                <Button
-                  onClick={() => {
-                    closeModal();
-                    onEdit();
-                    trackAnalytics('dashboards_views.widget_viewer.edit', {
-                      organization,
-                      widget_type: widget.widgetType ?? WidgetType.ERRORS,
-                      display_type: widget.displayType,
-                    });
-                  }}
-                  disabled={!hasEditAccess}
-                  tooltipProps={{
-                    title: hasEditAccess
-                      ? undefined
-                      : isPrebuiltDashboard
-                        ? tct('[label] dashboards cannot be edited', {
-                            label: PREBUILT_DASHBOARD_LABEL,
-                          })
-                        : t('You do not have permission to edit this widget'),
-                  }}
-                >
-                  {t('Edit Widget')}
-                </Button>
-              )}
-              {widget.widgetType && (
-                <OpenButton
-                  widget={primaryWidget}
-                  dashboardFilters={dashboardFilters}
-                  organization={organization}
-                  selection={modalSelection}
-                  selectedQueryIndex={selectedQueryIndex}
-                  disabled={isUsingPerformanceScore(widget)}
-                  disabledTooltip={
-                    isUsingPerformanceScore(widget) ? performanceScoreTooltip : undefined
-                  }
-                />
-              )}
-            </Grid>
+      <Header closeButton>
+        <Stack gap="md">
+          <Flex align="center" gap="sm">
+            <h3>{widget.title}</h3>
           </Flex>
-        </Footer>
-      </Fragment>
+          {widget.description && (
+            <Tooltip
+              title={widget.description}
+              containerDisplayMode="grid"
+              showOnlyOnOverflow
+              position="bottom"
+            >
+              <WidgetDescription>{widget.description}</WidgetDescription>
+            </Tooltip>
+          )}
+        </Stack>
+      </Header>
+      <Body>{renderWidgetViewer()}</Body>
+      <Footer>
+        <Flex align="center" justify="between" gap="md" flex="1">
+          {renderTotalResults(totalResults, widget.widgetType)}
+          <Grid flow="column" align="center" gap="md">
+            {onEdit && widget.id && (
+              <Button
+                onClick={() => {
+                  closeModal();
+                  onEdit();
+                  trackAnalytics('dashboards_views.widget_viewer.edit', {
+                    organization,
+                    widget_type: widget.widgetType ?? WidgetType.ERRORS,
+                    display_type: widget.displayType,
+                  });
+                }}
+                disabled={!hasEditAccess}
+                tooltipProps={{
+                  title: hasEditAccess
+                    ? undefined
+                    : isPrebuiltDashboard
+                      ? tct('[label] dashboards cannot be edited', {
+                          label: PREBUILT_DASHBOARD_LABEL,
+                        })
+                      : t('You do not have permission to edit this widget'),
+                }}
+              >
+                {t('Edit Widget')}
+              </Button>
+            )}
+            {widget.widgetType && (
+              <OpenButton
+                widget={primaryWidget}
+                dashboardFilters={dashboardFilters}
+                organization={organization}
+                selection={modalSelection}
+                selectedQueryIndex={selectedQueryIndex}
+                disabled={isUsingPerformanceScore(widget)}
+                disabledTooltip={
+                  isUsingPerformanceScore(widget) ? performanceScoreTooltip : undefined
+                }
+              />
+            )}
+          </Grid>
+        </Flex>
+      </Footer>
     </Fragment>
   );
 }

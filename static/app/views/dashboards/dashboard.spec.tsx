@@ -195,17 +195,15 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <Fragment>
-        <Dashboard
-          dashboard={dashboardWithOneWidget}
-          isEditingDashboard={false}
-          onUpdate={mockOnUpdate}
-          handleUpdateWidgetList={mockHandleUpdateWidgetList}
-          handleAddCustomWidget={() => {}}
-          widgetLimitReached={false}
-          widgetLegendState={widgetLegendState}
-        />
-      </Fragment>,
+      <Dashboard
+        dashboard={dashboardWithOneWidget}
+        isEditingDashboard={false}
+        onUpdate={mockOnUpdate}
+        handleUpdateWidgetList={mockHandleUpdateWidgetList}
+        handleAddCustomWidget={() => {}}
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />,
       {organization: initialData.organization}
     );
 
@@ -253,18 +251,16 @@ describe('Dashboards > Dashboard', () => {
     };
 
     render(
-      <Fragment>
-        <Dashboard
-          dashboard={dashboardWithOneWidget}
-          isEditingDashboard={false}
-          onUpdate={() => {}}
-          handleUpdateWidgetList={() => {}}
-          handleAddCustomWidget={() => {}}
-          widgetLimitReached={false}
-          isEmbedded
-          widgetLegendState={widgetLegendState}
-        />
-      </Fragment>,
+      <Dashboard
+        dashboard={dashboardWithOneWidget}
+        isEditingDashboard={false}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
+        handleAddCustomWidget={() => {}}
+        widgetLimitReached={false}
+        isEmbedded
+        widgetLegendState={widgetLegendState}
+      />,
       {organization: initialData.organization}
     );
 
@@ -296,17 +292,15 @@ describe('Dashboards > Dashboard', () => {
 
     const mount = (dashboard: DashboardDetails) => {
       render(
-        <Fragment>
-          <Dashboard
-            dashboard={dashboard}
-            isEditingDashboard={false}
-            onUpdate={() => {}}
-            handleUpdateWidgetList={() => {}}
-            handleAddCustomWidget={() => {}}
-            widgetLimitReached={false}
-            widgetLegendState={widgetLegendState}
-          />
-        </Fragment>,
+        <Dashboard
+          dashboard={dashboard}
+          isEditingDashboard={false}
+          onUpdate={() => {}}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />,
         {organization: initialData.organization}
       );
     };
@@ -632,21 +626,19 @@ describe('Dashboards > Dashboard', () => {
     let widgets: Widget[];
     const mount = ({dashboard, isPreview = false, onEditWidget = jest.fn()}: any) => {
       const getDashboardComponent = () => (
-        <Fragment>
-          <Dashboard
-            dashboard={dashboard}
-            isEditingDashboard
-            onUpdate={newWidgets => {
-              widgets.splice(0, widgets.length, ...newWidgets);
-            }}
-            handleUpdateWidgetList={() => {}}
-            handleAddCustomWidget={() => {}}
-            widgetLimitReached={false}
-            isPreview={isPreview}
-            onEditWidget={onEditWidget}
-            widgetLegendState={widgetLegendState}
-          />
-        </Fragment>
+        <Dashboard
+          dashboard={dashboard}
+          isEditingDashboard
+          onUpdate={newWidgets => {
+            widgets.splice(0, widgets.length, ...newWidgets);
+          }}
+          handleUpdateWidgetList={() => {}}
+          handleAddCustomWidget={() => {}}
+          widgetLimitReached={false}
+          isPreview={isPreview}
+          onEditWidget={onEditWidget}
+          widgetLegendState={widgetLegendState}
+        />
       );
       const {rerender} = render(getDashboardComponent(), {
         organization: initialData.organization,
@@ -768,17 +760,15 @@ describe('Dashboards > Dashboard', () => {
     // URL has release= but no globalFilter — saved global filters must still
     // be applied to the widget data request.
     render(
-      <Fragment>
-        <Dashboard
-          dashboard={dashboardWithGlobalFilters}
-          isEditingDashboard={false}
-          onUpdate={() => {}}
-          handleUpdateWidgetList={() => {}}
-          handleAddCustomWidget={() => {}}
-          widgetLimitReached={false}
-          widgetLegendState={widgetLegendState}
-        />
-      </Fragment>,
+      <Dashboard
+        dashboard={dashboardWithGlobalFilters}
+        isEditingDashboard={false}
+        onUpdate={() => {}}
+        handleUpdateWidgetList={() => {}}
+        handleAddCustomWidget={() => {}}
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />,
       {
         organization,
         initialRouterConfig: {

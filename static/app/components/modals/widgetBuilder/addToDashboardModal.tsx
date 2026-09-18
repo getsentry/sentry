@@ -476,41 +476,39 @@ function AddToDashboardModal({
               )}
         </Container>
         {!hasMultipleWidgets && (
-          <Fragment>
-            <WidgetCardWrapper>
-              <WidgetCard
-                showContextMenu={false}
-                widgetLimitReached={false}
-                selection={
-                  selectedDashboard
-                    ? getSavedFiltersAsPageFilters(selectedDashboard)
-                    : selection
-                }
-                dashboardFilters={getMergedDashboardFilters(
-                  selectedDashboard?.filters,
-                  location
-                )}
-                widget={{
-                  ...widget,
-                  title: newWidgetTitle,
-                  tableWidths,
-                  queries: getUpdatedWidgetQueries(),
-                }}
-                shouldResize
-                widgetLegendState={widgetLegendState}
-                onLegendSelectChanged={() => {}}
-                legendOptions={
-                  widgetLegendState.widgetRequiresLegendUnselection(widget)
-                    ? {selected: unselectedReleasesForCharts}
-                    : undefined
-                }
-                disableFullscreen
-                onWidgetTableResizeColumn={handleWidgetTableColumnResize}
-                onWidgetTableSort={handleWidgetTableSort}
-                disableTableActions
-              />
-            </WidgetCardWrapper>
-          </Fragment>
+          <WidgetCardWrapper>
+            <WidgetCard
+              showContextMenu={false}
+              widgetLimitReached={false}
+              selection={
+                selectedDashboard
+                  ? getSavedFiltersAsPageFilters(selectedDashboard)
+                  : selection
+              }
+              dashboardFilters={getMergedDashboardFilters(
+                selectedDashboard?.filters,
+                location
+              )}
+              widget={{
+                ...widget,
+                title: newWidgetTitle,
+                tableWidths,
+                queries: getUpdatedWidgetQueries(),
+              }}
+              shouldResize
+              widgetLegendState={widgetLegendState}
+              onLegendSelectChanged={() => {}}
+              legendOptions={
+                widgetLegendState.widgetRequiresLegendUnselection(widget)
+                  ? {selected: unselectedReleasesForCharts}
+                  : undefined
+              }
+              disableFullscreen
+              onWidgetTableResizeColumn={handleWidgetTableColumnResize}
+              onWidgetTableSort={handleWidgetTableSort}
+              disableTableActions
+            />
+          </WidgetCardWrapper>
         )}
       </Body>
 
