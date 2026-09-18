@@ -35,7 +35,7 @@ class UserOptionsEndpoint(UserEndpoint):
     instead of one that can also rename an account or delete it.
     """
 
-    owner = ApiOwner.ML_AI
+    owner = ApiOwner.FOUNDATIONS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
