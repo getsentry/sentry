@@ -153,17 +153,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             "run_pr_commit_sha": pr_state.commit_sha if pr_state else None,
         }
 
-    def should_queue(self, run_state: SeerRunState) -> Decision:
-        from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
-
-        if not self._matches_current_head(run_state).matched:
-            return Decision(ok=False, reason="stale_head")
-        # Hard cap also blocks enqueue so failed suites don't pile up in Redis
-        # with no check-suite consume path to drain them.
-        if automated_iteration_cap_reached(run_state):
-            return Decision(ok=False, reason="hard_cap_reached")
-        return Decision(ok=True, reason="head_matches")
-
     def _live_head(self, run_state: SeerRunState) -> LivePullRequestHead:
         try:
             return compare_live_pull_request_head(
@@ -221,13 +210,17 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         if automated_iteration_cap_reached(run_state):
             return TriggerDecision(task=None, reason="hard_cap_reached")
 
+        # A suite for a superseded commit says nothing about the current head.
+        # It stays queued (the next drain drops it via ``should_consume``) but
+        # schedules nothing, and the reason lands on the waiting iteration's
+        # row so the sweep can say why it never ran.
+        if not self._matches_current_head(run_state).matched:
+            return TriggerDecision(task=None, reason="stale_head")
+
         # Otherwise queue a consume task for this run: immediately once every check
         # run has completed, or after a delay while some are still pending (they
         # can get stuck, so we trigger anyway rather than wait forever).
         head_sha = self.event.check_suite.head_sha
-        if not head_sha:
-            return TriggerDecision(task=ConsumeTask.Now, reason="missing_head_sha")
-
         organization_id = self.autofix_run.repository.organization_id
         repo_id = self.autofix_run.repository.id
 

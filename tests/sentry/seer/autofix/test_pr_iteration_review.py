@@ -224,7 +224,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
         # exercises. The mocks are exposed as ``self.mock_*``.
         for attr, target in (
             ("mock_get_state", "get_agent_state_from_pr_id"),
-            ("mock_enqueue", "try_enqueue_autofix_feedback"),
+            ("mock_enqueue", "enqueue_autofix_feedback"),
             ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
             ("mock_make_scm", "make_scm"),
             ("mock_actions", "scm_actions"),

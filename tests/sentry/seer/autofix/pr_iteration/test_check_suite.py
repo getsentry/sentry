@@ -33,7 +33,6 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedba
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     ConsumeTask,
     ConsumeTriggerSource,
-    Decision,
     TriggerDecision,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -383,7 +382,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_capture.assert_called_once()
         mock_get_state.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id", return_value=None)
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_skips_pr_without_run(
@@ -399,7 +398,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         mock_enqueue.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_skips_run_missing_group_id(
@@ -419,15 +418,15 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue.assert_not_called()
 
     @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
-    @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=False)
+    @patch(TRIGGER_CONSUME_PATH, return_value=TriggerDecision(task=None, reason="hard_cap_reached"))
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
-    def test_does_not_trigger_when_not_enqueued(
+    def test_hands_the_pr_to_a_human_at_the_hard_cap(
         self,
         mock_resolve: MagicMock,
         mock_get_state: MagicMock,
-        _mock_enqueue: MagicMock,
+        mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_assign: MagicMock,
     ) -> None:
@@ -437,17 +436,44 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         pr_iteration_from_check_suite_listener(self._event(raw))
 
-        mock_trigger_consume.assert_not_called()
-        # Rejected feedback routes to the cap-exhausted handler, which decides
-        # itself whether this is the hard-cap case that needs a human.
+        # Queued regardless: the gate is at trigger time, and the row keeps the
+        # reason nothing will drain it.
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
         mock_assign.assert_called_once()
         event_arg, resolved_arg = mock_assign.call_args[0]
         assert event_arg.check_suite.head_sha == "abc"
         assert resolved_arg.run_state.run_id == 67890
 
     @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
-    @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(TRIGGER_CONSUME_PATH, return_value=TriggerDecision(task=None, reason="stale_head"))
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_a_stale_suite_is_queued_but_not_handed_off(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        _mock_trigger_consume: MagicMock,
+        mock_assign: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        # A failure on an older commit says nothing about the current head.
+        mock_assign.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.assign_user_for_exhausted_cap")
+    @patch(
+        TRIGGER_CONSUME_PATH,
+        return_value=TriggerDecision(task=ConsumeTask.Now, reason="sweep_complete"),
+    )
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_enqueues_and_triggers_for_matched_run(
@@ -482,7 +508,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_seer_error_on_one_pr_continues_to_remaining(
@@ -508,7 +534,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_trigger_consume.assert_called_once()
 
     @patch(TRIGGER_CONSUME_PATH)
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_tries_each_org_until_agent_state_found(
@@ -556,7 +582,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     @patch(f"{CHECK_PATH}.metrics")
     @patch(f"{CHECK_PATH}.logger")
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", side_effect=RuntimeError("redis is down"))
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback", side_effect=RuntimeError("redis is down"))
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_an_unexpected_failure_is_reported_against_the_run_it_broke(
@@ -590,7 +616,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH, side_effect=RuntimeError("celery is down"))
-    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
     def test_an_unexpected_failure_is_not_re_raised(
@@ -1215,11 +1241,13 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
 
 
 def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
+    """A run whose PR is on the suite's head, so the trigger's head gate passes."""
     return SeerRunState(
         run_id=1,
         blocks=blocks or [],
         status="completed",
         updated_at="2024-01-01T00:00:00Z",
+        repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
     )
 
 
@@ -1319,23 +1347,11 @@ class CheckSuiteHardCapTest(TestCase):
     def _source(self) -> CheckSuiteFeedbackSource:
         return _check_suite_source()
 
-    def _run_state_on_head(self, *, blocks: list[MemoryBlock]) -> SeerRunState:
-        state = _run_state(blocks=blocks)
-        state.repo_pr_states = {"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
-        return state
-
     def test_none_when_cap_reached(self) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == TriggerDecision(
             task=None, reason="hard_cap_reached"
-        )
-
-    def test_should_queue_false_when_cap_reached(self) -> None:
-        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(self.CAP)]
-
-        assert self._source().should_queue(self._run_state_on_head(blocks=blocks)) == Decision(
-            ok=False, reason="hard_cap_reached"
         )
 
     @patch(f"{CHECK_SUITES_PATH}.iter_all_pages", return_value=[{"data": []}])

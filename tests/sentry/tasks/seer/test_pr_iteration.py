@@ -55,8 +55,8 @@ from sentry.seer.autofix.pr_iteration.pause import (
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
+    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.models import SeerApiError, SeerPermissionError
@@ -172,7 +172,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_triggers_agent_when_authorized(
         self,
@@ -300,7 +300,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.metrics")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_write_access(
         self,
@@ -323,7 +323,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_when_no_agent_state(
         self,
@@ -353,7 +353,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_comments_ineligible_when_run_has_no_repo_pr_states(
         self,
@@ -399,7 +399,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_skips_ineligible_comment_when_already_posted(
         self,
@@ -437,7 +437,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_triggers_comment_reaction(
         self,
@@ -463,7 +463,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_does_not_queue_or_ack_feedback_on_a_stopped_run(
         self,
@@ -495,7 +495,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.make_scm", side_effect=ValueError("boom"))
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_emits_no_metric_when_scm_init_fails(
         self,
@@ -521,7 +521,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     def test_iterates_past_max_iterations(
         self,
@@ -1106,7 +1106,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             organization_id=self.organization.id,
             group_id=self.group.id,
         )
-        try_enqueue_autofix_feedback(
+        enqueue_autofix_feedback(
             log_ctx=PrIterationLogContext(
                 MagicMock(),
                 iteration=LogCtxIteration.TRIGGERED,
@@ -2036,7 +2036,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         decision: TriggerDecision | None = None,
         delay: int | None = None,
         source: str = ConsumeTriggerSource.FEEDBACK,
-    ) -> None:
+    ) -> TriggerDecision:
         feedback = self._feedback()
         ctx: AbstractContextManager[Any] = (
             patch.object(type(feedback.source), "should_trigger", return_value=decision)
@@ -2044,7 +2044,7 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
             else nullcontext()
         )
         with ctx:
-            trigger_consume_pr_iteration_feedback(
+            return trigger_consume_pr_iteration_feedback(
                 log_ctx=self._log_ctx(),
                 run_id=67890,
                 organization_id=self.organization.id,
@@ -2208,9 +2208,24 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_no_task_scheduled_at_the_hard_cap(self, mock_apply: MagicMock) -> None:
-        self._trigger(decision=TriggerDecision(task=None, reason="hard_cap_reached"))
+        decision = self._trigger(decision=TriggerDecision(task=None, reason="hard_cap_reached"))
 
         mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="hard_cap_reached")
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_a_paused_run_returns_a_refusal(self, mock_apply: MagicMock) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
+        )
+        pause_pr_iteration(
+            run_id=67890, organization_id=self.organization.id, reason=PauseReason.USER_STOP
+        )
+
+        decision = self._trigger()
+
+        mock_apply.assert_not_called()
+        assert decision == TriggerDecision(task=None, reason="paused")
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_queues_later_task_with_countdown(self, mock_apply: MagicMock) -> None:
