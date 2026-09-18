@@ -20,6 +20,7 @@ from collections.abc import (
 from contextlib import contextmanager
 from dataclasses import dataclass
 from threading import local
+from time import monotonic
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
 
 import django.urls
@@ -28,6 +29,7 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
+from urllib3.exceptions import ProtocolError
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
@@ -36,10 +38,13 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import set_span_data, start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
+    from sentry_sdk.traces import StreamedSpan
+    from sentry_sdk.tracing import Span
+
     from sentry.hybridcloud.rpc.resolvers import CellResolutionStrategy
 
 logger = logging.getLogger(__name__)
@@ -632,12 +637,13 @@ class _RemoteSiloCall:
             "User-Agent": f"sentry-rpc/from-{origin}",
         }
 
-        with self._open_request_context():
+        # Failed HTTP attempts can leave a child span current; keep the RPC span reference.
+        with self._open_request_context() as span:
             self._check_disabled()
             if use_test_client:
                 response = self._fire_test_request(headers, data)
             else:
-                response = self._fire_request(headers, data)
+                response = self._fire_request(headers, data, span=span)
             tags = self._metrics_tags(status=response.status_code)
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.response_code",
@@ -668,14 +674,14 @@ class _RemoteSiloCall:
             self._raise_from_response_status_error(response)
 
     @contextmanager
-    def _open_request_context(self) -> Generator[None]:
+    def _open_request_context(self) -> Generator[Span | StreamedSpan]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = start_span(
             op="hybrid_cloud.dispatch_rpc",
             name=f"rpc to {self.service_name}.{self.method_name}",
         )
         with span, timer:
-            yield
+            yield span
 
     def _remote_exception(self, message: str) -> RpcRemoteException:
         return RpcRemoteException(self.service_name, self.method_name, message)
@@ -745,15 +751,22 @@ class _RemoteSiloCall:
             }
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
-    def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
+    def _fire_request(
+        self,
+        headers: MutableMapping[str, str],
+        data: bytes,
+        *,
+        span: Span | StreamedSpan | None = None,
+    ) -> requests.Response:
         retry_count = self.get_method_retry_count()
         http = _get_connection(retry_count)
 
         url = self.address + self.path
 
         timeout = self.get_method_timeout()
+        started_at = monotonic()
         try:
-            return http.post(url, headers=headers, data=data, timeout=timeout)
+            response = http.post(url, headers=headers, data=data, timeout=timeout)
         except requests.exceptions.ConnectionError as e:
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.failure",
@@ -772,6 +785,51 @@ class _RemoteSiloCall:
                 tags=self._metrics_tags(kind="timeout"),
             )
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+
+        if (
+            self.service_name == "region_replica"
+            and self.method_name == "upsert_replicated_api_token"
+            and response.status_code == 200
+        ):
+            duration = monotonic() - started_at
+            retries = getattr(response.raw, "retries", None)
+            if isinstance(retries, Retry) and span is not None:
+                set_span_data(span, "rpc_retry_count", len(retries.history))
+                set_span_data(
+                    span, "rpc_destination_region", self.cell.name if self.cell else "control"
+                )
+            if isinstance(retries, Retry) and (retries.history or duration >= timeout):
+                # Exception messages and retry URLs may contain credentials.
+                error_types = [
+                    type(attempt.error).__name__
+                    if attempt.error is not None
+                    else f"HTTP{attempt.status}"
+                    for attempt in retries.history
+                ]
+                first_error = retries.history[0].error if retries.history else None
+                cause = getattr(first_error, "__cause__", None)
+                if (
+                    isinstance(first_error, ProtocolError)
+                    and len(first_error.args) > 1
+                    and isinstance(first_error.args[1], Exception)
+                ):
+                    cause = first_error.args[1]
+                logger.info(
+                    "hybrid_cloud.dispatch_rpc.transport_diagnostic",
+                    extra={
+                        **self._metrics_tags(),
+                        "rpc_retry_count": len(retries.history),
+                        "rpc_retry_first_error_type": error_types[0] if error_types else None,
+                        "rpc_retry_error_types": error_types,
+                        "rpc_retry_first_cause_type": type(cause).__name__ if cause else None,
+                        "rpc_retry_first_errno": cause.errno
+                        if isinstance(cause, OSError)
+                        else None,
+                        "rpc_request_duration_ms": duration * 1000,
+                        "rpc_request_timeout_ms": timeout * 1000,
+                    },
+                )
+        return response
 
     def _check_disabled(self) -> None:
         if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):
