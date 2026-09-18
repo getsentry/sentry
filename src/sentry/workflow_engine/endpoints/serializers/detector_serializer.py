@@ -209,7 +209,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "createdBy": str(obj.created_by_id) if obj.created_by_id else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "dataSources": attrs.get("data_sources"),
+            "dataSources": attrs.get("data_sources", []),
             "conditionGroup": attrs.get("condition_group"),
             "config": convert_dict_key_case(
                 self._normalize_config(attrs.get("config", {})), snake_to_camel_case

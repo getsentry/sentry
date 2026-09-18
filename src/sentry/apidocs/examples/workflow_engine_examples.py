@@ -356,7 +356,7 @@ class WorkflowEngineExamples:
                     "createdBy": None,
                     "dateCreated": "2025-03-12T11:15:50.764865Z",
                     "dateUpdated": "2025-06-17T14:04:02.485354Z",
-                    "dataSources": None,
+                    "dataSources": [],
                     "conditionGroup": None,
                     "config": {},
                     "enabled": True,
