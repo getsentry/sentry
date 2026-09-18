@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from collections.abc import Collection
 from datetime import timedelta
 from uuid import uuid4
 
@@ -14,6 +16,7 @@ from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.config_drift import (
     SUBSCRIPTION_ID_PREFIX_BUCKETS,
     SWEEP_RUN_INTERVAL,
+    ConfigStore,
     find_missing_configs,
     find_orphaned_configs,
     get_config_stores,
@@ -35,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
 BROKEN_MONITOR_AGE_LIMIT = timedelta(days=7)
+# After a wiped store the missing set is the whole slice, so bound the tasks queued per store.
+CONFIG_REPAIR_MAX_TASKS = 1000
 
 
 @instrumented_task(
@@ -67,9 +72,12 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
     namespace=uptime_tasks,
     retry=Retry(times=5, delay=5),
 )
-def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
+def update_remote_uptime_subscription(
+    uptime_subscription_id, region_slugs: list[str] | None = None, **kwargs
+):
     """
-    Pushes details of an uptime subscription to uptime subscription regions.
+    Pushes details of an uptime subscription to uptime subscription regions. When
+    ``region_slugs`` is given, only those regions are pushed to.
     """
     try:
         subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
@@ -89,13 +97,21 @@ def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         )
         metrics.incr("uptime.subscriptions.update.incorrect_status", sample_rate=1.0)
         return
+    # A filtered publish never writes the row, so an id minted here would reach Redis only.
+    if region_slugs is not None and subscription.subscription_id is None:
+        return
 
-    for region in subscription.regions.all():
+    regions = subscription.regions.all()
+    if region_slugs is not None:
+        regions = regions.filter(region_slug__in=region_slugs)
+    for region in regions:
         send_uptime_subscription_config(region, subscription)
-    subscription.update(
-        status=UptimeSubscription.Status.ACTIVE.value,
-        subscription_id=subscription.subscription_id,
-    )
+    # A filtered publish is a repair, not a state transition, so it leaves the row alone.
+    if region_slugs is None:
+        subscription.update(
+            status=UptimeSubscription.Status.ACTIVE.value,
+            subscription_id=subscription.subscription_id,
+        )
 
 
 @instrumented_task(
@@ -281,27 +297,29 @@ def config_drift_dispatcher(**kwargs):
 )
 def check_missing_configs(subscription_id_prefix: str, **kwargs):
     """
-    Postgres → Redis direction of the drift sweep: for ACTIVE subscriptions in this
-    subscription_id prefix, count the (subscription, store) pairs whose config is absent.
+    Postgres → Redis direction of the drift sweep: count ACTIVE subscriptions in this prefix
+    whose config is absent from each store, and republish them when repair is on.
     """
+    repair = options.get("uptime.config-drift.repair")
     for store in get_config_stores():
-        count = find_missing_configs(store, subscription_id_prefix)
+        result = find_missing_configs(store, subscription_id_prefix)
+        missing = len(result.drifted_ids)
         tags = {"cluster": store.cluster, "direction": "missing"}
         metrics.incr(
-            "uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0
+            "uptime.config_drift.checked", amount=result.checked, tags=tags, sample_rate=1.0
         )
-        metrics.incr(
-            "uptime.config_drift.missing", amount=count.drifted, tags=tags, sample_rate=1.0
-        )
-        if count.drifted:
+        metrics.incr("uptime.config_drift.missing", amount=missing, tags=tags, sample_rate=1.0)
+        if missing:
             logger.warning(
                 "uptime.config_drift.missing",
                 extra={
                     "subscription_id_prefix": subscription_id_prefix,
                     "cluster": store.cluster,
-                    "count": count.drifted,
+                    "count": missing,
                 },
             )
+            if repair:
+                repair_missing_configs(store, result.drifted_ids)
 
 
 @instrumented_task(
@@ -325,12 +343,53 @@ def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwar
         )
         return
 
-    count = find_orphaned_configs(store, partition)
+    result = find_orphaned_configs(store, partition)
+    orphaned = len(result.drifted_ids)
     tags = {"cluster": store.cluster, "direction": "orphaned"}
-    metrics.incr("uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0)
-    metrics.incr("uptime.config_drift.orphaned", amount=count.drifted, tags=tags, sample_rate=1.0)
-    if count.drifted:
+    metrics.incr("uptime.config_drift.checked", amount=result.checked, tags=tags, sample_rate=1.0)
+    metrics.incr("uptime.config_drift.orphaned", amount=orphaned, tags=tags, sample_rate=1.0)
+    if orphaned:
         logger.warning(
             "uptime.config_drift.orphaned",
-            extra={"partition": partition, "cluster": store.cluster, "count": count.drifted},
+            extra={"partition": partition, "cluster": store.cluster, "count": orphaned},
         )
+
+
+def repair_missing_configs(
+    store: ConfigStore, subscription_ids: Collection[str], *, limit: int = CONFIG_REPAIR_MAX_TASKS
+) -> int:
+    """
+    Queues a region-scoped update for each subscription whose config is missing from ``store``,
+    at most ``limit`` per call. Returns the number queued.
+    """
+    ids = sorted(set(subscription_ids))[:limit]
+    slugs_by_subscription: dict[tuple[int, str], set[str]] = defaultdict(set)
+    for subscription_id, pk, region_slug in UptimeSubscriptionRegion.objects.filter(
+        uptime_subscription__subscription_id__in=ids,
+        uptime_subscription__status=UptimeSubscription.Status.ACTIVE.value,
+        region_slug__in=store.region_slugs,
+    ).values_list("uptime_subscription__subscription_id", "uptime_subscription_id", "region_slug"):
+        assert subscription_id is not None
+        slugs_by_subscription[(pk, subscription_id)].add(region_slug)
+
+    for (pk, subscription_id), slugs in slugs_by_subscription.items():
+        region_slugs = sorted(slugs)
+        update_remote_uptime_subscription.delay(
+            uptime_subscription_id=pk, region_slugs=region_slugs
+        )
+        logger.info(
+            "uptime.config_repair.queued",
+            extra={
+                "subscription_id": subscription_id,
+                "cluster": store.cluster,
+                "region_slugs": region_slugs,
+            },
+        )
+    queued = len(slugs_by_subscription)
+    tags = {"cluster": store.cluster}
+    metrics.incr("uptime.config_repair.queued", amount=queued, tags=tags, sample_rate=1.0)
+    # Skipped: deleted, disabled, or no longer on this store, since the sweep read it.
+    metrics.incr(
+        "uptime.config_repair.skipped", amount=len(ids) - queued, tags=tags, sample_rate=1.0
+    )
+    return queued
