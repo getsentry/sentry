@@ -24,6 +24,7 @@ from sentry.types.activity import ActivityType
 
 # SeerAgentRun.source, the key we dedup/look up runs by.
 SEER_FEATURE_ID = "smart_assignment"
+SmartAssignmentPrefetchMode = Literal["control", "prefetch"]
 
 
 # Resolutions we treat as ground truth: a human resolving an issue is a signal for
@@ -90,6 +91,7 @@ class SmartAssignmentPayload(BaseModel):
     group_id: int
     project_slug: str | None = None
     connected_repos: list[str] = Field(default_factory=list)
+    prefetch_mode: SmartAssignmentPrefetchMode = "control"
 
 
 class RankedCandidate(BaseModel):
