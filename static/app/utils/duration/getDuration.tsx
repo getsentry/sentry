@@ -1,4 +1,4 @@
-import {t, tn} from 'sentry/locale';
+import {pgettext, t, tn} from 'sentry/locale';
 import {
   DAY,
   HOUR,
@@ -32,6 +32,7 @@ const DURATION_LABELS = {
   y: t('y'),
   yr: t('yr'),
   year: t('year'),
+  m_month: pgettext('abbreviated months', 'm'),
   mo: t('mo'),
   w: t('w'),
   wk: t('wk'),
@@ -44,7 +45,7 @@ const DURATION_LABELS = {
   hr: t('hr'),
   hour: t('hour'),
   hours: t('hours'),
-  m: t('m'),
+  m: pgettext('abbreviated minutes', 'm'),
   min: t('min'),
   minute: t('minute'),
   minutes: t('minutes'),
@@ -98,7 +99,7 @@ export function getDuration(
   if (absValue >= MONTH || minimumUnit === MONTH) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
     if (extraShort) {
-      return `${label}${DURATION_LABELS.m}`;
+      return `${label}${DURATION_LABELS.m_month}`;
     }
     if (abbreviation) {
       return `${label}${DURATION_LABELS.mo}`;
