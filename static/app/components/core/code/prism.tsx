@@ -1,6 +1,16 @@
 import Prism from 'prismjs';
 import prismComponents from 'prismjs/components';
 
+type PrismLanguageDefinition = {
+  alias?: string | string[];
+  require?: string | string[];
+};
+
+const prismLanguages = prismComponents.languages as Record<
+  string,
+  PrismLanguageDefinition
+>;
+
 /**
  * Without this, Prism will call highlightAll() automatically on page load.
  * We call highlightElement() when necessary so this is both unnecessary and
@@ -16,7 +26,7 @@ Prism.manual = true;
  * (`javascript`).
  */
 const PRISM_LANGUAGE_MAP: Record<string, string> = Object.fromEntries(
-  Object.entries(prismComponents.languages).flatMap(([lang, value]) => {
+  Object.entries(prismLanguages).flatMap(([lang, value]) => {
     if (!value.alias) {
       return [[lang, lang]]; // map the full language name to itself
     }
@@ -24,7 +34,7 @@ const PRISM_LANGUAGE_MAP: Record<string, string> = Object.fromEntries(
     return [
       [lang, lang], // map the full language name to itself
       ...(Array.isArray(value.alias) // map aliases to full language name
-        ? value.alias.map((alias: any) => [alias, lang])
+        ? value.alias.map(alias => [alias, lang])
         : [[value.alias, lang]]),
     ];
   })
@@ -109,7 +119,7 @@ export async function loadPrismLanguage(
     const language = getPrismLanguage(lang);
 
     // Short-circuit if language already loaded
-    if (Prism.languages[language!]) {
+    if (language && Prism.languages[language]) {
       onLoad?.();
       return;
     }
@@ -128,8 +138,7 @@ export async function loadPrismLanguage(
     }
 
     // Check for dependencies (e.g. `php` requires `markup-templating`) & download them
-    const deps: string[] | string | undefined =
-      prismComponents.languages[language].require;
+    const deps = prismLanguages[language]?.require;
     const depsArray = Array.isArray(deps) ? deps : [deps];
     await Promise.all(
       depsArray.map(dep => {

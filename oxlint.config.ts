@@ -80,7 +80,7 @@ const restrictedImportPaths = [
   {
     name: 'marked',
     message:
-      "Please import marked from 'app/utils/marked' so that we can ensure sanitation of marked output",
+      "Please import marked from '@sentry/scraps/markdown' so that we can ensure sanitation of marked output",
   },
   {
     name: 'lodash',
@@ -638,7 +638,7 @@ const config = defineConfig({
     'react/exhaustive-effect-dependencies': 'error',
     'react/function-component-definition': 'error',
     'react/globals': 'error',
-    'react/hooks': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
+    'react/hooks': 'error',
     'react/immutability': 'error',
     'react/incompatible-library': 'off', // TODO(ryan953): Fix violations and promote this warning to an error.
     'react/invariant': 'error',
@@ -663,6 +663,7 @@ const config = defineConfig({
     'react/no-is-mounted': 'error',
     'react/no-render-return-value': 'error',
     'react/no-string-refs': 'error',
+    'react/no-unstable-nested-components': ['error', {allowAsProps: true}],
     'react/no-unknown-property': [
       'error',
       {

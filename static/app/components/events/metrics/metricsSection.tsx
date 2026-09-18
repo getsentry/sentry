@@ -152,6 +152,7 @@ function MetricsSectionContent({
         <MetricsSamplesTable
           source="issueDetails"
           overrideTableData={abbreviatedTableData}
+          overrideTableRoutingHint={result.meta?.routingHint}
         />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
           <div>

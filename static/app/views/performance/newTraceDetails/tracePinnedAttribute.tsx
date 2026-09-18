@@ -121,7 +121,7 @@ export function useTracePinnedAttribute({
             attribute && attribute !== 'span_id' ? ['span_id', attribute] : ['span_id'],
           query: `trace:${traceSlug}`,
           project: -1,
-          per_page: 100,
+          per_page: 9999,
           sort: 'span_id',
           sampling: 'HIGHEST_ACCURACY',
           referrer: 'trace.waterfall.attribute-pinning',

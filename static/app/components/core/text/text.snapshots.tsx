@@ -163,7 +163,7 @@ describe('Text', () => {
       align => ({tags: {align, area: 'core'}})
     );
 
-    it.snapshot.each(['compressed', 'comfortable'] as const)(
+    it.snapshot.each(['compressed', 'default', 'comfortable', 'fixed'] as const)(
       'density-%s',
       density => (
         <ThemeProvider theme={themes[themeName]}>

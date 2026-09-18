@@ -72,14 +72,12 @@ describe('SeerExplorerHeader', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
+      expect(screen.getByRole('option', {name: /Show thinking/})).toBeInTheDocument();
       expect(
-        screen.getByRole('menuitemradio', {name: /Show thinking/})
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('menuitemradio', {name: /Context Engine/})
+        screen.queryByRole('option', {name: /Context Engine/})
       ).not.toBeInTheDocument();
       expect(
-        screen.queryByRole('menuitemradio', {name: /Force bash mode on/})
+        screen.queryByRole('option', {name: /Force bash mode on/})
       ).not.toBeInTheDocument();
     });
 
@@ -103,12 +101,14 @@ describe('SeerExplorerHeader', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
-      expect(screen.getByRole('checkbox')).toBeChecked();
-
-      await userEvent.click(
-        screen.getByRole('menuitemradio', {name: /Force bash mode on/})
+      expect(screen.getByRole('option', {name: /Force bash mode on/})).toHaveAttribute(
+        'aria-selected',
+        'true'
       );
+
+      await userEvent.click(screen.getByRole('option', {name: /Force bash mode on/}));
       expect(onOverrideBashModeToggle).toHaveBeenCalled();
+      expect(screen.getByRole('listbox')).toBeInTheDocument();
     });
 
     it('reflects the toggle state and fires the handler', async () => {
@@ -120,9 +120,12 @@ describe('SeerExplorerHeader', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Debug'}));
 
-      expect(screen.getByRole('checkbox')).toBeChecked();
+      expect(screen.getByRole('option', {name: /Context Engine/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
 
-      await userEvent.click(screen.getByRole('menuitemradio', {name: /Context Engine/}));
+      await userEvent.click(screen.getByRole('option', {name: /Context Engine/}));
       expect(onOverrideCtxEngEnableToggle).toHaveBeenCalled();
     });
   });

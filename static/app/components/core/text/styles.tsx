@@ -20,21 +20,14 @@ export function getTextDecoration(p: Pick<BaseTextProps, 'strikethrough' | 'unde
 }
 
 export function getLineHeight(
-  density: 'compressed' | 'comfortable' | undefined,
+  density: keyof Theme['font']['lineHeight'] | undefined,
   theme: Theme
 ): string | undefined {
   if (density === undefined) {
     return undefined;
   }
 
-  switch (density) {
-    case 'compressed':
-      return theme.font.lineHeight.compressed.toString();
-    case 'comfortable':
-      return theme.font.lineHeight.comfortable.toString();
-    default:
-      return undefined;
-  }
+  return theme.font.lineHeight[density].toString();
 }
 
 export function getFontSize(
