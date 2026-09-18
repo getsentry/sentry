@@ -157,7 +157,7 @@ export interface MetricDetector extends BaseDetector {
 
 export interface UptimeDetector extends BaseDetector {
   readonly config: UptimeDetectorConfig;
-  readonly dataSources: [UptimeSubscriptionDataSource];
+  readonly dataSources: [UptimeSubscriptionDataSource] | null;
   readonly type: 'uptime_domain_failure';
 }
 

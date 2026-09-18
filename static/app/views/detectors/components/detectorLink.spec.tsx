@@ -1,4 +1,7 @@
-import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
+import {
+  IssueStreamDetectorFixture,
+  UptimeDetectorFixture,
+} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -114,6 +117,17 @@ describe('DetectorLink', () => {
 
     expect(screen.getByText(/all issues in/i)).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('renders an uptime detector with null data sources', () => {
+    const uptimeDetector = UptimeDetectorFixture({
+      name: 'Uptime Detector',
+      dataSources: null,
+    });
+
+    render(<DetectorLink detector={uptimeDetector} />, {organization});
+
+    expect(screen.getByText('Uptime Detector')).toBeInTheDocument();
   });
 
   it('renders percent thresholds using delta values in details', () => {

@@ -6,7 +6,12 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 
 export function UptimeMonitor({detector}: {detector: UptimeDetector}) {
-  const {queryObj} = detector.dataSources[0];
+  const dataSource = detector.dataSources?.[0];
+  if (!dataSource) {
+    return null;
+  }
+
+  const {queryObj} = dataSource;
 
   return (
     <Stack gap="sm">

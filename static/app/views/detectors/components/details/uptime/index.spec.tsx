@@ -64,9 +64,9 @@ describe('UptimeDetectorDetails', () => {
       id: '3',
       dataSources: [
         {
-          ...UptimeDetectorFixture().dataSources[0],
+          ...UptimeDetectorFixture().dataSources![0],
           queryObj: {
-            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            ...UptimeDetectorFixture().dataSources![0].queryObj,
             method: 'POST',
             url: 'https://example.com/api',
           },

@@ -101,6 +101,13 @@ export default function UptimeAlertDetails() {
     );
   }
 
+  const dataSource = detector.dataSources?.[0];
+  if (!dataSource) {
+    return (
+      <LoadingError message={t('The uptime monitor configuration is unavailable.')} />
+    );
+  }
+
   const toggleStatus = async ({enabled}: Partial<UptimeDetector>) => {
     // XXX(epurkhiser): We're not yet able to use the detector APIs to enable /
     // disable uptime monitors. The detector APIs are not yet connected to
@@ -119,7 +126,7 @@ export default function UptimeAlertDetails() {
     }
   };
 
-  const uptimeSub = detector.dataSources[0].queryObj;
+  const uptimeSub = dataSource.queryObj;
 
   const canEdit = hasEveryAccess(['alerts:write'], {organization, project});
   const permissionTooltipText = tct(
