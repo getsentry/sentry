@@ -10,17 +10,16 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
-import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {
   EnvironmentPageFilterTrigger,
   type EnvironmentPageFilterTriggerProps,
 } from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
+import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -87,32 +86,10 @@ export function EnvironmentPageFilter({
     [envPageFilterValue]
   );
 
-  const environmentSet = useMemo(() => {
-    const isSuperuser = isActiveSuperuser();
-    const includeAllProjects = projectSelection.has(ALL_ACCESS_PROJECTS);
-    const includeMemberProjects = projectSelection.size === 0;
-    const result = new Set<string>();
-
-    for (const project of projects) {
-      const projectId = parseInt(project.id, 10);
-      // Include environments from:
-      // - all projects if the user is a superuser
-      // - the requested projects
-      // - all member projects if 'my projects' (empty list) is selected.
-      // - all projects if -1 is the only selected project.
-      if (
-        (includeAllProjects && project.hasAccess) ||
-        (includeMemberProjects && (project.isMember || isSuperuser)) ||
-        projectSelection.has(projectId)
-      ) {
-        for (const environment of project.environments) {
-          result.add(environment);
-        }
-      }
-    }
-
-    return result;
-  }, [projects, projectSelection]);
+  const environmentSet = useMemo(
+    () => getAvailableEnvironments(projects, projectSelection),
+    [projects, projectSelection]
+  );
 
   const environments = useMemo(() => {
     // Sort with the last selected environments at the top
