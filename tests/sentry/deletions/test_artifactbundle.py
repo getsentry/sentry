@@ -56,7 +56,7 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
             organization_id = None
 
             @property
-            def file(self):
+            def file(self) -> None:
                 raise File.DoesNotExist("File matching query does not exist.")
 
         # Must not raise File.DoesNotExist.
