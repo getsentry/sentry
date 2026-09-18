@@ -18,6 +18,25 @@ const DISPATCHES = [
 ];
 
 const RETRY_DELAYS_MS = [5000, 15000, 30000, 60000];
+const MAX_WORKFLOW_DISPATCH_PAYLOAD_BYTES = 65535;
+
+function fitInputsToWorkflowDispatchLimit(inputs, core) {
+  if (
+    Buffer.byteLength(JSON.stringify({ref: 'master', inputs}), 'utf8') <=
+    MAX_WORKFLOW_DISPATCH_PAYLOAD_BYTES
+  ) {
+    return inputs;
+  }
+
+  core.warning(
+    'Changed-file inputs exceed the workflow dispatch payload limit; running the full getsentry suite instead.'
+  );
+  return {
+    ...inputs,
+    'sentry-changed-files': '',
+    'sentry-previous-filenames': '',
+  };
+}
 
 async function dispatchWithRetry({github, core, workflow, inputs}) {
   const maxAttempts = RETRY_DELAYS_MS.length + 1;
@@ -70,19 +89,22 @@ export async function dispatch({
 
   await Promise.all(
     dispatches.map(({workflow, pathFilterName}) => {
-      const inputs = {
-        pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
-        skip: `${fileChanges[pathFilterName] !== 'true'}`, // even though this is a boolean, it must be cast to a string
+      const inputs = fitInputsToWorkflowDispatchLimit(
+        {
+          pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
+          skip: `${fileChanges[pathFilterName] !== 'true'}`, // even though this is a boolean, it must be cast to a string
 
-        // sentrySHA is the sha getsentry should run against.
-        'sentry-sha': mergeCommitSha,
-        // prSHA is the sha actions should post commit statuses too.
-        'sentry-pr-sha': context.payload.pull_request.head.sha,
+          // sentrySHA is the sha getsentry should run against.
+          'sentry-sha': mergeCommitSha,
+          // prSHA is the sha actions should post commit statuses too.
+          'sentry-pr-sha': context.payload.pull_request.head.sha,
 
-        // Changed files for selective testing. Empty string means full suite.
-        'sentry-changed-files': sentryChangedFiles || '',
-        'sentry-previous-filenames': sentryPreviousFilenames || '',
-      };
+          // Changed files for selective testing. Empty string means full suite.
+          'sentry-changed-files': sentryChangedFiles || '',
+          'sentry-previous-filenames': sentryPreviousFilenames || '',
+        },
+        core
+      );
 
       core.info(
         `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`
