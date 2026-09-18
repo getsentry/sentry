@@ -466,7 +466,10 @@ describe('Investigation detail', () => {
         currentExecution: null,
         output:
           block.kind === 'text'
-            ? {schemaVersion: 1, markdown: 'Timeouts began after the deployment.'}
+            ? {
+                schemaVersion: 1,
+                markdown: 'Timeouts began after the deployment.',
+              }
             : InvestigationQueryOutputFixture(),
       })),
     };
@@ -506,13 +509,18 @@ describe('Investigation detail', () => {
         dependencies: ['block-1'],
       },
     ];
-    const request = MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const request = MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigation,
+    });
 
     renderView();
 
     await screen.findByText('Initial notes');
     expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
-    await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {timeout: 3000});
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2), {
+      timeout: 3000,
+    });
   });
 
   it.each(['notRun', 'pending', 'running', 'failed', 'cancelled', 'completed'] as const)(
@@ -741,7 +749,9 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
+    const toggle = await screen.findByRole('button', {
+      name: 'Toggle Latency query',
+    });
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
     expect(screen.getByRole('button', {name: 'Show query'})).toBeDisabled();
@@ -1007,7 +1017,10 @@ describe('Investigation detail', () => {
   });
 
   it('refines an existing result with new instructions', async () => {
-    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithQueryResult(),
+    });
     const updateUrl = `${detailUrl}blocks/block-2/`;
     const updateRequest = MockApiClient.addMockResponse({
       url: updateUrl,
@@ -1271,7 +1284,9 @@ describe('Investigation detail', () => {
       screen.getByLabelText('Instructions for Seer'),
       'Find slow spans'
     );
-    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {
+      key: 'Enter',
+    });
 
     expect(await screen.findByText('Building chart…')).toBeInTheDocument();
     expect(screen.queryByText(/tableMarkdown/)).not.toBeInTheDocument();
@@ -1325,7 +1340,9 @@ describe('Investigation detail', () => {
       screen.getByLabelText('Instructions for Seer'),
       'Find slow spans'
     );
-    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
+    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {
+      key: 'Enter',
+    });
 
     // The transcript renders once the block settles, but the raw JSON answer is dropped —
     // `QueryResult` above already presents its parsed chart/table.
@@ -1582,7 +1599,10 @@ describe('Investigation detail', () => {
     const renameRequest = MockApiClient.addMockResponse({
       url: detailUrl,
       method: 'PUT',
-      body: InvestigationDetailFixture({title: 'Saved before leaving', version: 2}),
+      body: InvestigationDetailFixture({
+        title: 'Saved before leaving',
+        version: 2,
+      }),
     });
 
     const {unmount} = renderView();
@@ -1802,7 +1822,13 @@ describe('Investigation detail', () => {
     });
     const orchestrationRequest = MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture(),
+      body: InvestigationOrchestrationFixture({
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: null,
+        activeTimeElapsedSeconds: 20,
+        activeSince: '2025-01-01T00:05:00Z',
+        serverTime: '2025-01-01T00:05:14.500Z',
+      }),
     });
 
     const {queryClient} = renderView();
@@ -1820,13 +1846,22 @@ describe('Investigation detail', () => {
       within(header).getByRole('textbox', {name: 'Investigation title'})
     ).toBeInTheDocument();
     expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
+    expect(within(header).getByRole('timer')).toHaveTextContent('34.5 s');
     expect(
       within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
     ).not.toBeInTheDocument();
 
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({status: 'completed', phase: 'completed'}),
+      body: InvestigationOrchestrationFixture({
+        status: 'completed',
+        phase: 'completed',
+        startedAt: '2025-01-01T00:00:00Z',
+        finishedAt: '2025-01-01T00:05:15Z',
+        activeTimeElapsedSeconds: 35,
+        activeSince: null,
+        serverTime: '2025-01-01T00:05:15Z',
+      }),
     });
     await act(() =>
       queryClient.invalidateQueries({
@@ -1838,6 +1873,7 @@ describe('Investigation detail', () => {
     );
 
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
+    expect(within(header).getByRole('timer')).toHaveTextContent('35.0 s');
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
     expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });
