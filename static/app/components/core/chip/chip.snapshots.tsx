@@ -1,3 +1,5 @@
+import {snapshotLocator} from 'sentry-test/snapshots/snapshotLocator';
+
 import {Chip} from '@sentry/scraps/chip';
 
 const SIZES = ['xs', 'sm', 'md'] as const;
@@ -55,8 +57,11 @@ describe('Chip', () => {
       </Chip.Root>
     ),
     {
-      tags: {variant: 'query', interactive: 'true', state: 'hover', area: 'core'},
-      interaction: {hover: '[data-chip-interactive]'},
+      tags: {variant: 'query', interactive: 'true', area: 'core'},
+      interaction: {
+        state: 'hover',
+        target: snapshotLocator.role('button', 'browser', {exact: true}),
+      },
     }
   );
 
@@ -71,13 +76,23 @@ describe('Chip', () => {
       </Chip.Root>
     ),
     {
-      tags: {variant: 'query', interactive: 'true', state: 'active', area: 'core'},
-      interaction: {active: '[data-chip-interactive]'},
+      tags: {variant: 'query', interactive: 'true', area: 'core'},
+      interaction: {
+        state: 'active',
+        target: snapshotLocator.role('button', 'browser', {exact: true}),
+      },
     }
   );
 
-  it.snapshot('dismiss-hover', () => <Chip value="Chrome" onDismiss={() => {}} />, {
-    tags: {variant: 'value', dismissable: 'true', state: 'hover', area: 'core'},
-    interaction: {hover: '[data-chip-dismiss]'},
-  });
+  it.snapshot(
+    'dismiss-hover',
+    () => <Chip value="Chrome" onDismiss={() => {}} />,
+    {
+      tags: {variant: 'value', dismissable: 'true', area: 'core'},
+      interaction: {
+        state: 'hover',
+        target: snapshotLocator.role('button', 'Remove %s'),
+      },
+    }
+  );
 });
