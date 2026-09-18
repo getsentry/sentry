@@ -1,64 +1,34 @@
 /**
  * Selectable color palettes for dashboard chart widgets.
  *
- * TODO: These colors are placeholders and need review by a data visualization
- * or design expert before this ships. Known gaps:
- * - They are hard-coded hex values rather than theme tokens, and there is a
- *   single variant shared by light and dark mode.
- * - They have not been checked for contrast against chart backgrounds. The
- *   gradient palettes run from near-white to near-black, so their ends are hard
- *   to see in one theme or the other.
- * - Only "Accessible" is based on a published colorblind-safe scheme. The rest
- *   have not been checked for color vision deficiencies.
+ * Every palette here is a published, freely licensed scheme, copied verbatim
+ * from the source named above it. Do not add colors without a license to match.
  *
- * Where a palette matches a published source it is credited below; the matches
- * were identified by eye and should be confirmed as part of that review.
+ * TODO: The selection still needs review by a data visualization or design
+ * expert before this ships. Known gaps:
+ * - These are hard-coded hex values rather than theme tokens, with a single
+ *   variant shared by light and dark mode.
+ * - Contrast against Sentry's chart backgrounds has not been checked in either
+ *   theme.
+ * - The Tol schemes are designed to be colorblind safe and viridis and plasma to
+ *   be perceptually uniform, but none of that has been verified in our charts.
+ * - Viridis and Plasma are sequential ramps used here for categorical series,
+ *   so neighbouring series get similar colors.
  */
 export type ChartPaletteId =
   | 'default'
-  | 'cool'
-  | 'warm'
-  | 'business'
-  | 'accessible'
-  | 'gradientBlue'
-  | 'gradientGreen'
-  | 'highContrast';
+  | 'tolBright'
+  | 'tolVibrant'
+  | 'tolMuted'
+  | 'brewerDark2'
+  | 'brewerSet2'
+  | 'viridis'
+  | 'plasma';
 
-// Last three colors appear to be from the Flat UI "American" palette; the rest are unattributed.
-const COOL: readonly string[] = [
-  '#2A78D6',
-  '#1BCCCC',
-  '#1BAF7A',
-  '#4A3AA7',
-  '#6C5CE7',
-  '#0984E3',
-  '#00B894',
-];
-
-// Includes Sentry's categorical magenta, salmon and orange chart tokens; the rest are unattributed.
-const WARM: readonly string[] = [
-  '#EB6834',
-  '#E34948',
-  '#E87BA4',
-  '#EDA100',
-  '#FA6769',
-  '#B82D90',
-  '#FF9838',
-];
-
-// Appears to match Flat UI Colors (flatuicolors.com).
-const BUSINESS: readonly string[] = [
-  '#2C3E50',
-  '#3498DB',
-  '#1ABC9C',
-  '#9B59B6',
-  '#34495E',
-  '#2980B9',
-  '#16A085',
-];
-
-// Appears to match Paul Tol's "bright" qualitative scheme, designed to be colorblind safe.
-const ACCESSIBLE: readonly string[] = [
+// Paul Tol's qualitative colour schemes.
+// Copyright (c) 2022, Paul Tol. All rights reserved. BSD 3-Clause License.
+// https://sronpersonalpages.nl/~pault/
+const TOL_BRIGHT: readonly string[] = [
   '#4477AA',
   '#EE6677',
   '#228833',
@@ -68,47 +38,87 @@ const ACCESSIBLE: readonly string[] = [
   '#BBBBBB',
 ];
 
-// Unattributed light-to-dark ramp.
-const GRADIENT_BLUE: readonly string[] = [
-  '#E6F1FB',
-  '#85B7EB',
-  '#378ADD',
-  '#185FA5',
-  '#0C447C',
-  '#042C53',
-  '#021B33',
+const TOL_VIBRANT: readonly string[] = [
+  '#EE7733',
+  '#0077BB',
+  '#33BBEE',
+  '#EE3377',
+  '#CC3311',
+  '#009988',
+  '#BBBBBB',
 ];
 
-// Unattributed light-to-dark ramp.
-const GRADIENT_GREEN: readonly string[] = [
-  '#EAF3DE',
-  '#97C459',
-  '#639922',
-  '#3B6D11',
-  '#27500A',
-  '#173404',
-  '#0C1C02',
+const TOL_MUTED: readonly string[] = [
+  '#CC6677',
+  '#332288',
+  '#DDCC77',
+  '#117733',
+  '#88CCEE',
+  '#882255',
+  '#44AA99',
+  '#999933',
+  '#AA4499',
 ];
 
-// Appears to match the "Dutch Field" data visualization palette.
-const HIGH_CONTRAST: readonly string[] = [
-  '#E60049',
-  '#0BB4FF',
-  '#50E991',
-  '#E6D800',
-  '#9B19F5',
-  '#FFA300',
-  '#DC0AB4',
+// ColorBrewer qualitative schemes "Dark2" and "Set2".
+// Copyright (c) 2002 Cynthia Brewer, Mark Harrower, and The Pennsylvania State
+// University. Licensed under the Apache License, Version 2.0.
+// https://colorbrewer2.org/
+const BREWER_DARK2: readonly string[] = [
+  '#1B9E77',
+  '#D95F02',
+  '#7570B3',
+  '#E7298A',
+  '#66A61E',
+  '#E6AB02',
+  '#A6761D',
+  '#666666',
+];
+
+const BREWER_SET2: readonly string[] = [
+  '#66C2A5',
+  '#FC8D62',
+  '#8DA0CB',
+  '#E78AC3',
+  '#A6D854',
+  '#FFD92F',
+  '#E5C494',
+  '#B3B3B3',
+];
+
+// The matplotlib "viridis" and "plasma" colormaps by Nathaniel J. Smith, Stefan
+// van der Walt and Eric Firing, released under CC0 (public domain).
+// https://github.com/BIDS/colormap
+// Seven evenly spaced samples over the 10%-90% range of each map. The ends are
+// left out because they are close to black and to pale yellow.
+const VIRIDIS: readonly string[] = [
+  '#482576',
+  '#3D4E8A',
+  '#2D718E',
+  '#21918C',
+  '#2AB07F',
+  '#65CB5E',
+  '#BDDF26',
+];
+
+const PLASMA: readonly string[] = [
+  '#43039E',
+  '#7801A8',
+  '#A72197',
+  '#CC4778',
+  '#E76F5A',
+  '#F99A3E',
+  '#FCCE25',
 ];
 
 const CUSTOM_PALETTES: Record<string, readonly string[]> = {
-  cool: COOL,
-  warm: WARM,
-  business: BUSINESS,
-  accessible: ACCESSIBLE,
-  gradientBlue: GRADIENT_BLUE,
-  gradientGreen: GRADIENT_GREEN,
-  highContrast: HIGH_CONTRAST,
+  tolBright: TOL_BRIGHT,
+  tolVibrant: TOL_VIBRANT,
+  tolMuted: TOL_MUTED,
+  brewerDark2: BREWER_DARK2,
+  brewerSet2: BREWER_SET2,
+  viridis: VIRIDIS,
+  plasma: PLASMA,
 };
 
 export function getCustomPalette(id: string | undefined): readonly string[] | undefined {
@@ -124,11 +134,11 @@ export const CHART_PALETTE_OPTIONS: Array<{
   label: string;
 }> = [
   {id: 'default', label: 'Default', colors: []},
-  {id: 'cool', label: 'Cool', colors: COOL},
-  {id: 'warm', label: 'Warm', colors: WARM},
-  {id: 'business', label: 'Business', colors: BUSINESS},
-  {id: 'accessible', label: 'Accessible', colors: ACCESSIBLE},
-  {id: 'gradientBlue', label: 'Gradient blue', colors: GRADIENT_BLUE},
-  {id: 'gradientGreen', label: 'Gradient green', colors: GRADIENT_GREEN},
-  {id: 'highContrast', label: 'High contrast', colors: HIGH_CONTRAST},
+  {id: 'tolBright', label: 'Bright', colors: TOL_BRIGHT},
+  {id: 'tolVibrant', label: 'Vibrant', colors: TOL_VIBRANT},
+  {id: 'tolMuted', label: 'Muted', colors: TOL_MUTED},
+  {id: 'brewerDark2', label: 'Bold', colors: BREWER_DARK2},
+  {id: 'brewerSet2', label: 'Soft', colors: BREWER_SET2},
+  {id: 'viridis', label: 'Viridis', colors: VIRIDIS},
+  {id: 'plasma', label: 'Plasma', colors: PLASMA},
 ];

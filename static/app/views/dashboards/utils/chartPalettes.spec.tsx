@@ -13,6 +13,18 @@ describe('getCustomPalette', () => {
     expect(getCustomPalette('not-a-palette')).toBeUndefined();
   });
 
+  it('only offers palettes with enough well-formed colors', () => {
+    for (const option of CHART_PALETTE_OPTIONS) {
+      if (option.id === 'default') {
+        continue;
+      }
+      expect(option.colors.length).toBeGreaterThanOrEqual(7);
+      for (const color of option.colors) {
+        expect(color).toMatch(/^#[0-9A-F]{6}$/);
+      }
+    }
+  });
+
   it('resolves every selectable palette', () => {
     for (const option of CHART_PALETTE_OPTIONS) {
       if (option.id === 'default') {

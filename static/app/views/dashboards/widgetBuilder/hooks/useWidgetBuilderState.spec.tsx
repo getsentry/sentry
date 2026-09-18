@@ -1605,18 +1605,18 @@ describe('useWidgetBuilderState', () => {
 
   describe('chartPalette', () => {
     it('can decode and update chartPalette', () => {
-      const {result} = renderWidgetBuilderState({chartPalette: 'cool'});
+      const {result} = renderWidgetBuilderState({chartPalette: 'tolBright'});
 
-      expect(result.current.state.chartPalette).toBe('cool');
+      expect(result.current.state.chartPalette).toBe('tolBright');
 
       act(() => {
         result.current.dispatch({
           type: BuilderStateAction.SET_CHART_PALETTE,
-          payload: 'warm',
+          payload: 'viridis',
         });
       });
 
-      expect(result.current.state.chartPalette).toBe('warm');
+      expect(result.current.state.chartPalette).toBe('viridis');
     });
 
     it('reads a missing chartPalette as unset', () => {
