@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Generic, TypeVar, cast
-from uuid import uuid4
+from uuid import UUID, uuid4, uuid5
 
 from django.utils import timezone
 
@@ -31,6 +31,9 @@ DataPacketType = TypeVar("DataPacketType")
 DataPacketEvaluationType = TypeVar("DataPacketEvaluationType")
 
 EventData = dict[str, Any]
+
+# An arbitrary namespace to deterministically convert human-readable occurrence IDs to UUIDs
+OCCURRENCE_ID_NAMESPACE = UUID("6afca79a-539b-4d79-a781-1d3e7ea844ca")
 
 
 @dataclass
@@ -61,6 +64,7 @@ class DetectorOccurrence:
         self,
         *,
         occurrence_id: str,
+        event_id: str,
         project_id: int,
         status: DetectorPriorityLevel,
         additional_evidence_data: Mapping[str, Any],
@@ -69,7 +73,7 @@ class DetectorOccurrence:
         return IssueOccurrence(
             id=occurrence_id,
             project_id=project_id,
-            event_id=occurrence_id,
+            event_id=event_id,
             fingerprint=fingerprint,
             issue_title=self.issue_title,
             subtitle=self.subtitle,
@@ -213,6 +217,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
         Override the following methods to modify this default evaluation:
         - evaluate_conditions
         - get_issue_fingerprint
+        - get_event_id
         - get_occurrence_id
 
         Override "evaluate" itself to have a custom evaluation flow
@@ -286,13 +291,25 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
         return group_evaluation, max(triggered_priorities)
 
-    def get_occurrence_id(self, event_data: EventData) -> str:
+    def get_event_id(self, event_data: EventData) -> str:
         id_in_event_data = event_data.get("event_id")
 
         if id_in_event_data:
             return id_in_event_data
 
         return str(uuid4())
+
+    def get_occurrence_id(self, group_key: DetectorGroupKey, event_id: str) -> str:
+        """
+        Deterministically converts a human-readable occurrence ID to a UUID, the type expected by the issue platform
+
+        If the detector uses a grouped evaluation AND derives the event id from `event_data`, then the occurrence id
+        MUST be unique for each group. Otherwise, each group will generate the same event + occurrence id pairs and they
+        will conflict with each other. The occurrence_id_key ensures this uniqueness.
+        """
+        occurrence_id_key = self._build_occurrence_id_key(group_key, event_id)
+
+        return uuid5(OCCURRENCE_ID_NAMESPACE, occurrence_id_key).hex
 
     def get_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         if group_key is None:
@@ -349,7 +366,9 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             trigger_evaluation, data_packet, priority
         )
 
-        occurrence_id = self.get_occurrence_id(event_data)
+        event_id = self.get_event_id(event_data)
+
+        occurrence_id = self.get_occurrence_id(group_key, event_id)
 
         issue_fingerprint = self.get_issue_fingerprint(group_key)
 
@@ -359,6 +378,7 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
 
         issue_occurrence = detector_occurrence.to_issue_occurrence(
             occurrence_id=occurrence_id,
+            event_id=event_id,
             project_id=self.detector.project_id,
             status=priority,
             additional_evidence_data=dataclasses.asdict(additional_evidence_data),
@@ -447,3 +467,9 @@ class DetectorHandler(BaseDetectorHandler[DataPacketType, DataPacketEvaluationTy
             "project_id": issue_occurrence.project_id,
             "timestamp": issue_occurrence.detection_time,
         }
+
+    def _build_occurrence_id_key(self, group_key: DetectorGroupKey, event_id: str) -> str:
+        if group_key is None:
+            return f"detector:{self.detector.id}:event:{event_id}"
+
+        return f"detector:{self.detector.id}:group:{group_key}:event:{event_id}"
