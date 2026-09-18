@@ -11,24 +11,64 @@ import {
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {t, tct} from 'sentry/locale';
 
-import {
-  getImportInstrumentSnippet,
-  getInstallCodeBlock,
-  getSdkInitSnippet,
-} from './utils';
+import {getInstallCodeBlock, getSdkInitSnippet} from './utils';
 
-const getSdkSetupSnippet = () => `
-${getImportInstrumentSnippet()}
-
-// All other imports below
-const { createServer } = require("node:http");
+const getEntryPointSnippet = () => `import { createServer } from "node:http";
 
 const server = createServer((req, res) => {
   // server code
 });
 
-server.listen(3000, "127.0.0.1");
-`;
+server.listen(3000, "127.0.0.1");`;
+
+/**
+ * The log and metric calls the verify snippet makes before it throws.
+ *
+ * @param indent The whitespace put in front of every line.
+ */
+const getVerifySignalsSnippet = (params: DocsParams, indent: string) =>
+  `${
+    params.isLogsSelected
+      ? `
+${indent}// Send a log before throwing the error
+${indent}Sentry.logger.info('User triggered test error', {
+${indent}  action: 'test_error',
+${indent}});`
+      : ''
+  }${
+    params.isMetricsSelected
+      ? `
+${indent}// Send a test metric before throwing the error
+${indent}Sentry.metrics.count('test_counter', 1);`
+      : ''
+  }`;
+
+const getVerifySnippet = (params: DocsParams) => {
+  if (!params.isPerformanceSelected) {
+    return `
+import * as Sentry from "@sentry/node";
+${getVerifySignalsSnippet(params, '')}
+try {
+  foo();
+} catch (e) {
+  Sentry.captureException(e);
+}`;
+  }
+
+  return `
+import * as Sentry from "@sentry/node";
+
+Sentry.startSpan({
+  op: "test",
+  name: "My First Test Span",
+}, () => {
+  try {${getVerifySignalsSnippet(params, '    ')}
+    foo();
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+});`;
+};
 
 export const onboarding: OnboardingConfig = {
   hideInstructionsCopy: true,
@@ -61,7 +101,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'To initialize the SDK before everything else, create an external file called [code:instrument.js/mjs].',
+            'To initialize the SDK before everything else, create an external file called [code:instrument.mjs].',
             {code: <code />}
           ),
         },
@@ -71,15 +111,15 @@ export const onboarding: OnboardingConfig = {
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkInitSnippet(params, 'node'),
+              filename: 'instrument.mjs',
+              code: getSdkInitSnippet(params, 'node', 'esm-only'),
             },
           ],
         },
         {
           type: 'text',
           text: tct(
-            "Make sure to import [code:instrument.js/mjs] at the top of your file. Set up the error handler after all controllers and before any other error middleware. This setup is typically done in your application's entry point file, which is usually [code:index.(js|ts)]. If you're running your application in ESM mode, or looking for alternative ways to set up Sentry, read about [docs:installation methods in our docs].",
+            'Start your application with the [code:--import] flag, so that [code:instrument.mjs] loads before any other module. For alternative ways to set up Sentry, read about [docs:installation methods in our docs].',
             {
               code: <code />,
               docs: (
@@ -90,12 +130,24 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'code',
+          language: 'bash',
+          code: 'node --import ./instrument.mjs index.mjs',
+        },
+        {
+          type: 'text',
+          text: tct(
+            'This is what your application entry point, usually [code:index.mjs], looks like:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
           tabs: [
             {
               label: 'JavaScript',
               language: 'javascript',
-              filename: 'instrument.(js|mjs)',
-              code: getSdkSetupSnippet(),
+              filename: 'index.mjs',
+              code: getEntryPointSnippet(),
             },
           ],
         },
@@ -120,62 +172,24 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           language: 'javascript',
-          code: params.isPerformanceSelected
-            ? `
-const Sentry = require("@sentry/node");
-
-Sentry.startSpan({
-  op: "test",
-  name: "My First Test Span",
-}, () => {
-  try {${
-    params.isLogsSelected
-      ? `
-    // Send a log before throwing the error
-    Sentry.logger.info('User triggered test error', {
-      action: 'test_error_span',
-    });`
-      : ''
-  }${
-    params.isMetricsSelected
-      ? `
-    // Send a test metric before throwing the error
-    Sentry.metrics.count('test_counter', 1);`
-      : ''
-  }
-    foo();
-  } catch (e) {
-    Sentry.captureException(e);
-  }
-});`
-            : `
-const Sentry = require("@sentry/node");
-${
-  params.isLogsSelected
-    ? `
-// Send a log before throwing the error
-Sentry.logger.info('User triggered test error', {
-  action: 'test_error_basic',
-});`
-    : ''
-}${
-                params.isMetricsSelected
-                  ? `
-// Send a test metric before throwing the error
-Sentry.metrics.count('test_counter', 1);`
-                  : ''
-              }
-try {
-  foo();
-} catch (e) {
-  Sentry.captureException(e);
-}`,
+          code: getVerifySnippet(params),
         },
       ],
     },
   ],
   nextSteps: (params: DocsParams) => {
     const steps = [];
+
+    if (params.isPerformanceSelected) {
+      steps.push({
+        id: 'tracing',
+        name: t('Tracing'),
+        description: t(
+          'Learn which libraries the SDK instruments for you, and how to add your own spans.'
+        ),
+        link: 'https://docs.sentry.io/platforms/javascript/guides/node/tracing/',
+      });
+    }
 
     if (params.isLogsSelected) {
       steps.push({
