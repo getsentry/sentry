@@ -203,7 +203,7 @@ export function PrimaryNavigationHelpMenu({
         },
       ],
     },
-        {
+    {
       key: 'contact-support',
       hidden: !contactSupportItem,
       children: [
