@@ -47,6 +47,11 @@ PRIVATE_KEY_PEM = (
     )
     .decode()
 )
+# Applied per test: as a class decorator this context manager replaces the class with a
+# function, and pytest then collects nothing from it.
+APP_OPTIONS = override_options(
+    {"cursor-origin-app.id": APP_ID, "cursor-origin-app.private-key": PRIVATE_KEY_PEM}
+)
 SYNC_TASK = "sentry.integrations.cursor_origin.integration.sync_repos_for_org"
 
 
@@ -85,9 +90,6 @@ class CursorOriginProviderRegistrationTest(TestCase):
 
 
 @control_silo_test
-@override_options(
-    {"cursor-origin-app.id": APP_ID, "cursor-origin-app.private-key": PRIVATE_KEY_PEM}
-)
 class BuildIntegrationTest(TestCase):
     url = f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}"
 
@@ -99,6 +101,7 @@ class BuildIntegrationTest(TestCase):
             **overrides,
         }
 
+    @APP_OPTIONS
     @responses.activate
     def test_names_the_integration_after_the_codebase(self) -> None:
         responses.add(responses.GET, self.url, json=self._installation())
@@ -114,6 +117,7 @@ class BuildIntegrationTest(TestCase):
         token = responses.calls[0].request.headers["Authorization"].removeprefix("Bearer ")
         assert pyjwt.get_unverified_header(token)["kid"] == APP_ID
 
+    @APP_OPTIONS
     @responses.activate
     def test_a_suspended_installation_is_refused(self) -> None:
         """Installing cannot unsuspend, so enabling would claim a health we cannot deliver."""
@@ -130,6 +134,7 @@ class BuildIntegrationTest(TestCase):
 
         assert "suspended" in str(excinfo.value)
 
+    @APP_OPTIONS
     @responses.activate
     def test_an_unreadable_installation_is_rejected(self) -> None:
         responses.add(responses.GET, self.url, json={"code": 5, "message": "nope"}, status=404)
