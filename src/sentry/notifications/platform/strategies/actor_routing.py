@@ -102,15 +102,17 @@ class TeamRoutingStrategy(NotificationStrategy):
         if not fallback_team_ids:
             return targets
 
-        fallback_user_ids = list(
-            OrganizationMemberTeam.objects.filter(
+        fallback_user_ids = [
+            user_id
+            for user_id in OrganizationMemberTeam.objects.filter(
                 team_id__in=fallback_team_ids,
                 team__organization_id=self.project.organization_id,
                 organizationmember__user_id__isnull=False,
             )
             .values_list("organizationmember__user_id", flat=True)
             .distinct()
-        )
+            if user_id is not None
+        ]
         fallback_targets = UserRoutingStrategy(
             project=self.project,
             user_ids=fallback_user_ids,
