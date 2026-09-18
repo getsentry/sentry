@@ -213,6 +213,7 @@ export function TeamSelector(props: Props) {
 
       closeSelectMenu();
     },
+    // oxlint-disable-next-line react/memo-dependencies
     [api, createTeamOption, multiple, onChange, organization, project, value]
   );
 

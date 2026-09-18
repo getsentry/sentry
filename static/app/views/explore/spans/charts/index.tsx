@@ -173,7 +173,7 @@ function Chart({
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const droppedData = organization.features.includes('explore-data-fidelity-annotations')
-    ? timeseriesResult.meta?.annotations
+    ? timeseriesResult.meta?.droppedAnnotations
     : undefined;
   const hasDroppedData = defined(droppedData) && droppedData.length > 0;
   const [showDroppedData, setShowDroppedData] = useState(true);

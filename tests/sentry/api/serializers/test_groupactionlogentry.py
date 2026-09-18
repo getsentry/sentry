@@ -29,6 +29,8 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         result = serialize(entry, user)
 
         assert result["type"] == "trigger_autofix"
+        assert result["id"] == str(entry.id)
+        assert result["commentId"] is None
         assert result["data"] == {"referrer": "slack"}
 
     def test_pull_request_entry(self) -> None:
@@ -329,6 +331,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         entry = self.create_group_action_log_entry(
+            id=456,
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
@@ -338,29 +341,17 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         result = serialize(entry, user)
         assert result["id"] == "123"
+        assert result["commentId"] == "123"
         assert result["type"] == "note"
 
-    def test_comment_edit_entry_keeps_its_own_id(self) -> None:
-        user = self.create_user()
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
+    def test_comment_mutations_keep_their_own_ids_without_comment_references(self) -> None:
+        comment = self._comment(123, "original")
+        edit = self._comment_mutation(GroupActionType.COMMENT_EDIT, comment, text="edited")
+        delete = self._comment_mutation(GroupActionType.COMMENT_DELETE, comment)
 
-        comment = self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.COMMENT,
-            actor_type=GroupActorType.USER,
-            actor_id=user.id,
-            data={"comment_id": 123, "text": "original"},
-        )
-        edit = self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.COMMENT_EDIT,
-            actor_type=GroupActorType.USER,
-            actor_id=user.id,
-            data={"comment_id": comment.id, "text": "edited"},
-        )
-
-        result = serialize(edit, user)
-        assert result["id"] == str(edit.id)
+        results = serialize([edit, delete], self.user)
+        assert [result["id"] for result in results] == [str(edit.id), str(delete.id)]
+        assert [result["commentId"] for result in results] == [None, None]
 
     def _comment(self, comment_id: int, text: str) -> GroupActionLogEntry:
         return self.create_group_action_log_entry(
@@ -396,7 +387,10 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         assert [item["type"] for item in items] == ["note", "first_seen"]
         assert items[0]["id"] == "123"
+        assert items[0]["commentId"] == "123"
         assert items[0]["data"]["text"] == "edited"
+        assert items[1]["id"] == "0"
+        assert items[1]["commentId"] is None
 
     def test_edit_at_window_boundary_preserves_comment(self) -> None:
         comment = self._comment(123, "original")
