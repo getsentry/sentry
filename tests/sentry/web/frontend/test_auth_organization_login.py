@@ -59,6 +59,14 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/organization-login.html")
 
+    @override_options({"auth.v2.enabled": True})
+    def test_renders_react_template_with_setting(self) -> None:
+        response = self.client.get(self.path)
+
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        self.assertTemplateNotUsed(response, "sentry/organization-login.html")
+
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
         self.client.cookies["sentry_react_auth"] = "1"
