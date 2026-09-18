@@ -100,8 +100,6 @@ export function AddAutofixRepoModal({
     getScrollElement: () => parentRef.current,
     estimateSize: () => 36,
     overscan: 20,
-    paddingStart: 0,
-    paddingEnd: 0,
   });
 
   return (
