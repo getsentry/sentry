@@ -209,6 +209,13 @@ class CheckOrphanedConfigsTest(UptimeTestCase):
         )
         _publish(disabled, ["b1"])
         _hset_raw("b", same_partition_id())
+        # Mid-update: its config is legitimately in Redis while the row is not ACTIVE.
+        updating = self.create_uptime_subscription(
+            subscription_id=same_partition_id(),
+            status=UptimeSubscription.Status.UPDATING,
+            region_slugs=["b1"],
+        )
+        _publish(updating, ["b1"])
 
         with (
             mock.patch.object(tasks, "metrics") as metrics,
@@ -225,7 +232,7 @@ class CheckOrphanedConfigsTest(UptimeTestCase):
             mock.call(
                 "uptime.config_drift.orphaned", amount=0, tags=ORPHANED_TAGS, sample_rate=1.0
             ),
-            mock.call("uptime.config_drift.checked", amount=4, tags=ORPHANED_TAGS, sample_rate=1.0),
+            mock.call("uptime.config_drift.checked", amount=5, tags=ORPHANED_TAGS, sample_rate=1.0),
             mock.call(
                 "uptime.config_drift.orphaned", amount=3, tags=ORPHANED_TAGS, sample_rate=1.0
             ),
