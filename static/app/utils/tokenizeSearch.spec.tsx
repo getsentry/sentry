@@ -1,3 +1,4 @@
+import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {MutableSearch, TokenType} from 'sentry/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', () => {
@@ -458,6 +459,46 @@ describe('utils/tokenizeSearch', () => {
       // eslint-disable-next-line jest/valid-title
       it(name, () => expect(new MutableSearch(string)).toEqual(object));
     }
+  });
+
+  describe('regex filters', () => {
+    it('parses a regex filter into a matches token when the query has the marker', () => {
+      const search = new MutableSearch(
+        `message:${WildcardOperators.MATCHES}"^ERROR \\d+"`
+      );
+
+      expect(search).toEqual({
+        tokens: [{type: TokenType.MATCHES_FILTER, key: 'message', value: '^ERROR \\d+'}],
+      });
+    });
+
+    it.each([
+      ['escapes', `message:${WildcardOperators.MATCHES}"^ERROR \\d+"`],
+      ['spaces and parens', `message:${WildcardOperators.MATCHES}"(GET|POST) /api"`],
+      ['a quantifier', `message:${WildcardOperators.MATCHES}"^a{1,3}$"`],
+      ['a negation', `!message:${WildcardOperators.MATCHES}"^ERROR \\d+"`],
+      ['an asterisk', `message:${WildcardOperators.MATCHES}"^ERROR.*"`],
+      ['a character class', `message:${WildcardOperators.MATCHES}"[0-9]"`],
+    ])('round-trips a pattern with %s unchanged', (_name, query) => {
+      expect(new MutableSearch(query).formatString()).toBe(query);
+    });
+
+    it('quotes an unquoted pattern when the query is reserialized', () => {
+      const search = new MutableSearch(`message:${WildcardOperators.MATCHES}^a{1,3}$`);
+
+      expect(search.formatString()).toBe(
+        `message:${WildcardOperators.MATCHES}"^a{1,3}$"`
+      );
+    });
+
+    it('does not escape asterisks when a regex filter value is added', () => {
+      const search = new MutableSearch([]);
+      search.addMatchesFilterValue('message', '^ERROR.*');
+
+      expect(search.formatString()).toBe(
+        `message:${WildcardOperators.MATCHES}"^ERROR.*"`
+      );
+    });
   });
 
   describe('QueryResults operations', () => {

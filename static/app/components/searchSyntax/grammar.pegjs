@@ -434,7 +434,7 @@ numeric_in_list
 // should not be included in product docs. Users should use `*` instead.
 wildcard_op
   = wildcard_unicode
-    (contains / starts_with / ends_with )
+    (contains / starts_with / ends_with / matches )
     wildcard_unicode
 
 // See: https://stackoverflow.com/a/39617181/790169
@@ -516,6 +516,7 @@ wildcard_unicode     = [\uF00D]
 contains             = "Contains"
 starts_with          = "StartsWith"
 ends_with            = "EndsWith"
+matches              = "Matches"
 comma          = ","
 spaces         = " "* { return tc.tokenSpaces(text()) }
 

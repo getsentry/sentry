@@ -27,6 +27,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {
   getKeyName,
+  isRegexOperator,
   quoteFilterKey,
   stringifyToken,
 } from 'sentry/components/searchSyntax/utils';
@@ -340,7 +341,8 @@ function termOperatorToInternal(op: TermOperator): {
     op === TermOperator.NOT_EQUAL ||
     op === TermOperator.DOES_NOT_CONTAIN ||
     op === TermOperator.DOES_NOT_START_WITH ||
-    op === TermOperator.DOES_NOT_END_WITH;
+    op === TermOperator.DOES_NOT_END_WITH ||
+    op === TermOperator.DOES_NOT_MATCH;
 
   let internalOp: TermOperator;
   if (op === TermOperator.DOES_NOT_CONTAIN) {
@@ -349,6 +351,8 @@ function termOperatorToInternal(op: TermOperator): {
     internalOp = TermOperator.STARTS_WITH;
   } else if (op === TermOperator.DOES_NOT_END_WITH) {
     internalOp = TermOperator.ENDS_WITH;
+  } else if (op === TermOperator.DOES_NOT_MATCH) {
+    internalOp = TermOperator.MATCHES;
   } else if (op === TermOperator.NOT_EQUAL) {
     internalOp = TermOperator.DEFAULT;
   } else {
@@ -677,8 +681,10 @@ export function modifyFilterValue(
     return modifyFilterValueDate(query, token, newValue);
   }
 
-  // stop the user from entering multiple wildcards by themselves
-  newValue = newValue.replace(/\*\*+/g, '*');
+  if (!isRegexOperator(newOp ?? token.operator)) {
+    // stop the user from entering multiple wildcards by themselves
+    newValue = newValue.replace(/\*\*+/g, '*');
+  }
 
   // No operator change — just replace the value.
   if (newOp === undefined) {

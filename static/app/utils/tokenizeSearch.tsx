@@ -19,6 +19,7 @@ export enum TokenType {
   CONTAINS_FILTER = 3,
   STARTS_WITH_FILTER = 4,
   ENDS_WITH_FILTER = 5,
+  MATCHES_FILTER = 6,
 }
 
 const FILTER_TOKENS = [
@@ -26,6 +27,7 @@ const FILTER_TOKENS = [
   TokenType.CONTAINS_FILTER,
   TokenType.STARTS_WITH_FILTER,
   TokenType.ENDS_WITH_FILTER,
+  TokenType.MATCHES_FILTER,
 ];
 
 type Token = {
@@ -95,7 +97,11 @@ function requiresQuotes(value: string): boolean {
   return /[\s()\\"]/.test(value);
 }
 
-function generateFilterValue(token: Token, operator: string): string {
+function generateFilterValue(
+  token: Token,
+  operator: string,
+  {alwaysQuote = false}: {alwaysQuote?: boolean} = {}
+): string {
   const key = token.key ? quoteFilterKey(token.key) : token.key;
   const value =
     token.key === 'has' || token.key === '!has'
@@ -115,7 +121,7 @@ function generateFilterValue(token: Token, operator: string): string {
     return `${key}${operator}${value}`;
   }
 
-  if (requiresQuotes(value)) {
+  if (alwaysQuote || requiresQuotes(value)) {
     return `${key}${operator}"${escapeDoubleQuotes(value)}"`;
   }
   return `${key}${operator}${value}`;
@@ -237,6 +243,11 @@ export class MutableSearch {
             WildcardOperators.ENDS_WITH
           ) {
             tokenState = TokenType.ENDS_WITH_FILTER;
+          } else if (
+            token.slice(indexOffset, indexOffset + WildcardOperators.MATCHES.length) ===
+            WildcardOperators.MATCHES
+          ) {
+            tokenState = TokenType.MATCHES_FILTER;
           } else {
             tokenState = TokenType.FILTER;
           }
@@ -270,6 +281,9 @@ export class MutableSearch {
       } else if (tokenState === TokenType.ENDS_WITH_FILTER) {
         token = token.replace(WildcardOperators.ENDS_WITH, '');
         this.addStringEndsWithFilter(token, false);
+      } else if (tokenState === TokenType.MATCHES_FILTER) {
+        token = token.replace(WildcardOperators.MATCHES, '');
+        this.addStringMatchesFilter(token);
       }
 
       if (trailingParen !== '') {
@@ -298,6 +312,13 @@ export class MutableSearch {
         case TokenType.ENDS_WITH_FILTER:
           formattedTokens.push(
             generateFilterValue(token, `:${WildcardOperators.ENDS_WITH}`)
+          );
+          break;
+        case TokenType.MATCHES_FILTER:
+          formattedTokens.push(
+            generateFilterValue(token, `:${WildcardOperators.MATCHES}`, {
+              alwaysQuote: true,
+            })
           );
           break;
         case TokenType.FREE_TEXT:
@@ -342,6 +363,12 @@ export class MutableSearch {
     return this;
   }
 
+  addStringMatchesFilter(filter: string) {
+    const [key, value] = parseFilter(filter);
+    this.addMatchesFilterValues(key!, [value!]);
+    return this;
+  }
+
   addFilterValues(key: string, values: string[], shouldEscape = true) {
     for (const value of values) {
       this.addFilterValue(key, value, shouldEscape);
@@ -366,6 +393,13 @@ export class MutableSearch {
   addEndsWithFilterValues(key: string, values: string[], shouldEscape = true) {
     for (const value of values) {
       this.addEndsWithFilterValue(key, value, shouldEscape);
+    }
+    return this;
+  }
+
+  addMatchesFilterValues(key: string, values: string[]) {
+    for (const value of values) {
+      this.addMatchesFilterValue(key, value);
     }
     return this;
   }
@@ -419,6 +453,14 @@ export class MutableSearch {
   addEndsWithFilterValue(key: string, value: string, shouldEscape = true) {
     const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const token: Token = {type: TokenType.ENDS_WITH_FILTER, key, value: escaped};
+    this.tokens.push(token);
+  }
+
+  // Unlike the other filter values, a regex pattern is never escaped: `escapeFilterValue`
+  // escapes `*`, which is a quantifier here rather than a wildcard. Quoting still happens
+  // on serialization.
+  addMatchesFilterValue(key: string, value: string) {
+    const token: Token = {type: TokenType.MATCHES_FILTER, key, value};
     this.tokens.push(token);
   }
 

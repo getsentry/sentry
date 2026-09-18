@@ -50,6 +50,7 @@ interface SearchQueryBuilderStateContextData {
 }
 
 interface SearchQueryBuilderConfigContextData {
+  allowRegexOperators: boolean;
   caseInsensitive: CaseInsensitive | undefined;
   disabled: boolean;
   disallowFreeText: boolean;
@@ -169,6 +170,7 @@ const SearchQueryBuilderProviderContext = createContext(false);
 
 export function SearchQueryBuilderProvider({
   children,
+  allowRegexOperators,
   disabled = false,
   disallowLogicalOperators,
   disallowFreeText,
@@ -401,6 +403,7 @@ export function SearchQueryBuilderProvider({
 
   const configValue = useMemo((): SearchQueryBuilderConfigContextData => {
     return {
+      allowRegexOperators: Boolean(allowRegexOperators),
       caseInsensitive,
       disabled,
       disallowFreeText: Boolean(disallowFreeText),
@@ -426,6 +429,7 @@ export function SearchQueryBuilderProvider({
       searchSource,
     };
   }, [
+    allowRegexOperators,
     caseInsensitive,
     disabled,
     disallowFreeText,
