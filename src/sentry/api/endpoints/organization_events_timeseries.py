@@ -6,6 +6,7 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics, features
 from sentry.analytics.events.agent_monitoring_events import AgentMonitoringQuery
@@ -60,7 +61,6 @@ from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
-from sentry.utils.tracing import set_span_data, start_span
 
 TOP_EVENTS_DATASETS = {
     discover,
@@ -176,9 +176,13 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         fields (such as `query=user.id:bc`) will not return accurate results. Use these queries for rough
         estimation only.
         """
-        with start_span(op="discover.endpoint", name="filter_params") as span:
-            set_span_data(span, "organization", organization)
-
+        with traces.start_span(
+            name="filter_params",
+            attributes={
+                "sentry.op": "discover.endpoint",
+                "organization": repr(organization),
+            },
+        ):
             top_events = self.get_top_events(request)
             comparison_delta = self.get_comparison_delta(request)
 
