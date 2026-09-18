@@ -376,9 +376,10 @@ class CursorOriginApiClient(IntegrationProxyClient, RepositoryClient, RepoTreesC
 
         raise ApiPaginationTruncated(results)
 
-    def get_repositories(self) -> list[OriginRepositorySummary]:
-        """Repositories this installation can see."""
-        return self._paginate("/installation/repos", "repositories")
+    def get_repositories(self, query: str | None = None) -> list[OriginRepositorySummary]:
+        """Repositories this installation can see, narrowed by `query` where given."""
+        params = {"filter": query} if query else None
+        return self._paginate("/installation/repos", "repositories", params=params)
 
     def get_repo(self, repo_full_name: str) -> OriginRepository:
         return self.get(f"/repos/{repo_full_name}")

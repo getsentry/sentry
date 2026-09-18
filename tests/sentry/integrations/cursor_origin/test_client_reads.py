@@ -4,6 +4,7 @@ from base64 import b64encode
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -45,16 +46,37 @@ class CursorOriginReadsTest(TestCase):
         )
         self.origin_client = CursorOriginApiClient(integration=self.integration)
 
+    @responses.activate
     def test_get_repositories_paginates(self) -> None:
-        with mock.patch.object(
-            self.origin_client,
-            "_paginate",
-            return_value=[{"id": "1", "fullName": REPO, "name": "rocket"}],
-        ) as mock_paginate:
-            repos = self.origin_client.get_repositories()
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/installation/repos",
+            json={
+                "repositories": [{"id": "1", "fullName": REPO, "name": "rocket"}],
+                "nextPageToken": "",
+            },
+        )
+
+        repos = self.origin_client.get_repositories()
 
         assert [repo["fullName"] for repo in repos] == [REPO]
-        assert mock_paginate.call_args.args == ("/installation/repos", "repositories")
+        assert "filter" not in parse_qs(urlparse(responses.calls[0].request.url).query)
+
+    @responses.activate
+    def test_a_query_is_sent_as_origin_s_filter(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/installation/repos",
+            json={
+                "repositories": [{"id": "1", "fullName": REPO, "name": "rocket"}],
+                "nextPageToken": "",
+            },
+        )
+
+        self.origin_client.get_repositories("acme/rock")
+
+        query = parse_qs(urlparse(responses.calls[0].request.url).query)
+        assert query["filter"] == ["acme/rock"]
 
     @responses.activate
     def test_get_repo(self) -> None:

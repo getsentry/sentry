@@ -78,15 +78,17 @@ class CursorOriginIntegrationTest(TestCase):
             }
         ]
 
-    def test_query_filters_locally(self) -> None:
-        """Origin has no search endpoint, so repo_search is off and query filters here."""
-        repos = [_origin_repo("acme/rocket"), _origin_repo("acme/widget", "repo_2")]
-        with mock.patch.object(CursorOriginApiClient, "get_repositories", return_value=repos):
+    def test_a_query_is_left_to_origin(self) -> None:
+        """Origin filters on names and owner namespaces, so searching is server-side."""
+        with mock.patch.object(
+            CursorOriginApiClient, "get_repositories", return_value=[_origin_repo("acme/widget")]
+        ) as mock_repos:
             assert [r["name"] for r in self.install.get_repositories(query="WIDG")] == [
                 "acme/widget"
             ]
 
-        assert self.install.repo_search is False
+        assert mock_repos.call_args.args == ("WIDG",)
+        assert self.install.repo_search is True
 
     def test_a_failed_listing_raises_rather_than_looking_empty(self) -> None:
         """The sync reads a missing repository as one the provider dropped."""
