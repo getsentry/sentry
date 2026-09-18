@@ -209,5 +209,26 @@ describe('KeyValueTable', () => {
       ),
       {tags: {area: 'core', variant: 'list'}}
     );
+
+    it.snapshot(
+      'list-wrapping',
+      () => (
+        <ThemeProvider theme={themes[themeName]}>
+          <div style={{padding: 8, width: 360}}>
+            <KeyValueTableDataList
+              data={[
+                {
+                  key: 'policy',
+                  subject: 'original_policy',
+                  value:
+                    "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.example.com; img-src * data:",
+                },
+              ]}
+            />
+          </div>
+        </ThemeProvider>
+      ),
+      {tags: {area: 'core', variant: 'list'}}
+    );
   });
 });
