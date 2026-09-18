@@ -117,6 +117,20 @@ describe('Text', () => {
     );
   });
 
+  describe('density', () => {
+    it.each([
+      ['compressed', '1'],
+      ['default', '1.2'],
+      ['comfortable', '1.4'],
+      ['fixed', '1rem'],
+    ] as const)('applies the %s line height', (density, lineHeight) => {
+      render(<Text density={density}>Hello World</Text>);
+      expect(getEmotionRules(screen.getByText('Hello World'))).toContainEqual(
+        expect.stringContaining(`line-height: ${lineHeight}`)
+      );
+    });
+  });
+
   describe('display', () => {
     it('emits no display for a plain span', () => {
       render(<Text>Hello World</Text>);
