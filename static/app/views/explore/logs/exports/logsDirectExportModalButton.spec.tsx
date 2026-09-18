@@ -96,6 +96,7 @@ describe('LogsDirectExportModalButton', () => {
           error={null}
           isLoading={false}
           tableData={tableData}
+          timeseriesIngestDelay={0n}
         />
       </LogsQueryParamsProvider>,
       {initialRouterConfig}
@@ -137,6 +138,7 @@ describe('LogsDirectExportModalButton', () => {
           error={null}
           isLoading={false}
           tableData={tableData}
+          timeseriesIngestDelay={0n}
         />
       </LogsQueryParamsProvider>,
       {initialRouterConfig}
