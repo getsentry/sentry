@@ -2,7 +2,9 @@ import type {ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
 import type {z} from 'zod';
 
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {NODE_ENV} from 'sentry/constants/env';
+import {t} from 'sentry/locale';
 
 import type {SeerEmbedProps} from './registry';
 import {useTrackEmbedRendered} from './renderTracking';
@@ -41,6 +43,26 @@ function reportInvalidEmbed(name: string, issues: readonly z.core.$ZodIssue[]) {
   });
 }
 
+/**
+ * Calls the embed's own render as a child of the boundary below.
+ *
+ * A boundary only catches what throws while React renders its children, so the
+ * render has to happen inside one -- calling it in `Embed` would throw past the
+ * boundary it is being wrapped in. Declared at module scope so the child keeps
+ * its identity across re-renders and the embed is not remounted per chunk.
+ */
+function SeerEmbedContent<N extends SeerEmbedName>({
+  data,
+  level,
+  render,
+}: {
+  data: EmbedOutput<N>;
+  level: SeerEmbedProps['level'];
+  render: DefineSeerEmbedOptions<N>['render'];
+}) {
+  return render(data, level);
+}
+
 interface DefineSeerEmbedOptions<N extends SeerEmbedName> {
   name: N;
   render: (props: EmbedOutput<N>, level: SeerEmbedProps['level']) => ReactNode;
@@ -69,7 +91,27 @@ export function defineSeerEmbed<N extends SeerEmbedName>({
       reportInvalidEmbed(name, parsed.error.issues);
       return null;
     }
-    return render(parsed.data as EmbedOutput<N>, level);
+    const parsedData = parsed.data as EmbedOutput<N>;
+    // The clipboard pass returns text, not elements: a fallback rendered here
+    // would be pasted into the copied reply.
+    if (level === 'markdown') {
+      return render(parsedData, level);
+    }
+    return (
+      // One boundary per embed, so a throw inside a single widget costs the
+      // reader that widget rather than the whole message around it.
+      <ErrorBoundary
+        mini
+        message={t('Unable to render')}
+        customComponent={
+          // An inline embed sits inside a paragraph, where the block alert
+          // would both break the sentence and nest a div inside a <p>.
+          level === 'inline' ? () => <span>{t('Unable to render')}</span> : undefined
+        }
+      >
+        <SeerEmbedContent data={parsedData} level={level} render={render} />
+      </ErrorBoundary>
+    );
   }
   Embed.displayName = name;
 
