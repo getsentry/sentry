@@ -8,7 +8,7 @@ import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionN
 jest.unmock('@tanstack/react-pacer');
 
 describe('TransactionNameSearchBar', () => {
-  const organization = OrganizationFixture();
+  let organization = OrganizationFixture({features: ['visibility-explore-view']});
   const url = `/organizations/${organization.slug}/trace-items/attributes/transaction/values/`;
 
   function mockSuggestions({
@@ -47,6 +47,7 @@ describe('TransactionNameSearchBar', () => {
   }
 
   beforeEach(() => {
+    organization = OrganizationFixture({features: ['visibility-explore-view']});
     jest.useFakeTimers();
   });
 
@@ -118,6 +119,20 @@ describe('TransactionNameSearchBar', () => {
     await user.keyboard('{ArrowDown}{Enter}');
 
     expect(onSearch).toHaveBeenCalledWith('transaction:"example-transaction"');
+    expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
+  });
+
+  it('submits manual searches without fetching suggestions when Explore is unavailable', async () => {
+    const request = mockSuggestions();
+    organization = OrganizationFixture({features: ['performance-view']});
+
+    const {user, input, onSearch} = renderSearchBar();
+
+    await user.type(input, 'checkout');
+    await user.keyboard('{Enter}');
+
+    expect(request).not.toHaveBeenCalled();
+    expect(onSearch).toHaveBeenCalledWith('checkout');
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
   });
 });
