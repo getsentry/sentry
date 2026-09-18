@@ -5,7 +5,6 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import {
@@ -638,10 +637,10 @@ export const LINK_RULES: LinkRule[] = [
         url: {
           pathname: makeReplaysPathname({organization, path: '/'}),
           query: {
-            query: decodeScalar(query.query),
-            statsPeriod: decodeScalar(query.statsPeriod),
-            start: decodeScalar(query.start)?.replace(/Z$/, ''),
-            end: decodeScalar(query.end)?.replace(/Z$/, ''),
+            query: getApiScalar(query.query),
+            statsPeriod: getApiScalar(query.statsPeriod),
+            start: getApiScalar(query.start)?.replace(/Z$/, ''),
+            end: getApiScalar(query.end)?.replace(/Z$/, ''),
             environment: query.environment
               ? getStringArray(query.environment)
               : undefined,
@@ -938,6 +937,12 @@ function telemetryDatasetLabel(dataset: unknown): string | undefined {
   }
 }
 
+/** Django QueryDict.get uses the last value for repeated scalar parameters. */
+function getApiScalar(value: ParsedQuery[string] | undefined): string | undefined {
+  const scalar = Array.isArray(value) ? value.at(-1) : value;
+  return typeof scalar === 'string' ? scalar : undefined;
+}
+
 /** Translate API parameters once; lib and bus searches already use the search vocabulary. */
 function searchParamsFromApiCall(
   subject: LinkSubject,
@@ -949,7 +954,7 @@ function searchParamsFromApiCall(
     return null;
   }
 
-  let dataset = decodeScalar(query.dataset);
+  let dataset = getApiScalar(query.dataset);
   if (!dataset) {
     if (path?.includes('/issues/')) {
       dataset = 'issues';
@@ -979,17 +984,19 @@ function searchParamsFromApiCall(
 
   return {
     dataset,
-    query: decodeScalar(query.query),
-    stats_period: decodeScalar(query.statsPeriod),
-    start: decodeScalar(query.start),
-    end: decodeScalar(query.end),
-    sort: decodeScalar(query.sort),
+    query: getApiScalar(query.query),
+    stats_period: getApiScalar(query.statsPeriod),
+    start: getApiScalar(query.start),
+    end: getApiScalar(query.end),
+    sort: Array.isArray(query.sort)
+      ? getStringArray(query.sort)
+      : getApiScalar(query.sort),
     environment: query.environment ? getStringArray(query.environment) : undefined,
     project_ids: projectIds,
     fields: fields.length ? fields : undefined,
     y_axes: yAxes.length ? yAxes : undefined,
     group_by: groupBy,
-    mode: isAggregate ? 'aggregates' : decodeScalar(query.mode),
+    mode: isAggregate ? 'aggregates' : getApiScalar(query.mode),
   };
 }
 
@@ -1107,7 +1114,9 @@ function errorsQuery(
 
   // Discover sort strips parentheses from aggregates: -count() -> -count
   if (next.sort) {
-    next.sort = next.sort.replace(/\(\)/g, '');
+    next.sort = Array.isArray(next.sort)
+      ? getStringArray(next.sort).map(sort => sort.replace(/\(\)/g, ''))
+      : next.sort.replace(/\(\)/g, '');
   }
 
   return next;

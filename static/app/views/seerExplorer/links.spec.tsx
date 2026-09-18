@@ -776,7 +776,7 @@ describe('search links', () => {
     );
   });
 
-  it('decodes repeated scalar parameters without crashing the Discover link', () => {
+  it('preserves multiple sorts and uses the last value for scalar API parameters', () => {
     const result = resolveLink(
       subjectFromCallRecord({
         id: 1,
@@ -790,7 +790,10 @@ describe('search links', () => {
     );
     expect(result?.url).toEqual(
       expect.objectContaining({
-        query: expect.objectContaining({sort: '-count', statsPeriod: '7d'}),
+        query: expect.objectContaining({
+          sort: ['-count', 'timestamp'],
+          statsPeriod: '14d',
+        }),
       })
     );
   });
