@@ -73,6 +73,16 @@ describe('Container', () => {
     expect(screen.getByText('Hello').tagName).toBe('SECTION');
   });
 
+  it('supports query containers on semantic elements', () => {
+    render(
+      <Container as="main" containerType="inline-size">
+        Hello
+      </Container>
+    );
+
+    expect(screen.getByRole('main')).not.toHaveAttribute('containerType');
+  });
+
   it('does not bleed attributes to the underlying element', () => {
     render(<Container radius="sm">Hello</Container>);
     expect(screen.getByText('Hello')).not.toHaveAttribute('radius');

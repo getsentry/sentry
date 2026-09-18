@@ -294,9 +294,9 @@ export const Container = styled(
   },
   {
     shouldForwardProp: prop => {
-      // containerType must reach the inner component to wire up the query
-      // container; it is stripped there so it never lands on the DOM.
-      if (prop === 'containerType') {
+      // These props must reach the inner component to wire up the semantic
+      // element and query container. Both are stripped before reaching the DOM.
+      if (prop === 'as' || prop === 'containerType') {
         return true;
       }
       if (omitContainerProps.has(prop as keyof ContainerLayoutProps | 'as')) {
