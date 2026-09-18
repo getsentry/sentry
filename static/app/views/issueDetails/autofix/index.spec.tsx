@@ -12,6 +12,7 @@ import {
 
 import type {Organization} from 'sentry/types/organization';
 import GroupAutofix from 'sentry/views/issueDetails/autofix';
+import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 describe('GroupAutofix', () => {
@@ -22,7 +23,9 @@ describe('GroupAutofix', () => {
   function renderPage(organization: Organization) {
     return render(
       <GroupDataContextProvider group={group} project={project}>
-        <GroupAutofix />
+        <AutofixPanelProvider group={group} project={project}>
+          <GroupAutofix />
+        </AutofixPanelProvider>
       </GroupDataContextProvider>,
       {
         organization,
@@ -101,7 +104,10 @@ describe('GroupAutofix', () => {
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
+    // The toolbar now lives in the issue navigation row, so the tab itself
+    // renders only the analysis.
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+    expect(screen.queryByText('Seer Autofix')).not.toBeInTheDocument();
   });
 
   it('redirects to issue details without the autofix-page feature', async () => {
@@ -114,7 +120,6 @@ describe('GroupAutofix', () => {
         `/organizations/${orgSlug}/issues/${group.id}/`
       );
     });
-    expect(screen.queryByText('Seer Autofix')).not.toBeInTheDocument();
   });
 
   it('redirects when AI features are hidden for the organization', async () => {

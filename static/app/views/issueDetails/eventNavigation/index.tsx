@@ -13,6 +13,7 @@ import Feature from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {SeerPanelActions} from 'sentry/components/events/autofix/v3/header';
 import {TourElement} from 'sentry/components/tours/components';
 import {IconTelescope} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -27,6 +28,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
@@ -188,6 +190,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const isListView = LIST_VIEW_TABS.has(currentTab);
 
   const activeThreadId = useActiveThreadId();
+  const autofixPanel = useAutofixPanel();
 
   // Get data for markdown copy functionality
   const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
@@ -288,6 +291,16 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         {tourProps => (
           <div {...tourProps}>
             <NavigationWrapper>
+              {currentTab === Tab.AUTOFIX && autofixPanel && (
+                <SeerPanelActions
+                  autofixState={autofixPanel.runState}
+                  enableBashTools={autofixPanel.enableBashTools}
+                  onCopyMarkdown={autofixPanel.handleCopyMarkdown}
+                  onEnableBashToolsChange={autofixPanel.setEnableBashTools}
+                  onOpenSeerAgent={autofixPanel.handleOpenSeerAgent}
+                  onReset={autofixPanel.handleRestart}
+                />
+              )}
               {currentTab === Tab.DETAILS && (
                 <Fragment>
                   <IssueDetailsEventNavigation

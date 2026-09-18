@@ -6,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -206,6 +207,43 @@ describe('EventNavigation', () => {
           }`
         )
       );
+    });
+
+    it('lifts the seer toolbar into the navigation row on the autofix tab', async () => {
+      mockUseMatches.mockImplementation(() => [
+        {id: '0', pathname: '/', params: {}, data: null, handle: {path: '/'}},
+        {
+          id: '0-0',
+          pathname: '/organizations/org-slug/issues/group-id/autofix/',
+          params: {orgId: 'org-slug', groupId: 'group-id'},
+          data: null,
+          handle: {path: TabPaths[Tab.AUTOFIX]},
+        },
+      ]);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/setup/`,
+        body: {integration: {ok: true, reason: null}},
+      });
+
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <AutofixPanelProvider group={group} project={group.project}>
+            <IssueEventNavigation {...defaultProps} />
+          </AutofixPanelProvider>
+        </GroupDataContextProvider>,
+        {initialRouterConfig, organization: seerOrganization}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Start a new analysis from scratch'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Copy analysis as Markdown'})
+      ).toBeInTheDocument();
     });
 
     it('falls back to the dropdown without the autofix-page feature', () => {

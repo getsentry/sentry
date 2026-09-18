@@ -2,23 +2,21 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
-import {SeerPanelHeader} from 'sentry/components/events/autofix/v3/header';
-import {useSeerPanel} from 'sentry/components/events/autofix/v3/useSeerPanel';
 import {AutofixWarnings} from 'sentry/components/events/autofix/v3/warnings';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 function GroupAutofix() {
   const organization = useOrganization();
-  const {group, project} = useGroupData();
+  const {group} = useGroupData();
   const {baseUrl} = useGroupDetailsRoute();
 
   // The same three conditions the Seer drawer refuses to open under. Sending
@@ -34,37 +32,24 @@ function GroupAutofix() {
   return (
     <SentryDocumentTitle title={t('Autofix')} orgSlug={organization.slug}>
       <AnalyticsArea name="autofix_page">
-        <GroupAutofixContent group={group} project={project} />
+        <GroupAutofixContent group={group} />
       </AnalyticsArea>
     </SentryDocumentTitle>
   );
 }
 
-function GroupAutofixContent({group, project}: {group: Group; project: Project}) {
-  const {
-    aiConfig,
-    autofix,
-    enableBashTools,
-    handleCopyMarkdown,
-    handleOpenSeerAgent,
-    handleRestart,
-    referrer,
-    runState,
-    setEnableBashTools,
-    warnings,
-  } = useSeerPanel({group, project});
+function GroupAutofixContent({group}: {group: Group}) {
+  // The provider is mounted by the layout for this tab, so this is always set.
+  const panel = useAutofixPanel();
+
+  if (!panel) {
+    return null;
+  }
+
+  const {aiConfig, autofix, warnings} = panel;
 
   return (
-    <Stack gap="lg" paddingTop="xl">
-      <SeerPanelHeader
-        autofixState={runState}
-        enableBashTools={enableBashTools}
-        onCopyMarkdown={handleCopyMarkdown}
-        onEnableBashToolsChange={setEnableBashTools}
-        onOpenSeerAgent={handleOpenSeerAgent}
-        onReset={handleRestart}
-        referrer={referrer}
-      />
+    <Stack gap="lg">
       <AutofixWarnings warnings={warnings} groupId={group.id} />
       {aiConfig.isAutofixSetupLoading ? (
         <Stack data-test-id="ai-setup-loading-indicator" gap="xl">

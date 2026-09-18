@@ -34,21 +34,69 @@ interface SeerPanelHeaderProps {
 }
 
 /**
- * The title and toolbar, without the surrounding chrome: the drawer supplies a
- * `DrawerHeader`, the autofix page supplies its own band.
+ * Just the toolbar. The drawer keeps it beside the panel title; the autofix tab
+ * lifts it into the issue navigation row, alongside the tabs.
  */
-export function SeerPanelHeader({
+export function SeerPanelActions({
   autofixState,
   enableBashTools,
   onCopyMarkdown,
   onEnableBashToolsChange,
   onOpenSeerAgent,
   onReset,
-  referrer,
-}: SeerPanelHeaderProps) {
+}: Omit<SeerPanelHeaderProps, 'referrer'>) {
   const organization = useOrganization();
   const hasDebugFlag = organization.features.includes('autofix-seer-agent-debug');
   const isSentryEmployee = useIsSentryEmployee();
+
+  return (
+    <Flex align="center" gap="xs">
+      {isSentryEmployee && <AutofixDebugMenu autofixState={autofixState} />}
+      <Button
+        size="xs"
+        icon={<IconRefresh />}
+        onClick={onReset}
+        disabled={!onReset}
+        tooltipProps={{title: t('Start a new analysis from scratch')}}
+        aria-label={t('Start a new analysis from scratch')}
+        variant="transparent"
+      />
+      <Button
+        size="xs"
+        icon={<IconCopy />}
+        onClick={onCopyMarkdown}
+        disabled={!onCopyMarkdown}
+        tooltipProps={{title: t('Copy analysis as Markdown')}}
+        aria-label={t('Copy analysis as Markdown')}
+        variant="transparent"
+      />
+      {isSentryEmployee && onEnableBashToolsChange && (
+        <Tooltip title={t('Force bash mode on for the autofix analysis')} skipWrapper>
+          <Flex align="center" gap="xs">
+            <Text size="xs">{t('Bash')}</Text>
+            <Switch
+              checked={enableBashTools ?? false}
+              onChange={() => onEnableBashToolsChange(!enableBashTools)}
+              aria-label={t('Enable bash tools')}
+            />
+          </Flex>
+        </Tooltip>
+      )}
+      {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
+        <Button
+          size="xs"
+          icon={<IconBot />}
+          onClick={onOpenSeerAgent}
+          tooltipProps={{title: t('Open in Seer Agent (debug)')}}
+          aria-label={t('Open in Seer Agent (debug)')}
+          variant="transparent"
+        />
+      )}
+    </Flex>
+  );
+}
+
+function SeerPanelHeader({referrer, ...actions}: SeerPanelHeaderProps) {
   const tooltip = useMemo(() => {
     const config = getReferrerConfig(referrer);
     return config.tooltip ?? referrer;
@@ -60,49 +108,7 @@ export function SeerPanelHeader({
         <Text>{t('Seer Autofix')}</Text>
         {tooltip && <InfoTip title={tooltip} size="xs" />}
       </Flex>
-      <Flex align="center" gap="xs">
-        {isSentryEmployee && <AutofixDebugMenu autofixState={autofixState} />}
-        <Button
-          size="xs"
-          icon={<IconRefresh />}
-          onClick={onReset}
-          disabled={!onReset}
-          tooltipProps={{title: t('Start a new analysis from scratch')}}
-          aria-label={t('Start a new analysis from scratch')}
-          variant="transparent"
-        />
-        <Button
-          size="xs"
-          icon={<IconCopy />}
-          onClick={onCopyMarkdown}
-          disabled={!onCopyMarkdown}
-          tooltipProps={{title: t('Copy analysis as Markdown')}}
-          aria-label={t('Copy analysis as Markdown')}
-          variant="transparent"
-        />
-        {isSentryEmployee && onEnableBashToolsChange && (
-          <Tooltip title={t('Force bash mode on for the autofix analysis')} skipWrapper>
-            <Flex align="center" gap="xs">
-              <Text size="xs">{t('Bash')}</Text>
-              <Switch
-                checked={enableBashTools ?? false}
-                onChange={() => onEnableBashToolsChange(!enableBashTools)}
-                aria-label={t('Enable bash tools')}
-              />
-            </Flex>
-          </Tooltip>
-        )}
-        {isSentryEmployee && hasDebugFlag && onOpenSeerAgent && (
-          <Button
-            size="xs"
-            icon={<IconBot />}
-            onClick={onOpenSeerAgent}
-            tooltipProps={{title: t('Open in Seer Agent (debug)')}}
-            aria-label={t('Open in Seer Agent (debug)')}
-            variant="transparent"
-          />
-        )}
-      </Flex>
+      <SeerPanelActions {...actions} />
     </Flex>
   );
 }

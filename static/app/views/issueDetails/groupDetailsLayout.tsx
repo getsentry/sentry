@@ -13,6 +13,7 @@ import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {AutofixPanelProvider} from 'sentry/views/issueDetails/autofix/context';
 import {
   IssueDetailsContextProvider,
   useIssueDetails,
@@ -156,6 +157,28 @@ function StickyIssueEventNavigation({
   );
 }
 
+function AutofixPanelBoundary({
+  children,
+  enabled,
+  group,
+  project,
+}: {
+  children: React.ReactNode;
+  enabled: boolean;
+  group: Group;
+  project: Project;
+}) {
+  if (!enabled) {
+    return children;
+  }
+
+  return (
+    <AutofixPanelProvider group={group} project={project}>
+      {children}
+    </AutofixPanelProvider>
+  );
+}
+
 interface GroupDetailsLayoutProps {
   children: React.ReactNode;
   event: Event | undefined;
@@ -189,68 +212,70 @@ export function GroupDetailsLayout({
       >
         <GroupHeader group={group} event={event ?? null} project={project} />
         <GroupLayoutBody>
-          <IssueDetailsColumn>
-            <SharedTourElement<IssueDetailsTour>
-              id={IssueDetailsTour.AGGREGATES}
-              demoTourId={DemoTourStep.ISSUES_AGGREGATES}
-              tourContext={IssueDetailsTourContext}
-              title={t('See overall impact')}
-              description={t(
-                "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
-              )}
-              position="bottom"
-            >
-              {tourProps => (
-                <div {...tourProps}>
-                  <EventDetailsHeader event={event} group={group} project={project} />
-                </div>
-              )}
-            </SharedTourElement>
-            {isAutofixTab ? (
-              // The autofix section. Same chrome and tab navigation as the
-              // event pages — the navigation is the only way back out of the
-              // tab — but no event details tour, whose copy is about stack
-              // traces and tags, neither of which this tab shows.
-              <EventDetailsSection>
-                {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
-                  issueTypeConfig.header.eventNavigation.enabled && (
-                    <StickyIssueEventNavigation
-                      event={event}
-                      group={group}
-                      hasToggleSidebar={!hasFilterBar}
-                    />
-                  )}
-                <ContentPadding>{children}</ContentPadding>
-              </EventDetailsSection>
-            ) : (
+          <AutofixPanelBoundary enabled={isAutofixTab} group={group} project={project}>
+            <IssueDetailsColumn>
               <SharedTourElement<IssueDetailsTour>
-                id={IssueDetailsTour.EVENT_DETAILS}
-                demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
+                id={IssueDetailsTour.AGGREGATES}
+                demoTourId={DemoTourStep.ISSUES_AGGREGATES}
                 tourContext={IssueDetailsTourContext}
-                title={t('Investigate the issue')}
+                title={t('See overall impact')}
                 description={t(
-                  'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
+                  "Here you'll see aggregate metrics like frequency over time, total affected users, and where it occurs (environment, release, device, etc.)."
                 )}
-                position="top"
+                position="bottom"
               >
                 {tourProps => (
                   <div {...tourProps}>
-                    <EventDetailsSection>
-                      {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
-                        issueTypeConfig.header.eventNavigation.enabled && (
-                          <StickyIssueEventNavigation
-                            event={event}
-                            group={group}
-                            hasToggleSidebar={!hasFilterBar}
-                          />
-                        )}
-                      <ContentPadding>{children}</ContentPadding>
-                    </EventDetailsSection>
+                    <EventDetailsHeader event={event} group={group} project={project} />
                   </div>
                 )}
               </SharedTourElement>
-            )}
-          </IssueDetailsColumn>
+              {isAutofixTab ? (
+                // The autofix section. Same chrome and tab navigation as the
+                // event pages — the navigation is the only way back out of the
+                // tab — but no event details tour, whose copy is about stack
+                // traces and tags, neither of which this tab shows.
+                <EventDetailsSection>
+                  {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                    issueTypeConfig.header.eventNavigation.enabled && (
+                      <StickyIssueEventNavigation
+                        event={event}
+                        group={group}
+                        hasToggleSidebar={!hasFilterBar}
+                      />
+                    )}
+                  <ContentPadding>{children}</ContentPadding>
+                </EventDetailsSection>
+              ) : (
+                <SharedTourElement<IssueDetailsTour>
+                  id={IssueDetailsTour.EVENT_DETAILS}
+                  demoTourId={DemoTourStep.ISSUES_EVENT_DETAILS}
+                  tourContext={IssueDetailsTourContext}
+                  title={t('Investigate the issue')}
+                  description={t(
+                    'See all the issue context including the stack trace, tags, screenshots and connected replays, logs, and traces.'
+                  )}
+                  position="top"
+                >
+                  {tourProps => (
+                    <div {...tourProps}>
+                      <EventDetailsSection>
+                        {groupReprocessingStatus !== ReprocessingStatus.REPROCESSING &&
+                          issueTypeConfig.header.eventNavigation.enabled && (
+                            <StickyIssueEventNavigation
+                              event={event}
+                              group={group}
+                              hasToggleSidebar={!hasFilterBar}
+                            />
+                          )}
+                        <ContentPadding>{children}</ContentPadding>
+                      </EventDetailsSection>
+                    </div>
+                  )}
+                </SharedTourElement>
+              )}
+            </IssueDetailsColumn>
+          </AutofixPanelBoundary>
           <IssueDetailsSidebar group={group} event={event} project={project} />
         </GroupLayoutBody>
       </Container>
