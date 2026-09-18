@@ -16,11 +16,10 @@ from django.conf import settings
 from django.db import router as db_router
 from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
-from sentry_sdk import capture_exception
+from sentry_sdk import capture_exception, traces
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -126,8 +125,11 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with start_span(
-                op="cleanup", name=f"{TRANSACTION_PREFIX}.multiprocess_worker", transaction=True
+            traces.new_trace()
+            with traces.start_span(
+                name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
+                attributes={"sentry.op": "cleanup"},
+                parent_span=None,
             ):
                 task_execution(model_name, chunk, project_id)
         except Exception:
@@ -346,7 +348,10 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with start_span(op="cleanup", name=f"{TRANSACTION_PREFIX}.main", transaction=True) as span:
+    traces.new_trace()
+    with traces.start_span(
+        name=f"{TRANSACTION_PREFIX}.main", attributes={"sentry.op": "cleanup"}, parent_span=None
+    ) as span:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):
@@ -383,9 +388,9 @@ def _cleanup(
                 project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
-                set_span_tag(span, "organization_id", organization_id)
+                span.set_attribute("organization_id", organization_id)
             if project_id is not None:
-                set_span_tag(span, "project_id", project_id)
+                span.set_attribute("project_id", project_id)
 
             run_bulk_query_deletes(
                 bulk_query_deletes,

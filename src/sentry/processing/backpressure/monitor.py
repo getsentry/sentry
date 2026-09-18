@@ -6,6 +6,8 @@ from typing import Union
 
 import sentry_sdk
 from django.conf import settings
+from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 
 from sentry import options
 from sentry.processing.backpressure.health import UnhealthyReasons, record_consumer_health
@@ -14,7 +16,6 @@ from sentry.processing.backpressure.health import UnhealthyReasons, record_consu
 from sentry.processing.backpressure.memory import Cluster, ServiceMemory, iter_cluster_memory_usage
 from sentry.processing.backpressure.topology import ProcessingServices
 from sentry.utils import redis
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -111,11 +112,18 @@ def start_service_monitoring() -> None:
             time.sleep(options.get("backpressure.monitoring.interval"))
             continue
 
-        with start_span(
-            name="backpressure.monitoring",
-            custom_sampling_context={"sample_rate": 1.0},
-            transaction=True,
-        ):
+        traces.new_trace()
+        _start_span_ctx_1 = sentry_sdk.get_current_scope().get_active_propagation_context()
+        _start_span_prev_1 = _start_span_ctx_1.custom_sampling_context
+        Scope.set_custom_sampling_context({"sample_rate": 1.0})
+        try:
+            _start_span_tmp_1 = traces.start_span(
+                name="backpressure.monitoring",
+                parent_span=None,
+            )
+        finally:
+            _start_span_ctx_1.custom_sampling_context = _start_span_prev_1
+        with _start_span_tmp_1:
             # first, check each base service and record its health
             unhealthy_services = check_service_health(services)
 

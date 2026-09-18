@@ -4,10 +4,11 @@ import os
 from datetime import timedelta
 from typing import Any
 
+from sentry_sdk import traces
+
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.services.nodestore.base import NodeStorage
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
-from sentry.utils.tracing import set_span_tag, start_span, trace
 
 
 class BigtableNodeStorage(NodeStorage):
@@ -63,7 +64,7 @@ class BigtableNodeStorage(NodeStorage):
         self.automatic_expiry = automatic_expiry
         self.skip_deletes = automatic_expiry and "_SENTRY_CLEANUP" in os.environ
 
-    @trace
+    @traces.trace
     def _get_bytes(self, id: str) -> bytes | None:
         # Note: This metric encapsulates any decompression performed by `self.store.get()`. Other
         # instances of this metric stop measuring before decompression happens.
@@ -73,7 +74,7 @@ class BigtableNodeStorage(NodeStorage):
                 metric_emitter.record_uncompressed_size(len(result))
             return result
 
-    @trace
+    @traces.trace
     def _get_bytes_multi(self, id_list: list[str]) -> dict[str, bytes | None]:
         rv: dict[str, bytes | None] = {id: None for id in id_list}
         # Note: This metric encapsulates any decompression performed by `self.store.get_many()`. Other
@@ -92,7 +93,9 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with start_span(op="nodestore.bigtable.delete", name="nodestore.bigtable.delete"):
+        with traces.start_span(
+            name="nodestore.bigtable.delete", attributes={"sentry.op": "nodestore.bigtable.delete"}
+        ):
             try:
                 with measure_storage_operation("delete", "nodestore"):
                     self.store.delete(id)
@@ -103,10 +106,11 @@ class BigtableNodeStorage(NodeStorage):
         if self.skip_deletes:
             return
 
-        with start_span(
-            op="nodestore.bigtable.delete_multi", name="nodestore.bigtable.delete_multi"
+        with traces.start_span(
+            name="nodestore.bigtable.delete_multi",
+            attributes={"sentry.op": "nodestore.bigtable.delete_multi"},
         ) as span:
-            set_span_tag(span, "num_ids", len(id_list))
+            span.set_attribute("num_ids", len(id_list))
 
             if len(id_list) == 1:
                 self.delete(id_list[0])
