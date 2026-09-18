@@ -47,7 +47,7 @@ function severityForRatio(ratio: number): number {
   ).length;
 }
 
-export interface AnnotationVolume {
+interface AnnotationVolume {
   eventCount: number;
   byteSize?: number;
 }
