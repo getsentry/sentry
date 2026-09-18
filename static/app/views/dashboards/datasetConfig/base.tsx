@@ -394,7 +394,6 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return TraceMetricsConfig;
     case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
-    case WidgetType.DISCOVER:
     case WidgetType.ERRORS:
     case undefined:
       return ErrorsConfig;
