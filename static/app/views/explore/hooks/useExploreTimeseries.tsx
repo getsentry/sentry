@@ -58,7 +58,7 @@ export const useExploreTimeseries = ({
   );
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
-    queryHookImplementation: useExploreTimeseriesImpl,
+    queryHookImplementation: useExploreTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {query, enabled, queryExtras, includeAnnotations},
     queryOptions: {
       canTriggerHighAccuracy,
@@ -133,6 +133,9 @@ function useExploreTimeseriesImpl({
       // Skip only when every series failed an `_if` filter. Invalid equations still
       // query with DEFAULT_VISUALIZATION as a fallback (prior behavior).
       enabled: enabled && !skippedForInvalidConditionalFilter,
+      // Mark buckets incomplete from the measured ingestion delay rather than a
+      // static assumption. No-op if the org doesn't have the backend flag enabled.
+      includeMeasuredIngestionDelayMetadata: true,
       ...queryExtras,
     };
   }, [

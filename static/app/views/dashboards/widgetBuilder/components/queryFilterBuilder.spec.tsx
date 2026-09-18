@@ -38,6 +38,10 @@ describe('QueryFilterBuilder', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   it('renders a dataset-specific query filter bar', async () => {

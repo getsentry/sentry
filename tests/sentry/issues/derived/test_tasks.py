@@ -1,13 +1,23 @@
 from collections.abc import Sequence
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, call, patch
+
+import pytest
+from django.db.utils import OperationalError
 
 from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewAction
 from sentry.issues.derived.check import CheckId, CheckTimeout
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
+from sentry.issues.derived.heal_state import (
+    CURRENT_STATE_VERSION,
+    HealSchedulerState,
+    _state_cache,
+    load_state,
+    save_state,
+)
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
@@ -19,6 +29,7 @@ from sentry.issues.derived.tasks import (
     regenerate_stale_derived_data_batch,
 )
 from sentry.issues.derived.tasks_util import (
+    GroupIdRangeResult,
     SpawnState,
     _pick_random_fresh_group_ranges,
     group_id_ranges_for_hash,
@@ -323,8 +334,64 @@ class SpawnStateTest(TestCase):
         assert already_spawned(spawn.task_key, "act-none") is False
 
 
+class HealSchedulerStateTest(TestCase):
+    def test_cache_key(self) -> None:
+        assert _state_cache.key("state") == "issues-derived-heal:state"
+
+    def test_round_trip(self) -> None:
+        state = HealSchedulerState(
+            head_hash="current",
+            stale={"stale": 42},
+            discovered_at=datetime.now(timezone.utc),
+        )
+
+        with patch.object(_state_cache, "set") as cache_set:
+            save_state(state)
+        cached_state = cache_set.call_args.args[1]
+
+        with patch.object(_state_cache, "get", return_value=cached_state):
+            assert load_state() == state
+        assert state.version == CURRENT_STATE_VERSION
+
+    def test_missing(self) -> None:
+        with patch.object(_state_cache, "get", return_value=None):
+            assert load_state() is None
+
+    def test_corrupt(self) -> None:
+        with patch.object(_state_cache, "get", return_value="not-state"):
+            assert load_state() is None
+
+    def test_wrong_version(self) -> None:
+        state = HealSchedulerState(
+            version=CURRENT_STATE_VERSION + 1,
+            head_hash="current",
+            stale={},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with patch.object(_state_cache, "get", return_value=state):
+            assert load_state() is None
+
+    def test_expired(self) -> None:
+        state = HealSchedulerState(
+            head_hash="current",
+            discovered_at=datetime.now(timezone.utc) - timedelta(days=3),
+        )
+
+        with patch.object(_state_cache, "get", return_value=state):
+            assert load_state() is None
+
+
 @with_feature("projects:issue-action-log-write-to-db")
 class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
+    def setUp(self) -> None:
+        super().setUp()
+        load_state_patch = patch("sentry.issues.derived.tasks.load_state", return_value=None)
+        save_state_patch = patch("sentry.issues.derived.tasks.save_state")
+        load_state_patch.start()
+        save_state_patch.start()
+        self.addCleanup(load_state_patch.stop)
+        self.addCleanup(save_state_patch.stop)
+
     def _pick_stale_hash(self, seed: str = "0") -> str:
         h = seed * 16
         return h if PIPELINE.pipeline_hash != h else ("z" * 16)
@@ -348,6 +415,410 @@ class HealStaleDerivedDataTest(DerivedDataTaskTestBase):
             group_id_start=group_ids[0],
             group_id_end=group_ids[0] + 1,
         )
+
+    def test_logs_progress_through_scheduling_stages(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(group.id for group in groups)
+        for group_id in group_ids:
+            process_group_log(group_id)
+
+        stale = self._pick_stale_hash()
+        GroupDerivedData.objects.filter(group_id=group_ids[0]).update(pipeline_hash=stale)
+
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-batch-size": 1,
+                    "issues.derived.heal-max-tasks": 2,
+                    "issues.derived.check-task-count": 1,
+                }
+            ),
+            patch("sentry.issues.derived.tasks_util.random.randint", return_value=group_ids[1]),
+            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+            patch.object(check_fresh_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        messages = [log_call.args[0] for log_call in mock_logger.info.call_args_list]
+        assert messages == [
+            "heal_stale_derived_data.started",
+            "heal_stale_derived_data.configuration_loaded",
+            "heal_stale_derived_data.state_regenerated",
+            "heal_stale_derived_data.stale_hash_discovery_started",
+            "heal_stale_derived_data.stale_hash_discovery_complete",
+            "heal_stale_derived_data.range_selection_started",
+            "heal_stale_derived_data.range_selection_complete",
+            "heal_stale_derived_data.range_selection_started",
+            "heal_stale_derived_data.range_selection_complete",
+            "heal_stale_derived_data.batch_dispatch_started",
+            "heal_stale_derived_data.stale_hash_mark_advanced",
+            "heal_stale_derived_data.batch_dispatch_complete",
+            "heal_stale_derived_data.scheduled",
+            "heal_stale_derived_data.check_range_selection_started",
+            "heal_stale_derived_data.check_range_selection_complete",
+            "heal_stale_derived_data.check_dispatch_started",
+            "heal_stale_derived_data.checks_scheduled",
+            "heal_stale_derived_data.complete",
+        ]
+
+    def test_missing_state_discovers_and_reports_metric(self) -> None:
+        with (
+            override_options({"issues.derived.check-task-count": 0}),
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]
+            ) as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                return_value=GroupIdRangeResult(ranges=[], drained=True),
+            ),
+            patch("sentry.issues.derived.tasks.metrics.incr") as mock_incr,
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_called_once_with(PIPELINE.pipeline_hash, 5)
+        assert (
+            call(
+                "issues.derived.heal_stale_hash_discovery",
+                sample_rate=1.0,
+                tags={"reason": "no_state"},
+            )
+            in mock_incr.call_args_list
+        )
+
+    def test_discovery_metric_reports_healed_state_when_nothing_is_stale(self) -> None:
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options({"issues.derived.check-task-count": 0}),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes", return_value=[]),
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                return_value=GroupIdRangeResult(ranges=[], drained=True),
+            ),
+            patch("sentry.issues.derived.tasks.metrics.incr") as mock_incr,
+        ):
+            heal_stale_derived_data()
+
+        assert (
+            call(
+                "issues.derived.heal_stale_hash_discovery",
+                sample_rate=1.0,
+                tags={"reason": "stale_empty"},
+            )
+            in mock_incr.call_args_list
+        )
+
+    def test_head_change_enqueues_old_hash_without_discovery(self) -> None:
+        old_hash = self._pick_stale_hash()
+        state = HealSchedulerState(
+            head_hash=old_hash,
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 1,
+                    "issues.derived.check-task-count": 0,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_not_called()
+        assert mock_save.call_args.args[0].stale == {old_hash: 20}
+
+    def test_head_change_removes_current_hash_from_stale_state(self) -> None:
+        old_hash = self._pick_stale_hash()
+        state = HealSchedulerState(
+            head_hash=old_hash,
+            stale={PIPELINE.pipeline_hash: 10},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 1,
+                    "issues.derived.check-task-count": 0,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(1, 2)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_not_called()
+        assert mock_save.call_args.args[0].stale == {old_hash: 2}
+
+    def test_discovery_timeout_still_schedules_null_and_saves_retryable_state(self) -> None:
+        with (
+            override_options({"issues.derived.heal-max-tasks": 1}),
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                side_effect=OperationalError,
+            ),
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                return_value=GroupIdRangeResult(ranges=[(1, 2)], drained=False),
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay") as delay,
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch("sentry.issues.derived.tasks.logger") as mock_logger,
+        ):
+            heal_stale_derived_data()
+
+        delay.assert_called_once()
+        saved_state = mock_save.call_args.args[0]
+        assert saved_state.discovered_at is None
+        mock_logger.exception.assert_called_once_with(
+            "heal_stale_derived_data.stale_hash_discovery_failed"
+        )
+
+    def test_discovered_hashes_are_saved_before_range_selection(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        with (
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=[stale_hash],
+            ),
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=RuntimeError("range selection timed out"),
+            ),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+        ):
+            with pytest.raises(RuntimeError):
+                heal_stale_derived_data()
+
+        mock_save.assert_called_once()
+        saved_state = mock_save.call_args.args[0]
+        assert saved_state.head_hash == PIPELINE.pipeline_hash
+        assert saved_state.stale == {stale_hash: 0}
+
+    def test_non_empty_state_skips_discovery_and_advances_across_runs(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            stale={stale_hash: 10},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 1,
+                    "issues.derived.check-task-count": 0,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as first_save,
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                ],
+            ) as first_ranges,
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        persisted = first_save.call_args.args[0].copy(deep=True)
+        assert persisted.stale == {stale_hash: 20}
+        assert first_ranges.call_args_list[1].kwargs["group_id_lower_bound"] == 10
+        discover.assert_not_called()
+
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 1,
+                    "issues.derived.check-task-count": 0,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=persisted),
+            patch("sentry.issues.derived.tasks.save_state") as second_save,
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(20, 30)], drained=False),
+                ],
+            ) as second_ranges,
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        assert second_save.call_args.args[0].stale == {stale_hash: 30}
+        assert second_ranges.call_args_list[1].kwargs["group_id_lower_bound"] == 20
+        discover.assert_not_called()
+
+    def test_drained_hash_is_removed_then_rediscovered(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            stale={stale_hash: 10},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        options = {
+            "issues.derived.heal-max-tasks": 1,
+            "issues.derived.check-task-count": 0,
+        }
+        with (
+            override_options(options),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as first_save,
+            patch("sentry.issues.derived.tasks._discover_stale_pipeline_hashes") as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                return_value=GroupIdRangeResult(ranges=[], drained=True),
+            ),
+        ):
+            heal_stale_derived_data()
+
+        retired = first_save.call_args.args[0].copy(deep=True)
+        assert retired.stale == {}
+        discover.assert_not_called()
+
+        with (
+            override_options(options),
+            patch("sentry.issues.derived.tasks.load_state", return_value=retired),
+            patch("sentry.issues.derived.tasks.save_state"),
+            patch(
+                "sentry.issues.derived.tasks._discover_stale_pipeline_hashes",
+                return_value=[stale_hash],
+            ) as discover,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(1, 2)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        discover.assert_called_once_with(PIPELINE.pipeline_hash, 5)
+
+    def test_null_starts_at_zero_without_rewriting_state(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            stale={stale_hash: 50},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options({"issues.derived.heal-max-tasks": 1}),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                return_value=GroupIdRangeResult(ranges=[(1, 2)], drained=False),
+            ) as mock_ranges,
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            heal_stale_derived_data()
+
+        mock_ranges.assert_called_once_with(
+            None,
+            chunk_size=500,
+            max_chunks=1,
+            group_id_lower_bound=0,
+        )
+        mock_save.assert_not_called()
+        assert state.stale == {stale_hash: 50}
+
+    def test_mark_is_saved_before_scheduling_the_next_hash(self) -> None:
+        hash_a = self._pick_stale_hash("a")
+        hash_b = self._pick_stale_hash("b")
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            stale={hash_a: 10, hash_b: 10},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 2,
+                    "issues.derived.check-task-count": 0,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                    RuntimeError("range selection failed"),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+        ):
+            with pytest.raises(RuntimeError):
+                heal_stale_derived_data()
+
+        mock_save.assert_called_once_with(state)
+        assert state.stale == {hash_a: 20, hash_b: 10}
+
+    def test_marks_are_saved_when_check_fan_out_fails(self) -> None:
+        stale_hash = self._pick_stale_hash()
+        state = HealSchedulerState(
+            head_hash=PIPELINE.pipeline_hash,
+            stale={stale_hash: 10},
+            discovered_at=datetime.now(timezone.utc),
+        )
+        with (
+            override_options(
+                {
+                    "issues.derived.heal-max-tasks": 2,
+                    "issues.derived.check-task-count": 1,
+                }
+            ),
+            patch("sentry.issues.derived.tasks.load_state", return_value=state),
+            patch("sentry.issues.derived.tasks.save_state") as mock_save,
+            patch(
+                "sentry.issues.derived.tasks_util.group_id_ranges_for_hash",
+                side_effect=[
+                    GroupIdRangeResult(ranges=[], drained=True),
+                    GroupIdRangeResult(ranges=[(10, 20)], drained=False),
+                ],
+            ),
+            patch.object(regenerate_stale_derived_data_batch, "delay"),
+            patch(
+                "sentry.issues.derived.tasks_util._pick_random_fresh_group_ranges",
+                side_effect=RuntimeError("check selection failed"),
+            ),
+        ):
+            with pytest.raises(RuntimeError):
+                heal_stale_derived_data()
+
+        mock_save.assert_called_once_with(state)
+        assert state.stale == {stale_hash: 20}
 
     def test_no_stale_data(self) -> None:
         groups = self.create_unprocessed_groups(2)
@@ -869,8 +1340,12 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
     def test_no_matching_rows(self) -> None:
         self._seed(2, self.OTHER_HASH)
 
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5) == []
-        assert group_id_ranges_for_hash(None, chunk_size=2, max_chunks=5) == []
+        assert group_id_ranges_for_hash(
+            self.HASH, chunk_size=2, max_chunks=5
+        ) == GroupIdRangeResult(ranges=[], drained=True)
+        assert group_id_ranges_for_hash(None, chunk_size=2, max_chunks=5) == GroupIdRangeResult(
+            ranges=[], drained=True
+        )
 
     def test_short_tail_is_one_range(self) -> None:
         null_ids = self._seed(3, None)
@@ -878,17 +1353,17 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
 
         # Fewer rows than chunk_size, for both the NULL and the concrete-hash
         # predicate, and neither picks up the other's rows.
-        assert group_id_ranges_for_hash(None, chunk_size=10, max_chunks=5) == [
+        assert group_id_ranges_for_hash(None, chunk_size=10, max_chunks=5).ranges == [
             (null_ids[0], null_ids[-1] + 1)
         ]
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=10, max_chunks=5) == [
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=10, max_chunks=5).ranges == [
             (hash_ids[0], hash_ids[-1] + 1)
         ]
 
     def test_exact_chunk_boundaries(self) -> None:
         group_ids = self._seed(5, self.HASH)
 
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5) == [
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5).ranges == [
             (group_ids[0], group_ids[2]),
             (group_ids[2], group_ids[4]),
             (group_ids[4], group_ids[4] + 1),
@@ -898,7 +1373,7 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         group_ids = self._seed(5, self.HASH)
 
         # The 5th group is left out rather than folded into an oversized last range.
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2) == [
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2).ranges == [
             (group_ids[0], group_ids[2]),
             (group_ids[2], group_ids[4]),
         ]
@@ -908,7 +1383,7 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         # the tail is known to be incomplete and waits for the next call.
         group_ids = self._seed(6, self.HASH)
 
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2) == [
+        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=2).ranges == [
             (group_ids[0], group_ids[2]),
             (group_ids[2], group_ids[4]),
         ]
@@ -916,18 +1391,22 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
     def test_invalid_chunking(self) -> None:
         self._seed(2, self.HASH)
 
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=0, max_chunks=5) == []
-        assert group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=0) == []
+        assert group_id_ranges_for_hash(
+            self.HASH, chunk_size=0, max_chunks=5
+        ) == GroupIdRangeResult(ranges=[], drained=False)
+        assert group_id_ranges_for_hash(
+            self.HASH, chunk_size=2, max_chunks=0
+        ) == GroupIdRangeResult(ranges=[], drained=False)
 
     def test_clamps_scan_budget(self) -> None:
         group_ids = self._seed(3, self.HASH)
 
         with patch("sentry.issues.derived.tasks_util._MAX_SCANNED_GROUP_IDS", 2):
-            ranges = group_id_ranges_for_hash(self.HASH, chunk_size=1, max_chunks=5)
+            result = group_id_ranges_for_hash(self.HASH, chunk_size=1, max_chunks=5)
 
         # Only 2 rows were scanned, so the clamp must not be mistaken for having
         # reached the end — the tail may not run past what we scanned.
-        assert ranges == [(group_ids[0], group_ids[1])]
+        assert result.ranges == [(group_ids[0], group_ids[1])]
 
     def test_clamp_never_drops_below_one_chunk(self) -> None:
         group_ids = self._seed(3, self.HASH)
@@ -935,12 +1414,24 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         # Clamping below chunk_size would leave a single boundary, which can't close
         # a range — the caller would read the empty result as "nothing to do".
         with patch("sentry.issues.derived.tasks_util._MAX_SCANNED_GROUP_IDS", 1):
-            ranges = group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
+            result = group_id_ranges_for_hash(self.HASH, chunk_size=2, max_chunks=5)
 
-        assert ranges == [
+        assert result.ranges == [
             (group_ids[0], group_ids[2]),
             (group_ids[2], group_ids[2] + 1),
         ]
+
+    def test_lower_bound(self) -> None:
+        group_ids = self._seed(3, self.HASH)
+
+        result = group_id_ranges_for_hash(
+            self.HASH,
+            chunk_size=2,
+            max_chunks=5,
+            group_id_lower_bound=group_ids[1],
+        )
+
+        assert result.ranges == [(group_ids[1], group_ids[2] + 1)]
 
 
 @with_feature("projects:issue-action-log-write-to-db")

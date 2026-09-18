@@ -4,12 +4,13 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict, cast
 
 import orjson
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
 from django.db.models import Case, Exists, F, Func, OuterRef, Q, Sum, When
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -40,7 +41,12 @@ from sentry.models.releases.constants import (
 )
 from sentry.models.releases.exceptions import UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
-from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
+from sentry.models.releases.util import (
+    ReleaseQuerySet,
+    SemverFilter,
+    SemverVersion,
+    release_order_date,
+)
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -50,6 +56,9 @@ from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -95,6 +104,27 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
 
 
 class ReleaseModelManager(BaseManager["Release"]):
+    def get_next_release(
+        self, project: Project, current_release: Release, *, use_finalized_order: bool
+    ) -> Release:
+        """Find the first release after the resolution's existing date-based anchor."""
+        current_date = release_order_date(
+            current_release.date_added,
+            current_release.date_released,
+            use_finalized_order=use_finalized_order,
+        )
+        date_field = "release_order" if use_finalized_order else "date_added"
+        return (
+            self.filter(projects=project, organization_id=project.organization_id)
+            .alias(release_order=Coalesce("date_released", "date_added"))
+            .filter(
+                Q(**{f"{date_field}__gt": current_date})
+                | Q(**{date_field: current_date}, id__gt=current_release.id)
+            )
+            .order_by("release_order", "id")[:1]
+            .get()
+        )
+
     def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
@@ -247,6 +277,9 @@ class Release(Model):
     authors = ArrayField(models.TextField(), default=list, null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
+    # Shadow column for the in-progress widening of `last_deploy_id` to int8: every write
+    # must mirror `last_deploy_id` into it. Swapped into `last_deploy_id` once backfilled.
+    new_last_deploy_id = BoundedBigIntegerField(null=True)
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:

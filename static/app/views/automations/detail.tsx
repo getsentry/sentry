@@ -1,11 +1,11 @@
 import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -46,9 +46,22 @@ import {
   makeAutomationBasePathname,
   makeAutomationEditPathname,
 } from 'sentry/views/automations/pathnames';
+import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-function AutomationDetailContent({automation}: {automation: Automation}) {
+const CONTEXT_HINT =
+  'Sentry alert detail page. This alert runs its actions when an issue matches its conditions. ' +
+  'triggers is the condition group that starts the alert; actionFilters are the groups that gate ' +
+  'each set of actions. Every action reports where it lands — targetDisplay is the resolved ' +
+  'channel, team, or user name, and targetIdentifier the raw id behind it. ' +
+  'throttleMinutes is how long the alert waits before firing again for the same issue; null means ' +
+  'it notifies on every trigger. statusWarning is non-null when the alert cannot run as configured. ' +
+  'The page also shows a fire-history table and a stats chart. Neither is in this node, so use a ' +
+  'tool call for how often this alert has actually fired.';
+
+function AutomationDetailContentInner({automation}: {automation: Automation}) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const {start, end, period, utc} = selection.datetime;
@@ -57,24 +70,43 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
   const [monitorListCursor, setMonitorListCursor] = useState<string | undefined>(
     undefined
   );
-  const breadcrumbs = (
-    <Breadcrumbs
-      crumbs={[
-        {
-          label: t('Alerts'),
-          to: makeAutomationBasePathname(organization.slug),
-        },
-        {label: automation.name},
-      ]}
-    />
-  );
-
   const hasConnections = !!automation.detectorIds.length;
+
+  useLLMContext({
+    contextHint: CONTEXT_HINT,
+    id: automation.id,
+    name: automation.name,
+    enabled: automation.enabled,
+    environment: automation.environment,
+    lastTriggered: automation.lastTriggered,
+    // `?? null` so the key survives serialization when the alert notifies on
+    // every trigger, where there is no throttle at all.
+    throttleMinutes: automation.config.frequency ?? null,
+    connectedMonitorIds: automation.detectorIds,
+    triggers: automation.triggers
+      ? dataConditionGroupToLLMContext(automation.triggers)
+      : null,
+    actionFilters: automation.actionFilters.map(dataConditionGroupToLLMContext),
+    statusWarning: warning?.message ?? null,
+  });
 
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
+        <TopBar.Slot name="breadcrumbs">
+          <BreadcrumbList
+            items={[
+              {
+                type: 'link',
+                label: t('Alerts'),
+                to: makeAutomationBasePathname(organization.slug),
+              },
+            ]}
+          />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">
+          <BreadcrumbList.Title item={{type: 'page-title', label: automation.name}} />
+        </TopBar.Slot>
         <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>
@@ -208,6 +240,11 @@ function AutomationDetailContent({automation}: {automation: Automation}) {
     </SentryDocumentTitle>
   );
 }
+
+const AutomationDetailContent = registerLLMContext(
+  'alert-detail',
+  AutomationDetailContentInner
+);
 
 function AutomationDetailLoadingStates({automationId}: {automationId: string}) {
   const {

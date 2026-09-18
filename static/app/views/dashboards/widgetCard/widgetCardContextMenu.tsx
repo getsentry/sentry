@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +12,6 @@ import {
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -28,7 +28,6 @@ import {
   applyDashboardFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  hasDatasetSelector,
   isUsingPerformanceScore,
   isWidgetEditable,
   performanceScoreTooltip,
@@ -165,26 +164,6 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
   return null;
 };
 
-export const useDiscoverSplitWarning = (widget: Widget): React.JSX.Element | null => {
-  // make sure there's widget queries so we know it's not a text widget
-  if (
-    (widget.widgetType === WidgetType.DISCOVER || !widget.widgetType) &&
-    widget.queries.length > 0
-  ) {
-    return (
-      <div>
-        <StyledText as="p">
-          {t(
-            "We're splitting up the Discover dataset to be either Errors or Transactions. This widget's dataset will be adjusted."
-          )}
-        </StyledText>
-      </div>
-    );
-  }
-
-  return null;
-};
-
 const StyledText = styled(Text)`
   padding-bottom: ${p => p.theme.space.xs};
 `;
@@ -211,13 +190,9 @@ export function getMenuOptions(
   if (
     organization.features.includes('discover-basic') &&
     widget.widgetType &&
-    [WidgetType.DISCOVER, WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
-      widget.widgetType
-    )
+    [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(widget.widgetType)
   ) {
-    const optionDisabled =
-      (hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER) ||
-      isUsingPerformanceScore(widget);
+    const optionDisabled = isUsingPerformanceScore(widget);
     // Open Widget in Discover
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(

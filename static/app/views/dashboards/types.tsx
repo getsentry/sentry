@@ -36,6 +36,7 @@ export const MAX_CATEGORICAL_BAR_LIMIT = 25;
 
 export const DEFAULT_WIDGET_NAME = t('Custom Widget');
 export const PREBUILT_DASHBOARD_LABEL = t('Sentry Built');
+export const CUSTOM_DASHBOARD_LABEL = t('Custom Dashboards');
 
 export enum DisplayType {
   AREA = 'area',
@@ -55,6 +56,9 @@ export enum DisplayType {
 }
 
 export enum WidgetType {
+  /**
+   * @deprecated Use `WidgetType.ERRORS` instead
+   */
   DISCOVER = 'discover',
   ISSUE = 'issue',
   RELEASE = 'metrics', // TODO(metrics): rename RELEASE to 'release', and METRICS to 'metrics'

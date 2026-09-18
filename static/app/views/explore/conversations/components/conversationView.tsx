@@ -82,6 +82,7 @@ export function ConversationViewContent({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setTimelineDefaultDismissed(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
 
   const displayedNode = useMemo(() => {

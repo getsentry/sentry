@@ -13,6 +13,7 @@ from sentry.integrations.mixins.issues import MAX_CHAR
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
+from sentry.integrations.utils.hostname import InstanceHostnameError, instance_hostname
 from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -81,7 +82,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         return "{}#{}".format(data["repo"], data["key"])
 
     def get_issue_url(self, key: str) -> str:
-        domain_name, user = self.model.metadata["domain_name"].split("/")
+        domain_name = instance_hostname(self.model)
         repo, issue_id = key.split("#")
         return f"https://{domain_name}/{repo}/issues/{issue_id}"
 
@@ -346,14 +347,19 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         ]
 
     def get_issue_link_data(self, url: str) -> dict[str, str]:
-        domain, account = self.model.metadata["domain_name"].split("/", 1)
+        try:
+            domain = instance_hostname(self.model)
+        except InstanceHostnameError as exc:
+            raise IntegrationConfigurationError(
+                "The GitHub Enterprise hostname is missing. Reinstall the integration."
+            ) from exc
         path = get_issue_url_path(url, f"https://{domain}")
         match = re.fullmatch(
             r"/([^/]+/[^/]+)/(issues|pull)/(\d+)(?:/(files|changes|commits|checks))?", path
         )
         if not match or (match[2] == "issues" and match[4]):
             raise IntegrationFormError({"externalIssue": "Invalid GitHub issue URL"})
-        if match[1].split("/")[0].casefold() != account.casefold():
+        if match[1].split("/")[0].casefold() != self.model.name.casefold():
             raise IntegrationFormError(
                 {"externalIssue": "Issue URL does not belong to this installation"}
             )

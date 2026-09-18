@@ -8,7 +8,10 @@ import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/consta
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {
+  ResourceLink,
+  type ResourceLinkFormatProps,
+} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import {
   defineSeerEmbed,
   type EmbedOutput,
@@ -28,7 +31,11 @@ const ReplayClipPreview = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')
 );
 
-function ReplayLink({id, eventTimestamp}: EmbedOutput<'replay'>) {
+function ReplayLink({
+  format,
+  id,
+  eventTimestamp,
+}: EmbedOutput<'replay'> & ResourceLinkFormatProps) {
   const organization = useOrganization();
   const pathname = makeReplaysPathname({path: `/${id}/`, organization});
   const href = eventTimestamp
@@ -37,6 +44,7 @@ function ReplayLink({id, eventTimestamp}: EmbedOutput<'replay'>) {
 
   return (
     <ResourceLink
+      format={format}
       icon={IconPlay}
       href={href}
       title={t('Replay %s', getShortEventId(id))}
@@ -90,9 +98,13 @@ function ReplayBlockPreview({id, eventTimestamp}: EmbedOutput<'replay'>) {
 export const Replay = defineSeerEmbed({
   name: 'replay',
   render(props, level) {
-    if (level === 'block') {
-      return <ReplayBlockPreview {...props} />;
+    switch (level) {
+      case 'block':
+        return <ReplayBlockPreview {...props} />;
+      case 'markdown':
+        return <ReplayLink {...props} format="markdown" />;
+      case 'inline':
+        return <ReplayLink {...props} />;
     }
-    return <ReplayLink {...props} />;
   },
 });

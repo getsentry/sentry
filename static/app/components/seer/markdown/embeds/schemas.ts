@@ -124,7 +124,7 @@ export const SEER_EMBED_SCHEMAS = {
     description:
       'Link to a page in the Sentry documentation (docs.sentry.io only). ' +
       'The href MUST be an absolute https://docs.sentry.io/... URL. ' +
-      'NEVER use this for Sentry issue links — use the `issue` or `issues` embed instead.',
+      'NEVER use this for Sentry issue links — use `issue` or `issuesQuery` instead.',
     level: ['inline'],
     schema: z.object({href: z.string(), title: z.string()}),
     examples: [
@@ -188,35 +188,15 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
       '(e.g. "PROJECT-123"). ' +
       'Inline: renders a compact link with the short id. ' +
-      'Block: renders a full interactive issue row with title, events, users, ' +
+      'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
-      'MUST NOT appear inside a markdown table or list. ' +
-      'When referencing 2+ issues, use the `issues` embed instead. ' +
+      'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
     schema: z.object({id: z.string()}),
     examples: [
       {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
       {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
-    ],
-  },
-  issues: {
-    description:
-      'The ONLY way to list multiple Sentry issues. Renders an interactive ' +
-      'table with title, trend graph, events, users, priority, and assignee ' +
-      'for each issue — do NOT duplicate any of that data as text. ' +
-      'ALWAYS use this when referencing 2+ issues. ' +
-      'MUST NOT appear inside a markdown table or list. ' +
-      'Never use `docs`, `issue`, or markdown tables for multiple issues. ' +
-      'Provide only the array of issue short IDs (e.g. "PROJECT-123").',
-    level: ['block'],
-    schema: z.object({ids: z.array(z.string())}),
-    examples: [
-      {
-        label: 'Block',
-        level: 'block',
-        data: {ids: ['JAVASCRIPT-22SP', 'JAVASCRIPT-39HX', 'JAVASCRIPT-39ZF']},
-      },
     ],
   },
   replay: {
@@ -496,7 +476,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
       'Block: loads the saved filters and renders a live preview of matching issues. ' +
-      'Do not duplicate the issue titles, event counts, users, priorities, or assignees as text. ' +
+      'Do not duplicate the issue titles, event counts, priorities, or assignees as text. ' +
       'Never use a markdown link for issue view references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -774,11 +754,13 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issuesQuery: {
     description:
-      'Link to the issue stream filtered by a search query. ' +
-      'Use this when pointing the user at a SET of issues defined by a search ' +
-      'rather than specific known issues — if you already have the short IDs, ' +
-      'use the `issue` or `issues` embed instead. ' +
-      '`query` uses issue search syntax, e.g. "is:unresolved level:error".',
+      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
+      'including a specific list of issue IDs such as ' +
+      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'Inline renders a link; block renders the first five matching issues with ' +
+      'title, trend graph, events, priority, and assignee. ' +
+      'Do NOT duplicate those issues as text or a markdown table. ' +
+      'Use the singular `issue` embed only when referencing one known issue.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,
@@ -793,6 +775,14 @@ export const SEER_EMBED_SCHEMAS = {
           query: 'is:unresolved level:error',
           statsPeriod: '7d',
           title: 'Unresolved errors',
+        },
+      },
+      {
+        label: 'Specific issues',
+        level: 'block',
+        data: {
+          query: 'issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX,JAVASCRIPT-39ZF]',
+          title: 'Related issues',
         },
       },
     ],
@@ -1018,8 +1008,8 @@ export const SEER_EMBED_SCHEMAS = {
       'specific replay ID, use the `replay` embed instead. ' +
       '`query` uses replay search syntax, e.g. "user.email:user@example.com". ' +
       'Inline renders a link; block renders the first five matching replays ' +
-      'with their duration, error count and rage clicks — do NOT repeat those ' +
-      'rows as a markdown table or restate their values as text.',
+      'with their platform, duration, error count and activity — do NOT repeat ' +
+      'those rows as a markdown table or restate their values as text.',
     level: ['inline', 'block'],
     schema: z.object({
       ...pageFilterFields,

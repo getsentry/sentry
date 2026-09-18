@@ -10,9 +10,13 @@ const LazySavedQueryBlock = lazy(() => import('./savedQueryBlock'));
 export const SavedQuery = defineSeerEmbed({
   name: 'savedQuery',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazySavedQueryBlock} data={props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazySavedQueryBlock} data={props} />;
+      case 'markdown':
+        return <SavedQueryLink data={props} format="markdown" />;
+      case 'inline':
+        return <SavedQueryLink data={props} />;
     }
-    return <SavedQueryLink data={props} />;
   },
 });

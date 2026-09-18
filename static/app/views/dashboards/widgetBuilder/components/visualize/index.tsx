@@ -649,6 +649,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
       {canShowTraceMetricEquations && (
         <Container paddingBottom="md">
           <SegmentedControl
+            aria-label={t('Visualization mode')}
             value={isEquationMode ? 'equation' : 'series'}
             onChange={value => handleModeToggle(value === 'equation')}
             size="sm"
