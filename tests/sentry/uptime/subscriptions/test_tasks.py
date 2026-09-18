@@ -544,6 +544,20 @@ class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
             "default", sub, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
         )
 
+    def test_region_filter_skips_row_without_subscription_id(self) -> None:
+        # The filtered path never writes the row, so a minted id would reach Redis only.
+        sub = self.create_subscription(UptimeSubscription.Status.ACTIVE, subscription_id=None)
+
+        with patch("sentry.uptime.subscriptions.tasks.produce_config") as produce_config:
+            update_remote_uptime_subscription(sub.id, region_slugs=["default"])
+
+        produce_config.assert_not_called()
+        self.metrics.incr.assert_called_once_with(
+            "uptime.subscriptions.update.no_subscription_id", sample_rate=1.0
+        )
+        sub.refresh_from_db()
+        assert sub.subscription_id is None
+
 
 REPAIR_REGIONS = [
     UptimeRegionConfig(slug="a1", name="A1", config_redis_key_prefix="a"),
