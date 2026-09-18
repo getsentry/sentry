@@ -1,8 +1,8 @@
 import {useEffect, useMemo, type ComponentType, type ReactNode} from 'react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
@@ -112,6 +112,18 @@ interface AutofixContentProps extends Pick<Group, 'id' | 'shortId'> {
  * rather than echoing back run state, so a step can arrive as the write-up
  * alone. Missing detail collapses to the summary rather than an empty section.
  */
+const AUTOFIX_MARKDOWN_COMPONENTS: MarkdownProps['components'] = {
+  Paragraph: ({children}) => (
+    <Text as="p" size="md" density="comfortable" wordBreak="break-all">
+      {children}
+    </Text>
+  ),
+};
+
+function AutofixMarkdown({raw}: {raw: string}) {
+  return <Markdown raw={raw} components={AUTOFIX_MARKDOWN_COMPONENTS} />;
+}
+
 function AutofixStepBody({
   fiveWhys,
   reproductionSteps,
@@ -133,7 +145,7 @@ function AutofixStepBody({
     return <SolutionBody summary={result} steps={steps ?? []} />;
   }
 
-  return <Markdown raw={result} />;
+  return <AutofixMarkdown raw={result} />;
 }
 
 export const Autofix = defineSeerEmbed({
@@ -358,29 +370,29 @@ interface RootCauseBodyProps {
 function RootCauseBody({description, fiveWhys, reproductionSteps}: RootCauseBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={description} />
+      <AutofixMarkdown raw={description} />
       {fiveWhys.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Why did this happen?')}</Text>
-          <Container as="ul" margin="0">
+          <Stack as="ul" gap="md" margin="0">
             {fiveWhys.map((why, index) => (
               <li key={index}>
-                <Markdown raw={why} />
+                <AutofixMarkdown raw={why} />
               </li>
             ))}
-          </Container>
+          </Stack>
         </ArtifactDetails>
       )}
       {reproductionSteps && reproductionSteps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Reproduction Steps')}</Text>
-          <Container as="ol" margin="0">
+          <Stack as="ol" gap="md" margin="0">
             {reproductionSteps.map((step, index) => (
               <li key={index}>
-                <Markdown raw={step} />
+                <AutofixMarkdown raw={step} />
               </li>
             ))}
-          </Container>
+          </Stack>
         </ArtifactDetails>
       )}
     </Stack>
@@ -395,22 +407,22 @@ interface SolutionBodyProps {
 function SolutionBody({steps, summary}: SolutionBodyProps) {
   return (
     <Stack gap="lg">
-      <Markdown raw={summary} />
+      <AutofixMarkdown raw={summary} />
       {steps.length > 0 && (
         <ArtifactDetails>
           <Text bold>{t('Steps to Resolve')}</Text>
-          <Container as="ol" margin="0">
+          <Stack as="ol" gap="md" margin="0">
             {steps.map((step, index) => (
               <li key={index}>
                 <Stack>
-                  <Markdown raw={step.title} />
-                  <Text size="sm" variant="muted">
+                  <AutofixMarkdown raw={step.title} />
+                  <Text size="sm" variant="muted" wordBreak="break-all">
                     {step.description}
                   </Text>
                 </Stack>
               </li>
             ))}
-          </Container>
+          </Stack>
         </ArtifactDetails>
       )}
     </Stack>
