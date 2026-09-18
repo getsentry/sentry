@@ -3,6 +3,7 @@ import time
 
 import sentry_sdk
 from django.db import connections, router, transaction
+from sentry_sdk import traces
 
 from sentry.constants import DataCategory
 from sentry.models.options.organization_option import OrganizationOption
@@ -14,7 +15,6 @@ from sentry.taskworker.namespaces import relay_invalidation_tasks, relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
-from sentry.utils.tracing import set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -273,7 +273,7 @@ def invalidate_project_config(
     projectconfig_cache.backend.set_many(updated_configs)
 
 
-@trace
+@traces.trace
 def schedule_invalidate_project_config(
     *,
     trigger,
@@ -349,11 +349,13 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with start_span(
-        op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+    with traces.start_span(
         name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
-    ) as span:
-        set_span_tag(span, "transaction_db", transaction_db)
+        attributes={
+            "sentry.op": "relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+            "transaction_db": transaction_db,
+        },
+    ):
         connection = connections[transaction_db]
         # Outside an atomic block, on_commit() runs the callback immediately under
         # autocommit, but raises TransactionManagementError under manual transaction
