@@ -592,17 +592,19 @@ class RepairMissingConfigsTest(ConfigPusherTestMixin):
         ]
 
     def test_disabled_at_publish_time_not_republished(self) -> None:
+        # Disabled after the sweep read it as ACTIVE, so the repair sees the newer status.
         sid = uuid4().hex
         sub = self.create_uptime_subscription(
             subscription_id=sid, status=UptimeSubscription.Status.DISABLED, region_slugs=["a1"]
         )
 
-        # Run any queued task inline, as if the row was disabled between the sweep and the publish.
-        self.delay.side_effect = update_remote_uptime_subscription
-        repair_missing_configs(STORE_A, {sid})
+        with patch("sentry.uptime.subscriptions.tasks.metrics") as metrics:
+            repair_missing_configs(STORE_A, {sid})
 
-        sub.refresh_from_db()
-        assert sub.status == UptimeSubscription.Status.DISABLED.value
+        self.delay.assert_not_called()
+        metrics.incr.assert_any_call(
+            "uptime.config_repair.skipped", amount=1, tags={"cluster": "default"}, sample_rate=1.0
+        )
         self.assert_redis_config("a1", sub, None, None)
 
 
