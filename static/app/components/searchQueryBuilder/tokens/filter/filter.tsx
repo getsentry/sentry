@@ -278,6 +278,7 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
+  const {menuPresentation, panelRef, portalTarget} = useSearchQueryBuilderLayout();
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -295,7 +296,10 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
   }, [dispatch, focusOverride, isEditing, item.key, onActiveChange]);
 
   const {focusWithinProps} = useFocusWithin({
-    onBlurWithin: () => {
+    onBlurWithin: event => {
+      if (menuPresentation === 'panel' && portalTarget?.contains(event.relatedTarget)) {
+        return;
+      }
       setIsEditing(false);
     },
   });
@@ -318,7 +322,12 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
             setIsEditing(false);
             onActiveChange(false);
             dispatch({type: 'COMMIT_QUERY'});
-            if (state.collection.getKeyAfter(item.key)) {
+            // Committing on blur must not move focus back into a dismissed panel.
+            if (
+              state.collection.getKeyAfter(item.key) &&
+              (menuPresentation !== 'panel' ||
+                panelRef.current?.contains(document.activeElement))
+            ) {
               state.selectionManager.setFocusedKey(
                 state.collection.getKeyAfter(item.key)
               );

@@ -296,7 +296,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   onTabForward,
   popoverRef,
   state,
-  overlayProps,
+  overlayProps: positionedOverlayProps,
   portalTarget,
   totalOptions,
 }: {
@@ -316,6 +316,14 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
+  const {menuPresentation} = useSearchQueryBuilderLayout();
+  const overlayProps =
+    menuPresentation === 'panel'
+      ? {
+          ...positionedOverlayProps,
+          style: {position: 'relative' as const, width: '100%', maxWidth: '100%'},
+        }
+      : positionedOverlayProps;
   const anyItemsShowing = totalOptions > hiddenOptions.size;
 
   if (!isOpen) {
@@ -418,7 +426,8 @@ export function SearchQueryBuilderCombobox<
 }: SearchQueryBuilderComboboxProps<T>) {
   const {clearSearchQuery, dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
-  const {portalTarget, wrapperRef} = useSearchQueryBuilderLayout();
+  const {menuPresentation, panelRef, portalTarget, wrapperRef} =
+    useSearchQueryBuilderLayout();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -481,13 +490,17 @@ export function SearchQueryBuilderCombobox<
       shouldHideOutside: false,
       shouldFocusWrap: true,
       onFocus: e => {
-        if (openOnFocus) {
+        if (openOnFocus || menuPresentation === 'panel') {
           state.open();
         }
         onFocus?.(e);
       },
       onBlur: e => {
-        if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
+        if (
+          e.relatedTarget &&
+          (popoverRef.current?.contains(e.relatedTarget) ||
+            !shouldCloseOnInteractOutside?.(e.relatedTarget))
+        ) {
           return;
         }
         onCustomValueBlurred(inputValue, e);
@@ -580,7 +593,11 @@ export function SearchQueryBuilderCombobox<
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {
-      if (popoverRef.current?.contains(el) || wrapperRef.current?.contains(el)) {
+      if (
+        popoverRef.current?.contains(el) ||
+        wrapperRef.current?.contains(el) ||
+        panelRef.current?.contains(el)
+      ) {
         return false;
       }
 
@@ -611,10 +628,14 @@ export function SearchQueryBuilderCombobox<
     e => {
       e.stopPropagation();
       inputProps.onClick?.(e);
-      state.toggle();
+      if (menuPresentation === 'panel') {
+        state.open();
+      } else {
+        state.toggle();
+      }
       onClick?.(e);
     },
-    [inputProps, state, onClick]
+    [inputProps, menuPresentation, state, onClick]
   );
 
   useUpdateOverlayPositionOnContentChange({
