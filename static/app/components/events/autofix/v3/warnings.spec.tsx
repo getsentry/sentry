@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AutofixWarnings} from 'sentry/components/events/autofix/v3/drawer';
+import {AutofixWarnings} from 'sentry/components/events/autofix/v3/warnings';
 
 describe('AutofixWarnings', () => {
   const organization = OrganizationFixture();
