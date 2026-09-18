@@ -10,6 +10,32 @@ class AIConversationExamples:
                 "title": "Check San Francisco weather",
                 "projects": [{"id": 1, "name": "Weather Assistant", "slug": "weather-assistant"}],
                 "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/01JQZ4W8X7J2Q9B4R5M6N7P8T9/?project=1",
+                "endTimestamp": 1743465601250,
+                "generationDuration": 1250.0,
+                "inputTokens": 0,
+                "llmCalls": 1,
+                "usageByModel": [
+                    {
+                        "model": "gpt-4o-mini-2024-07-18",
+                        "inputTokens": 0,
+                        "outputTokens": 0,
+                        "totalTokens": 485,
+                        "cacheReadTokens": 0,
+                        "cacheWriteTokens": 0,
+                        "reasoningTokens": 0,
+                        "inputCost": 0,
+                        "outputCost": 0,
+                        "totalCost": 0.0042,
+                        "hasCompleteTokenData": False,
+                    }
+                ],
+                "outputTokens": 0,
+                "startTimestamp": 1743465600000,
+                "toolCalls": 0,
+                "toolErrors": 0,
+                "toolNames": [],
+                "totalCost": 0.0042,
+                "totalTokens": 485,
                 "spans": [
                     {
                         "span_id": "a1b2c3d4e5f67890",
