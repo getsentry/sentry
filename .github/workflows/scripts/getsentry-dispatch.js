@@ -50,8 +50,6 @@ export async function dispatch({
   core,
   fileChanges,
   mergeCommitSha,
-  sentryChangedFiles,
-  sentryPreviousFilenames,
   targetWorkflow,
 }) {
   core.startGroup('Dispatching request to getsentry.');
@@ -78,10 +76,6 @@ export async function dispatch({
         'sentry-sha': mergeCommitSha,
         // prSHA is the sha actions should post commit statuses too.
         'sentry-pr-sha': context.payload.pull_request.head.sha,
-
-        // Changed files for selective testing. Empty string means full suite.
-        'sentry-changed-files': sentryChangedFiles || '',
-        'sentry-previous-filenames': sentryPreviousFilenames || '',
       };
 
       core.info(
