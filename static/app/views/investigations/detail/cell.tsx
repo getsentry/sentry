@@ -12,6 +12,7 @@ import {TextArea} from '@sentry/scraps/textarea';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openConfirmModal} from 'sentry/components/confirm';
+import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
@@ -24,6 +25,11 @@ import {
   IconSeer,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {
+  getElapsedMilliseconds,
+  useElapsedTime,
+  useNow,
+} from 'sentry/utils/duration/useElapsedTime';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getInvestigationDetailQueryOptions,
@@ -43,12 +49,6 @@ import type {
   InvestigationQueryOutput,
   InvestigationTranscriptBlock,
 } from 'sentry/views/investigations/types';
-import {
-  ElapsedDuration,
-  getElapsedMilliseconds,
-  useElapsedTime,
-  useNow,
-} from 'sentry/views/investigations/detail/elapsedTime';
 import {visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
@@ -641,7 +641,7 @@ function RefinementPanel({
   const elapsed = useElapsedTime(
     currentExecution?.startedAt ?? execution?.blocks[0]?.timestamp ?? null,
     currentExecution?.completedAt ?? null,
-    active
+    {active}
   );
 
   useEffect(() => {
@@ -1049,6 +1049,14 @@ function adaptTranscriptBlock(block: InvestigationTranscriptBlock): Block {
   };
 }
 
+function ElapsedDuration({milliseconds}: {milliseconds: number}) {
+  return (
+    <Text monospace variant="muted">
+      <Duration seconds={milliseconds / 1000} fixedDigits={1} abbreviation />
+    </Text>
+  );
+}
+
 function getExecutionTitle(status: InvestigationExecutionStatus | undefined) {
   if (isExecutionActive(status)) {
     return t('Working on this analysis…');
@@ -1215,8 +1223,7 @@ const CellActions = styled(Flex)`
 `;
 
 const CellHoverSurface = styled(Stack)`
-  &:hover ${CellActions},
-  &:focus-within ${CellActions} {
+  &:hover ${CellActions}, &:focus-within ${CellActions} {
     opacity: 1;
     pointer-events: auto;
   }

@@ -7,28 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {IconSeer} from 'sentry/icons';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {SECOND} from 'sentry/utils/formatters';
-
-const ELAPSED_TIME_TICK_INTERVAL_MS = 100;
-
-/**
- * Returns elapsed ms between `startTime` and `endTime`.
- * While `endTime` is undefined, ticks every ELAPSED_TIME_TICK_INTERVAL_MS to keep the value live.
- */
-function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    if (endTime) {
-      return;
-    }
-    const id = setInterval(() => setNow(new Date()), ELAPSED_TIME_TICK_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [endTime]);
-
-  return (endTime ?? now).getTime() - startTime.getTime();
-}
+import {formatElapsedSeconds, useElapsedTime} from 'sentry/utils/duration/useElapsedTime';
 
 /**
  * A 1.5ch-wide, layout-stable ellipsis that cycles ".", "..", "..." to signal
@@ -106,9 +85,11 @@ export function ThinkingBlock({title, startTime, endTime, children}: ThinkingBlo
       <Disclosure.Title
         leadingItems={<IconSeer size="xs" animation={isActive ? 'loading' : undefined} />}
         trailingItems={
-          <Text variant="secondary" size="sm" align="right" monospace>
-            {getDuration(elapsed / 1000, 1, true, false, false, SECOND)}
-          </Text>
+          elapsed === null ? null : (
+            <Text variant="secondary" size="sm" align="right" monospace>
+              {formatElapsedSeconds(elapsed)}
+            </Text>
+          )
         }
       >
         <Text size="sm" monospace variant="muted" ellipsis>

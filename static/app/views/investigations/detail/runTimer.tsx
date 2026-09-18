@@ -1,11 +1,7 @@
-import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {
-  formatElapsedSeconds,
-  useElapsedTime,
-} from 'sentry/views/investigations/detail/elapsedTime';
+import {formatElapsedSeconds, useElapsedTime} from 'sentry/utils/duration/useElapsedTime';
 
 type InvestigationRunTimerProps = {
   /** When the investigation started, as an ISO timestamp. */
@@ -20,35 +16,34 @@ type InvestigationRunTimerProps = {
 /**
  * How long the investigation has been going, or how long it took.
  *
- * The same counter Seer's own transcript runs — `useElapsedTime` ticking at a
- * tenth of a second behind the `ThinkingBlock` formatting — so the header reads
- * in the same units as the steps below it. A run in flight counts up; a run
- * that has stopped freezes at its total, which is the number worth keeping.
+ * The same counter Seer's own transcript runs — `useElapsedTime` behind the
+ * seconds-pinned formatting — so the header reads in the same units as the
+ * steps below it. A run in flight counts up; a run that has stopped freezes at
+ * its total, which is the number worth keeping.
+ *
+ * The status chip next to it already says which of the two this is, so the
+ * duration stands on its own. The distinction survives for screen readers in
+ * the accessible name, where there is no chip to read it off.
  */
 export function InvestigationRunTimer({startedAt, endedAt}: InvestigationRunTimerProps) {
   const isRunning = !endedAt;
-  const elapsed = useElapsedTime(startedAt, endedAt ?? null, isRunning);
+  const elapsed = useElapsedTime(startedAt, endedAt, {active: isRunning});
 
   if (elapsed === null) {
     return null;
   }
 
   return (
-    <Flex align="center" gap="xs" wrap="nowrap" data-test-id="investigation-run-timer">
-      <Text size="sm" variant="muted">
-        {isRunning ? t('Running for') : t('Total time')}
-      </Text>
-      <Text
-        size="sm"
-        variant="muted"
-        monospace
-        tabular
-        wrap="nowrap"
-        role="timer"
-        aria-label={isRunning ? t('Time elapsed') : t('Total run time')}
-      >
-        {formatElapsedSeconds(elapsed)}
-      </Text>
-    </Flex>
+    <Text
+      size="sm"
+      variant="muted"
+      monospace
+      tabular
+      wrap="nowrap"
+      role="timer"
+      aria-label={isRunning ? t('Time elapsed') : t('Total run time')}
+    >
+      {formatElapsedSeconds(elapsed)}
+    </Text>
   );
 }

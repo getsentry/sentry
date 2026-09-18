@@ -15,8 +15,7 @@ describe('InvestigationRunTimer', () => {
   it('counts up in tenths of a second while the run is going', () => {
     render(<InvestigationRunTimer startedAt="2026-08-13T20:00:00Z" />);
 
-    expect(screen.getByText('Running for')).toBeInTheDocument();
-    expect(screen.getByRole('timer')).toHaveTextContent('30.4s');
+    expect(screen.getByRole('timer', {name: 'Time elapsed'})).toHaveTextContent('30.4s');
 
     act(() => {
       jest.advanceTimersByTime(700);
@@ -33,8 +32,9 @@ describe('InvestigationRunTimer', () => {
       />
     );
 
-    expect(screen.getByText('Total time')).toBeInTheDocument();
-    expect(screen.getByRole('timer')).toHaveTextContent('12.3s');
+    expect(screen.getByRole('timer', {name: 'Total run time'})).toHaveTextContent(
+      '12.3s'
+    );
 
     act(() => {
       jest.advanceTimersByTime(5000);

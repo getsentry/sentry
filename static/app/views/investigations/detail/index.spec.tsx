@@ -1829,8 +1829,7 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
     expect(within(header).getByText('Synthesizing…')).toBeInTheDocument();
     // The wall clock counts up while the run is going.
-    expect(within(header).getByText('Running for')).toBeInTheDocument();
-    expect(within(header).getByRole('timer')).toBeInTheDocument();
+    expect(within(header).getByRole('timer', {name: 'Time elapsed'})).toBeInTheDocument();
     expect(
       within(screen.getByTestId('seer-status-block')).queryByText('Synthesizing…')
     ).not.toBeInTheDocument();
@@ -1851,8 +1850,12 @@ describe('Investigation detail', () => {
     expect(await within(header).findByText('Completed')).toBeInTheDocument();
     expect(within(header).queryByText('Synthesizing…')).not.toBeInTheDocument();
     // …and settles into the total the finished run took.
-    expect(await within(header).findByText('Total time')).toBeInTheDocument();
-    expect(within(header).queryByText('Running for')).not.toBeInTheDocument();
+    expect(
+      await within(header).findByRole('timer', {name: 'Total run time'})
+    ).toBeInTheDocument();
+    expect(
+      within(header).queryByRole('timer', {name: 'Time elapsed'})
+    ).not.toBeInTheDocument();
     expect(screen.getByText('Your investigation is ready')).toBeInTheDocument();
   });
 
