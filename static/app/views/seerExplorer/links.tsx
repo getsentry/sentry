@@ -623,10 +623,7 @@ export const LINK_RULES: LinkRule[] = [
     id: 'list_replays',
     prefix: /\/organizations\/\{organization_id_or_slug\}\/replays\/?$/,
     resolve: ({params, title}, {organization, projects}) => {
-      const project = resolveProject(
-        params.project_id_or_slug ?? params.project,
-        projects
-      );
+      const projectIds = projectIdsFromApiCall(params, projects);
       return {
         label: title ?? t('View replays'),
         url: {
@@ -636,7 +633,7 @@ export const LINK_RULES: LinkRule[] = [
             ...(params.statsPeriod || params.stats_period
               ? {statsPeriod: params.statsPeriod || params.stats_period}
               : {}),
-            ...(project?.id ? {project: project.id} : {}),
+            ...(projectIds ? {project: projectIds} : {}),
           },
         },
       };
@@ -648,15 +645,12 @@ export const LINK_RULES: LinkRule[] = [
     prefix:
       /\/(?:organizations\/\{organization_id_or_slug\}|projects\/\{organization_id_or_slug\}\/\{project_id_or_slug\})\/releases\/?$/,
     resolve: ({params, title}, {organization, projects}) => {
-      const project = resolveProject(
-        params.project_id_or_slug ?? params.project,
-        projects
-      );
+      const projectIds = projectIdsFromApiCall(params, projects);
       return {
         label: title ?? t('View releases'),
         url: {
           pathname: makeReleasesPathname({organization, path: '/'}),
-          query: project?.id ? {project: project.id} : {},
+          query: projectIds ? {project: projectIds} : {},
         },
       };
     },
@@ -979,18 +973,6 @@ function searchParamsFromApiCall(
     next.fields = getStringArray(next.field);
   }
 
-  // The events API expresses a spans aggregation as `field=tag&field=count()`;
-  // Explore needs separate chart axes, groupings, and an explicit aggregate mode.
-  if (next.dataset === 'spans') {
-    const fields = getStringArray(next.fields);
-    const aggregates = fields.filter(isAggregateField);
-    if (aggregates.length) {
-      next.y_axes ??= aggregates;
-      next.group_by ??= fields.filter(field => !isAggregateField(field));
-      next.mode ??= 'aggregates';
-    }
-  }
-
   if (!next.dataset) {
     if (path?.includes('/issues/')) {
       next.dataset = 'issues';
@@ -1003,12 +985,41 @@ function searchParamsFromApiCall(
     }
   }
 
+  // Events tables put aggregates in `field`; stats/timeseries routes use `yAxis`.
+  // Explore needs separate chart axes, groupings, and an explicit aggregate mode.
+  if (next.dataset === 'spans') {
+    const fields = getStringArray(next.fields);
+    const aggregates = fields.filter(isAggregateField);
+    if (aggregates.length || getStringArray(next.y_axes).length) {
+      next.y_axes ??= aggregates;
+      next.group_by ??= fields.filter(field => !isAggregateField(field));
+      next.mode ??= 'aggregates';
+    }
+  }
+
   // Wire `project` is an id (or list of ids). searchUrl also accepts `project_slugs` from the lib.
   if (next.project !== undefined && next.project_ids === undefined) {
     next.project_ids = getStringArray(next.project);
   }
 
   return next;
+}
+
+/** Keep wire project ids even when the viewer's project list is only partially loaded. */
+function projectIdsFromApiCall(
+  params: Record<string, any>,
+  projects?: Array<{id: string; slug: string}>
+): string[] | undefined {
+  const ids = getStringArray(params.project);
+  if (ids.length) {
+    return ids;
+  }
+  const pathProject = asUrlSegment(params.project_id_or_slug);
+  if (pathProject && /^\d+$/.test(pathProject)) {
+    return [pathProject];
+  }
+  const project = resolveProject(pathProject, projects);
+  return project ? [project.id] : undefined;
 }
 
 /**
@@ -1052,9 +1063,9 @@ function searchUrl(
     queryParams.project = getStringArray(project_ids);
   } else if (params.project_id_or_slug) {
     // Project-scoped API routes carry the project in the path, not the query string.
-    const project = resolveProject(params.project_id_or_slug, projects);
-    if (project?.id) {
-      queryParams.project = [project.id];
+    const projectIds = projectIdsFromApiCall(params, projects);
+    if (projectIds) {
+      queryParams.project = projectIds;
     }
   }
 

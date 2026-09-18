@@ -928,6 +928,81 @@ describe('search links', () => {
     });
   });
 
+  it.each(['events-stats', 'events-timeseries'])(
+    'opens %s span charts in aggregate mode',
+    endpoint => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: `/api/0/organizations/{organization_id_or_slug}/${endpoint}/`,
+          resolved_path: `/api/0/organizations/org-slug/${endpoint}/?dataset=spans&yAxis=count()&groupBy=span.op&project=2&statsPeriod=7d`,
+        }),
+        ctx
+      );
+
+      expect(result?.url).toEqual({
+        pathname: '/organizations/org-slug/traces/',
+        query: {
+          query: '',
+          project: ['2'],
+          statsPeriod: '7d',
+          mode: 'aggregate',
+          visualize: ['"count()"'],
+          yAxes: ['"count()"'],
+          groupBy: ['span.op'],
+          aggregateField: ['{"yAxes":["count()"]}', '{"groupBy":"span.op"}'],
+        },
+      });
+    }
+  );
+
+  it.each(['replays', 'releases'])(
+    'preserves multiple and unloaded project ids on %s links',
+    endpoint => {
+      for (const projectQuery of ['project=2&project=999', 'project=999']) {
+        const result = resolveLink(
+          subjectFromCallRecord({
+            id: 1,
+            kind: 'api',
+            method: 'GET',
+            path: `/api/0/organizations/{organization_id_or_slug}/${endpoint}/`,
+            resolved_path: `/api/0/organizations/org-slug/${endpoint}/?${projectQuery}`,
+          }),
+          ctx
+        );
+        expect(result?.url).toEqual(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              project: new URLSearchParams(projectQuery).getAll('project'),
+            }),
+          })
+        );
+      }
+    }
+  );
+
+  it.each(['events', 'releases'])(
+    'preserves an unloaded numeric project from the %s API path',
+    endpoint => {
+      const result = resolveLink(
+        subjectFromCallRecord({
+          id: 1,
+          kind: 'api',
+          method: 'GET',
+          path: `/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/${endpoint}/`,
+          path_params: {organization_id_or_slug: 'org-slug', project_id_or_slug: '999'},
+          resolved_path: `/api/0/projects/org-slug/999/${endpoint}/`,
+        }),
+        ctx
+      );
+      expect(result?.url).toEqual(
+        expect.objectContaining({query: expect.objectContaining({project: ['999']})})
+      );
+    }
+  );
+
   it('keeps sample fields and absolute dates on a spans API link', () => {
     const result = resolveLink(
       subjectFromCallRecord({
