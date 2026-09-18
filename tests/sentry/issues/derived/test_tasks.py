@@ -12,6 +12,7 @@ from sentry.issues.action_log.types import ActionSource, GroupActionActor, ViewA
 from sentry.issues.derived.check import CheckId, CheckTimeout
 from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.derived.heal_state import (
+    CURRENT_STATE_VERSION,
     HealSchedulerState,
     _state_cache,
     load_state,
@@ -334,6 +335,9 @@ class SpawnStateTest(TestCase):
 
 
 class HealSchedulerStateTest(TestCase):
+    def test_cache_key(self) -> None:
+        assert _state_cache.key("state") == "issues-derived-heal:state"
+
     def test_round_trip(self) -> None:
         state = HealSchedulerState(
             head_hash="current",
@@ -347,6 +351,7 @@ class HealSchedulerStateTest(TestCase):
 
         with patch.object(_state_cache, "get", return_value=cached_state):
             assert load_state() == state
+        assert state.version == CURRENT_STATE_VERSION
 
     def test_missing(self) -> None:
         with patch.object(_state_cache, "get", return_value=None):
@@ -357,9 +362,8 @@ class HealSchedulerStateTest(TestCase):
             assert load_state() is None
 
     def test_wrong_version(self) -> None:
-        wrong_version: Any = 2
-        state = HealSchedulerState.construct(
-            version=wrong_version,
+        state = HealSchedulerState(
+            version=CURRENT_STATE_VERSION + 1,
             head_hash="current",
             stale={},
             discovered_at=datetime.now(timezone.utc),

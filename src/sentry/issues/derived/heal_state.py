@@ -9,11 +9,12 @@ from sentry.workflow_engine.caches.mapping import CacheMapping
 
 # Three days allows meaningful progress while bounding how long optimistic gaps persist.
 _STATE_TTL_SECONDS = 3 * 24 * 60 * 60
+# Bump when the state shape changes; incompatible cached state is discarded on load.
+CURRENT_STATE_VERSION = 1
 
 
 class HealSchedulerState(BaseModel):
-    # State shape version; bump the cache namespace instead of migrating old state.
-    version: Literal[1] = 1
+    version: int = CURRENT_STATE_VERSION
     # Most recently observed pipeline hash.
     head_hash: str | None = None
     # Non-NULL stale pipeline hash to the next group ID to schedule.
@@ -25,14 +26,14 @@ class HealSchedulerState(BaseModel):
 
 _state_cache = CacheMapping[Literal["state"], HealSchedulerState](
     lambda key: key,
-    namespace="issues-derived-heal-v1",
+    namespace="issues-derived-heal",
     ttl_seconds=_STATE_TTL_SECONDS,
 )
 
 
 def load_state() -> HealSchedulerState | None:
     state = _state_cache.get("state")
-    if not isinstance(state, HealSchedulerState) or state.version != 1:
+    if not isinstance(state, HealSchedulerState) or state.version != CURRENT_STATE_VERSION:
         return None
     if state.discovered_at is None or state.discovered_at.tzinfo is None:
         return None
