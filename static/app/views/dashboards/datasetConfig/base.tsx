@@ -384,9 +384,6 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
-    case WidgetType.DISCOVER:
-    case WidgetType.ERRORS:
-      return ErrorsConfig;
     case WidgetType.TRANSACTIONS:
       return TransactionsConfig;
     case WidgetType.LOGS:
@@ -397,6 +394,8 @@ export function getDatasetConfig(widgetType?: WidgetType):
       return TraceMetricsConfig;
     case WidgetType.PREPROD_APP_SIZE:
       return MobileAppSizeConfig;
+    case WidgetType.DISCOVER:
+    case WidgetType.ERRORS:
     case undefined:
       return ErrorsConfig;
     default:
