@@ -12,6 +12,33 @@ import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
+function SummaryFeedbackButton({type}: {type: 'positive' | 'negative'}) {
+  return (
+    <FeedbackButton
+      variant="secondary"
+      aria-label={t('Give feedback on the AI-powered summary')}
+      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
+      tooltipProps={{
+        title: type === 'positive' ? t('I like this') : t("I don't like this"),
+      }}
+      size="xs"
+      feedbackOptions={{
+        messagePlaceholder:
+          type === 'positive'
+            ? t('What did you like about the AI-powered summary?')
+            : t('How can we make the summary work better for you?'),
+        tags: {
+          'feedback.source': 'feedback_ai_summary',
+          'feedback.owner': 'replay',
+          'feedback.type': type,
+        },
+      }}
+    >
+      {undefined}
+    </FeedbackButton>
+  );
+}
+
 export function FeedbackSummaryCategories() {
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
 
@@ -24,33 +51,6 @@ export function FeedbackSummaryCategories() {
     return null;
   }
 
-  const feedbackButton = ({type}: {type: 'positive' | 'negative'}) => {
-    return (
-      <FeedbackButton
-        variant="secondary"
-        aria-label={t('Give feedback on the AI-powered summary')}
-        icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-        tooltipProps={{
-          title: type === 'positive' ? t('I like this') : t("I don't like this"),
-        }}
-        size="xs"
-        feedbackOptions={{
-          messagePlaceholder:
-            type === 'positive'
-              ? t('What did you like about the AI-powered summary?')
-              : t('How can we make the summary work better for you?'),
-          tags: {
-            'feedback.source': 'feedback_ai_summary',
-            'feedback.owner': 'replay',
-            'feedback.type': type,
-          },
-        }}
-      >
-        {undefined}
-      </FeedbackButton>
-    );
-  };
-
   return (
     <SummaryIconContainer>
       <Disclosure
@@ -62,8 +62,8 @@ export function FeedbackSummaryCategories() {
         <Disclosure.Title
           trailingItems={
             <Flex gap="xs">
-              {feedbackButton({type: 'positive'})}
-              {feedbackButton({type: 'negative'})}
+              <SummaryFeedbackButton type="positive" />
+              <SummaryFeedbackButton type="negative" />
             </Flex>
           }
         >
