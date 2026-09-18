@@ -60,6 +60,8 @@ describe('OurLogs', () => {
   });
 
   it("should show a placeholder if there's no replay record", () => {
+    // The loading state currently renders a tbody outside a table.
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
     jest.mocked(useReplayTraces).mockReturnValue({
       replayTraces: [],
       indexComplete: true,
@@ -73,6 +75,8 @@ describe('OurLogs', () => {
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
   });
 
   it("shows logs table if there's replay traces", async () => {

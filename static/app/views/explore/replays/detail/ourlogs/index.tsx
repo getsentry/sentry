@@ -48,11 +48,9 @@ export function OurLogs() {
   if (!replay || !defined(replayStartedAt) || !defined(replayEndedAt) || !replayId) {
     return (
       <BorderedSection isStatus>
-        <Table>
-          <Table.Body>
-            <LoadingRenderer />
-          </Table.Body>
-        </Table>
+        <Table.Body>
+          <LoadingRenderer />
+        </Table.Body>
       </BorderedSection>
     );
   }
