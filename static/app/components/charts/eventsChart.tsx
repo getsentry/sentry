@@ -429,145 +429,6 @@ export type EventsChartProps = {
   | 'fromDiscover'
 >;
 
-type ChartDataProps = {
-  errored: boolean;
-  loading: boolean;
-  reloading: boolean;
-  zoomRenderProps: ZoomRenderProps;
-  previousTimeseriesData?: Series[] | null;
-  releaseSeries?: Series[];
-  results?: Series[];
-  tableData?: TableDataWithTitle[];
-  timeframe?: {end: number; start: number};
-  timeseriesData?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  topEvents?: number;
-};
-
-type ChartImplementationProps = ChartDataProps &
-  Pick<
-    EventsChartProps,
-    | 'additionalSeries'
-    | 'chartComponent'
-    | 'chartHeader'
-    | 'chartOptions'
-    | 'colors'
-    | 'disableableSeries'
-    | 'fromDiscover'
-    | 'height'
-    | 'legendOptions'
-    | 'loadingAdditionalSeries'
-    | 'minutesThresholdToDisplaySeconds'
-    | 'previousSeriesTransformer'
-    | 'seriesTransformer'
-    | 'showDaily'
-    | 'showLegend'
-    | 'reloadingAdditionalSeries'
-  > & {
-    currentSeriesNames: string[];
-    isStacked: boolean;
-    previousSeriesNames: string[];
-    yAxis: string;
-    forceChartType?: string;
-  };
-
-type ChartWithReleasesProps = ChartImplementationProps &
-  Pick<
-    EventsChartProps,
-    | 'emphasizeReleases'
-    | 'environments'
-    | 'period'
-    | 'preserveReleaseQueryParams'
-    | 'projects'
-    | 'releaseQueryExtra'
-    | 'start'
-    | 'end'
-    | 'utc'
-  >;
-
-function ChartImplementation({
-  releaseSeries,
-  errored,
-  loading,
-  reloading,
-  results,
-  timeseriesData,
-  tableData,
-  chartHeader,
-  colors,
-  disableableSeries,
-  height,
-  isStacked,
-  loadingAdditionalSeries,
-  reloadingAdditionalSeries,
-  ...chartProps
-}: ChartImplementationProps) {
-  if (errored) {
-    return (
-      <ErrorPanel>
-        <IconWarning variant="muted" size="lg" />
-      </ErrorPanel>
-    );
-  }
-  const seriesData = results ? results : timeseriesData;
-
-  return (
-    <TransitionChart
-      loading={loading}
-      reloading={reloading || !!reloadingAdditionalSeries}
-      height={height ? `${height}px` : undefined}
-    >
-      <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
-
-      {isValidElement(chartHeader) && chartHeader}
-
-      <ThemedChart
-        loading={loading || !!loadingAdditionalSeries}
-        reloading={reloading || !!reloadingAdditionalSeries}
-        releaseSeries={releaseSeries || []}
-        timeseriesData={seriesData ?? []}
-        colors={colors}
-        stacked={isStacked}
-        {...chartProps}
-        disableableSeries={disableableSeries}
-        height={height}
-        tableData={tableData ?? []}
-      />
-    </TransitionChart>
-  );
-}
-
-function ChartWithReleases({
-  utc,
-  period,
-  start,
-  end,
-  projects,
-  environments,
-  emphasizeReleases,
-  preserveReleaseQueryParams,
-  releaseQueryExtra,
-  ...chartProps
-}: ChartWithReleasesProps) {
-  return (
-    <ReleaseSeries
-      utc={utc}
-      period={period}
-      start={start}
-      end={end}
-      projects={projects}
-      environments={environments}
-      emphasizeReleases={emphasizeReleases}
-      preserveQueryParams={preserveReleaseQueryParams}
-      queryExtra={releaseQueryExtra}
-    >
-      {({releaseSeries}) => (
-        <ChartImplementation {...chartProps} releaseSeries={releaseSeries} />
-      )}
-    </ReleaseSeries>
-  );
-}
-
 export function EventsChart(props: EventsChartProps) {
   const {
     api,
@@ -669,49 +530,87 @@ export function EventsChart(props: EventsChartProps) {
             dataset={dataset}
           >
             {eventData => {
-              const chartProps: ChartImplementationProps = {
-                ...eventData,
-                additionalSeries,
-                chartComponent,
-                chartHeader,
-                chartOptions,
-                colors,
-                currentSeriesNames,
-                disableableSeries,
-                forceChartType,
-                fromDiscover,
-                height,
-                isStacked,
-                legendOptions,
-                loadingAdditionalSeries,
-                minutesThresholdToDisplaySeconds,
-                previousSeriesNames,
-                previousSeriesTransformer,
-                reloadingAdditionalSeries,
-                seriesTransformer,
-                showDaily,
-                showLegend,
-                yAxis: yAxisArray[0]!,
-                zoomRenderProps,
-              };
+              const {
+                errored,
+                loading,
+                reloading,
+                results,
+                timeseriesData,
+                previousTimeseriesData,
+                timeframe,
+                timeseriesResultsTypes,
+              } = eventData;
 
-              if (disableReleases) {
-                return <ChartImplementation {...chartProps} />;
+              if (errored) {
+                return (
+                  <ErrorPanel>
+                    <IconWarning variant="muted" size="lg" />
+                  </ErrorPanel>
+                );
               }
 
+              const seriesData = results ?? timeseriesData;
+
               return (
-                <ChartWithReleases
-                  {...chartProps}
-                  end={end}
-                  emphasizeReleases={emphasizeReleases}
-                  environments={environments}
-                  period={period}
-                  preserveReleaseQueryParams={preserveReleaseQueryParams}
-                  projects={projects}
-                  releaseQueryExtra={releaseQueryExtra}
-                  start={start}
+                <ReleaseSeries
+                  enabled={!disableReleases}
                   utc={utc}
-                />
+                  period={period}
+                  start={start}
+                  end={end}
+                  projects={projects}
+                  environments={environments}
+                  emphasizeReleases={emphasizeReleases}
+                  preserveQueryParams={preserveReleaseQueryParams}
+                  queryExtra={releaseQueryExtra}
+                >
+                  {({releaseSeries}) => (
+                    <TransitionChart
+                      loading={loading}
+                      reloading={reloading || !!reloadingAdditionalSeries}
+                      height={height ? `${height}px` : undefined}
+                    >
+                      <TransparentLoadingMask
+                        visible={reloading || !!reloadingAdditionalSeries}
+                      />
+
+                      {isValidElement(chartHeader) && chartHeader}
+
+                      <ThemedChart
+                        forceChartType={forceChartType}
+                        zoomRenderProps={zoomRenderProps}
+                        loading={loading || !!loadingAdditionalSeries}
+                        reloading={reloading || !!reloadingAdditionalSeries}
+                        showLegend={showLegend}
+                        minutesThresholdToDisplaySeconds={
+                          minutesThresholdToDisplaySeconds
+                        }
+                        releaseSeries={releaseSeries}
+                        timeseriesData={seriesData ?? []}
+                        previousTimeseriesData={previousTimeseriesData}
+                        currentSeriesNames={currentSeriesNames}
+                        previousSeriesNames={previousSeriesNames}
+                        seriesTransformer={seriesTransformer}
+                        additionalSeries={additionalSeries}
+                        previousSeriesTransformer={previousSeriesTransformer}
+                        stacked={isStacked}
+                        yAxis={yAxisArray[0]!}
+                        showDaily={showDaily}
+                        colors={colors}
+                        legendOptions={legendOptions}
+                        chartOptions={chartOptions}
+                        disableableSeries={disableableSeries}
+                        chartComponent={chartComponent}
+                        height={height}
+                        timeframe={timeframe}
+                        topEvents={topEvents}
+                        tableData={[]}
+                        fromDiscover={fromDiscover}
+                        timeseriesResultsTypes={timeseriesResultsTypes}
+                      />
+                    </TransitionChart>
+                  )}
+                </ReleaseSeries>
               );
             }}
           </EventsRequest>
