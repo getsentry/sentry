@@ -411,7 +411,11 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-inbox-seer-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # General use issue inbox flag
     manager.add("organizations:issue-inbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Serve Autofix on its own /issues/<id>/autofix/ page instead of the issue details drawer
+    # Serve Autofix on its own /issues/<id>/autofix/ page instead of the issue details drawer.
+    # Not for self-hosted yet. Roll this out to specific organizations; do not change the
+    # default here and do not add it to SENTRY_FEATURES, either of which would turn it on
+    # for every self-hosted install. The default is False today and nothing enables it for
+    # self-hosted, so this stays correct only as long as the rollout is scoped.
     manager.add("organizations:autofix-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables auto-conversion of number operators for search query builder
     manager.add("organizations:search-query-builder-number-operator-conversion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
