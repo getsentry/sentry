@@ -5,6 +5,7 @@ import {render, waitFor, type RouterConfig} from 'sentry-test/reactTestingLibrar
 import {
   MonitorCreateRedirect,
   UptimeMonitorCreateRedirect,
+  UptimeMonitorDetailsRedirect,
   withAutomationDetailsRedirect,
   withDetectorDetailsRedirect,
   withDetectorEditRedirect,
@@ -138,6 +139,36 @@ describe('workflowEngineRedirects', () => {
       expect(router.location.query).toMatchObject({
         alert: 'alert-1',
         notification_uuid: 'notification-uuid',
+      });
+    });
+  });
+
+  describe('UptimeMonitorDetailsRedirect', () => {
+    // The uptime overview row, the detector link on an uptime issue, and the
+    // post-create navigation all build this URL with `makeAlertsPathname`,
+    // which bases on `issues/alerts` — not the `/alerts/` mount.
+    it('redirects the legacy uptime details URL to the monitor detail page', async () => {
+      const organization = OrganizationFixture({slug: 'org-slug'});
+
+      const initialRouterConfig: RouterConfig = {
+        route:
+          '/organizations/:orgId/issues/alerts/rules/uptime/:projectId/:detectorId/details/',
+        location: {
+          pathname: `/organizations/${organization.slug}/issues/alerts/rules/uptime/my-project/42/details/`,
+        },
+      };
+
+      const {router} = render(<UptimeMonitorDetailsRedirect />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      // Asserted as a literal rather than via makeMonitorDetailsPathname, so the
+      // `/organizations/:orgId` prefix is pinned. A static `redirectTo` string
+      // cannot reproduce it: this mount always builds with forCustomerDomain
+      // true, so it would drop the prefix on self-hosted and single-tenant.
+      await waitFor(() => {
+        expect(router.location.pathname).toBe('/organizations/org-slug/monitors/42/');
       });
     });
   });

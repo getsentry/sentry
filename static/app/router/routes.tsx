@@ -1371,9 +1371,10 @@ function buildRoutes(): RouteObject[] {
           children: [
             {
               path: ':projectId/:detectorId/details/',
-              redirectTo: forCustomerDomain
-                ? '/monitors/:detectorId/'
-                : '/organizations/:orgId/monitors/:detectorId/',
+              component: make(
+                () =>
+                  import('sentry/views/alerts/workflowEngineRedirectWrappers/uptimeAlertRuleDetails')
+              ),
             },
             {
               path: 'existing-or-create/',
