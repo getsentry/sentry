@@ -16,7 +16,6 @@ import {
   IconStar,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -95,7 +94,6 @@ function DashboardTitle({
   onEdit,
   onToggleFavorite,
   openDashboardRevisions,
-  organization,
 }: {
   canViewRevisions: boolean;
   dashboard: DashboardDetails;
@@ -108,7 +106,6 @@ function DashboardTitle({
   onEdit: () => void;
   onToggleFavorite: () => void;
   openDashboardRevisions: () => void;
-  organization: Organization;
   duplicateDisabledReason?: ReactNode;
   isDuplicateDisabled?: boolean;
 }) {
@@ -153,7 +150,7 @@ function DashboardTitle({
     ...(canViewRevisions ? [revisionItem] : []),
     ...(isDashboardEditor ? [editItem] : []),
     ...(isPrebuiltDashboard ? [duplicateItem] : []),
-    ...(organization.features.includes('dashboards-import') ? [exportItem] : []),
+    exportItem,
   ];
 
   return (
@@ -162,17 +159,12 @@ function DashboardTitle({
         type: 'page-title',
         label: dashboard.title,
         trailingActions: [
-          // Starring used to be the one item every dashboard had, so the menu
-          // was unconditional. Now that it has moved out, hide the trigger
-          // when nothing is left to put behind it.
-          menuItems.length > 0
-            ? {
-                type: 'menu',
-                triggerLabel: t('Dashboard actions'),
-                triggerIcon: <IconEllipsis />,
-                items: menuItems,
-              }
-            : null,
+          {
+            type: 'menu',
+            triggerLabel: t('Dashboard actions'),
+            triggerIcon: <IconEllipsis />,
+            items: menuItems,
+          },
           {
             type: 'button',
             element: (
@@ -290,7 +282,6 @@ export function DashboardBreadcrumbTitle({
         onEdit={onEdit}
         onToggleFavorite={handleToggleFavorite}
         openDashboardRevisions={openDashboardRevisions}
-        organization={organization}
       />
     );
   }
@@ -312,7 +303,6 @@ export function DashboardBreadcrumbTitle({
           onEdit={onEdit}
           onToggleFavorite={handleToggleFavorite}
           openDashboardRevisions={openDashboardRevisions}
-          organization={organization}
         />
       )}
     </DashboardCreateLimitWrapper>

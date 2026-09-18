@@ -667,7 +667,7 @@ describe('Dashboards > Detail', () => {
     it('renders the redesigned dashboard breadcrumb in the top bar', async () => {
       const pageFrameOrganization = OrganizationFixture({
         slug: 'org-slug',
-        features: [...organization.features, 'dashboards-import'],
+        features: organization.features,
       });
 
       render(
