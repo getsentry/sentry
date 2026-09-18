@@ -150,7 +150,7 @@ export function IntegrationExternalUserMappings(props: Props) {
         {...modalProps}
         type="user"
         integration={integration}
-        getBaseFormEndpoint={mapping => getBaseFormEndpoint(mapping)}
+        getBaseFormEndpoint={getBaseFormEndpoint}
         defaultOptions={defaultUserOptions}
         onSubmitSuccess={handleSubmitSuccess}
       />
@@ -163,7 +163,7 @@ export function IntegrationExternalUserMappings(props: Props) {
         type="user"
         integration={integration}
         mappings={mappings()}
-        getBaseFormEndpoint={mapping => getBaseFormEndpoint(mapping)}
+        getBaseFormEndpoint={getBaseFormEndpoint}
         defaultOptions={defaultUserOptions}
         onCreate={openMembersModal}
         onDelete={deleteMutation.mutate}
