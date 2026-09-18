@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from sentry import eventstore
 from sentry.models.group import Group
+from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.issue import IssueNotificationData
@@ -9,12 +10,12 @@ from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
     NotificationRenderedTemplate,
+    NotificationSource,
 )
 
 
+@renderer_registry.register(NotificationProviderKey.SLACK, NotificationSource.ISSUE)
 class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
-    provider_key = NotificationProviderKey.SLACK
-
     @classmethod
     def render[DataT: NotificationData](
         cls, *, data: DataT, rendered_template: NotificationRenderedTemplate

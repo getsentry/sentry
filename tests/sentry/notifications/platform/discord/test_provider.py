@@ -18,7 +18,6 @@ from sentry.notifications.platform.discord.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedImage,
@@ -55,9 +54,7 @@ class DiscordRendererTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -106,9 +103,7 @@ class DiscordRendererTest(TestCase):
         )
 
         data = MockNotification(message="test without chart")
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -130,9 +125,7 @@ class DiscordRendererTest(TestCase):
         )
 
         data = MockNotification(message="test without footer")
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -152,9 +145,7 @@ class DiscordRendererTest(TestCase):
         )
 
         data = MockNotification(message="test without actions")
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -182,9 +173,7 @@ class DiscordRendererTest(TestCase):
         )
 
         data = MockNotification(message="test with multiple actions")
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
