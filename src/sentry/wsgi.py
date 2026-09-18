@@ -1,6 +1,7 @@
 import io
 import os.path
 import sys
+from urllib.parse import urlsplit
 
 from django.urls import reverse
 
@@ -17,16 +18,24 @@ if not settings.configured:
 
 from django.core.handlers.wsgi import WSGIHandler
 
+from sentry import options
+
 # Run WSGI handler for the application
 application = WSGIHandler()
 
-# trigger a warmup of the application
+try:
+    host = urlsplit(options.get("system.url-prefix")).netloc
+except Exception:
+    host = ""
+
+# Trigger a warmup of the application
 application(
     {
         "PATH_INFO": reverse("sentry-warmup"),
         "REQUEST_METHOD": "GET",
         "SERVER_NAME": "127.0.0.1",
         "SERVER_PORT": "9001",
+        "HTTP_HOST": host,
         "wsgi.input": io.BytesIO(),
         "wsgi.url_scheme": "https",
     },
