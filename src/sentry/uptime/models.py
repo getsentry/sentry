@@ -15,6 +15,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     cell_silo_model,
 )
+from sentry.db.models.fields.encryption import EncryptedJSONField, EncryptedTextField
 from sentry.db.models.manager.base import BaseManager
 from sentry.deletions.base import ModelRelation
 from sentry.models.files.file import File
@@ -89,12 +90,10 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModelExisting):
     method: models.CharField[SupportedHTTPMethodsLiteral, SupportedHTTPMethodsLiteral] = (
         models.CharField(max_length=20, choices=SupportedHTTPMethods, db_default="GET")
     )
-    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
     # HTTP headers to send when performing the check
-    headers = models.JSONField(db_default=[])
+    headers = EncryptedJSONField(db_default=[])
     # HTTP body to send when performing the check
-    # TODO(mdtro): This field can potentially contain sensitive data, encrypt when field available
-    body = models.TextField(null=True)
+    body = EncryptedTextField(null=True)
     # How to sample traces for this monitor. Note that we always send a trace_id, so any errors will
     # be associated, this just controls the span sampling.
     trace_sampling = models.BooleanField(default=False, db_default=False)
