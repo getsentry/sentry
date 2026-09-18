@@ -76,6 +76,7 @@ function PerformanceSetupBanner({
     if (location.hash === '#performance-sidequest') {
       OnboardingDrawerStore.open(OnboardingDrawerKey.PERFORMANCE_ONBOARDING);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [projectsWithOnboardingChecklist, hideBanner, organization, location.hash]);
 
   if (hideBanner) {

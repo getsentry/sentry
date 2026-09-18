@@ -1031,7 +1031,7 @@ describe('SeerExplorerContent', () => {
       await screen.findByText('Seer Agent');
       await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
       expect(
-        await screen.findByRole('menuitemradio', {name: /Context Engine/})
+        await screen.findByRole('option', {name: /Context Engine/})
       ).toBeInTheDocument();
     });
   });

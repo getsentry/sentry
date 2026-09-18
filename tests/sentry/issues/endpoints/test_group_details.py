@@ -190,20 +190,22 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
 
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
-        note_id = notes[0]["id"]
+        note_id = notes[0]["commentId"]
         assert note_id == str(activity_id)
+        assert notes[0]["id"] == note_id
 
         entry = GroupActionLogEntry.objects.get(
             group_id=group.id, type=GroupActionType.COMMENT.value
         )
         assert entry.data["comment_id"] == activity_id
 
-        # the id served by the feed round-trips through edit ...
+        # the comment reference served by the feed round-trips through edit ...
         response = self.client.put(
             f"{comments_url}{note_id}/", format="json", data={"text": "edited"}
         )
         assert response.status_code == 200, response.content
         assert response.data["id"] == note_id
+        assert response.data["commentId"] == note_id
         assert response.data["data"]["text"] == "edited"
 
         # ... the feed folds the appended COMMENT_EDIT back into the comment ...
@@ -214,6 +216,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
         assert notes[0]["id"] == note_id
+        assert notes[0]["commentId"] == note_id
         assert notes[0]["data"]["text"] == "edited"
 
         # ... and delete

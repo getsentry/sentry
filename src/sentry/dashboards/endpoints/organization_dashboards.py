@@ -47,7 +47,6 @@ from sentry.locks import locks
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
 )
 from sentry.models.organization import Organization
@@ -520,13 +519,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
             if hidden_prebuilt_ids:
                 dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
-
-        if "showUserHidden" not in filters:
-            dashboards = dashboards.exclude(
-                id__in=DashboardHiddenUser.objects.filter(user_id=request.user.id).values(
-                    "dashboard_id"
-                )
-            )
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")

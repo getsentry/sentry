@@ -5,6 +5,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
@@ -26,7 +27,6 @@ import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {markdownToPlainText} from 'sentry/utils/marked/marked';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -591,6 +591,7 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
       badgeWidth: badgeEl?.getBoundingClientRect().width ?? 0,
       rowHeight: badgeEl?.getBoundingClientRect().height ?? 0,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [toolsKey]);
 
   const visibleCount = useMemo(() => {

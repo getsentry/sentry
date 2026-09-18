@@ -410,7 +410,7 @@ describe('TransactionsList', () => {
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
 
-      const links = screen.getAllByRole('link');
+      const links = await screen.findAllByRole('link');
       expect(links).toHaveLength(2);
       expect(links[0]).toHaveAttribute(
         'href',
@@ -451,9 +451,9 @@ describe('TransactionsList', () => {
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
+      const gridCells = await screen.findAllByTestId('grid-cell');
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-      const gridCells = screen.getAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
   });
