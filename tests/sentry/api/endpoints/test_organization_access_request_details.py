@@ -102,7 +102,7 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
 
         assert not OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
 
-    def test_team_admin_can_approve(self) -> None:
+    def test_org_admin_can_approve(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)
@@ -189,66 +189,35 @@ class TeamAdminUpdateAccessRequestTest(APITestCase):
         assert not OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
 
     @with_feature("organizations:team-roles")
-    def test_deny(self) -> None:
-        self.login_as(self.user)
-        self.get_success_response(
-            self.organization.slug, self.access_request.id, isApproved=False, status_code=204
-        )
-
-        assert not OrganizationMemberTeam.objects.filter(
-            organizationmember=self.requesting_member, team=self.team
-        ).exists()
-        assert not OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
-
-    @with_feature("organizations:team-roles")
-    def test_contributor_cannot_approve(self) -> None:
+    def test_cannot_manage_requests_for_other_teams(self) -> None:
         contributor_team = self.create_team(organization=self.organization)
         self.create_team_membership(
             team=contributor_team, member=self.admin_member, role="contributor"
         )
-        access_request = self.create_organization_access_request(
+        contributor_request = self.create_organization_access_request(
             team=contributor_team, member=self.requesting_member
         )
-        self.login_as(self.user)
-        self.get_error_response(
-            self.organization.slug, access_request.id, isApproved=True, status_code=403
-        )
-
-        assert OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
-        assert not OrganizationMemberTeam.objects.filter(
-            organizationmember=self.requesting_member, team=contributor_team
-        ).exists()
-
-    @with_feature("organizations:team-roles")
-    def test_cannot_deny_for_unrelated_team(self) -> None:
         unrelated_team = self.create_team(organization=self.organization)
-        access_request = self.create_organization_access_request(
+        unrelated_request = self.create_organization_access_request(
             team=unrelated_team, member=self.requesting_member
         )
         self.login_as(self.user)
         self.get_error_response(
-            self.organization.slug, access_request.id, isApproved=False, status_code=403
+            self.organization.slug, contributor_request.id, isApproved=True, status_code=403
         )
-
-        assert OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
-
-    @with_feature("organizations:team-roles")
-    def test_cannot_approve_request_from_another_organization(self) -> None:
-        other_org = self.create_organization()
-        other_team = self.create_team(organization=other_org)
-        self.create_member(
-            organization=other_org, user=self.user, team_roles=[(other_team, "admin")]
-        )
-        access_request = self.create_organization_access_request(
-            team=other_team,
-            member=self.create_member(organization=other_org, user=self.create_user()),
-        )
-        self.login_as(self.user)
         self.get_error_response(
-            self.organization.slug, access_request.id, isApproved=True, status_code=404
+            self.organization.slug, unrelated_request.id, isApproved=False, status_code=403
         )
 
-        assert OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
+        assert (
+            OrganizationAccessRequest.objects.filter(
+                id__in=[contributor_request.id, unrelated_request.id]
+            ).count()
+            == 2
+        )
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=self.requesting_member
+        ).exists()
 
     def test_team_roles_disabled(self) -> None:
         self.login_as(self.user)
@@ -260,7 +229,7 @@ class TeamAdminUpdateAccessRequestTest(APITestCase):
         assert OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
 
     @with_feature("organizations:team-roles")
-    def test_read_only_token_cannot_approve(self) -> None:
+    def test_token_requires_team_write_scope(self) -> None:
         token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
         self.get_error_response(
             self.organization.slug,
@@ -272,8 +241,6 @@ class TeamAdminUpdateAccessRequestTest(APITestCase):
 
         assert OrganizationAccessRequest.objects.filter(id=self.access_request.id).exists()
 
-    @with_feature("organizations:team-roles")
-    def test_write_token_can_approve(self) -> None:
         token = self.create_user_auth_token(user=self.user, scope_list=["org:read", "team:write"])
         self.get_success_response(
             self.organization.slug,

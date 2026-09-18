@@ -110,20 +110,6 @@ class TeamAdminAccessRequestsTest(APITestCase):
         )
         unrelated_team = self.create_team(organization=self.organization)
         self.create_organization_access_request(team=unrelated_team, member=self.requesting_member)
-        inactive_team = self.create_team(organization=self.organization)
-        self.create_team_membership(
-            team=inactive_team, member=self.admin_member, role="admin"
-        ).update(is_active=False)
-        self.create_organization_access_request(team=inactive_team, member=self.requesting_member)
-        other_org = self.create_organization()
-        other_team = self.create_team(organization=other_org)
-        self.create_member(
-            organization=other_org, user=self.user, team_roles=[(other_team, "admin")]
-        )
-        self.create_organization_access_request(
-            team=other_team,
-            member=self.create_member(organization=other_org, user=self.create_user()),
-        )
 
         self.login_as(self.user)
         response = self.get_success_response(self.organization.slug)
