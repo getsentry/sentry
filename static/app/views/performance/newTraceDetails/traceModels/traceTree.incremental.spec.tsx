@@ -3,164 +3,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {TraceTree} from './traceTree';
-import {
-  makeEAPSpan,
-  makeEAPTrace,
-  makeTrace,
-  makeTransaction,
-} from './traceTreeTestUtils';
+import {makeEAPSpan, makeEAPTrace} from './traceTreeTestUtils';
 
 describe('incremental trace fetch', () => {
   const organization = OrganizationFixture();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('Fetches and updates tree with fetched trace', async () => {
-    const traces = [
-      {traceSlug: 'slug1', timestamp: 1},
-      {traceSlug: 'slug2', timestamp: 2},
-    ];
-
-    const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 1',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
-          }),
-        ],
-      }),
-      {replay: null, meta: null, organization}
-    );
-
-    // Mock the API calls
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 3',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
-    });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 5',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
-    });
-
-    tree.build();
-    expect(tree.list).toHaveLength(3);
-
-    tree.fetchAdditionalTraces({
-      replayTraces: traces,
-      api: new MockApiClient(),
-      filters: {},
-      organization,
-      rerender: () => {},
-      urlParams: {},
-      meta: null,
-    });
-
-    await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
-
-    expect(tree.list).toHaveLength(7);
-  });
-
-  it('Does not infinitely fetch on error', async () => {
-    const traces = [
-      {traceSlug: 'slug1', timestamp: 1},
-      {traceSlug: 'slug2', timestamp: 2},
-      {traceSlug: 'slug3', timestamp: 3},
-    ];
-
-    const tree = TraceTree.FromTrace(
-      makeTrace({
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 1',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
-          }),
-        ],
-      }),
-      {replay: null, meta: null, organization}
-    );
-
-    // Mock the API calls
-    const mockedResponse1 = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/trace/slug1/?include_uptime=1&limit=10000&timestamp=1',
-      statusCode: 400,
-    });
-    const mockedResponse2 = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 5',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
-    });
-    const mockedResponse3 = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/trace/slug3/?include_uptime=1&limit=10000&timestamp=3',
-      body: {
-        transactions: [
-          makeTransaction({
-            transaction: 'txn 7',
-            start_timestamp: 0,
-            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 8'})],
-          }),
-        ],
-        orphan_errors: [],
-      },
-    });
-
-    tree.build();
-    expect(tree.list).toHaveLength(3);
-
-    tree.fetchAdditionalTraces({
-      replayTraces: traces,
-      api: new MockApiClient(),
-      filters: {},
-      organization,
-      rerender: () => {},
-      urlParams: {},
-      meta: null,
-    });
-
-    await waitFor(() => expect(tree.root.children[0]!.fetchStatus).toBe('idle'));
-    tree.build();
-
-    expect(tree.list).toHaveLength(7);
-    expect(mockedResponse1).toHaveBeenCalledTimes(1);
-    expect(mockedResponse2).toHaveBeenCalledTimes(1);
-    expect(mockedResponse3).toHaveBeenCalledTimes(1);
-  });
-
+  beforeEach(() => jest.clearAllMocks());
   it('EAP -Fetches and updates tree with fetched trace', async () => {
     const traces = [
       {traceSlug: 'slug1', timestamp: 1},
@@ -243,7 +90,6 @@ describe('incremental trace fetch', () => {
     // 1 root trace node + 2 eap spans + 3 newly fetched eap spans
     expect(tree.list).toHaveLength(6);
   });
-
   it('EAP - Does not infinitely fetch on error', async () => {
     const traces = [
       {traceSlug: 'slug1', timestamp: 1},
