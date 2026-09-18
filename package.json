@@ -274,7 +274,7 @@
     "selfsigned": "5.5.0",
     "stylelint": "16.26.1",
     "stylelint-config-recommended": "^14.0.1",
-    "terser": "5.46.2",
+    "terser": "5.51.2",
     "tinyglobby": "0.2.16",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-7": "npm:typescript@^7.0.2"
