@@ -36,9 +36,10 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
+  SavedQuery,
   RawGroupBy,
   RawVisualize,
-  SavedQuery,
+  AllSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   getSavedQueryTraceItemDataset,
@@ -509,7 +510,8 @@ export function confirmDeleteSavedQuery({
   savedQuery,
 }: {
   handleDelete: () => void;
-  savedQuery: SavedQuery;
+  // Only the name is shown, so this works for either kind of saved query.
+  savedQuery: Pick<AllSavedQuery, 'name'>;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),

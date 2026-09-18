@@ -141,6 +141,7 @@ export function useFromSavedQuery() {
 
   const saveQueryFromSavedQuery = useCallback(
     async (savedQuery: SavedQuery) => {
+      const {queryType: _queryType, ...query} = savedQuery;
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -148,7 +149,7 @@ export function useFromSavedQuery() {
         {
           method: 'POST',
           data: {
-            ...savedQuery,
+            ...query,
             // we want to make sure no new queries are saved with the segment_spans dataset
             dataset:
               savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
@@ -163,6 +164,7 @@ export function useFromSavedQuery() {
 
   const updateQueryFromSavedQuery = useCallback(
     async (savedQuery: SavedQuery) => {
+      const {queryType: _queryType, ...query} = savedQuery;
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
           path: {organizationIdOrSlug: organization.slug, id: savedQuery.id},
@@ -170,7 +172,7 @@ export function useFromSavedQuery() {
         {
           method: 'PUT',
           data: {
-            ...savedQuery,
+            ...query,
             // we want to make sure queries are locked in as spans once they're updated
             dataset:
               savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,

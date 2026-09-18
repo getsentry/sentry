@@ -3,7 +3,10 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import type {
+  Organization,
+  SavedQuery as DiscoverSavedQueryBase,
+} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
@@ -13,6 +16,11 @@ import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSave
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+enum SavedQueryType {
+  DISCOVER = 'discover',
+  EXPLORE = 'explore',
+}
 
 export type RawGroupBy = {
   groupBy: string;
@@ -135,6 +143,7 @@ export type ReadableSavedQuery = {
 };
 
 export class SavedQuery {
+  queryType = SavedQueryType.EXPLORE as const;
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -182,6 +191,19 @@ export class SavedQuery {
     this.dataset = savedQuery.dataset;
   }
 }
+
+type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+  queryType: SavedQueryType.DISCOVER;
+  lastVisited?: string;
+  position?: number | null;
+  starred?: boolean;
+};
+
+/**
+ * This is for the all-queries view. If you aren't dealing with error dataset
+ * queries, use SavedQuery instead.
+ */
+export type AllSavedQuery = SavedQuery | DiscoverSavedQuery;
 
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
