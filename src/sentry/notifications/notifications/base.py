@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from urllib.parse import urlencode
 
 import sentry_sdk
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.db.models import Model
@@ -16,7 +17,6 @@ from sentry.notifications.types import FineTuningAPIKey, NotificationSettingEnum
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
 from sentry.utils.safe import safe_execute
-from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -179,7 +179,9 @@ class BaseNotification(abc.ABC):
         from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
         from sentry.mail.analytics import EmailNotificationSent
 
-        with start_span(op="notification.send", name="record_notification_sent"):
+        with traces.start_span(
+            name="record_notification_sent", attributes={"sentry.op": "notification.send"}
+        ):
             project: Project | None = getattr(self, "project", None)
             group: Group | None = getattr(self, "group", None)
 
@@ -314,14 +316,18 @@ class BaseNotification(abc.ABC):
         """The default way to send notifications that respects Notification Settings."""
         from sentry.notifications.notify import notify
 
-        with start_span(op="notification.send", name="get_participants"):
+        with traces.start_span(
+            name="get_participants", attributes={"sentry.op": "notification.send"}
+        ):
             participants_by_provider = self.get_participants()
             if not participants_by_provider:
                 return
 
         context = self.get_context()
         for provider, recipients in participants_by_provider.items():
-            with start_span(op="notification.send", name=f"send_for_{provider}"):
+            with traces.start_span(
+                name=f"send_for_{provider}", attributes={"sentry.op": "notification.send"}
+            ):
                 safe_execute(notify, provider, self, recipients, context)
 
 
