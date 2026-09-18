@@ -1,10 +1,12 @@
-import {Checkbox} from '@sentry/scraps/checkbox';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+type DebugOption = 'context-engine' | 'force-bash-mode' | 'show-thinking';
 
 interface SeerExplorerDebugMenuProps {
   onOverrideBashModeToggle: () => void;
@@ -16,7 +18,7 @@ interface SeerExplorerDebugMenuProps {
 }
 
 /**
- * Consolidated "Debug" dropdown holding the feature-flagged developer toggles
+ * Consolidated "Debug" select holding the feature-flagged developer toggles
  * (Context Engine override, Force bash mode, Show thinking). The flag checks
  * live here so the parent doesn't thread them through — if no flags are enabled
  * the whole menu renders nothing. The toggle state stays lifted (it's consumed
@@ -44,62 +46,69 @@ export function SeerExplorerDebugMenu({
     'seer-explorer-allow-bash-mode'
   );
 
-  const items: MenuItemProps[] = [
+  const options: Array<SelectOption<DebugOption>> = [
     ...(showContextEngineToggle
-      ? [
-          {
-            key: 'context-engine',
-            label: t('Context Engine'),
-            leadingItems: <Checkbox checked={overrideCtxEngEnable} readOnly />,
-            onAction: onOverrideCtxEngEnableToggle,
-            closeOnSelect: false,
-          },
-        ]
+      ? [{value: 'context-engine' as const, label: t('Context Engine')}]
       : []),
     ...(showBashModeToggle
-      ? [
-          {
-            key: 'force-bash-mode',
-            label: t('Force bash mode on'),
-            leadingItems: <Checkbox checked={overrideBashModeEnabled} readOnly />,
-            onAction: onOverrideBashModeToggle,
-            closeOnSelect: false,
-          },
-        ]
+      ? [{value: 'force-bash-mode' as const, label: t('Force bash mode on')}]
       : []),
     ...(showThinkingToggle
-      ? [
-          {
-            key: 'show-thinking',
-            label: t('Show thinking'),
-            leadingItems: <Checkbox checked={showThinking} readOnly />,
-            onAction: onShowThinkingToggle,
-            closeOnSelect: false,
-          },
-        ]
+      ? [{value: 'show-thinking' as const, label: t('Show thinking')}]
       : []),
   ];
+  const value: DebugOption[] = [
+    ...(showContextEngineToggle && overrideCtxEngEnable
+      ? (['context-engine'] as const)
+      : []),
+    ...(showBashModeToggle && overrideBashModeEnabled
+      ? (['force-bash-mode'] as const)
+      : []),
+    ...(showThinkingToggle && showThinking ? (['show-thinking'] as const) : []),
+  ];
 
-  if (items.length === 0) {
+  if (options.length === 0) {
     return null;
   }
 
   return (
-    <DropdownMenu
-      items={items}
-      size="xs"
-      position="bottom-end"
-      triggerLabel={
-        <Container as="span" display={{zero: 'none', sm: 'inline'}}>
-          {t('Debug')}
-        </Container>
-      }
-      triggerProps={{
-        'aria-label': t('Debug'),
-        icon: <IconBug />,
-        variant: 'transparent',
-        size: 'xs',
+    <CompactSelect
+      multiple
+      options={options}
+      value={value}
+      onChange={selectedOptions => {
+        const selectedValues = new Set(selectedOptions.map(option => option.value));
+        if (
+          showContextEngineToggle &&
+          selectedValues.has('context-engine') !== overrideCtxEngEnable
+        ) {
+          onOverrideCtxEngEnableToggle();
+        }
+        if (
+          showBashModeToggle &&
+          selectedValues.has('force-bash-mode') !== overrideBashModeEnabled
+        ) {
+          onOverrideBashModeToggle();
+        }
+        if (showThinkingToggle && selectedValues.has('show-thinking') !== showThinking) {
+          onShowThinkingToggle();
+        }
       }}
+      position="bottom-end"
+      size="xs"
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          aria-label={t('Debug')}
+          icon={<IconBug />}
+          variant="transparent"
+          size="xs"
+        >
+          <Container as="span" display={{zero: 'none', sm: 'inline'}}>
+            {t('Debug')}
+          </Container>
+        </OverlayTrigger.Button>
+      )}
     />
   );
 }
