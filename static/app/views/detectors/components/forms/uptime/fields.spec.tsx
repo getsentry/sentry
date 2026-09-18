@@ -101,7 +101,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0]?.assertion).toEqual(assertion);
+    expect(payload.dataSources![0]?.assertion).toEqual(assertion);
   });
 
   it('converts body to null when empty string', () => {
@@ -126,7 +126,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0]?.body).toBeNull();
+    expect(payload.dataSources![0]?.body).toBeNull();
   });
 
   it('includes non-empty body in payload', () => {
@@ -151,7 +151,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0]?.body).toBe('{"key": "value"}');
+    expect(payload.dataSources![0]?.body).toBe('{"key": "value"}');
   });
 
   it('uses default thresholds when not provided', () => {
@@ -211,7 +211,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
 
     const payload = uptimeFormDataToEndpointPayload(formData);
 
-    expect(payload.dataSources[0]?.assertion).toBeNull();
+    expect(payload.dataSources![0]?.assertion).toBeNull();
   });
 });
 
@@ -260,9 +260,9 @@ describe('uptimeSavedDetectorToFormData', () => {
     const detector = UptimeDetectorFixture({
       dataSources: [
         {
-          ...UptimeDetectorFixture().dataSources[0],
+          ...UptimeDetectorFixture().dataSources![0],
           queryObj: {
-            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            ...UptimeDetectorFixture().dataSources![0].queryObj,
             assertion,
           },
         },
@@ -281,9 +281,9 @@ describe('uptimeSavedDetectorToFormData', () => {
     const detector = UptimeDetectorFixture({
       dataSources: [
         {
-          ...UptimeDetectorFixture().dataSources[0],
+          ...UptimeDetectorFixture().dataSources![0],
           queryObj: {
-            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            ...UptimeDetectorFixture().dataSources![0].queryObj,
             assertion: undefined as any,
           },
         },
@@ -343,9 +343,9 @@ describe('uptimeSavedDetectorToFormData', () => {
     const detector = UptimeDetectorFixture({
       dataSources: [
         {
-          ...UptimeDetectorFixture().dataSources[0],
+          ...UptimeDetectorFixture().dataSources![0],
           queryObj: {
-            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            ...UptimeDetectorFixture().dataSources![0].queryObj,
             body: null,
           },
         },
@@ -361,9 +361,9 @@ describe('uptimeSavedDetectorToFormData', () => {
     const detector = UptimeDetectorFixture({
       dataSources: [
         {
-          ...UptimeDetectorFixture().dataSources[0],
+          ...UptimeDetectorFixture().dataSources![0],
           queryObj: {
-            ...UptimeDetectorFixture().dataSources[0].queryObj,
+            ...UptimeDetectorFixture().dataSources![0].queryObj,
             body: '{"test": "data"}',
           },
         },

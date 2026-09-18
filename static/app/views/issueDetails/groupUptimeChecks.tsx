@@ -62,6 +62,11 @@ export default function GroupUptimeChecks() {
     return <LoadingIndicator />;
   }
 
+  const dataSource = uptimeDetector.dataSources?.[0];
+  if (!dataSource) {
+    return <LoadingError />;
+  }
+
   const links = parseLinkHeader(data?.headers.Link ?? '');
   const previousDisabled = links?.previous?.results === false;
   const nextDisabled = links?.next?.results === false;
@@ -79,7 +84,7 @@ export default function GroupUptimeChecks() {
       }}
     >
       <UptimeChecksGrid
-        traceSampling={uptimeDetector.dataSources[0].queryObj.traceSampling}
+        traceSampling={dataSource.queryObj.traceSampling}
         uptimeChecks={uptimeChecks}
       />
     </EventListTable>

@@ -28,7 +28,12 @@ export function UptimeDetailsSidebar({
   uptimeDetector,
   showMissedLegend,
 }: UptimeDetailsSidebarProps) {
-  const uptimeSub = uptimeDetector.dataSources[0].queryObj;
+  const dataSource = uptimeDetector.dataSources?.[0];
+  if (!dataSource) {
+    return null;
+  }
+
+  const uptimeSub = dataSource.queryObj;
 
   return (
     <Fragment>

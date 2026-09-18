@@ -47,7 +47,7 @@ class DetectorSerializerResponse(DetectorSerializerResponseOptional):
     workflowIds: list[str] | None
     dateCreated: datetime
     dateUpdated: datetime
-    dataSources: list[dict[str, Any]]
+    dataSources: list[dict[str, Any]] | None
     conditionGroup: dict[str, Any] | None
     config: dict[str, Any]
     enabled: bool
@@ -163,7 +163,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
         owner_lookup = {owner: serialized for owner, serialized in zip(owners, owners_serialized)}
 
         for item in item_list:
-            attrs[item]["data_sources"] = ds_map.get(item.id, [])
+            attrs[item]["data_sources"] = ds_map.get(item.id)
             attrs[item]["condition_group"] = condition_group_map.get(
                 str(item.workflow_condition_group_id)
             )
@@ -209,7 +209,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "createdBy": str(obj.created_by_id) if obj.created_by_id else None,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
-            "dataSources": attrs.get("data_sources", []),
+            "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
             "config": convert_dict_key_case(
                 self._normalize_config(attrs.get("config", {})), snake_to_camel_case

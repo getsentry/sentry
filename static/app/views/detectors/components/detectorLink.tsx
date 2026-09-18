@@ -195,6 +195,10 @@ function MetricDetectorDetails({detector}: {detector: MetricDetector}) {
 }
 
 function UptimeDetectorDetails({detector}: {detector: UptimeDetector}) {
+  if (detector.dataSources === null) {
+    return null;
+  }
+
   return (
     <Fragment>
       {detector.dataSources.map(dataSource => {

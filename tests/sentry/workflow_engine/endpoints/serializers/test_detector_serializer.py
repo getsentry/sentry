@@ -38,7 +38,7 @@ class TestDetectorSerializer(TestCase):
             "createdBy": None,
             "dateCreated": detector.date_added,
             "dateUpdated": detector.date_updated,
-            "dataSources": [],
+            "dataSources": None,
             "conditionGroup": None,
             "workflowIds": [],
             "config": {

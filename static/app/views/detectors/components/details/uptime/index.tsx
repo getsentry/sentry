@@ -41,8 +41,6 @@ type UptimeDetectorDetailsProps = {
 };
 
 export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetailsProps) {
-  const dataSource = detector.dataSources[0];
-
   const {data: uptimeSummaries} = useUptimeMonitorSummaries({
     detectorIds: [detector.id],
   });
@@ -59,6 +57,11 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
     );
     setShowMissedLegend(hasUnknown);
   }, []);
+
+  const dataSource = detector.dataSources?.[0];
+  if (!dataSource) {
+    return null;
+  }
 
   return (
     <DetailLayout>
@@ -83,7 +86,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
               <UptimeChecksTable
                 detectorId={detector.id}
                 project={project}
-                traceSampling={detector.dataSources[0].queryObj.traceSampling}
+                traceSampling={dataSource.queryObj.traceSampling}
               />
             </div>
           </DetailSection>
