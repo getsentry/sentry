@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import type {ExploreSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
@@ -36,7 +36,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
       position: 2,
       projects: [],
     },
-  ] as unknown as SavedQuery[];
+  ] as unknown as ExploreSavedQuery[];
 
   it('should render a list of starred queries', () => {
     render(

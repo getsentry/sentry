@@ -14,7 +14,7 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
-  type SavedQuery,
+  type ExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
@@ -140,7 +140,8 @@ export function useFromSavedQuery() {
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
   const saveQueryFromSavedQuery = useCallback(
-    async (savedQuery: SavedQuery) => {
+    async (savedQuery: ExploreSavedQuery) => {
+      const {queryType: _queryType, ...query} = savedQuery;
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
           path: {organizationIdOrSlug: organization.slug},
@@ -148,7 +149,7 @@ export function useFromSavedQuery() {
         {
           method: 'POST',
           data: {
-            ...savedQuery,
+            ...query,
             // we want to make sure no new queries are saved with the segment_spans dataset
             dataset:
               savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
@@ -162,7 +163,8 @@ export function useFromSavedQuery() {
   );
 
   const updateQueryFromSavedQuery = useCallback(
-    async (savedQuery: SavedQuery) => {
+    async (savedQuery: ExploreSavedQuery) => {
+      const {queryType: _queryType, ...query} = savedQuery;
       const response = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
           path: {organizationIdOrSlug: organization.slug, id: savedQuery.id},
@@ -170,7 +172,7 @@ export function useFromSavedQuery() {
         {
           method: 'PUT',
           data: {
-            ...savedQuery,
+            ...query,
             // we want to make sure queries are locked in as spans once they're updated
             dataset:
               savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,

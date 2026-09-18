@@ -32,7 +32,7 @@ import {
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {ExploreSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {
   TraceItemDetailsResponse,
   TraceItemResponseAttribute,
@@ -483,7 +483,7 @@ export function getLogsUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: ExploreSavedQuery;
 }) {
   const firstQuery = savedQuery.query[0];
   const visualize = firstQuery.visualize?.[0]?.yAxes?.[0];

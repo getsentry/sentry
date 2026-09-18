@@ -38,7 +38,7 @@ import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settin
 import type {
   RawGroupBy,
   RawVisualize,
-  SavedQuery,
+  ExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   getSavedQueryTraceItemDataset,
@@ -150,7 +150,7 @@ function getExploreUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: ExploreSavedQuery;
 }) {
   if (savedQuery.query.length > 1) {
     return getExploreMultiQueryUrl({
@@ -509,7 +509,7 @@ export function confirmDeleteSavedQuery({
   savedQuery,
 }: {
   handleDelete: () => void;
-  savedQuery: SavedQuery;
+  savedQuery: ExploreSavedQuery;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
@@ -708,7 +708,7 @@ export function getSavedQueryTraceItemUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: ExploreSavedQuery;
 }) {
   if (savedQuery.dataset === 'ai_conversations') {
     return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
@@ -730,7 +730,7 @@ function getConversationsUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: ExploreSavedQuery;
 }) {
   const firstQuery = savedQuery.query[0];
   const queryParams = {
@@ -759,7 +759,7 @@ function getReplayUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: ExploreSavedQuery;
 }) {
   const firstQuery = savedQuery.query[0];
   const queryParams = {
@@ -784,7 +784,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
       organization,
     }: {
       organization: Organization;
-      savedQuery: SavedQuery;
+      savedQuery: ExploreSavedQuery;
     }) => string)
   | undefined
 > = {

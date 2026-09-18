@@ -3,7 +3,10 @@ import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
+import type {
+  Organization,
+  SavedQuery as DiscoverSavedQueryBase,
+} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
@@ -13,6 +16,11 @@ import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSave
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+export enum SavedQueryType {
+  DISCOVER = 'discover',
+  EXPLORE = 'explore',
+}
 
 export type RawGroupBy = {
   groupBy: string;
@@ -134,7 +142,8 @@ export type ReadableSavedQuery = {
   start?: string;
 };
 
-export class SavedQuery {
+export class ExploreSavedQuery {
+  queryType = SavedQueryType.EXPLORE as const;
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -183,6 +192,21 @@ export class SavedQuery {
   }
 }
 
+export type DiscoverSavedQuery = DiscoverSavedQueryBase & {
+  queryType: SavedQueryType.DISCOVER;
+  lastVisited?: string;
+  position?: number | null;
+  starred?: boolean;
+};
+
+export type SavedQuery = ExploreSavedQuery | DiscoverSavedQuery;
+
+export function isExploreSavedQuery(
+  savedQuery: SavedQuery
+): savedQuery is ExploreSavedQuery {
+  return savedQuery.queryType === SavedQueryType.EXPLORE;
+}
+
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
 }
@@ -201,7 +225,7 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
 }
 
 export function starredSavedQueriesApiOptions(organization: Organization) {
-  return savedQueriesApiOptions<SavedQuery[]>(organization, {
+  return savedQueriesApiOptions<ExploreSavedQuery[]>(organization, {
     per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
     starred: 1,
   });
@@ -244,7 +268,7 @@ export function useGetSavedQueries({
     () =>
       data?.json
         ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
-        .map(q => new SavedQuery(q)),
+        .map(q => new ExploreSavedQuery(q)),
     [data?.json]
   );
   return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
@@ -284,7 +308,7 @@ export function useGetSavedQuery(id?: string) {
       return;
     }
     return Array.isArray(data.query) && data.query.length > 0
-      ? new SavedQuery(data)
+      ? new ExploreSavedQuery(data)
       : undefined;
   }, [data]);
   return {data: savedQuery, isLoading, isFetched};

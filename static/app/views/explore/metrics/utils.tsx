@@ -19,7 +19,7 @@ import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {
   RawVisualize,
-  SavedQuery,
+  ExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
@@ -219,7 +219,7 @@ export function getMetricsUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: ExploreSavedQuery;
 }): string {
   const metricQueries: BaseMetricQuery[] = savedQuery.query.map(queryItem => {
     const defaultQuery = defaultMetricQuery();
