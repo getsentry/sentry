@@ -2,7 +2,6 @@ import {defined} from 'sentry/utils/defined';
 import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 export const SEVERITY_OPACITIES = [0.3, 0.5, 0.7, 1] as const;
-export const MAX_SEVERITY = SEVERITY_OPACITIES.length;
 
 const CONFIGURED_CLIENT_DISCARD_REASONS = new Set(['before_send', 'sample_rate']);
 

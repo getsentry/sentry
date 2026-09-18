@@ -1,6 +1,6 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 
-import {groupIntoBuckets, MAX_SEVERITY} from './utils';
+import {groupIntoBuckets, SEVERITY_OPACITIES} from './utils';
 
 describe('groupIntoBuckets', () => {
   it('returns an empty array for no annotations', () => {
@@ -176,6 +176,6 @@ describe('groupIntoBuckets', () => {
     expect(severityForDropped(7)).toBe(1); // 0.0007%
     expect(severityForDropped(20)).toBe(2); // 0.002%
     expect(severityForDropped(40)).toBe(3); // 0.004%
-    expect(severityForDropped(100)).toBe(MAX_SEVERITY); // 0.01%
+    expect(severityForDropped(100)).toBe(SEVERITY_OPACITIES.length); // 0.01%
   });
 });
