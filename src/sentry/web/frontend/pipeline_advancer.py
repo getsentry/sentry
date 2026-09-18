@@ -143,15 +143,12 @@ class PipelineAdvancerView(BaseView):
                 )
             )
 
-        # Origin apps may be installed from Origin's marketplace, which redirects
-        # here with a signed receipt and no pipeline. The receipt is the only
-        # accepted source of the installation id.
+        # Origin apps may be installed from Origin's marketplace, which redirects here
+        # with a signed receipt. A receipt carrying no state claim belongs to such an
+        # install, so any pipeline in the session belongs to something else and must not
+        # be handed the receipt. The receipt is the only accepted source of the id.
         receipt = request.GET.get("installation_receipt")
-        if (
-            provider_id == IntegrationProviderSlug.CURSOR_ORIGIN.value
-            and pipeline is None
-            and receipt
-        ):
+        if provider_id == IntegrationProviderSlug.CURSOR_ORIGIN.value and receipt:
             if verify_receipt(receipt, None):
                 return self.redirect(
                     reverse(

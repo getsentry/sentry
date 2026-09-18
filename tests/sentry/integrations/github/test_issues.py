@@ -532,6 +532,25 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
                 self.install.get_issue_link_data(f"https://github.com/getsentry/sentry/{path}")
             assert exc.value.field_errors == {"externalIssue": "Invalid GitHub issue URL"}
 
+    def test_issue_url_rejects_other_account_without_domain_name(self) -> None:
+        self.create_repo(
+            name="another-org/sentry", project=self.project, integration_id=self.integration.id
+        )
+
+        with pytest.raises(IntegrationFormError):
+            self.install.get_issue_link_data("https://github.com/another-org/sentry/issues/321")
+
+    def test_issue_url_rejects_other_integration_without_domain_name(self) -> None:
+        other_integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="other-installation"
+        )
+        self.create_repo(
+            name="getsentry/sentry", project=self.project, integration_id=other_integration.id
+        )
+
+        with pytest.raises(IntegrationFormError):
+            self.install.get_issue_link_data("https://github.com/getsentry/sentry/issues/321")
+
     @responses.activate
     def test_get_issue_with_valid_repo_ownership(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):

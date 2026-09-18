@@ -772,12 +772,10 @@ export function StreamGroup({
         >
           {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
-              hideZeros
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-              showMarkLine
             />
           ) : issueTypeConfig.stats.enabled ? (
             <Placeholder height="36px" />

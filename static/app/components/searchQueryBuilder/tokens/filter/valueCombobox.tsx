@@ -878,6 +878,7 @@ export function SearchQueryBuilderValueCombobox({
     if (pendingCaret.pos === 0) {
       input.scrollLeft = 0;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by

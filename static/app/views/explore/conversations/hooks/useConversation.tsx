@@ -386,6 +386,7 @@ export function useConversation(
     if (!isFetching && canFetchNextPage) {
       fetchNextPage();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [data, isFetching, canFetchNextPage, fetchNextPage]);
 
   const allSpans = useMemo(

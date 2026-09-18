@@ -13,7 +13,6 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -55,8 +54,6 @@ import {IssueListTable} from 'sentry/views/issueList/issueListTable';
 import {IssuesDataConsentBanner} from 'sentry/views/issueList/issuesDataConsentBanner';
 import {IssueSelectionProvider} from 'sentry/views/issueList/issueSelectionContext';
 import {IssueViewsHeader} from 'sentry/views/issueList/issueViewsHeader';
-import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergroupDrawer';
-import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -94,7 +91,6 @@ interface Props {
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
-  withColumns?: GroupListColumn[];
 }
 
 interface EndpointParams extends Partial<PageFilterDatetime> {
@@ -144,7 +140,6 @@ function IssueListOverviewInner({
   title = t('Issues'),
   titleDescription,
   headerActions,
-  withColumns,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -190,11 +185,6 @@ function IssueListOverviewInner({
   }, [groups]);
 
   useIssuesINPObserver();
-
-  const {data: supergroupLookup, isLoading: supergroupsLoading} =
-    useSuperGroups(groupIds);
-
-  useSupergroupDrawer({lookup: supergroupLookup, memberList});
 
   const onRealtimePoll = useCallback(
     (data: any, {queryCount: newQueryCount}: {queryCount: number}) => {
@@ -570,11 +560,6 @@ function IssueListOverviewInner({
     num_issues: groups.length,
     group_ids: groups.map(group => group.id),
     total_issues_count: queryCount,
-    total_issue_group_count: new Set(
-      Object.values(supergroupLookup)
-        .filter(sg => sg !== null)
-        .map(sg => sg.id)
-    ).size,
     sort,
     realtime_active: realtimeActive,
     is_view: urlParams.viewId ? true : false,
@@ -1012,12 +997,10 @@ function IssueListOverviewInner({
                 allResultsVisible={allResultsVisible()}
                 displayReprocessingActions={displayReprocessingActions}
                 memberList={memberList}
-                issuesLoading={issuesLoading || supergroupsLoading}
+                issuesLoading={issuesLoading}
                 statsLoading={statsLoading}
-                supergroupLookup={supergroupLookup}
                 error={error}
                 refetchGroups={fetchData}
-                withColumns={withColumns}
                 paginationCaption={
                   !issuesLoading && modifiedQueryCount > 0
                     ? tct('[start]-[end] of [total]', {
