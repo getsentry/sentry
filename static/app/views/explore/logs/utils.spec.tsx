@@ -6,7 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {ExploreSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -55,7 +55,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
   it('uses aggregate fn, aggregate param, and group by', () => {
     const target = getLogsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'foobar',
@@ -95,7 +95,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
   it('uses aggregate fields', () => {
     const target = getLogsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'foobar',

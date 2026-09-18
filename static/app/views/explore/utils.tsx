@@ -36,10 +36,10 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
-  ExploreSavedQuery,
+  SavedQuery,
   RawGroupBy,
   RawVisualize,
-  SavedQuery,
+  AllSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   getSavedQueryTraceItemDataset,
@@ -151,7 +151,7 @@ function getExploreUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: ExploreSavedQuery;
+  savedQuery: SavedQuery;
 }) {
   if (savedQuery.query.length > 1) {
     return getExploreMultiQueryUrl({
@@ -511,7 +511,7 @@ export function confirmDeleteSavedQuery({
 }: {
   handleDelete: () => void;
   // Only the name is shown, so this works for either kind of saved query.
-  savedQuery: Pick<SavedQuery, 'name'>;
+  savedQuery: Pick<AllSavedQuery, 'name'>;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
@@ -710,7 +710,7 @@ export function getSavedQueryTraceItemUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: ExploreSavedQuery;
+  savedQuery: SavedQuery;
 }) {
   if (savedQuery.dataset === 'ai_conversations') {
     return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
@@ -732,7 +732,7 @@ function getConversationsUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: ExploreSavedQuery;
+  savedQuery: SavedQuery;
 }) {
   const firstQuery = savedQuery.query[0];
   const queryParams = {
@@ -761,7 +761,7 @@ function getReplayUrlFromSavedQueryUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: ExploreSavedQuery;
+  savedQuery: SavedQuery;
 }) {
   const firstQuery = savedQuery.query[0];
   const queryParams = {
@@ -786,7 +786,7 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
       organization,
     }: {
       organization: Organization;
-      savedQuery: ExploreSavedQuery;
+      savedQuery: SavedQuery;
     }) => string)
   | undefined
 > = {

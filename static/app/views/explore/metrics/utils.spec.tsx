@@ -1,7 +1,7 @@
 import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {ExploreSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
@@ -88,7 +88,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
   it('decodes orderby into sortBys for new-format queries', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'test query',
@@ -120,7 +120,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
   it('decodes aggregateOrderby into aggregateSortBys', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'test query',
@@ -155,7 +155,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
   it('falls back to legacy orderby when aggregateOrderby is missing (backwards compat)', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'test query',
@@ -189,7 +189,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
   it('does not reuse legacy aggregate timestamp orderby as sample sort', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'test query',
@@ -226,7 +226,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
   it('treats empty aggregateOrderby as new-format and preserves sample sort', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'test query',
@@ -261,7 +261,7 @@ describe('getMetricsUrlFromSavedQueryUrl', () => {
   it('falls back to defaults when orderby is missing', () => {
     const url = getMetricsUrlFromSavedQueryUrl({
       organization,
-      savedQuery: new ExploreSavedQuery({
+      savedQuery: new SavedQuery({
         id: 1,
         interval: '5m',
         name: 'test query',

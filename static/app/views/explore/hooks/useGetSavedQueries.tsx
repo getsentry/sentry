@@ -142,7 +142,7 @@ export type ReadableSavedQuery = {
   start?: string;
 };
 
-export class ExploreSavedQuery {
+export class SavedQuery {
   queryType = SavedQueryType.EXPLORE as const;
   dateAdded: string;
   dateUpdated: string;
@@ -199,7 +199,11 @@ type DiscoverSavedQuery = DiscoverSavedQueryBase & {
   starred?: boolean;
 };
 
-export type SavedQuery = ExploreSavedQuery | DiscoverSavedQuery;
+/**
+ * This is for the all-queries view. If you aren't dealing with error dataset
+ * queries, use SavedQuery instead.
+ */
+export type AllSavedQuery = SavedQuery | DiscoverSavedQuery;
 
 export function getSavedQueryTraceItemDataset(dataset: ReadableSavedQuery['dataset']) {
   return DATASET_TO_TRACE_ITEM_DATASET_MAP[dataset];
@@ -219,7 +223,7 @@ function savedQueriesApiOptions<TData = ReadableSavedQuery[]>(
 }
 
 export function starredSavedQueriesApiOptions(organization: Organization) {
-  return savedQueriesApiOptions<ExploreSavedQuery[]>(organization, {
+  return savedQueriesApiOptions<SavedQuery[]>(organization, {
     per_page: MAX_STARRED_SAVED_QUERIES_IN_NAV,
     starred: 1,
   });
@@ -262,7 +266,7 @@ export function useGetSavedQueries({
     () =>
       data?.json
         ?.filter(q => Array.isArray(q.query) && q.query.length > 0)
-        .map(q => new ExploreSavedQuery(q)),
+        .map(q => new SavedQuery(q)),
     [data?.json]
   );
   return {data: savedQueries, isLoading, pageLinks, isFetched, isError};
@@ -302,7 +306,7 @@ export function useGetSavedQuery(id?: string) {
       return;
     }
     return Array.isArray(data.query) && data.query.length > 0
-      ? new ExploreSavedQuery(data)
+      ? new SavedQuery(data)
       : undefined;
   }, [data]);
   return {data: savedQuery, isLoading, isFetched};

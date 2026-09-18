@@ -5,13 +5,13 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {type ExploreSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {type SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
 type Props = {
-  queries: ExploreSavedQuery[];
+  queries: SavedQuery[];
 };
 
 export function ExploreSavedQueryNavigationItems({queries}: Props) {

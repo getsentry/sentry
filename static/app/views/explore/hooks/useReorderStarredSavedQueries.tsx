@@ -5,7 +5,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   starredSavedQueriesApiOptions,
-  type ExploreSavedQuery,
+  type SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useReorderStarredSavedQueries() {
@@ -14,7 +14,7 @@ export function useReorderStarredSavedQueries() {
   const {queryKey} = starredSavedQueriesApiOptions(organization);
 
   const {mutate} = useMutation({
-    mutationFn: (queries: ExploreSavedQuery[]) =>
+    mutationFn: (queries: SavedQuery[]) =>
       fetchMutation({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/explore/saved/starred/order/',
@@ -25,7 +25,7 @@ export function useReorderStarredSavedQueries() {
           query_ids: queries.map(query => query.id),
         },
       }),
-    onMutate: (queries: ExploreSavedQuery[]) => {
+    onMutate: (queries: SavedQuery[]) => {
       queryClient.setQueryData(queryKey, prevData =>
         prevData ? {...prevData, json: queries} : prevData
       );
