@@ -42,6 +42,7 @@ import {
   shouldDisplayInvestigationBlock,
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
+import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -368,9 +369,19 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                 aria-busy={renameMutation.isPending}
               />
               {runStatus ? (
-                <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
-                  {runStatus.statusLabel}
-                </Tag>
+                <Flex align="center" gap="sm" wrap="nowrap">
+                  <Tag variant={STATUS_TAG_VARIANT[runStatus.variant]}>
+                    {runStatus.statusLabel}
+                  </Tag>
+                  {/*
+                   * Only while the run is moving: a stopped run's badge already
+                   * says how it ended, and a clock beside it would keep
+                   * counting past the work it claims to measure.
+                   */}
+                  {runStatus.variant === 'running' ? (
+                    <InvestigationRunTimer startedAt={investigation.dateCreated} />
+                  ) : null}
+                </Flex>
               ) : null}
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
