@@ -93,7 +93,12 @@ function GroupAutofixContent({group}: {group: Group}) {
           <Placeholder height="15rem" />
         </Stack>
       ) : (
-        <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
+        <SeerDrawerContent
+          group={group}
+          autofix={autofix}
+          aiConfig={aiConfig}
+          stickyNextStep
+        />
       )}
     </Stack>
   );
