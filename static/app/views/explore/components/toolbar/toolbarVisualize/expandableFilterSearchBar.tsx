@@ -9,8 +9,8 @@ const PAGE_EDGE_PADDING_PX = 16;
 
 /**
  * Autocomplete menus can render inside this wrapper rather than a portal. Selecting an
- * option depends on the pointer sequence completing untouched, so menu targets are
- * always left alone by the capture handlers below.
+ * option depends on the pointer sequence completing untouched. Leave menu presses
+ * alone, except for the release of the press that expanded the bar beneath it.
  */
 const MENU_TARGETS =
   '[data-query-builder-menu], [data-overlay], [role="listbox"], [role="option"]';
@@ -68,6 +68,7 @@ function findOpenSuggestionListbox(root: HTMLElement) {
  */
 export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
   const ref = useRef<HTMLDivElement>(null);
+  const openingPointerId = useRef<number | null>(null);
 
   const expandToMenuWidth = useCallback(() => {
     const el = ref.current;
@@ -155,6 +156,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
 
   const onPointerDownCapture = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
+      openingPointerId.current = null;
       const el = ref.current;
       if (!el || closestMatch(event.target, MENU_TARGETS)) {
         return;
@@ -182,6 +184,7 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
       // reliably. Take over this first click and put the caret at the end of the trailing
       // input instead; individual tokens stay editable on subsequent clicks.
       event.preventDefault();
+      openingPointerId.current = event.pointerId;
       expandToMenuWidth();
       focusTrailingInput();
       requestAnimationFrame(() => {
@@ -219,6 +222,18 @@ export function ExpandableFilterSearchBar({children}: {children: ReactNode}) {
     <ExpandableFilterSearchBarWrapper
       ref={ref}
       onPointerDownCapture={onPointerDownCapture}
+      onPointerUpCapture={event => {
+        if (openingPointerId.current === event.pointerId) {
+          openingPointerId.current = null;
+          // Expansion can put a suggestion under the pointer. React Aria selects
+          // options on release even when the press started on a different element.
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+      onPointerCancelCapture={() => {
+        openingPointerId.current = null;
+      }}
       onFocusCapture={expandToMenuWidth}
       onBlurCapture={collapseAfterBlur}
       onKeyDownCapture={collapseOnEnter}

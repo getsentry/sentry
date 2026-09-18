@@ -1,6 +1,7 @@
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import {SavedSearchType} from 'sentry/types/group';
 import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 
 /**
@@ -56,6 +57,55 @@ function isExpanded(input: HTMLElement) {
 }
 
 describe('ExpandableFilterSearchBar', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('does not select a recent filter when the opening press ends over it', async () => {
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      body: [{query: 'browser.name:Chrome'}],
+    });
+    render(
+      <ExpandableFilterSearchBar>
+        <SearchQueryBuilder
+          initialQuery="sdk.name:example has:sdk.name"
+          menuPresentation="panel"
+          searchSource="explore-conditional-aggregate"
+          recentSearches={SavedSearchType.SPAN}
+          filterKeySections={[
+            {value: 'tags', label: 'Tags', children: ['browser.name', 'sdk.name']},
+          ]}
+          getTagValues={() => Promise.resolve([])}
+          filterKeys={{
+            'sdk.name': {key: 'sdk.name', name: 'sdk.name'},
+            'browser.name': {key: 'browser.name', name: 'browser.name'},
+          }}
+        />
+      </ExpandableFilterSearchBar>
+    );
+
+    const user = userEvent.setup();
+    const input = screen.getByTestId('query-builder-input');
+    await user.pointer({target: input, keys: '[MouseLeft>]'});
+    await flushAnimationFrames();
+    const recentFilter = await screen.findByTestId('recent-filter-key');
+    // Widening a wrapped query moves the new menu under the opening pointer.
+    await user.pointer({target: recentFilter, keys: '[/MouseLeft]'});
+
+    expect(
+      screen.queryByRole('combobox', {name: 'Edit filter value'})
+    ).not.toBeInTheDocument();
+    expect(input).toHaveFocus();
+
+    await user.click(recentFilter);
+    expect(
+      await screen.findByRole('combobox', {name: 'Edit filter value'})
+    ).toHaveFocus();
+  });
+
   it.each(['padding', 'gap'])(
     'keeps the current value editor focused when clicking panel %s',
     async target => {
