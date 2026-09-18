@@ -1186,6 +1186,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
     },
+    "seer-autofix-issue-data-judging": {
+        "task": "seer:sentry.tasks.seer.autofix_issue_data.schedule_judging",
+        # Daily at 08:00 PST (16:00 UTC)
+        "schedule": crontab("0", "16", "*", "*", "*"),
+    },
     "pr-metrics-reap-stuck-judge-verdicts": {
         "task": "seer.code_review:sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
         # Run once a day at 04:00 UTC, off-peak.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Literal
 
 from django.db.models import F, Window
@@ -9,10 +10,11 @@ from pydantic import BaseModel, Field
 from taskbroker_client.retry import Retry
 
 from sentry import features
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
+from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.seer.signed_seer_api import (
     LlmGenerateRequest,
     SeerViewerContext,
@@ -63,6 +65,37 @@ def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
         )
     )
     return list(rows.filter(score_percentile__lte=0.4).order_by("?")[:MAX_REVIEWS_PER_ORG_PER_DAY])
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.autofix_issue_data.schedule_judging",
+    namespace=seer_tasks,
+    processing_deadline_duration=10 * 60,
+)
+def schedule_judging() -> None:
+    """Daily cron entry point for negative-label curation.
+
+    Finds orgs that had a Night Shift run in the last 48 hours, keeps those that
+    are active and have the feature flag, and dispatches one
+    `schedule_judging_for_org` task per org. That task samples the org's
+    unreviewed rows and fans out the per-issue Opus judge calls. The 48-hour
+    window covers a missed daily run without scanning every organization.
+    """
+    organization_ids = (
+        SeerWorkflowRun.objects.filter(
+            workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            date_added__gte=timezone.now() - timedelta(hours=48),
+        )
+        .values_list("organization_id", flat=True)
+        .distinct()
+    )
+    for organization in Organization.objects.filter(
+        id__in=organization_ids, status=OrganizationStatus.ACTIVE
+    ):
+        if features.has(FEATURE_FLAG, organization):
+            schedule_judging_for_org.apply_async(
+                args=[organization.id], headers={"sentry-propagate-traces": False}
+            )
 
 
 @instrumented_task(
