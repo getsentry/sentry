@@ -3,12 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {
-  render,
-  screen,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import GroupAutofix from 'sentry/views/issueDetails/autofix';
@@ -58,6 +53,13 @@ describe('GroupAutofix', () => {
       body: {autofixAutomationTuning: 'off'},
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/setup-check/`,
+      body: {
+        hasFreeAutofixAccess: true,
+        billing: {hasAutofixQuota: true, hasScannerQuota: true},
+      },
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/seer/onboarding-check/`,
       body: {
         hasSupportedScmIntegration: false,
@@ -100,14 +102,50 @@ describe('GroupAutofix', () => {
       })
     );
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByTestId('ai-setup-loading-indicator')
-    );
-
     // The toolbar now lives in the issue navigation row, so the tab itself
     // renders only the analysis.
-    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
     expect(screen.queryByText('Seer Autofix')).not.toBeInTheDocument();
+  });
+
+  it('offers the upgrade CTA when the org has no Seer subscription', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/setup-check/`,
+      body: {
+        hasFreeAutofixAccess: false,
+        billing: {hasAutofixQuota: false, hasScannerQuota: false},
+      },
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+      })
+    );
+
+    // Starting a run would only fail without a subscription, so the upgrade
+    // region replaces the start card.
+    expect(await screen.findByTestId('autofix-upgrade-cta')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Start Analysis'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the start card when the org still has Autofix quota', async () => {
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+      })
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId('autofix-upgrade-cta')).not.toBeInTheDocument();
   });
 
   it('redirects to issue details without the autofix-page feature', async () => {

@@ -1,8 +1,10 @@
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {AutofixWarnings} from 'sentry/components/events/autofix/v3/warnings';
+import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -13,6 +15,11 @@ import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+// getsentry supplies the upgrade CTA; open source has no billing UI to show.
+const AiSetupDataConsent = OverrideOrDefault({
+  overrideName: 'component:ai-setup-data-consent',
+});
 
 function GroupAutofix() {
   const organization = useOrganization();
@@ -39,14 +46,42 @@ function GroupAutofix() {
 }
 
 function GroupAutofixContent({group}: {group: Group}) {
+  const organization = useOrganization();
   // The provider is mounted by the layout for this tab, so this is always set.
   const panel = useAutofixPanel();
+  const {
+    billing,
+    hasFreeAutofixAccess,
+    isPending: isSeerSetupPending,
+  } = useOrganizationSeerSetup();
+
+  // Same condition the Seer project settings use to decide an org has to buy in
+  // before Autofix will run for it.
+  const needsSeerSubscription =
+    !hasFreeAutofixAccess &&
+    !billing.hasAutofixQuota &&
+    organization.features.includes('seer-billing');
 
   if (!panel) {
     return null;
   }
 
   const {aiConfig, autofix, warnings} = panel;
+
+  if (isSeerSetupPending) {
+    return <Placeholder height="15rem" />;
+  }
+
+  // Without a subscription, starting a run would only fail, so offer the
+  // upgrade instead of the start card. The CTA itself comes from getsentry;
+  // open source registers no override and renders nothing here.
+  if (needsSeerSubscription) {
+    return (
+      <div data-test-id="autofix-upgrade-cta">
+        <AiSetupDataConsent groupId={group.id} />
+      </div>
+    );
+  }
 
   return (
     <Stack gap="lg">
