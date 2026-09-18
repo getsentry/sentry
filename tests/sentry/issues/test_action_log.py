@@ -600,9 +600,7 @@ class TestPublishActionWrite(TestCase):
         )
 
     @patch("sentry.issues.action_log.publish.secrets.randbelow", return_value=12344)
-    def test_outbox_identifier_uses_secure_random_value_by_default(
-        self, mock_randbelow: MagicMock
-    ) -> None:
+    def test_outbox_identifier_uses_secure_random_value(self, mock_randbelow: MagicMock) -> None:
         with (
             self.feature("projects:issue-action-log-write-to-db"),
             outbox_context(flush=False),
@@ -617,29 +615,6 @@ class TestPublishActionWrite(TestCase):
         outbox = GroupActionLogOutbox.objects.get()
         assert outbox.object_identifier == 12345
         mock_randbelow.assert_called_once_with(2**63 - 1)
-
-    @patch(
-        "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.next_object_identifier",
-        return_value=67890,
-    )
-    def test_outbox_identifier_can_use_db_sequence(
-        self, mock_next_object_identifier: MagicMock
-    ) -> None:
-        with (
-            self.options({"issues.action_log.use_db_sequence_for_outbox_identifier": True}),
-            self.feature("projects:issue-action-log-write-to-db"),
-            outbox_context(flush=False),
-        ):
-            publish_action(
-                ViewAction(),
-                source=ActionSource.API,
-                group_id=self.group.id,
-                project=self.group.project,
-            )
-
-        outbox = GroupActionLogOutbox.objects.get()
-        assert outbox.object_identifier == 67890
-        mock_next_object_identifier.assert_called_once_with()
 
     def test_outbox_flushes_on_commit(self) -> None:
         with (
