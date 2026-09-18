@@ -1,14 +1,5 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`TraceTree ExpandToPath discards non txns segments 1`] = `
-"
-trace root
-  parent - transaction.op
-    child - transaction.op
-      span.op - span.description
-"
-`;
-
 exports[`TraceTree ExpandToPath expands transactions from path segments 1`] = `
 "
 trace root

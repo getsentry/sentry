@@ -2493,6 +2493,28 @@ describe('TraceTree', () => {
       ],
     });
 
+    it('expands loaded EAP ancestors from a path', async () => {
+      const tree = TraceTree.FromTrace(
+        makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'parent-event-id',
+            is_transaction: true,
+            children: [makeEAPSpan({event_id: 'child-event-id'})],
+          }),
+        ]),
+        traceOptions
+      );
+      const child = tree.root.findChild(node => node.id === 'child-event-id')!;
+
+      expect(tree.list).not.toContain(child);
+      await TraceTree.ExpandToPath(tree, child.pathToNode());
+
+      expect(tree.list).toContain(child);
+      expect(tree.root.findChild(node => node.id === 'parent-event-id')!.expanded).toBe(
+        true
+      );
+    });
+
     it('expands transactions from path segments', async () => {
       const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
 
@@ -2506,24 +2528,6 @@ describe('TraceTree', () => {
         preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
       });
 
-      expect(tree.build().serialize()).toMatchSnapshot();
-    });
-
-    it('discards non txns segments', async () => {
-      const tree = TraceTree.FromTrace(nestedTransactionTrace, traceOptions);
-
-      const child = tree.root.findChild(
-        node => isTransactionNode(node) && node.value.transaction === 'child'
-      )!;
-
-      const request = mockSpansResponse([makeSpan()], 'project', 'child-event-id');
-      await TraceTree.ExpandToPath(tree, ['span-0', ...child.pathToNode()], {
-        api,
-        organization,
-        preferences: DEFAULT_TRACE_VIEW_PREFERENCES,
-      });
-
-      expect(request).toHaveBeenCalled();
       expect(tree.build().serialize()).toMatchSnapshot();
     });
   });

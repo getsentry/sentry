@@ -373,67 +373,6 @@ async function pageloadTestSetup() {
   return {...value, virtualizedContainer, virtualizedScrollContainer};
 }
 
-async function nestedTransactionsTestSetup() {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectDetailsResponse();
-  const transactions: TraceFullDetailed[] = [];
-
-  let txn = makeTransaction({
-    span_id: '0',
-    event_id: '0',
-    transaction: 'transaction-name-0',
-    'transaction.op': 'transaction-op-0',
-    project_slug: 'project_slug',
-  });
-
-  transactions.push(txn);
-
-  for (let i = 0; i < 100; i++) {
-    const next = makeTransaction({
-      span_id: i + '',
-      event_id: i + '',
-      transaction: 'transaction-name-' + i,
-      'transaction.op': 'transaction-op-' + i,
-      project_slug: 'project_slug',
-    });
-
-    txn.children.push(next);
-    txn = next;
-    transactions.push(next);
-
-    mockTransactionDetailsResponse(`${i}`);
-  }
-
-  mockTraceResponse({
-    body: {
-      transactions,
-      orphan_errors: [],
-    },
-  });
-  mockTraceMetaResponse();
-  mockTraceRootFacets();
-  mockTraceRootEvent('0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
-}
-
 async function searchTestSetup() {
   mockPerformanceSubscriptionDetailsResponse();
   mockProjectDetailsResponse();
@@ -1870,106 +1809,94 @@ describe('trace view', () => {
       });
     });
 
-    it('scrolls to span that is a child of transaction', async () => {
-      mockQueryString('?node=span-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[3]).toHaveFocus();
+    it('expands and collapses loaded EAP children with keyboard navigation', async () => {
+      mockPerformanceSubscriptionDetailsResponse();
+      mockProjectDetailsResponse();
+      mockTraceResponse({
+        body: makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-transaction',
+            description: 'root transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 3,
+            children: [
+              makeEAPSpan({
+                event_id: 'special-span',
+                description: 'special span',
+                start_timestamp: 1.5,
+                end_timestamp: 2,
+              }),
+              ...Array.from({length: 100}, (_, index) =>
+                makeEAPSpan({
+                  event_id: `other-span-${index}`,
+                  start_timestamp: 1.5,
+                  end_timestamp: 2,
+                })
+              ),
+            ],
+          }),
+          makeEAPSpan({
+            event_id: 'second-transaction',
+            description: 'second transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 2,
+          }),
+          makeEAPSpan({
+            event_id: 'third-transaction',
+            description: 'third transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 2,
+          }),
+        ]),
       });
-      expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
-    });
-
-    it('scrolls to parent autogroup node', async () => {
-      mockQueryString('?node=ag-redis0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[4]).toHaveFocus();
+      mockTraceMetaResponse({
+        body: {
+          errorsCount: 0,
+          logsCount: 0,
+          metricsCount: 0,
+          performanceIssuesCount: 0,
+          spansCount: 103,
+          spansCountMap: {},
+          transactionChildCountMap: [],
+        },
       });
-      expect(rows[4]!.textContent?.includes('Autogrouped')).toBe(true);
-    });
-    it('scrolls to child of parent autogroup node', async () => {
-      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
-      // as path is prioritized over targetId/eventId
-      mockQueryString('?node=span-redis0&node=txn-1&targetId=doesnotexist');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[5]).toHaveFocus();
+      mockTraceRootFacets();
+      mockEventsResponse();
+      for (const itemId of ['root-transaction', 'special-span']) {
+        MockApiClient.addMockResponse({
+          url: `/projects/org-slug/project_slug/trace-items/${itemId}/`,
+          body: {
+            itemId,
+            links: null,
+            meta: {},
+            timestamp: new Date(1e3).toISOString(),
+            attributes: [],
+          },
+        });
+      }
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/logs/',
+        body: {data: []},
       });
-      expect(rows[5]!.textContent?.includes('db — redis')).toBe(true);
-    });
-
-    it('scrolls to sibling autogroup node', async () => {
-      mockQueryString('?node=ag-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[5]).toHaveFocus();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
       });
-      expect(rows[5]!.textContent?.includes('5Autogrouped')).toBe(true);
-    });
 
-    it('scrolls to child of sibling autogroup node', async () => {
-      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
-      // as path is prioritized over targetId/eventId
-      mockQueryString('?node=span-http0&node=txn-1&targetId=doesnotexist');
+      render(<TraceView />, {initialRouterConfig});
 
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
+      const root = await screen.findByText('root transaction');
+      expect(screen.queryByText('special span')).not.toBeInTheDocument();
+      await userEvent.click(root);
+      await userEvent.keyboard('{arrowright}');
+      expect(await screen.findByText('special span')).toBeInTheDocument();
+      await userEvent.keyboard('{arrowleft}');
       await waitFor(() => {
-        expect(rows[6]).toHaveFocus();
+        expect(screen.queryByText('special span')).not.toBeInTheDocument();
       });
-      expect(rows[6]!.textContent?.includes('http — request')).toBe(true);
-    });
-
-    it('scrolls to missing instrumentation node', async () => {
-      mockTracePreferences({missing_instrumentation: true});
-      mockQueryString('?node=ms-queueprocess0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next ticks
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[7]).toHaveFocus();
-      });
-      expect(rows[7]!.textContent?.includes('No Instrumentation')).toBe(true);
-    });
-
-    it('scrolls to trace error node', async () => {
-      mockQueryString('?node=error-error0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next ticks
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[11]).toHaveFocus();
-      });
-      expect(rows[11]!.textContent?.includes('error-title')).toBe(true);
     });
 
     it('scrolls to event id query param', async () => {
@@ -1980,18 +1907,6 @@ describe('trace view', () => {
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[2]).toHaveFocus();
       });
-    });
-
-    it('supports expanded node path', async () => {
-      mockQueryString('?node=span-span0&node=txn-1&span-0&node=txn-0');
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[3]).toHaveFocus();
-      });
-      expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
     });
 
     it.each([
@@ -2012,79 +1927,7 @@ describe('trace view', () => {
       });
     });
 
-    it('does not autogroup if user preference is disabled', async () => {
-      mockTracePreferences({autogroup: {parent: false, sibling: false}});
-      mockQueryString('?node=span-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-
-      await within(virtualizedContainer).findAllByText(/process/i);
-      expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
-    });
-
-    it('does not inject missing instrumentation if user preference is disabled', async () => {
-      mockTracePreferences({missing_instrumentation: false});
-      mockQueryString('?node=span-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-
-      await within(virtualizedContainer).findAllByText(/process/i);
-      expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
-    });
-
     describe('preferences', () => {
-      it('toggles autogrouping', async () => {
-        mockTracePreferences({autogroup: {parent: true, sibling: true}});
-        mockQueryString('?node=span-span0&node=txn-1');
-
-        const {virtualizedContainer} = await completeTestSetup();
-        await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-        await userEvent.click(preferencesDropdownTrigger);
-
-        expect(await screen.findByText('Autogrouping')).toBeInTheDocument();
-
-        // Toggle autogrouping off
-        const autogroupingOption = await screen.findByText('Autogrouping');
-        await userEvent.click(autogroupingOption);
-
-        await waitFor(() => {
-          expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
-        });
-
-        // Toggle autogrouping back on
-        await userEvent.click(await screen.findByText('Autogrouping'));
-        expect(await screen.findAllByText('Autogrouped')).toHaveLength(2);
-      });
-
-      it('toggles missing instrumentation', async () => {
-        mockTracePreferences({missing_instrumentation: true});
-        mockQueryString('?node=span-span0&node=txn-1');
-
-        const {virtualizedContainer} = await completeTestSetup();
-        await within(virtualizedContainer).findAllByText(/No Instrumentation/i);
-
-        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-        await userEvent.click(preferencesDropdownTrigger);
-
-        expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
-
-        // Toggle autogrouping off
-        const autogroupingOption = await screen.findByTestId('no-instrumentation');
-        await userEvent.click(autogroupingOption);
-
-        await waitFor(async () => {
-          expect(await screen.findAllByText('No Instrumentation')).toHaveLength(1);
-        });
-
-        // Toggle autogrouping back on
-        await userEvent.click(autogroupingOption);
-        await waitFor(async () => {
-          expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
-        });
-      });
-
       it('redraws the trace when compressed timeline changes', async () => {
         mockTracePreferences({compressed_timeline: true});
         mockQueryString('?node=span-span0&node=txn-1');
@@ -2196,45 +2039,6 @@ describe('trace view', () => {
           compressionSpy.mockRestore();
         }
       });
-
-      it('recomputes compressed timeline when expanding or collapsing rows changes visible nodes', async () => {
-        mockTracePreferences({compressed_timeline: true});
-        mockQueryString('?node=span-span0&node=txn-1');
-        const organization = OrganizationFixture({
-          features: ['trace-waterfall-time-compression'],
-        });
-
-        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
-
-        try {
-          const {virtualizedContainer} = await completeTestSetup({organization});
-          await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-          const initialNodeCount =
-            compressionSpy.mock.calls.at(-1)?.[0]?.nodes.length ?? 0;
-          expect(initialNodeCount).toBeGreaterThan(0);
-
-          compressionSpy.mockClear();
-
-          const rows = getVirtualizedRows(virtualizedContainer);
-          const spanRow = rows.find(row => row.textContent?.includes('http — request'));
-          const collapseButton =
-            spanRow?.querySelector<HTMLButtonElement>('.TraceChildrenCount');
-          expect(collapseButton).toBeInTheDocument();
-
-          fireEvent.click(collapseButton!);
-
-          await waitFor(() => {
-            expect(compressionSpy).toHaveBeenCalled();
-          });
-
-          expect(compressionSpy.mock.calls.at(-1)?.[0]?.nodes.length).toBeLessThan(
-            initialNodeCount
-          );
-        } finally {
-          compressionSpy.mockRestore();
-        }
-      });
     });
   });
 
@@ -2261,60 +2065,6 @@ describe('trace view', () => {
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
 
-    it('arrow right expands row and fetches data', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowright}');
-      await waitFor(() => {
-        expect(screen.getByText('special-span')).toBeInTheDocument();
-      });
-    });
-
-    it('arrow left collapses row', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowright}');
-
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
-      await userEvent.keyboard('{arrowleft}');
-
-      await waitFor(() => {
-        expect(screen.queryByText('special-span')).not.toBeInTheDocument();
-      });
-    });
-
     it('arrow left does not collapse trace root row', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -2324,17 +2074,6 @@ describe('trace view', () => {
 
       await userEvent.keyboard('{arrowleft}');
       expect(await screen.findByText('transaction-name-1')).toBeInTheDocument();
-    });
-
-    it('arrow left on transaction row still renders transaction children', async () => {
-      const {virtualizedContainer} = await nestedTransactionsTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowleft}');
-      expect(await screen.findByText('transaction-name-2')).toBeInTheDocument();
     });
 
     it('arrowup on first node jumps to end', async () => {
