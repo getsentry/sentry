@@ -17,10 +17,10 @@ from sentry.notifications.platform.discord.renderers.metric_alert import (
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.templates.seer import SeerAutofixError
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationRenderedTemplate,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -62,18 +62,12 @@ class DiscordMetricAlertRendererInvalidDataTest(TestCase):
 class DiscordMetricAlertProviderDispatchTest(TestCase):
     def test_provider_returns_metric_alert_renderer(self) -> None:
         data = _make_notification_data()
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.METRIC_ALERT,
-        )
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
         assert renderer is DiscordMetricAlertRenderer
 
-    def test_provider_returns_default_for_unknown_category(self) -> None:
-        data = _make_notification_data()
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.DEBUG,
-        )
+    def test_provider_returns_default_for_unregistered_source(self) -> None:
+        data = MockNotification(message="test")
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
         assert renderer is DiscordNotificationProvider.default_renderer
 
 

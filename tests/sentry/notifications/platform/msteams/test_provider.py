@@ -16,7 +16,6 @@ from sentry.notifications.platform.msteams.provider import (
 from sentry.notifications.platform.provider import SendFailure, SendFailureStatus
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
@@ -32,9 +31,7 @@ class MSTeamsRendererTest(TestCase):
         data = MockNotification(message="test")
         template = MockNotificationTemplate()
         rendered_template = template.render(data)
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = MSTeamsNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -108,9 +105,7 @@ class MSTeamsRendererTest(TestCase):
             footer=base_template.footer,
             chart=None,  # No chart
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = MSTeamsNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -133,9 +128,7 @@ class MSTeamsRendererTest(TestCase):
             footer=None,  # No footer
             chart=base_template.chart,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = MSTeamsNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -162,9 +155,7 @@ class MSTeamsRendererTest(TestCase):
             footer=base_template.footer,
             chart=base_template.chart,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = MSTeamsNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 
@@ -200,9 +191,7 @@ class MSTeamsRendererTest(TestCase):
             footer=None,
             chart=None,
         )
-        renderer = MSTeamsNotificationProvider.get_renderer(
-            data=data, category=NotificationCategory.DEBUG
-        )
+        renderer = MSTeamsNotificationProvider.get_renderer(data=data)
 
         renderable = renderer.render(data=data, rendered_template=rendered_template)
 

@@ -171,7 +171,7 @@ class NotificationService[T: NotificationData]:
         provider: type[NotificationProvider[RenderableT]],
     ) -> RenderableT:
         rendered_template = template.render(data=data)
-        renderer = provider.get_renderer(data=data, category=template.category)
+        renderer = provider.get_renderer(data=data)
         return renderer.render(data=data, rendered_template=rendered_template)
 
     @staticmethod
