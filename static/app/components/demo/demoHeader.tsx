@@ -7,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {logout} from 'sentry/actionCreators/account';
 import {LogoSentry} from 'sentry/components/logoSentry';
-import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
@@ -132,7 +131,3 @@ const FreeTrialButton = styled(Button)`
 `;
 
 const SignOutButton = styled(Button)``;
-
-const IconSignOut = styled(IconUpload)`
-  transform: rotate(90deg);
-`;
