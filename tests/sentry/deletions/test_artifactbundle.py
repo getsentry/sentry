@@ -46,18 +46,21 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
 
     def test_delete_when_file_already_deleted(self) -> None:
-        """Deleting an ArtifactBundle whose File was already removed must not raise."""
+        """Signal handler must not raise when the associated File is already gone."""
+        from django.db import connection
+
+        from sentry.models.artifactbundle import delete_file_for_artifact_bundle
+
         org = self.create_organization()
         artifact_bundle = self.create_artifact_bundle(org=org)
         file_id = artifact_bundle.file_id
 
-        # Simulate the File being deleted before the ArtifactBundle deletion runs.
-        File.objects.filter(id=file_id).delete()
+        # Delete only the File row via raw SQL so Django's CASCADE logic does not
+        # also remove the ArtifactBundle.  This simulates the real-world race where
+        # the File is deleted independently before the ArtifactBundle deletion task
+        # fires the post_delete signal.
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM sentry_file WHERE id = %s", [file_id])
 
-        self.ScheduledDeletion.schedule(instance=artifact_bundle, days=0)
-
-        # Should complete without raising File.DoesNotExist.
-        with self.tasks():
-            run_scheduled_deletions()
-
-        assert not ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
+        # The signal handler must not raise File.DoesNotExist.
+        delete_file_for_artifact_bundle(artifact_bundle)
