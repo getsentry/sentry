@@ -173,6 +173,7 @@ export function WidgetBuilderV2({
             <ContainerWithoutSidebar
               data-test-id="widget-builder-container"
               style={
+                // oxlint-disable-next-line react/refs
                 navigationElementRef.current
                   ? isMediumScreen
                     ? {
@@ -287,9 +288,10 @@ export function WidgetPreviewContainer({
       )
     );
 
+  const organization = useOrganization();
   const message =
     (hasOnlyBlankEquation ? t('Enter an equation to preview results') : undefined) ??
-    getWidgetConfigError(widget) ??
+    getWidgetConfigError(widget, organization) ??
     (isQueryConditionInvalid ? t("This widget's query filter is invalid.") : undefined);
 
   let previewStatus: WidgetPreviewStatus;
@@ -305,7 +307,6 @@ export function WidgetPreviewContainer({
   } else {
     previewStatus = {status: 'ready'};
   }
-  const organization = useOrganization();
   const location = useLocation();
   const theme = useTheme();
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);

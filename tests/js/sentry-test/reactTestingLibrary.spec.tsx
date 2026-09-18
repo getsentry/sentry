@@ -9,6 +9,37 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
+describe('focus events', () => {
+  it('clears the related target after the focused element is removed', async () => {
+    const onFocus = jest.fn();
+    const {rerender} = render(
+      <div>
+        <button key="first">First</button>
+        <button key="second" onFocus={event => onFocus(event.relatedTarget)}>
+          Second
+        </button>
+      </div>
+    );
+
+    const first = screen.getByRole('button', {name: 'First'});
+    await userEvent.click(first);
+    await userEvent.click(screen.getByRole('button', {name: 'Second'}));
+    expect(onFocus).toHaveBeenLastCalledWith(first);
+
+    await userEvent.click(first);
+    rerender(
+      <div>
+        <button key="second" onFocus={event => onFocus(event.relatedTarget)}>
+          Second
+        </button>
+      </div>
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Second'}));
+
+    expect(onFocus).toHaveBeenLastCalledWith(null);
+  });
+});
+
 describe('rerender', () => {
   // Taken from https://testing-library.com/docs/example-update-props/
   let idCounter = 1;
@@ -19,6 +50,7 @@ describe('rerender', () => {
     return (
       <div>
         <span data-test-id="number-display">{number}</span>
+        {/* oxlint-disable-next-line react/refs */}
         <span data-test-id="instance-id">{id.current}</span>
       </div>
     );

@@ -29,9 +29,22 @@ from sentry.models.organization import Organization
 from sentry.models.organizationavatarreplica import OrganizationAvatarReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkeymapping import ProjectKeyMapping
+from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
+
+
+def _record_replica_write(category: OutboxCategory, outcome: str) -> None:
+    metrics.incr(
+        "hybridcloud.replication.write",
+        tags={
+            "silo": SiloMode.get_current_mode().value.lower(),
+            "category": category.name,
+            "outcome": outcome,
+        },
+    )
 
 
 def get_foreign_key_columns(
@@ -117,21 +130,28 @@ def handle_replication(
     fk = fk or get_foreign_key_column(destination, source_model)
     dest_filter: Mapping[str, Any] = {fk: getattr(destination, fk)}
 
-    with enforce_constraints(transaction.atomic(router.db_for_write(destination_model))):
-        for columns in get_conflicting_unique_columns(destination, fk, category):
-            destination_model.objects.filter(
-                **{c: getattr(destination, c) for c in columns}
-            ).exclude(**dest_filter).delete()
-        existing = destination_model.objects.filter(**dest_filter).first()
-        if existing:
-            update: Mapping[str, Any] = {
-                field.name: getattr(destination, field.name)
-                for field in destination_model._meta.get_fields()
-                if field.editable and field.name not in ("id", "date_added")
-            }
-            existing.update(**update)
-        else:
-            destination.save()
+    try:
+        with enforce_constraints(transaction.atomic(router.db_for_write(destination_model))):
+            for columns in get_conflicting_unique_columns(destination, fk, category):
+                destination_model.objects.filter(
+                    **{c: getattr(destination, c) for c in columns}
+                ).exclude(**dest_filter).delete()
+            existing = destination_model.objects.filter(**dest_filter).first()
+            if existing:
+                update: Mapping[str, Any] = {
+                    field.name: getattr(destination, field.name)
+                    for field in destination_model._meta.get_fields()
+                    if field.editable and field.name not in ("id", "date_added")
+                }
+                existing.update(**update)
+                outcome = "updated"
+            else:
+                destination.save()
+                outcome = "created"
+    except Exception:
+        _record_replica_write(category, "error")
+        raise
+    _record_replica_write(category, outcome)
 
 
 class DatabaseBackedCellReplicaService(CellReplicaService):
@@ -285,6 +305,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
                 "project_key_mapping.conflict",
                 extra={"project_key_id": project_key.id, "cell_name": project_key.cell_name},
             )
+            _record_replica_write(OutboxCategory.PROJECT_KEY_UPDATE, "conflict")
             return False
         return True
 

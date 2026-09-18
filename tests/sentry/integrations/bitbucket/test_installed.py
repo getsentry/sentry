@@ -8,11 +8,13 @@ import responses
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.utils import jwt
 
 
 @control_silo_test
@@ -54,7 +56,6 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.metadata = {
             "public_key": self.public_key,
             "shared_secret": self.shared_secret,
-            "base_url": self.base_api_url,
             "domain_name": self.domain_name,
             "icon": self.icon,
             "scopes": list(scopes),
@@ -96,14 +97,25 @@ class BitbucketInstalledEndpointTest(APITestCase):
         del integration.metadata["webhook_secret"]
         assert integration.metadata == self.metadata
 
-    def test_installed_without_public_key(self) -> None:
+    def test_existing_installation_without_username(self) -> None:
         integration, created = Integration.objects.get_or_create(
             provider=self.provider,
             external_id=self.client_key,
             defaults={"name": self.user_display_name, "metadata": self.user_metadata},
         )
         del self.user_data_from_bitbucket["principal"]["username"]
-        response = self.client.post(self.path, data=self.user_data_from_bitbucket)
+        token = jwt.encode(
+            {
+                "iss": self.client_key,
+                "qsh": get_query_hash(self.path, method="POST", query_params={}),
+            },
+            self.shared_secret,
+        )
+        response = self.client.post(
+            self.path,
+            data=self.user_data_from_bitbucket,
+            HTTP_AUTHORIZATION=f"JWT {token}",
+        )
         assert response.status_code == 200
 
         # assert no changes have been made to the integration

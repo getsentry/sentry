@@ -1330,6 +1330,9 @@ class Fixtures:
 
         return head_artifact, head_size_metrics, base_artifact, base_size_metrics
 
+    def create_seer_autofix_issue_data(self, group, **kwargs):
+        return Factories.create_seer_autofix_issue_data(group=group, **kwargs)
+
     def create_seer_run(self, organization=None, **kwargs):
         if organization is None:
             organization = self.organization

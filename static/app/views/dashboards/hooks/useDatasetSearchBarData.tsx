@@ -30,24 +30,29 @@ export function useDatasetSearchBarData(): {
       ? debouncedFilterKeySearch.query
       : undefined;
 
+  // oxlint-disable-next-line react/hooks -- Each call names a literal WidgetType, so the dataset config and its hook are fixed.
   const errorsData = getDatasetConfig(WidgetType.ERRORS).useSearchBarDataProvider!({
     pageFilters: selection,
   });
 
+  // oxlint-disable-next-line react/hooks -- Each call names a literal WidgetType, so the dataset config and its hook are fixed.
   const logsData = getDatasetConfig(WidgetType.LOGS).useSearchBarDataProvider!({
     filterKeySearch: getFilterKeySearch(WidgetType.LOGS),
     pageFilters: selection,
   });
 
+  // oxlint-disable-next-line react/hooks -- Each call names a literal WidgetType, so the dataset config and its hook are fixed.
   const spansData = getDatasetConfig(WidgetType.SPANS).useSearchBarDataProvider!({
     filterKeySearch: getFilterKeySearch(WidgetType.SPANS),
     pageFilters: selection,
   });
 
+  // oxlint-disable-next-line react/hooks -- Each call names a literal WidgetType, so the dataset config and its hook are fixed.
   const issuesData = getDatasetConfig(WidgetType.ISSUE).useSearchBarDataProvider!({
     pageFilters: selection,
   });
 
+  // oxlint-disable-next-line react/hooks -- Each call names a literal WidgetType, so the dataset config and its hook are fixed.
   const releasesData = getDatasetConfig(WidgetType.RELEASE).useSearchBarDataProvider!({
     pageFilters: selection,
   });

@@ -23,7 +23,7 @@ type DisabledAlertProps = {
 export function DisabledAlert({automation}: DisabledAlertProps) {
   const {mutate: updateAutomation, isPending: isEnabling} = useUpdateAutomation();
 
-  const canEdit = useCanEditAutomation();
+  const canEdit = useCanEditAutomation(automation.id);
 
   if (automation.enabled) {
     return null;

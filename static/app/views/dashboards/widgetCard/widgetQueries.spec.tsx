@@ -185,22 +185,16 @@ describe('Dashboards > WidgetQueries', () => {
     );
   });
 
-  it('sets errorMessage when the first request fails', async () => {
-    const okMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      match: [MockApiClient.matchQuery({query: 'event.type:error'})],
-      body: [],
-    });
+  it('sets errorMessage when a request fails', async () => {
     const failMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
       body: {detail: 'Bad request data'},
-      match: [MockApiClient.matchQuery({query: 'event.type:default'})],
     });
 
     let error: string | undefined;
     renderWithProviders(
-      <WidgetQueries widget={multipleQueryWidget}>
+      <WidgetQueries widget={singleQueryWidget}>
         {({errorMessage}: {errorMessage?: string}) => {
           error = errorMessage;
           return <div data-test-id="child" />;
@@ -209,12 +203,11 @@ describe('Dashboards > WidgetQueries', () => {
       {organization: initialData.organization}
     );
 
-    // Child should be rendered and 2 requests should be sent.
+    // Child should be rendered and a request should be sent.
     expect(await screen.findByTestId('child')).toBeInTheDocument();
     await waitFor(() => {
-      expect(error).toBe('Bad request data');
+      expect(error).toBe('GET /organizations/{orgSlug}/events-stats/');
     });
-    expect(okMock).toHaveBeenCalledTimes(1);
     expect(failMock).toHaveBeenCalledTimes(1);
   });
 
@@ -701,7 +694,7 @@ describe('Dashboards > WidgetQueries', () => {
     );
   });
 
-  it('charts send metricsEnhanced requests', async () => {
+  it('charts send discover requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
@@ -745,7 +738,7 @@ describe('Dashboards > WidgetQueries', () => {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'errors'}),
       })
     );
 
@@ -754,7 +747,7 @@ describe('Dashboards > WidgetQueries', () => {
     });
   });
 
-  it('tables send metricsEnhanced requests', async () => {
+  it('tables send errors requests', async () => {
     const {organization} = initialData;
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -789,7 +782,7 @@ describe('Dashboards > WidgetQueries', () => {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({dataset: 'metricsEnhanced'}),
+        query: expect.objectContaining({dataset: 'errors'}),
       })
     );
 

@@ -135,6 +135,42 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             Repository.objects.bulk_update(repositories, fields=list(fields_to_update))
 
+    def transfer_repository_to_integration(
+        self,
+        *,
+        organization_id: int,
+        update: RpcRepository,
+        organization_integration_id: int,
+    ) -> bool:
+        with transaction.atomic(router.db_for_write(Repository)):
+            # Lock the row so it can't be deleted between this check and the update.
+            repository = (
+                Repository.objects.filter(organization_id=organization_id, id=update.id)
+                .select_for_update()
+                .first()
+            )
+            if repository is None or repository.status not in (
+                ObjectStatus.ACTIVE,
+                ObjectStatus.DISABLED,
+            ):
+                return False
+
+            update_dict = update.dict()
+            del update_dict["id"]
+            for field_name, field_value in update_dict.items():
+                setattr(repository, field_name, field_value)
+
+            repository.save()
+
+            RepositoryProjectPathConfig.objects.filter(
+                organization_id=organization_id,
+                project_repository__repository_id=update.id,
+            ).update(
+                integration_id=update.integration_id,
+                organization_integration_id=organization_integration_id,
+            )
+        return True
+
     def disable_repositories_for_integration(
         self, *, organization_id: int, integration_id: int, provider: str
     ) -> None:

@@ -139,6 +139,7 @@ function MetricsSectionContent({
         }
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.query, traceId, group, event, project, openDrawer, navigate, location]);
 
   if (!result.data || result.data.length === 0 || error) {
@@ -151,6 +152,7 @@ function MetricsSectionContent({
         <MetricsSamplesTable
           source="issueDetails"
           overrideTableData={abbreviatedTableData}
+          overrideTableRoutingHint={result.meta?.routingHint}
         />
         {result.data && result.data.length > NUMBER_ABBREVIATED_METRICS ? (
           <div>

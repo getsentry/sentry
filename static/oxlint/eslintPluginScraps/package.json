@@ -7,10 +7,10 @@
     ".": "./index.ts"
   },
   "dependencies": {
-    "@typescript-eslint/utils": "8.58.0"
+    "@oxlint/plugins": "1.83.0"
   },
   "devDependencies": {
-    "@typescript-eslint/rule-tester": "8.58.0",
+    "oxlint": "1.83.0",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }

@@ -104,7 +104,7 @@ export default function LogsQueryBlock({data}: {data: LogsQueryData}) {
       <LogsQueryChart data={data} hasTable={!isChartOnly} sort={eventView.sorts[0]} />
       {isChartOnly ? null : (
         <QueryEmbedTable
-          columns={eventColumns(getLogsQueryFields(data))}
+          columns={eventColumns(getLogsQueryFields(data), tableQuery.data?.meta)}
           emptyMessage={t('No matching logs')}
           errorMessage={t('Unable to load logs')}
           isError={tableQuery.isError}

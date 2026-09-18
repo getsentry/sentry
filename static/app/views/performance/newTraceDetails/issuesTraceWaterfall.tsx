@@ -30,8 +30,6 @@ import {useTraceIssuesOnLoad} from './useTraceOnLoad';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 
-const noopTraceSearch = () => {};
-
 interface IssuesTraceWaterfallProps extends Omit<
   TraceWaterfallProps,
   'tree' | 'traceWaterfallScrollHandlers' | 'meta'
@@ -58,6 +56,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
   }, [props.event]);
 
   const projectsRef = useRef(projects);
+  // oxlint-disable-next-line react/refs
   projectsRef.current = projects;
 
   useEffect(() => {
@@ -257,7 +256,6 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
               rerender={rerender}
               trace_id={props.traceSlug}
               onRowClick={onRowClick}
-              onTraceSearch={noopTraceSearch}
               previouslyFocusedNodeRef={previouslyFocusedNodeRef}
               manager={viewManager}
               scheduler={traceScheduler}
