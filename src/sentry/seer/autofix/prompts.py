@@ -40,31 +40,7 @@ def root_cause_prompt(
     should_run_repo_checks: bool = False,
 ) -> str:
     """DEPRECATED: RCA runs through Seer, see src/seer/automation/features/autofix/feature.py in seer repo to change behavior"""
-
-    return dedent(
-        f"""\
-        Analyze issue {short_id}: "{title}" (culprit: {culprit})
-
-        Your task is to find the ROOT CAUSE of this issue. Do not propose fixes - only identify why the error is happening.
-
-        Guidelines:
-        1. Use your tools to fetch the issue details and examine the evidence
-        2. Investigate the trace, replay, logs, other issues, trends, and other telemetry when available to gain a deeper understanding of the issue
-        3. Investigate the relevant code in the codebase
-        4. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
-        5. Use your todo list to track multiple hypotheses for complex bugs
-
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
-
-        When you have enough information, always generate the root_cause artifact {artifact_tool_str(artifact_key)}. Provide all fields when available, but always include `headline`, `one_line_description`, `five_whys`, and `fixability`:
-        - headline: A headline of at most 12 words in plain language describing what is broken and where, like a good bug-report title. Do not use error class names unless essential, markdown, code formatting, or pipe characters.
-        - one_line_description: A concise summary under 30 words
-        - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
-        - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
-        - relevant_repo: The full repository name (e.g. "owner/repo") where the fix should be made. Pick the one repo most directly responsible for the root cause.
-        - fixability: Assess whether this root cause is fixable through code changes. Use "fixable" if a code fix can address it, "needs_more_context" if the analysis is plausible but too vague to act on, or "not_actionable" if it cannot be fixed through code (e.g. infrastructure, third-party outage, user misconfiguration). Include a brief reason.
-        """
-    )
+    return ""
 
 
 def solution_prompt(
