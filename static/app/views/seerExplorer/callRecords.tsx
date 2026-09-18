@@ -98,7 +98,7 @@ export function callRecordDetail(record: CallRecord): {
       // Seer composes the query string into `resolved_path`, so the request line is the whole URL —
       // a list of params underneath would restate what the URL already says.
       //
-      //  An external provider may POST a read operation because its query will not fit in a URL.
+      // An external provider may POST a read operation because its query will not fit in a URL.
       // Seer exposes no mutating provider operation, so `provider` being set means we don't need
       // to display the body.
       return {
@@ -210,6 +210,11 @@ function canonicalizeQuery(query: string): string {
  * order the terms. Scope/format params are dropped (`NON_FILTER_PARAMS`).
  */
 export function callRecordInputQuery(record: CallRecord): string | null {
+  // Skip provider requests since they may not use Sentry search syntax.
+  if (record.provider) {
+    return null;
+  }
+
   const path = record.resolved_path ?? record.path;
   const queryIndex = path?.indexOf('?') ?? -1;
   if (!path || queryIndex === -1) {

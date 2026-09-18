@@ -107,8 +107,8 @@ export interface CallRecord {
   /** Whether `body` was cut short. */
   body_truncated?: boolean;
   /**
-   * Why the call failed: a transport-level failure with no HTTP response (`ConnectError`), or the
-   * status of a response a caller treated as failure without raising (`HTTP 403 Forbidden`).
+   * Why the call failed: a transport-level failure with no HTTP response (`ConnectError`), or a
+   * reason a caller rejected a response it did get.
    */
   error?: string;
   /**
