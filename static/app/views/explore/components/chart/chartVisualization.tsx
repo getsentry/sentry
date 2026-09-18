@@ -25,6 +25,7 @@ import {INGESTION_DELAY} from 'sentry/views/insights/settings';
 
 interface ChartVisualizationProps {
   chartInfo: ChartInfo;
+  acceptedData?: Annotation[];
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: Annotation[];
@@ -64,6 +65,7 @@ export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
 
 export function ChartVisualization({
   chartXRangeSelection,
+  acceptedData,
   chartInfo,
   chartRef,
   droppedData,
@@ -115,6 +117,7 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
+        acceptedData={acceptedData}
         droppedData={droppedData}
         showDroppedData={showDroppedData}
       />
