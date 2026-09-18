@@ -717,7 +717,7 @@ function ModelCallBreakdown({
   return (
     <Tooltip
       title={
-        <Stack gap="sm">
+        <ModelBreakdownStack gap="sm">
           {sortedBreakdowns.map(breakdown => (
             <Flex key={breakdown.model} align="center" gap="xl" width="100%">
               <Container minWidth={0} flex={1} overflow="hidden">
@@ -730,7 +730,7 @@ function ModelCallBreakdown({
               </Container>
             </Flex>
           ))}
-        </Stack>
+        </ModelBreakdownStack>
       }
     >
       <TooltipValue>
@@ -752,7 +752,7 @@ function ModelCostBreakdown({
   return (
     <Tooltip
       title={
-        <Stack gap="sm">
+        <ModelBreakdownStack gap="sm">
           {sortedBreakdowns.map(breakdown => (
             <Flex key={breakdown.model} align="center" gap="xl" width="100%">
               <Container minWidth={0} flex={1} overflow="hidden">
@@ -765,7 +765,7 @@ function ModelCostBreakdown({
               </Container>
             </Flex>
           ))}
-        </Stack>
+        </ModelBreakdownStack>
       }
     >
       <TooltipValue>
@@ -819,6 +819,11 @@ function AggregateItem({
 const TooltipValue = styled('span')`
   text-decoration: underline dotted;
   text-underline-offset: ${p => p.theme.space['2xs']};
+`;
+
+const ModelBreakdownStack = styled(Stack)`
+  width: 100%;
+  text-align: left;
 `;
 
 const AggregateValue = styled(Text)<{isInteractive?: boolean}>`
