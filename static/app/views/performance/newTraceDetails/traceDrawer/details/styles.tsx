@@ -2,34 +2,26 @@ import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
-import type {LocationDescriptor} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown} from '@sentry/scraps/markdown';
+import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {
-  DropdownMenu,
-  type DropdownMenuProps,
-  type MenuItemProps,
-} from 'sentry/components/dropdownMenu';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {generateStats} from 'sentry/components/events/opsBreakdown';
 import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {
-  CardPanel,
-  KeyValueData,
-  Subject,
-  ValueSection,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -38,6 +30,14 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardGrid,
+  KeyValueTableCardPanel,
+  type KeyValueTableDataRowProps,
+  KeyValueTableSubject,
+  KeyValueTableValueSection,
+} from 'sentry/components/tables/keyValueTable';
 import {
   IconCircleFill,
   IconEllipsis,
@@ -54,7 +54,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -199,7 +198,6 @@ function TitleOp({text}: {text: string}) {
         </Fragment>
       }
       showOnlyOnOverflow
-      isHoverable
     >
       <TitleOpText>{text}</TitleOpText>
     </Tooltip>
@@ -321,38 +319,25 @@ function Duration(props: DurationProps) {
 
 function TableRow({
   title,
-  keep,
   children,
-  prefix,
-  extra = null,
-  toolTipText,
 }: {
   children: React.ReactNode;
   title: React.JSX.Element | string | null;
-  extra?: React.ReactNode;
-  keep?: boolean;
-  prefix?: React.JSX.Element;
-  toolTipText?: string;
 }) {
-  if (!keep && !children) {
+  if (!children) {
     return null;
   }
 
   return (
     <tr>
       <td className="key">
-        <Flex align="center">
-          {prefix}
-          {title}
-          {toolTipText ? <StyledQuestionTooltip size="xs" title={toolTipText} /> : null}
-        </Flex>
+        <Flex align="center">{title}</Flex>
       </td>
       <ValueTd className="value">
         <TableValueRow>
           <StyledPre>
             <span className="val-string">{children}</span>
           </StyledPre>
-          <TableRowButtonContainer>{extra}</TableRowButtonContainer>
         </TableValueRow>
       </ValueTd>
     </tr>
@@ -735,17 +720,9 @@ const TableValueRow = styled('div')`
   margin: 2px;
 `;
 
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  margin-left: ${p => p.theme.space.xs};
-`;
-
 const StyledPre = styled('pre')`
   margin: 0 !important;
   background-color: transparent !important;
-`;
-
-const TableRowButtonContainer = styled('div')`
-  padding: 8px 10px;
 `;
 
 const ValueTd = styled('td')`
@@ -805,7 +782,7 @@ function KeyValueAction({
         traceAnalytics.trackExploreSearch(
           organization,
           rowKey,
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          // oxlint-disable-next-line typescript/no-base-to-string
           rowValue.toString(),
           key as TraceDrawerActionKind,
           'drawer'
@@ -938,14 +915,14 @@ function NodeActions(props: {
 
   return (
     <Flex align="center" gap="xs" overflow="visible">
-      <Tooltip title={t('Show in view')} skipWrapper>
+      <Tooltip title={t('Focus in waterfall')} skipWrapper>
         <ActionButton
           onClick={_e => {
             traceAnalytics.trackShowInView(props.organization);
             props.onTabScrollToNode(props.node);
           }}
           size="zero"
-          aria-label={t('Show in view')}
+          aria-label={t('Focus in waterfall')}
           icon={<IconFocus />}
         />
       </Tooltip>
@@ -1037,30 +1014,30 @@ function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
   );
 }
 
-export type SectionCardKeyValueList = KeyValueListData;
+type SectionCardKeyValueList = KeyValueListData;
+
+const SECTION_CARD_TRUNCATE_LENGTH = 5;
 
 function SectionCard({
   items,
   title,
-  disableTruncate,
   sortAlphabetically = false,
   itemProps = {},
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
-  disableTruncate?: boolean;
-  itemProps?: Partial<KeyValueDataContentProps>;
+  itemProps?: Partial<KeyValueTableDataRowProps>;
   sortAlphabetically?: boolean;
 }) {
   const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
     <CardWrapper>
-      <KeyValueData.Card
+      <KeyValueTableCard
         title={title}
         contentItems={contentItems}
         sortAlphabetically={sortAlphabetically}
-        truncateLength={disableTruncate ? Infinity : 5}
+        truncateLength={SECTION_CARD_TRUNCATE_LENGTH}
       />
     </CardWrapper>
   );
@@ -1070,11 +1047,11 @@ function SectionCard({
 // with tests failing otherwise, since @container queries are not supported by the version of
 // jsdom currently used by jest.
 const CardWrapper = styled('div')`
-  ${CardPanel} {
+  ${KeyValueTableCardPanel} {
     container-type: inline-size;
   }
 
-  ${Subject} {
+  ${KeyValueTableSubject} {
     display: flex;
     align-items: center;
     @container (width < 350px) {
@@ -1082,26 +1059,16 @@ const CardWrapper = styled('div')`
     }
   }
 
-  ${ValueSection} {
+  ${KeyValueTableValueSection} {
     align-items: center;
   }
 `;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueData.Container>{children}</KeyValueData.Container>;
+  return <KeyValueTableCardGrid>{children}</KeyValueTableCardGrid>;
 }
 
-function CopyableCardValueWithLink({
-  value,
-  linkTarget,
-  linkText,
-  onClick,
-}: {
-  value: React.ReactNode;
-  linkTarget?: LocationDescriptor;
-  linkText?: string;
-  onClick?: () => void;
-}) {
+function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
   return (
     <CardValueContainer>
       <CardValueText>
@@ -1115,11 +1082,6 @@ function CopyableCardValueWithLink({
           />
         ) : null}
       </CardValueText>
-      {linkTarget && linkTarget ? (
-        <Link to={linkTarget} onClick={onClick}>
-          {linkText}
-        </Link>
-      ) : null}
     </CardValueContainer>
   );
 }
@@ -1378,7 +1340,6 @@ export const TraceDrawerComponents = {
   Duration,
   TableRow,
   LAZY_RENDER_PROPS,
-  TableRowButtonContainer,
   TableValueRow,
   IssuesLink,
   SectionCard,

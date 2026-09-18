@@ -1448,6 +1448,10 @@ class GithubProxyClientTest(TestCase):
         assert mock_jwt.called
 
         self.integration.refresh_from_db()
+        assert (
+            self.integration.metadata.pop("last_refresh_at")
+            == self.integration.debug_data["last_refresh_at"]
+        )
         assert self.integration.metadata == {
             "access_token": self.access_token,
             "expires_at": self.expires_at.rstrip("Z"),

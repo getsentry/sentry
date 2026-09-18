@@ -15,14 +15,13 @@ import {
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
-import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import {
   defaultAggregateSortBys,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type TraceMetric,
 } from 'sentry/views/explore/metrics/metricQuery';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
+import {getDefaultMetricYAxis, getMetricYAxis} from 'sentry/views/explore/metrics/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
@@ -96,6 +95,8 @@ export type LinkSubject = {
   path?: string;
   /** What was actually requested, query string removed. */
   pathname?: string;
+  /** Which external provider served the call, if any. */
+  provider?: string;
   /** The requested query string, parsed — params the route template does not name. */
   query?: Record<string, string>;
   status?: number;
@@ -624,6 +625,11 @@ export function resolveLink(
     return null;
   }
 
+  // Every rule below is a first-party Sentry route, and a provider's can collide.
+  if (subject.provider) {
+    return null;
+  }
+
   const finish = (rule: LinkRule, result: LinkResult) => ({
     id: rule.id,
     label: result.label,
@@ -675,6 +681,7 @@ export function subjectFromCallRecord(record: CallRecord): LinkSubject {
     name: record.kind === 'lib' ? record.name : undefined,
     method: record.method,
     path: record.path,
+    provider: record.provider,
     pathname: pathname || undefined,
     query: query ? (queryString.parse(query) as Record<string, string>) : undefined,
     status: record.status,
@@ -940,23 +947,6 @@ function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | nu
     traceMetric.unit = rawTraceMetric.unit;
   }
   return traceMetric;
-}
-
-function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
-  const visualize = new VisualizeFunction(yAxis);
-  const aggregate = visualize.parsedFunction?.name;
-  if (!aggregate) {
-    return yAxis;
-  }
-
-  return makeMetricsAggregate({aggregate, traceMetric});
-}
-
-function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
-  return makeMetricsAggregate({
-    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
-    traceMetric,
-  });
 }
 
 function parseMetricsSort(

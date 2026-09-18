@@ -60,7 +60,6 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {VisualizationWidget} from './visualizationWidget';
 import {
   getMenuOptions,
-  useDiscoverSplitWarning,
   useDroppedColumnsWarning,
   useTransactionsDeprecationWarning,
 } from './widgetCardContextMenu';
@@ -111,7 +110,6 @@ type Props = {
   onDuplicate?: () => void;
   onEdit?: () => void;
   onLegendSelectChanged?: () => void;
-  onWidgetSplitDecision?: (splitDecision: WidgetType) => void;
   onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
   onWidgetTableSort?: (sort: Sort) => void;
   shouldResize?: boolean;
@@ -152,7 +150,7 @@ function WidgetCard(props: Props) {
       ? DisplayType.AREA
       : props.widget.displayType;
 
-  const widgetQueryError = getWidgetConfigError(props.widget);
+  const widgetQueryError = getWidgetConfigError(props.widget, organization);
 
   // Push widget metadata into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -195,7 +193,6 @@ function WidgetCard(props: Props) {
     tableItemLimit,
     windowWidth,
     dashboardFilters,
-    onWidgetSplitDecision,
     shouldResize,
     onLegendSelectChanged,
     legendOptions,
@@ -212,6 +209,7 @@ function WidgetCard(props: Props) {
   } = props;
 
   if (widget.displayType === DisplayType.TOP_N) {
+    // oxlint-disable-next-line react/immutability
     widget.displayType = DisplayType.AREA;
   }
 
@@ -232,7 +230,6 @@ function WidgetCard(props: Props) {
     widget,
     dashboardFilters,
   });
-  const discoverSplitWarning = useDiscoverSplitWarning(widget);
 
   const onDataFetchStart = () => {
     if (timeoutRef.current) {
@@ -331,7 +328,6 @@ function WidgetCard(props: Props) {
     transactionsDeprecationWarning,
     droppedColumnsWarning,
     conflictingFilterWarning,
-    discoverSplitWarning,
   ].filter(Boolean) as string[];
 
   const actionsDisabled = Boolean(props.isPreview);
@@ -462,7 +458,6 @@ function WidgetCard(props: Props) {
             onDataFetched={onDataFetched}
             dashboardFilters={dashboardFilters}
             chartGroup={DASHBOARD_CHART_GROUP}
-            onWidgetSplitDecision={onWidgetSplitDecision}
             shouldResize={shouldResize}
             onLegendSelectChanged={onLegendSelectChanged}
             legendOptions={legendOptions}
@@ -526,6 +521,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   } = usePageFilters();
   const useRetentionLimit =
     getOverride('react-hook:use-dashboard-dataset-retention-limit') ?? (() => null);
+  // oxlint-disable-next-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const retentionLimitDays = useRetentionLimit({
     dataset: widget.widgetType ?? WidgetType.ERRORS,
   });

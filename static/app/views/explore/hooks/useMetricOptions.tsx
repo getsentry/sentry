@@ -123,7 +123,7 @@ export function useMetricOptions({
           b[TraceMetricKnownFieldKey.METRIC_NAME]
         )
       );
-  }, [result?.data]);
+  }, [result]);
 
   const isMetricOptionsEmpty =
     !isFetching && !isLoading && (!filteredData || filteredData.length === 0);

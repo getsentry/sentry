@@ -430,10 +430,6 @@ export type BillingStat = {
   ts: string;
   // TODO(chart-cleanup): Used by v1 only
   isProjected?: boolean;
-  /**
-   * Not present when user does not have the correct role
-   */
-  onDemandCostRunningTotal?: number;
 };
 export type BillingStats = BillingStat[];
 
@@ -517,7 +513,8 @@ export type Invoice = InvoiceBase & {
     | {
         id: string;
         isDeleted: boolean;
-        slug: string;
+        // Null when the organization row is gone and nothing denormalized its slug.
+        slug: string | null;
         name?: string;
       };
   defaultTaxName: string | null;
@@ -530,7 +527,6 @@ export type Invoice = InvoiceBase & {
     address: string[];
     name: string;
   };
-  stripeInvoiceID: string | null;
 };
 
 type BaseInvoiceItem = {
@@ -910,15 +906,6 @@ export type ReservedBudget = {
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents
   reservedSpend: number;
-};
-
-export type ReservedBudgetForCategory = {
-  apiName: string;
-  freeBudget: number;
-  prepaidBudget: number;
-  reservedCpe: number; // in cents
-  reservedSpend: number;
-  totalReservedBudget: number;
 };
 
 type PolicyConsent = {

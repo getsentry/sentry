@@ -250,7 +250,7 @@ export function ReleaseAdoption({
           <SidebarSection.Content>
             {adoptionStageLabel && !multipleEnvironments ? (
               <div>
-                <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+                <Tooltip title={adoptionStageLabel.tooltipTitle}>
                   <Tag variant={adoptionStageLabel.variant}>
                     {adoptionStageLabel.name}
                   </Tag>

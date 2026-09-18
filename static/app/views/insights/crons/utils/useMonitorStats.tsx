@@ -1,6 +1,6 @@
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {MonitorBucket} from 'sentry/views/insights/crons/types';
@@ -14,10 +14,6 @@ interface Options {
    * The window configuration object
    */
   timeWindowConfig: TimeWindowConfig;
-  /**
-   * Do not query stats when set to false
-   */
-  enabled?: boolean;
 }
 
 type Result = Record<string, MonitorBucket[]>;
@@ -25,10 +21,7 @@ type Result = Record<string, MonitorBucket[]>;
 /**
  * Fetches Monitor stats
  */
-export function useMonitorStats(
-  {monitors, timeWindowConfig, enabled = true}: Options,
-  options: Partial<UseApiQueryOptions<Result>> = {}
-) {
+export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
@@ -61,9 +54,8 @@ export function useMonitorStats(
     ],
     {
       staleTime: 0,
-      enabled: enabled && rollupConfig.totalBuckets > 0,
+      enabled: rollupConfig.totalBuckets > 0,
       retry: false,
-      ...options,
     }
   );
 }

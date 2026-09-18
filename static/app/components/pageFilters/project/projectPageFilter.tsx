@@ -359,10 +359,12 @@ export function ProjectPageFilter({
 
     const projectItems = sortBy(
       [...memberProjectList, ...nonMemberProjectList],
+      // oxlint-disable-next-line react/refs
       listSort
     ).map(getProjectItem);
 
     return [...specialItems, ...projectItems];
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     projects,
     stagedValue,
@@ -472,7 +474,9 @@ export function ProjectPageFilter({
 
   // Wire up refs after stagedSelect is created to break the circular dependency between
   // options (which need toggleOption/dispatch) and useStagedCompactSelect (which needs options).
+  // oxlint-disable-next-line react/refs
   toggleOptionRef.current = stagedSelect.toggleOption;
+  // oxlint-disable-next-line react/refs
   dispatchRef.current = stagedSelect.dispatch;
 
   // Derived intent and UI actions
@@ -522,6 +526,9 @@ export function ProjectPageFilter({
     }, 0);
   };
 
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
   const canWrite = organization.access.includes('project:write');

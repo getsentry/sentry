@@ -111,7 +111,7 @@ const OverrideHeader = OverrideOrDefault({
 });
 
 const DATA_SET_TO_WIDGET_TYPE = {
-  [DataSet.EVENTS]: WidgetType.DISCOVER,
+  [DataSet.EVENTS]: WidgetType.ERRORS,
   [DataSet.ISSUES]: WidgetType.ISSUE,
   [DataSet.RELEASES]: WidgetType.RELEASE,
   [DataSet.METRICS]: WidgetType.METRICS,
@@ -356,7 +356,7 @@ class DashboardDetail extends Component<Props, State> {
         });
         trackAnalytics('dashboards_views.widget_viewer.open', {
           organization,
-          widget_type: widget.widgetType ?? WidgetType.DISCOVER,
+          widget_type: widget.widgetType ?? WidgetType.ERRORS,
           display_type: widget.displayType,
         });
       } else {
@@ -429,7 +429,7 @@ class DashboardDetail extends Component<Props, State> {
     }
   };
 
-  isWidgetBuilder = (path?: string) => {
+  isWidgetBuilder = () => {
     const {organization, location, params} = this.props;
     const {dashboardId, widgetIndex} = params;
 
@@ -451,7 +451,7 @@ class DashboardDetail extends Component<Props, State> {
       );
     }
 
-    return widgetBuilderRoutes.includes(path ?? location.pathname);
+    return widgetBuilderRoutes.includes(location.pathname);
   };
 
   onEdit = () => {

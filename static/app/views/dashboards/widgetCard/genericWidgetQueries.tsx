@@ -206,6 +206,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     [needsBreakdownTable, widget]
   );
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookSeriesResults = config.useSeriesQuery?.({
     widget,
     organization,
@@ -221,6 +222,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     widgetInterval,
   });
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookTableResults = config.useTableQuery?.({
     widget: tableWidget,
     organization,
@@ -236,6 +238,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     widgetInterval,
   });
 
+  // oxlint-disable-next-line react/hooks -- Optional per-dataset query hook; the config prop must not change for a mounted card.
   const hookHeatmapResults = config.useHeatmapQuery?.({
     widget,
     organization,

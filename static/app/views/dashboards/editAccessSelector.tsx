@@ -163,7 +163,6 @@ export function EditAccessSelector({
     return (
       <Tooltip
         title={renderCollapsedAvatarTooltip()}
-        isHoverable
         overlayStyle={{
           pointerEvents: 'auto',
           zIndex: 1000,
@@ -274,6 +273,7 @@ export function EditAccessSelector({
         disabled: !userCanEditDashboardPermissions,
       },
     ],
+    // oxlint-disable-next-line react/memo-dependencies
     [userCanEditDashboardPermissions, teamsToRender, makeCreatorOption, listSort]
   );
 

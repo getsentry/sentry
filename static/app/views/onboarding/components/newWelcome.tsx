@@ -170,6 +170,7 @@ export function NewWelcomeUI(props: StepProps) {
     isAgentConnected,
     isSetupComplete,
     hasRunFailed,
+    hasInitFailed,
     restartRun,
   } = useWelcomeAgentRun({enabled: showAgentSetup});
   const showAgentHeading = showAgentSetup && isAgentConnected;
@@ -180,7 +181,7 @@ export function NewWelcomeUI(props: StepProps) {
         description: t('Monitor, debug, and fix your code, all in one place.'),
       };
 
-  useWelcomeAnalyticsEffect();
+  useWelcomeAnalyticsEffect({showAgentSetup});
 
   // Scroll to top on mount to fix iOS Safari retaining scroll position from previous page.
   // Skip if there's a hash in the URL to avoid conflicting with anchor-based scrolling.
@@ -194,6 +195,13 @@ export function NewWelcomeUI(props: StepProps) {
 
   const handleCopyCommand = (source: 'install_command' | 'prompt') => {
     trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
+  };
+
+  const handleSelectSnippet = (source: 'install_command' | 'prompt') => {
+    trackAnalytics('onboarding.scm_welcome_agent_snippet_selected', {
+      organization,
+      source,
+    });
   };
 
   return (
@@ -266,10 +274,12 @@ export function NewWelcomeUI(props: StepProps) {
                 {...ONBOARDING_WELCOME_STAGGER_ITEM}
               >
                 <WelcomeAgentSetup
+                  hasInitFailed={hasInitFailed}
                   isAgentConnected={isAgentConnected}
                   onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
                   onRetry={restartRun}
+                  onSelectSnippet={handleSelectSnippet}
                   onSetupInBrowser={handleComplete}
                   run={run}
                 />

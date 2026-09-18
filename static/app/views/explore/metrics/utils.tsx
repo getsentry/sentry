@@ -22,7 +22,7 @@ import type {
   SavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isRawVisualize} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
+import {DEFAULT_YAXIS_BY_TYPE, NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {
   defaultMetricQuery,
   encodeMetricQueryParams,
@@ -37,8 +37,7 @@ import {
   type SampleTableColumnKey,
 } from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {Visualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -306,6 +305,31 @@ export function makeMetricsAggregate({
     traceMetric.unit ?? NONE_UNIT,
   ];
   return `${aggregate}(${args.join(',')})`;
+}
+
+/**
+ * Qualifies a bare aggregate with the metric it measures. Callers outside the
+ * Metrics UI -- Seer, in particular -- name a y-axis the short way, as
+ * `p95(value)`; Explore only recognises the fully qualified spelling that
+ * carries the metric's name, type and unit. An unparseable y-axis is left
+ * alone rather than guessed at.
+ */
+export function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
+  const visualize = new VisualizeFunction(yAxis);
+  const aggregate = visualize.parsedFunction?.name;
+  if (!aggregate) {
+    return yAxis;
+  }
+
+  return makeMetricsAggregate({aggregate, traceMetric});
+}
+
+/** The aggregate the Metrics UI opens with, which varies by metric type. */
+export function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
+  return makeMetricsAggregate({
+    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
+    traceMetric,
+  });
 }
 
 export function updateVisualizeYAxis(

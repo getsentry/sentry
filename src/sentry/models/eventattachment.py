@@ -1,24 +1,26 @@
 from __future__ import annotations
 
+import logging
 import mimetypes
-import os
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
 from typing import IO, Any
 
 import zstandard
 from django.core.cache import cache
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models.expressions import DatabaseDefault
 from django.db.models.functions import Now
 from django.http import HttpRequest
 from django.utils import timezone
 from objectstore_client import TimeToLive
 
+from sentry import eventstore
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import DataCategory
 from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
@@ -37,6 +39,9 @@ CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
 
 V1_PREFIX = "eventattachments/v1/"
 V2_PREFIX = "v2/"
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_crashreport_key(group_id: int) -> str:
@@ -123,6 +128,42 @@ class EventAttachmentBase(Model):
     class Meta:
         abstract = True
 
+    def final_expiry_date(self) -> datetime:
+        """The end of the retention window for this entry"""
+        raise NotImplementedError
+
+    def delete_blob(self) -> None:
+        """
+        Delete this attachment's payload from its backing store.
+
+        Only call this when no other row references the blob. Promoting a
+        `PendingEventAttachment` to an `EventAttachment` hands the blob over to the new
+        row, so the pending row must be deleted without touching the blob (a queryset
+        delete does that, since it does not run `Model.delete`).
+        """
+        if not self.blob_path:
+            return
+
+        if self.blob_path.startswith(":"):
+            pass  # nothing to do for inline-stored attachments
+
+        elif self.blob_path.startswith(V1_PREFIX):
+            storage = get_storage()
+            with measure_storage_operation("delete", "attachments"):
+                storage.delete(self.blob_path)
+
+        elif self.blob_path.startswith(V2_PREFIX):
+            # V2 objectstore blobs expire via TTL — if TTL is imminent, skip the
+            # explicit delete to avoid unnecessary load on the objectstore service.
+            if self.final_expiry_date() > (timezone.now() + timedelta(days=1)):
+                organization_id = _get_organization(self.project_id)
+                get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
+                    self.blob_path.removeprefix(V2_PREFIX)
+                )
+
+        else:
+            raise NotImplementedError()
+
 
 @cell_silo_model
 class EventAttachment(EventAttachmentBase):
@@ -145,6 +186,9 @@ class EventAttachment(EventAttachmentBase):
 
     __repr__ = sane_repr("event_id", "name")
 
+    def final_expiry_date(self) -> datetime:
+        return self.date_expires
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         # Computed here rather than as a field default to avoid freezing a callable
         # reference into migrations, which would break if the function is ever renamed.
@@ -161,26 +205,7 @@ class EventAttachment(EventAttachmentBase):
             # repopulated with the next incoming crash report.
             cache.delete(get_crashreport_key(self.group_id))
 
-        if self.blob_path:
-            if self.blob_path.startswith(":"):
-                pass  # nothing to do for inline-stored attachments
-
-            elif self.blob_path.startswith(V1_PREFIX):
-                storage = get_storage()
-                with measure_storage_operation("delete", "attachments"):
-                    storage.delete(self.blob_path)
-
-            elif self.blob_path.startswith(V2_PREFIX):
-                # During cleanup, V2 objectstore blobs expire via TTL — skip the
-                # explicit delete to avoid unnecessary load on the objectstore service.
-                if not os.environ.get("_SENTRY_CLEANUP"):
-                    organization_id = _get_organization(self.project_id)
-                    get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
-                        self.blob_path.removeprefix(V2_PREFIX)
-                    )
-
-            else:
-                raise NotImplementedError()
+        self.delete_blob()
 
         return rv
 
@@ -326,6 +351,77 @@ class PendingEventAttachment(EventAttachmentBase):
         indexes = (models.Index(fields=("project_id", "event_id")),)
 
     __repr__ = sane_repr("event_id", "name")
+
+    def final_expiry_date(self) -> datetime:
+        return self.date_expires_retention
+
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
+        # A pending attachment that is deleted rather than promoted (its event never
+        # arrived, so `cleanup` reaped it once `date_expires` passed) still owns its blob.
+        #
+        # Lock the row for update to ensure that a `save_pending_attachment` call is not concurrently
+        # promoting the attachment to `EventAttachment`.
+        with transaction.atomic(router.db_for_write(PendingEventAttachment)):
+            is_owner = (
+                PendingEventAttachment.objects.filter(id=self.id).select_for_update().exists()
+            )
+            rv = super().delete(*args, **kwargs)
+
+        if is_owner:
+            # Verify once more that no event exists.
+            try:
+                if in_random_rollout("attachments.pending.premature_deletion_check_rate"):
+                    event = eventstore.backend.get_event_by_id(self.project_id, self.event_id)
+                    if event is not None:
+                        # NOTE: If this actually happens, we should guard against it by promoting the pending attachment just-in-time.
+                        logger.warning(
+                            "attachments.pending.premature_deletion",
+                            extra={
+                                "project_id": self.project_id,
+                                "event_id": self.event_id,
+                            },
+                        )
+            except Exception as e:
+                logger.exception(e)
+
+            self.delete_blob()
+            self.track_dropped_outcome()
+        return rv
+
+    def track_dropped_outcome(self) -> None:
+        """
+        Record the outcome for an attachment that is dropped instead of promoted.
+        """
+        from sentry.models.project import Project
+        from sentry.utils.outcomes import Outcome, track_outcome
+
+        try:
+            organization_id = _get_organization(self.project_id)
+        except Project.DoesNotExist:
+            # The project was deleted while the attachment was parked. There is nobody
+            # left to report the drop to.
+            return
+
+        kwargs = dict(
+            org_id=organization_id,
+            project_id=self.project_id,
+            key_id=None,  # DSN is unknown at this point
+            outcome=Outcome.INVALID,
+            reason="missing_event",
+            timestamp=self.date_added,  # matches accepted outcome
+            event_id=self.event_id,
+        )
+
+        track_outcome(
+            **kwargs,
+            category=DataCategory.ATTACHMENT,
+            quantity=self.size or 1,
+        )
+        track_outcome(
+            **kwargs,
+            category=DataCategory.ATTACHMENT_ITEM,
+            quantity=1,
+        )
 
 
 def normalize_content_type(content_type: str | None, name: str) -> str:

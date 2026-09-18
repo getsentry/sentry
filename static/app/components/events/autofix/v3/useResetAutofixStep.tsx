@@ -1,13 +1,11 @@
 import {useMemo, useState} from 'react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   type AutofixExplorerStep,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {t} from 'sentry/locale';
 
 interface UseResetAutofixStepOptions {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -44,8 +42,8 @@ export function useResetAutofixStep({
       try {
         await startStep(step, {runId, userContext, insertIndex: section.index});
       } catch {
+        // startStep already reports why the request failed.
         setShouldShowReset(true);
-        addErrorMessage(t('Failed to reset. Please try again.'));
       }
     };
   }, [startStep, step, runId, section.index]);

@@ -1,70 +1,58 @@
 // Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
 
-exports[`IssuesTraceTree FromSpans collapses spans 1`] = `
-"
-collapsed
-    transaction 2 - transaction.op
-      collapsed
-      db - SELECT
-      cache - GET
-      http - GET /
-      db - SELECT
-"
-`;
-
 exports[`IssuesTraceTree collapsed nodes without errors 1`] = `
 "
 collapsed
-  transaction 1 - transaction.op
-  transaction 2 - transaction.op
-  transaction 3 - transaction.op
-  transaction 4 - transaction.op
-  transaction 5 - transaction.op
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
 "
 `;
 
 exports[`IssuesTraceTree errors only 1`] = `
 "
-trace root
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
-  error
+eap trace root
+  error-0
+  error-1
+  error-2
+  error-3
+  error-4
+  error-5
+  error-6
+  error-7
+  error-8
+  error-9
+  error-10
+  error-11
   collapsed
 "
 `;
 
 exports[`IssuesTraceTree preserves path to child error 1`] = `
 "
-trace root
-  transaction 1 - transaction.op
-  transaction 2 - transaction.op
-    transaction - transaction.op
-  transaction 4 - transaction.op
+eap trace root
+  span.op - span.description
+  span.op - span.description
+    span.op - span.description
+  span.op - span.description
 "
 `;
 
 exports[`IssuesTraceTree respects minShownNodes parameter: default minShownNodes (3) 1`] = `
 "
 collapsed
-  transaction 3 - transaction.op
-  transaction 4 - transaction.op
-  transaction 5 - transaction.op
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
 "
 `;
 
 exports[`IssuesTraceTree respects minShownNodes parameter: smaller minShownNodes (0) 1`] = `
 "
 collapsed
-  transaction 3 - transaction.op
+  span.op - span.description
   collapsed
 "
 `;
@@ -72,9 +60,9 @@ collapsed
 exports[`IssuesTraceTree respects numSurroundingNodes parameter: custom surrounding nodes (2) 1`] = `
 "
 collapsed
-  transaction 2 - transaction.op
-  transaction 3 - transaction.op
-  transaction 4 - transaction.op
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
   collapsed
 "
 `;
@@ -82,10 +70,10 @@ collapsed
 exports[`IssuesTraceTree respects numSurroundingNodes parameter: default surrounding nodes (3) 1`] = `
 "
 collapsed
-  transaction 1 - transaction.op
-  transaction 2 - transaction.op
-  transaction 3 - transaction.op
-  transaction 4 - transaction.op
-  transaction 5 - transaction.op
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
+  span.op - span.description
 "
 `;

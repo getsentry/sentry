@@ -1,14 +1,16 @@
 import {Fragment} from 'react';
+import {useMutation} from '@tanstack/react-query';
+
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
-import {Form} from 'sentry/components/forms/form';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {withApi} from 'sentry/utils/withApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 type Props = {
-  api: Client;
   onUpdated: (data: any) => void;
   orgId: string;
   spendAllocationEnabled: boolean;
@@ -18,66 +20,77 @@ type ModalProps = Props & ModalRenderProps;
 
 function SpendAllocationModal({
   Body,
+  Footer,
   Header,
   closeModal,
-  api,
   onUpdated,
   orgId,
   spendAllocationEnabled: isCurrentlyEnabled,
 }: ModalProps) {
-  const onSubmit = async () => {
-    const shouldEnableAllocations = !isCurrentlyEnabled;
-    const method = shouldEnableAllocations ? 'POST' : 'DELETE';
-    try {
-      await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
+  const spendAllocationEnabled = !isCurrentlyEnabled;
+  const method = spendAllocationEnabled ? 'POST' : 'DELETE';
+  const mutation = useMutation({
+    mutationFn: async () => {
+      await fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
           path: {organizationIdOrSlug: orgId},
         }),
-        {
-          method,
-        }
-      );
+        method,
+      });
       // Create root allocations
-      await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
+      await fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
           path: {organizationIdOrSlug: orgId},
         }),
-        {
-          method,
-        }
-      );
-      onUpdated({spendAllocationEnabled: shouldEnableAllocations});
-    } catch (error) {
+        method,
+      });
+    },
+    onSuccess: () => {
+      onUpdated({spendAllocationEnabled});
+    },
+    onError: error => {
       onUpdated({error});
-    }
-    closeModal();
-  };
+    },
+    onSettled: () => {
+      closeModal();
+    },
+  });
 
   return (
     <Fragment>
       <Header>Toggle Spend Allocations</Header>
       <Body>
-        <Form
-          onSubmit={onSubmit}
-          submitLabel={isCurrentlyEnabled ? 'Disable' : 'Enable'}
-          onCancel={closeModal}
-        >
-          Access to spend allocations is currently{' '}
-          <strong>{isCurrentlyEnabled ? 'enabled' : 'disabled'}</strong> for this
-          organization.
-          <p>
+        <Stack gap="md">
+          <Text as="p">
+            Access to spend allocations is currently{' '}
+            <Text as="span" bold>
+              {isCurrentlyEnabled ? 'enabled' : 'disabled'}
+            </Text>{' '}
+            for this organization.
+          </Text>
+          <Text as="p">
             Would you like to {isCurrentlyEnabled ? 'disable' : 'enable'} access to spend
             allocations?
-          </p>
-        </Form>
+          </Text>
+        </Stack>
       </Body>
+      <Footer>
+        <Flex gap="md" justify="end">
+          <Button onClick={closeModal}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={() => mutation.mutate()}
+            busy={mutation.isPending}
+          >
+            {isCurrentlyEnabled ? 'Disable' : 'Enable'}
+          </Button>
+        </Flex>
+      </Footer>
     </Fragment>
   );
 }
 
-const Modal = withApi(SpendAllocationModal);
-
 type Options = Pick<Props, 'orgId' | 'spendAllocationEnabled' | 'onUpdated'>;
 
 export const toggleSpendAllocationModal = (opts: Options) =>
-  openModal(deps => <Modal {...deps} {...opts} />);
+  openModal(deps => <SpendAllocationModal {...deps} {...opts} />);

@@ -21,6 +21,7 @@ type Params = {
   timestamp: number | undefined;
   traceId: string;
   tree: TraceTree;
+  logsRoutingHint?: string;
 };
 
 export type TraceRootEventQueryResults =
@@ -32,6 +33,7 @@ export function useTraceRootEvent({
   logs,
   timestamp,
   traceId,
+  logsRoutingHint,
 }: Params): TraceRootEventQueryResults {
   const rep = tree.findRepresentativeTraceNode({logs});
   const organization = useOrganization();
@@ -86,6 +88,7 @@ export function useTraceRootEvent({
     projectId: String(projectId),
     traceId,
     traceItemType: dataset,
+    routingHint: isRepLog ? logsRoutingHint : undefined,
     referrer: 'api.explore.log-item-details',
     timestamp,
     enabled: enabledBase && isEAPQueryEnabled,

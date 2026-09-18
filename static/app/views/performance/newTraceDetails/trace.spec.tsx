@@ -1,10 +1,13 @@
+import {useLayoutEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import MockDate from 'mockdate';
 import {TransactionEventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -20,8 +23,10 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType, type EventTransaction} from 'sentry/types/event';
 import * as analytics from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import TraceView from 'sentry/views/performance/newTraceDetails/index';
 import {
+  makeEAPError,
   makeEAPSpan,
   makeEAPTrace,
   makeEventTransaction,
@@ -85,7 +90,7 @@ function mockTracePreferences(preferences: Partial<StoredTracePreferences>) {
 
 function mockTraceResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-trace/trace-id/',
+    url: '/organizations/org-slug/trace/trace-id/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {body: {}}),
@@ -103,18 +108,19 @@ function mockPerformanceSubscriptionDetailsResponse(resp?: Partial<ResponseType>
 
 function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/events-trace-meta/trace-id/',
+    url: '/organizations/org-slug/trace-meta/trace-id/',
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {
       body: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [],
-        span_count: 200,
-        span_count_map: {},
+        errorsCount: 0,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 200,
+        spansCountMap: {},
+        transactionChildCountMap: [],
+        uptimeCount: 0,
       },
     }),
   });
@@ -344,67 +350,6 @@ async function pageloadTestSetup() {
       span_count_map: {},
     },
   });
-  mockTraceRootFacets();
-  mockTraceRootEvent('0');
-  mockTraceEventDetails();
-  mockEventsResponse();
-
-  const value = render(<TraceView />, {
-    initialRouterConfig,
-  });
-  const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = getVirtualizedScrollContainer();
-
-  // Awaits for the placeholder rendering rows to be removed
-  try {
-    await within(virtualizedContainer).findAllByText(/transaction-op-/i, undefined, {
-      timeout: 5000,
-    });
-  } catch (e) {
-    printVirtualizedList(virtualizedContainer);
-    throw e;
-  }
-  return {...value, virtualizedContainer, virtualizedScrollContainer};
-}
-
-async function nestedTransactionsTestSetup() {
-  mockPerformanceSubscriptionDetailsResponse();
-  mockProjectDetailsResponse();
-  const transactions: TraceFullDetailed[] = [];
-
-  let txn = makeTransaction({
-    span_id: '0',
-    event_id: '0',
-    transaction: 'transaction-name-0',
-    'transaction.op': 'transaction-op-0',
-    project_slug: 'project_slug',
-  });
-
-  transactions.push(txn);
-
-  for (let i = 0; i < 100; i++) {
-    const next = makeTransaction({
-      span_id: i + '',
-      event_id: i + '',
-      transaction: 'transaction-name-' + i,
-      'transaction.op': 'transaction-op-' + i,
-      project_slug: 'project_slug',
-    });
-
-    txn.children.push(next);
-    txn = next;
-    transactions.push(next);
-
-    mockTransactionDetailsResponse(`${i}`);
-  }
-
-  mockTraceResponse({
-    body: {
-      transactions,
-      orphan_errors: [],
-    },
-  });
-  mockTraceMetaResponse();
   mockTraceRootFacets();
   mockTraceRootEvent('0');
   mockTraceEventDetails();
@@ -907,11 +852,674 @@ describe('trace view', () => {
     globalThis.ResizeObserver = undefined;
   });
 
+  describe('attribute pinning', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    function SyncWindowLocation({children}: {children: React.ReactNode}) {
+      const location = useLocation();
+      useLayoutEffect(() => {
+        // The memory router does not update the browser URL, which the waterfall's
+        // debounced selection and zoom callbacks read when merging query parameters.
+        setWindowLocation(
+          `http://localhost${location.pathname}${location.search}${location.hash}`
+        );
+      }, [location]);
+      return children;
+    }
+
+    function setupPinnedTrace(features = ['trace-waterfall-attribute-pinning']) {
+      jest
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockReturnValue(new DOMRect(0, 0, 1000, 500));
+      const start = Date.now() / 1000;
+      const root = makeEAPSpan({
+        event_id: 'pin-root',
+        event_type: 'span',
+        description: 'pinnable root',
+        is_transaction: true,
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        children: [
+          makeEAPSpan({
+            event_id: 'pin-child',
+            event_type: 'span',
+            description: 'pinnable child',
+            start_timestamp: start,
+            end_timestamp: start + 0.5,
+          }),
+        ],
+      });
+      const organization = OrganizationFixture({features});
+      mockPerformanceSubscriptionDetailsResponse();
+      mockProjectDetailsResponse();
+      mockTraceRootFacets();
+      mockEventsResponse();
+      const traceRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        body: [root],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-meta/trace-id/',
+        body: {
+          errorsCount: 0,
+          logsCount: 0,
+          metricsCount: 0,
+          performanceIssuesCount: 0,
+          spansCount: 2,
+          spansCountMap: {},
+          transactionChildCountMap: [],
+        },
+      });
+      for (const itemId of ['pin-root', 'pin-child']) {
+        MockApiClient.addMockResponse({
+          url: `/projects/org-slug/project_slug/trace-items/${itemId}/`,
+          body: {
+            itemId,
+            links: null,
+            meta: {},
+            timestamp: new Date(start * 1000).toISOString(),
+            attributes: [
+              {name: 'custom.region', type: 'str', value: 'drawer-region'},
+              {name: 'tags[custom.size,number]', type: 'int', value: 0},
+              {name: 'tags[custom.enabled,boolean]', type: 'bool', value: false},
+            ],
+          },
+        });
+      }
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/logs/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+      function renderTrace(query: Record<string, string> = {}) {
+        mockQueryString(
+          Object.keys(query).length ? `?${new URLSearchParams(query)}` : ''
+        );
+        return render(<TraceView />, {
+          organization,
+          additionalWrapper: SyncWindowLocation,
+          initialRouterConfig: {
+            ...initialRouterConfig,
+            location: {
+              pathname: '/organizations/org-slug/performance/trace/trace-id/',
+              query,
+            },
+          },
+        });
+      }
+      return {root, traceRequest, renderTrace};
+    }
+
+    async function openAttributeMenu(attribute: string) {
+      const key = await screen.findByTestId(`tree-key-${attribute}`);
+      const row = key.closest<HTMLElement>('[data-test-id="attribute-tree-row"]')!;
+      await userEvent.click(
+        within(row).getByRole('button', {name: 'Attribute Actions Menu'})
+      );
+    }
+
+    function pinnedCell(description: string) {
+      const waterfall = within(screen.getByTestId('trace-virtualized-list'));
+      const row = waterfall.getByText(description).closest<HTMLElement>('.TraceRow')!;
+      return within(row.querySelector<HTMLElement>('.TracePinnedAttributeCell')!);
+    }
+
+    it('shows loaded values and missing attributes while later pages are pending', async () => {
+      const {renderTrace, root} = setupPinnedTrace();
+      const unloadedChild = makeEAPSpan({
+        event_id: 'unloaded-child',
+        event_type: 'span',
+        description: 'unloaded child',
+        start_timestamp: root.start_timestamp,
+        end_timestamp: root.end_timestamp,
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        body: [{...root, children: [...root.children, unloadedChild]}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [
+          MockApiClient.matchQuery({
+            field: ['span_id', 'custom.region'],
+            cursor: undefined,
+          }),
+        ],
+        body: {
+          data: [
+            {span_id: root.event_id, 'custom.region': 'root-region'},
+            {span_id: root.children[0]!.event_id, 'custom.region': null},
+          ],
+        },
+        headers: {
+          Link: '<https://sentry.io/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+        },
+      });
+      const nextPage = Promise.withResolvers<void>();
+      const nextRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+        asyncDelay: nextPage.promise,
+        body: {data: [{span_id: unloadedChild.event_id, 'custom.region': 0}]},
+      });
+      renderTrace({pinnedAttribute: 'custom.region'});
+
+      expect(await screen.findByText('root-region')).toBeInTheDocument();
+      await waitFor(() => expect(nextRequest).toHaveBeenCalled());
+      expect(
+        pinnedCell('pinnable root').getByRole('button', {name: 'Copy attribute value'})
+      ).toBeEnabled();
+      expect(pinnedCell('pinnable child').getByText('—')).toBeInTheDocument();
+      expect(
+        pinnedCell('pinnable child').queryByTestId('loading-indicator')
+      ).not.toBeInTheDocument();
+      expect(
+        pinnedCell('unloaded child').getByTestId('loading-indicator')
+      ).toBeInTheDocument();
+
+      act(() => nextPage.resolve());
+      expect(await pinnedCell('unloaded child').findByText('0')).toBeInTheDocument();
+    });
+
+    it('keeps pinned values loaded when navigating from an error deep link', async () => {
+      const {renderTrace, root} = setupPinnedTrace();
+      const errors = [
+        makeEAPError({
+          event_id: '11111111111141118111111111111111',
+          description: 'first selectable error',
+          start_timestamp: root.start_timestamp + 0.25,
+        }),
+        makeEAPError({
+          event_id: '22222222222242228222222222222222',
+          description: 'second selectable error',
+          start_timestamp: root.start_timestamp + 0.5,
+        }),
+      ];
+      const traceRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        body: [root, ...errors],
+      });
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        asyncDelay: 100,
+        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/',
+        body: GroupFixture(),
+      });
+      const query = {
+        pinnedAttribute: 'custom.region',
+        eventId: errors[0]!.event_id,
+      };
+      const {router} = renderTrace(query);
+      expect(await screen.findByText('waterfall-region')).toBeInTheDocument();
+      const waterfall = within(screen.getByTestId('trace-virtualized-list'));
+
+      for (const item of [root, ...errors, root]) {
+        const description = waterfall.getByText(item.description!);
+        // Deep links animate the waterfall before enabling pointer interaction.
+        await waitFor(() =>
+          expect(screen.getByTestId('trace-virtualized-list')).not.toHaveStyle({
+            pointerEvents: 'none',
+          })
+        );
+        await userEvent.click(description);
+        await waitFor(() =>
+          expect(router.location.query.node).toBe(`${item.event_type}-${item.event_id}`)
+        );
+        expect(attributeRequest).toHaveBeenCalledTimes(1);
+        expect(waterfall.getByText('waterfall-region')).toBeInTheDocument();
+      }
+
+      expect(traceRequest).toHaveBeenCalledTimes(1);
+      expect(attributeRequest.mock.calls[0]![1].query).toMatchObject({
+        dataset: 'spans',
+        field: ['span_id', 'custom.region'],
+        query: 'trace:trace-id',
+        project: -1,
+        sampling: 'HIGHEST_ACCURACY',
+      });
+      expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('errorId');
+    });
+
+    it.each(['first', 'next'])(
+      'keeps the trace usable and retries a failed %s events page',
+      async failedPage => {
+        const {renderTrace, root, traceRequest} = setupPinnedTrace();
+        const firstPage = {
+          url: '/organizations/org-slug/events/',
+          match: [
+            MockApiClient.matchQuery({
+              field: ['span_id', 'custom.region'],
+              cursor: undefined,
+            }),
+          ],
+          body: {data: [{span_id: root.event_id, 'custom.region': 'root-region'}]},
+          headers: {
+            Link: '<https://sentry.io/api/0/organizations/org-slug/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
+          },
+        };
+        const nextPage = {
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+          body: {
+            data: [
+              {span_id: root.children[0]!.event_id, 'custom.region': 'child-region'},
+            ],
+          },
+        };
+        MockApiClient.addMockResponse(firstPage);
+        MockApiClient.addMockResponse(nextPage);
+        const failedResponse = failedPage === 'first' ? firstPage : nextPage;
+        const failedRequest = MockApiClient.addMockResponse({
+          ...failedResponse,
+          statusCode: 500,
+        });
+        const {router} = renderTrace({pinnedAttribute: 'custom.region'});
+
+        expect(await screen.findByText('Could not load attribute')).toBeInTheDocument();
+        expect(failedRequest).toHaveBeenCalledTimes(1);
+        expect(pinnedCell('pinnable child').getByText('—')).toBeInTheDocument();
+        if (failedPage === 'next') {
+          expect(screen.getByText('root-region')).toBeInTheDocument();
+          expect(
+            pinnedCell('pinnable root').getByRole('button', {
+              name: 'Copy attribute value',
+            })
+          ).toBeEnabled();
+        }
+        await userEvent.click(screen.getByText('pinnable root'));
+        await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
+
+        const retry = Promise.withResolvers<void>();
+        MockApiClient.addMockResponse({...failedResponse, asyncDelay: retry.promise});
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Retry loading attribute'})
+        );
+        if (failedPage === 'next') {
+          expect(screen.getByText('root-region')).toBeInTheDocument();
+          expect(
+            pinnedCell('pinnable root').getByRole('button', {
+              name: 'Copy attribute value',
+            })
+          ).toBeEnabled();
+        }
+        act(() => retry.resolve());
+
+        expect(await screen.findByText('child-region')).toBeInTheDocument();
+        expect(screen.getByText('root-region')).toBeInTheDocument();
+        expect(screen.queryByText('Could not load attribute')).not.toBeInTheDocument();
+        expect(router.location.query.node).toBe('span-pin-root');
+        expect(traceRequest).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it('waits for the trace to load before showing a shared pin', async () => {
+      const {renderTrace, root} = setupPinnedTrace();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        asyncDelay: 500,
+        body: [root],
+      });
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
+      });
+      const {router} = renderTrace({pinnedAttribute: 'custom.region'});
+
+      expect(await screen.findByText(/assembling the trace/i)).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Unpin attribute'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('separator', {name: 'Resize tree and attribute columns'})
+      ).not.toBeInTheDocument();
+      expect(attributeRequest).not.toHaveBeenCalled();
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
+
+      expect(await screen.findByText('waterfall-region')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Unpin attribute'})).toBeInTheDocument();
+      expect(attributeRequest).toHaveBeenCalledTimes(1);
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
+    });
+
+    it('preserves pinned child values, selection and zoom when expanding an EAP parent', async () => {
+      jest.useFakeTimers();
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      const {renderTrace, root, traceRequest} = setupPinnedTrace();
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {
+          data: [
+            {span_id: root.event_id, 'custom.region': 'root-region'},
+            ...root.children.map(child => ({
+              span_id: child.event_id,
+              'custom.region': 'child-region',
+            })),
+          ],
+        },
+      });
+      const query = {pinnedAttribute: 'custom.region', fov: '100,500'};
+      const {router} = renderTrace(query);
+      expect(await screen.findByText('child-region')).toBeInTheDocument();
+      const rootDescription = screen.getByText('pinnable root');
+      await user.click(rootDescription);
+      await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
+      const rootRow = rootDescription.closest<HTMLElement>('.TraceRow')!;
+      const expandButton = within(rootRow).getByRole('button', {name: '1'});
+
+      await user.click(expandButton);
+      expect(screen.queryByText('child-region')).not.toBeInTheDocument();
+      await user.click(expandButton);
+
+      const childRow = (await screen.findByText('pinnable child')).closest<HTMLElement>(
+        '.TraceRow'
+      )!;
+      expect(within(childRow).getByText('child-region')).toBeInTheDocument();
+      expect(within(rootRow).getByText('root-region')).toBeInTheDocument();
+      // Let the debounced field-of-view URL update finish before checking selection.
+      await act(() => jest.advanceTimersByTimeAsync(1000));
+      expect(router.location.query.node).toBe('span-pin-root');
+      expect(router.location.query.fov).toBe('100,500');
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
+      expect(traceRequest).toHaveBeenCalledTimes(1);
+      expect(attributeRequest).toHaveBeenCalledTimes(1);
+    });
+
+    it('pins, resizes, replaces and unpins an attribute from the drawer', async () => {
+      const {renderTrace, root} = setupPinnedTrace();
+      const regionRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: root.event_id, 'custom.region': 'waterfall-region'}]},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [
+          MockApiClient.matchQuery({field: ['span_id', 'tags[custom.size,number]']}),
+        ],
+        body: {data: [{span_id: root.event_id, 'tags[custom.size,number]': 0}]},
+      });
+      const {router} = renderTrace();
+      await userEvent.click(await screen.findByText('pinnable root'));
+      await waitFor(() => expect(router.location.query.node).toBe('span-pin-root'));
+      const nodeBeforePin = router.location.query.node;
+      await openAttributeMenu('custom.region');
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Pin to waterfall'})
+      );
+      expect(await screen.findByText('waterfall-region')).toBeInTheDocument();
+      expect(regionRequest).toHaveBeenCalledTimes(1);
+      expect(router.location.query.pinnedAttribute).toBe('custom.region');
+      expect(
+        within(screen.getByTestId('tree-key-custom.region')).getByRole('img', {
+          name: 'Pinned attribute',
+        })
+      ).toBeInTheDocument();
+      expect(router.location.query.node).toEqual(nodeBeforePin);
+      for (const name of [
+        'Resize tree and attribute columns',
+        'Resize attribute and timeline columns',
+      ]) {
+        const divider = screen.getByRole('separator', {name});
+        const previousValue = Number(divider.getAttribute('aria-valuenow'));
+        divider.focus();
+        await userEvent.keyboard('{ArrowRight}');
+        expect(Number(divider.getAttribute('aria-valuenow'))).toBeGreaterThan(
+          previousValue
+        );
+      }
+      await openAttributeMenu('tags[custom.size,number]');
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Pin to waterfall'})
+      );
+      await waitFor(() =>
+        expect(router.location.query.pinnedAttribute).toBe('tags[custom.size,number]')
+      );
+      expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('tree-key-custom.region')).queryByRole('img', {
+          name: 'Pinned attribute',
+        })
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('tree-key-tags[custom.size,number]')).getByRole('img', {
+          name: 'Pinned attribute',
+        })
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Copy attribute value'})
+      ).toBeInTheDocument();
+      await openAttributeMenu('tags[custom.size,number]');
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Unpin from waterfall'})
+      );
+      expect(router.location.query.pinnedAttribute).toBeUndefined();
+      expect(
+        screen.queryByRole('img', {name: 'Pinned attribute'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('separator', {name: 'Resize tree and attribute columns'})
+      ).not.toBeInTheDocument();
+      expect(router.location.query.node).toEqual(nodeBeforePin);
+    });
+
+    it.each([
+      {attribute: 'tags[custom.size,number]', value: 0},
+      {attribute: 'tags[custom.enabled,boolean]', value: false},
+    ])(
+      'preserves the typed key for $attribute when pinning and reloading',
+      async ({attribute, value}) => {
+        const {renderTrace, root} = setupPinnedTrace();
+        const attributeRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({field: ['span_id', attribute]})],
+          body: {data: [{span_id: root.event_id, [attribute]: value}]},
+        });
+        const {router, unmount} = renderTrace();
+        await userEvent.click(await screen.findByText('pinnable root'));
+        await openAttributeMenu(attribute);
+        await userEvent.click(
+          await screen.findByRole('menuitemradio', {name: 'Pin to waterfall'})
+        );
+        expect(
+          await within(screen.getByTestId('trace-virtualized-list')).findByText(
+            String(value)
+          )
+        ).toBeInTheDocument();
+        expect(router.location.query.pinnedAttribute).toBe(attribute);
+        expect(attributeRequest).toHaveBeenCalledTimes(1);
+
+        const query = {pinnedAttribute: attribute};
+        unmount();
+        renderTrace(query);
+        expect(
+          await within(screen.getByTestId('trace-virtualized-list')).findByText(
+            String(value)
+          )
+        ).toBeInTheDocument();
+      }
+    );
+
+    it.each([
+      {
+        name: 'spans 48 hours apart',
+        offset: 0.25,
+        duration: 0.5,
+        childOffset: 172800,
+        endOffset: 172801,
+      },
+      {
+        name: 'a subsecond trace',
+        offset: 0.25,
+        duration: 0.5,
+        childOffset: null,
+        endOffset: 1,
+      },
+      {
+        name: 'a zero-duration trace',
+        offset: 0,
+        duration: 0,
+        childOffset: null,
+        endOffset: 1,
+      },
+    ])(
+      'queries the complete time range for $name',
+      async ({offset, duration, childOffset, endOffset}) => {
+        const {renderTrace, root} = setupPinnedTrace();
+        const base = Math.floor(Date.now() / 1000) - 5 * 86400;
+        const start = base + offset;
+        const trace = {
+          ...root,
+          start_timestamp: start,
+          end_timestamp: start + duration,
+          children:
+            childOffset === null
+              ? []
+              : [
+                  makeEAPSpan({
+                    event_id: 'late-child',
+                    event_type: 'span',
+                    description: 'late child',
+                    start_timestamp: start + childOffset,
+                    end_timestamp: start + childOffset + duration,
+                  }),
+                ],
+        };
+        const traceRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/trace/trace-id/',
+          body: [trace],
+        });
+        const attributeRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/events/',
+          match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+          body: {
+            data: [
+              {span_id: trace.event_id, 'custom.region': 'root-region'},
+              ...trace.children.map(child => ({
+                span_id: child.event_id,
+                'custom.region': 'late-region',
+              })),
+            ],
+          },
+        });
+        // The original window is centered between the spans and includes both.
+        // Reanchoring it to the first span would exclude the later one.
+        const query = {
+          pinnedAttribute: 'custom.region',
+          timestamp: String(start + (childOffset ?? 0) / 2),
+        };
+        renderTrace(query);
+        expect(await screen.findByText('root-region')).toBeInTheDocument();
+        if (childOffset !== null) {
+          expect(await screen.findByText('late-region')).toBeInTheDocument();
+        }
+        expect(attributeRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              start: new Date(base * 1000).toISOString(),
+              end: new Date((base + endOffset) * 1000).toISOString(),
+            }),
+          })
+        );
+        expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('timestamp');
+        expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty(
+          'statsPeriod'
+        );
+        expect(traceRequest).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it('loads pinned values for a trace found by the wider-range fallback', async () => {
+      const {renderTrace, root} = setupPinnedTrace();
+      const start = Math.floor(Date.now() / 1000) - 40 * 86400;
+      const trace = {
+        ...root,
+        start_timestamp: start,
+        end_timestamp: start + 1,
+        children: [],
+      };
+      const initialRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({statsPeriod: '14d'})],
+        body: [],
+      });
+      const fallbackRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace/trace-id/',
+        match: [MockApiClient.matchQuery({statsPeriod: '90d'})],
+        body: [trace],
+      });
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: {data: [{span_id: trace.event_id, 'custom.region': 'older-region'}]},
+      });
+      const query = {pinnedAttribute: 'custom.region', statsPeriod: '14d'};
+      renderTrace(query);
+      expect(await screen.findByText('older-region')).toBeInTheDocument();
+      expect(initialRequest).toHaveBeenCalledTimes(1);
+      expect(fallbackRequest).toHaveBeenCalledTimes(1);
+      expect(attributeRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            start: new Date(start * 1000).toISOString(),
+            end: new Date((start + 2) * 1000).toISOString(),
+          }),
+        })
+      );
+      expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('timestamp');
+      expect(attributeRequest.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
+    });
+
+    it('ignores URL pins and hides controls when the flag is absent', async () => {
+      const {renderTrace} = setupPinnedTrace([]);
+      const attributeRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [MockApiClient.matchQuery({field: ['span_id', 'custom.region']})],
+        body: [],
+      });
+      renderTrace({pinnedAttribute: 'custom.region'});
+      await userEvent.click(await screen.findByText('pinnable root'));
+      expect(await screen.findByText('drawer-region')).toBeInTheDocument();
+      await openAttributeMenu('custom.region');
+      expect(
+        await screen.findByRole('menuitemradio', {
+          name: 'Copy attribute value to clipboard',
+        })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Pin to waterfall'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Unpin from waterfall'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Unpin attribute'})
+      ).not.toBeInTheDocument();
+      expect(attributeRequest).not.toHaveBeenCalled();
+      await userEvent.keyboard('{Escape}');
+    });
+  });
+
   it('renders loading state', async () => {
     mockPerformanceSubscriptionDetailsResponse();
     mockProjectDetailsResponse();
 
-    mockTraceResponse();
+    mockTraceResponse({
+      asyncDelay: 1000,
+      body: {transactions: [], orphan_errors: []},
+    });
     mockTraceMetaResponse();
     mockTraceTagsResponse();
     mockEventsResponse();
@@ -1066,7 +1674,7 @@ describe('trace view', () => {
 
   it('reveals a hidden vital pill source node on click', async () => {
     const start = Date.now() / 1e3;
-    const organization = OrganizationFixture({features: ['trace-spans-format']});
+    const organization = OrganizationFixture();
     const vitalSpanDescription = 'standalone LCP span';
 
     mockPerformanceSubscriptionDetailsResponse();
@@ -1201,106 +1809,94 @@ describe('trace view', () => {
       });
     });
 
-    it('scrolls to span that is a child of transaction', async () => {
-      mockQueryString('?node=span-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[3]).toHaveFocus();
+    it('expands and collapses loaded EAP children with keyboard navigation', async () => {
+      mockPerformanceSubscriptionDetailsResponse();
+      mockProjectDetailsResponse();
+      mockTraceResponse({
+        body: makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-transaction',
+            description: 'root transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 3,
+            children: [
+              makeEAPSpan({
+                event_id: 'special-span',
+                description: 'special span',
+                start_timestamp: 1.5,
+                end_timestamp: 2,
+              }),
+              ...Array.from({length: 100}, (_, index) =>
+                makeEAPSpan({
+                  event_id: `other-span-${index}`,
+                  start_timestamp: 1.5,
+                  end_timestamp: 2,
+                })
+              ),
+            ],
+          }),
+          makeEAPSpan({
+            event_id: 'second-transaction',
+            description: 'second transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 2,
+          }),
+          makeEAPSpan({
+            event_id: 'third-transaction',
+            description: 'third transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 2,
+          }),
+        ]),
       });
-      expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
-    });
-
-    it('scrolls to parent autogroup node', async () => {
-      mockQueryString('?node=ag-redis0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[4]).toHaveFocus();
+      mockTraceMetaResponse({
+        body: {
+          errorsCount: 0,
+          logsCount: 0,
+          metricsCount: 0,
+          performanceIssuesCount: 0,
+          spansCount: 103,
+          spansCountMap: {},
+          transactionChildCountMap: [],
+        },
       });
-      expect(rows[4]!.textContent?.includes('Autogrouped')).toBe(true);
-    });
-    it('scrolls to child of parent autogroup node', async () => {
-      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
-      // as path is prioritized over targetId/eventId
-      mockQueryString('?node=span-redis0&node=txn-1&targetId=doesnotexist');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[5]).toHaveFocus();
+      mockTraceRootFacets();
+      mockEventsResponse();
+      for (const itemId of ['root-transaction', 'special-span']) {
+        MockApiClient.addMockResponse({
+          url: `/projects/org-slug/project_slug/trace-items/${itemId}/`,
+          body: {
+            itemId,
+            links: null,
+            meta: {},
+            timestamp: new Date(1e3).toISOString(),
+            attributes: [],
+          },
+        });
+      }
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/logs/',
+        body: {data: []},
       });
-      expect(rows[5]!.textContent?.includes('db — redis')).toBe(true);
-    });
-
-    it('scrolls to sibling autogroup node', async () => {
-      mockQueryString('?node=ag-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[5]).toHaveFocus();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
       });
-      expect(rows[5]!.textContent?.includes('5Autogrouped')).toBe(true);
-    });
 
-    it('scrolls to child of sibling autogroup node', async () => {
-      // Passing an invalid targetId to the query string will still scroll to the child of the parent autogroup node
-      // as path is prioritized over targetId/eventId
-      mockQueryString('?node=span-http0&node=txn-1&targetId=doesnotexist');
+      render(<TraceView />, {initialRouterConfig});
 
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next tick
-      const rows = getVirtualizedRows(virtualizedContainer);
+      const root = await screen.findByText('root transaction');
+      expect(screen.queryByText('special span')).not.toBeInTheDocument();
+      await userEvent.click(root);
+      await userEvent.keyboard('{arrowright}');
+      expect(await screen.findByText('special span')).toBeInTheDocument();
+      await userEvent.keyboard('{arrowleft}');
       await waitFor(() => {
-        expect(rows[6]).toHaveFocus();
+        expect(screen.queryByText('special span')).not.toBeInTheDocument();
       });
-      expect(rows[6]!.textContent?.includes('http — request')).toBe(true);
-    });
-
-    it('scrolls to missing instrumentation node', async () => {
-      mockTracePreferences({missing_instrumentation: true});
-      mockQueryString('?node=ms-queueprocess0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next ticks
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[7]).toHaveFocus();
-      });
-      expect(rows[7]!.textContent?.includes('No Instrumentation')).toBe(true);
-    });
-
-    it('scrolls to trace error node', async () => {
-      mockQueryString('?node=error-error0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      // We need to await a tick because the row is not focused until the next ticks
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[11]).toHaveFocus();
-      });
-      expect(rows[11]!.textContent?.includes('error-title')).toBe(true);
     });
 
     it('scrolls to event id query param', async () => {
@@ -1311,18 +1907,6 @@ describe('trace view', () => {
         const rows = getVirtualizedRows(virtualizedContainer);
         expect(rows[2]).toHaveFocus();
       });
-    });
-
-    it('supports expanded node path', async () => {
-      mockQueryString('?node=span-span0&node=txn-1&span-0&node=txn-0');
-      const {virtualizedContainer} = await completeTestSetup();
-      await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-      const rows = getVirtualizedRows(virtualizedContainer);
-      await waitFor(() => {
-        expect(rows[3]).toHaveFocus();
-      });
-      expect(rows[3]!.textContent?.includes('http — request')).toBe(true);
     });
 
     it.each([
@@ -1343,79 +1927,7 @@ describe('trace view', () => {
       });
     });
 
-    it('does not autogroup if user preference is disabled', async () => {
-      mockTracePreferences({autogroup: {parent: false, sibling: false}});
-      mockQueryString('?node=span-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-
-      await within(virtualizedContainer).findAllByText(/process/i);
-      expect(screen.queryByText(/Autogrouped/i)).not.toBeInTheDocument();
-    });
-
-    it('does not inject missing instrumentation if user preference is disabled', async () => {
-      mockTracePreferences({missing_instrumentation: false});
-      mockQueryString('?node=span-span0&node=txn-1');
-
-      const {virtualizedContainer} = await completeTestSetup();
-
-      await within(virtualizedContainer).findAllByText(/process/i);
-      expect(screen.queryByText(/Missing instrumentation/i)).not.toBeInTheDocument();
-    });
-
     describe('preferences', () => {
-      it('toggles autogrouping', async () => {
-        mockTracePreferences({autogroup: {parent: true, sibling: true}});
-        mockQueryString('?node=span-span0&node=txn-1');
-
-        const {virtualizedContainer} = await completeTestSetup();
-        await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-        await userEvent.click(preferencesDropdownTrigger);
-
-        expect(await screen.findByText('Autogrouping')).toBeInTheDocument();
-
-        // Toggle autogrouping off
-        const autogroupingOption = await screen.findByText('Autogrouping');
-        await userEvent.click(autogroupingOption);
-
-        await waitFor(() => {
-          expect(screen.queryByText('Autogrouped')).not.toBeInTheDocument();
-        });
-
-        // Toggle autogrouping back on
-        await userEvent.click(await screen.findByText('Autogrouping'));
-        expect(await screen.findAllByText('Autogrouped')).toHaveLength(2);
-      });
-
-      it('toggles missing instrumentation', async () => {
-        mockTracePreferences({missing_instrumentation: true});
-        mockQueryString('?node=span-span0&node=txn-1');
-
-        const {virtualizedContainer} = await completeTestSetup();
-        await within(virtualizedContainer).findAllByText(/No Instrumentation/i);
-
-        const preferencesDropdownTrigger = screen.getByLabelText('Trace Preferences');
-        await userEvent.click(preferencesDropdownTrigger);
-
-        expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
-
-        // Toggle autogrouping off
-        const autogroupingOption = await screen.findByTestId('no-instrumentation');
-        await userEvent.click(autogroupingOption);
-
-        await waitFor(async () => {
-          expect(await screen.findAllByText('No Instrumentation')).toHaveLength(1);
-        });
-
-        // Toggle autogrouping back on
-        await userEvent.click(autogroupingOption);
-        await waitFor(async () => {
-          expect(await screen.findAllByText('No Instrumentation')).toHaveLength(2);
-        });
-      });
-
       it('redraws the trace when compressed timeline changes', async () => {
         mockTracePreferences({compressed_timeline: true});
         mockQueryString('?node=span-span0&node=txn-1');
@@ -1527,45 +2039,6 @@ describe('trace view', () => {
           compressionSpy.mockRestore();
         }
       });
-
-      it('recomputes compressed timeline when expanding or collapsing rows changes visible nodes', async () => {
-        mockTracePreferences({compressed_timeline: true});
-        mockQueryString('?node=span-span0&node=txn-1');
-        const organization = OrganizationFixture({
-          features: ['trace-waterfall-time-compression'],
-        });
-
-        const compressionSpy = jest.spyOn(TraceTimeCompression, 'FromVisibleItems');
-
-        try {
-          const {virtualizedContainer} = await completeTestSetup({organization});
-          await within(virtualizedContainer).findAllByText(/Autogrouped/i);
-
-          const initialNodeCount =
-            compressionSpy.mock.calls.at(-1)?.[0]?.nodes.length ?? 0;
-          expect(initialNodeCount).toBeGreaterThan(0);
-
-          compressionSpy.mockClear();
-
-          const rows = getVirtualizedRows(virtualizedContainer);
-          const spanRow = rows.find(row => row.textContent?.includes('http — request'));
-          const collapseButton =
-            spanRow?.querySelector<HTMLButtonElement>('.TraceChildrenCount');
-          expect(collapseButton).toBeInTheDocument();
-
-          fireEvent.click(collapseButton!);
-
-          await waitFor(() => {
-            expect(compressionSpy).toHaveBeenCalled();
-          });
-
-          expect(compressionSpy.mock.calls.at(-1)?.[0]?.nodes.length).toBeLessThan(
-            initialNodeCount
-          );
-        } finally {
-          compressionSpy.mockRestore();
-        }
-      });
     });
   });
 
@@ -1592,60 +2065,6 @@ describe('trace view', () => {
       await waitFor(() => expect(rows[0]).toHaveFocus());
     });
 
-    it('arrow right expands row and fetches data', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowright}');
-      await waitFor(() => {
-        expect(screen.getByText('special-span')).toBeInTheDocument();
-      });
-    });
-
-    it('arrow left collapses row', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowright}');
-
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
-      await userEvent.keyboard('{arrowleft}');
-
-      await waitFor(() => {
-        expect(screen.queryByText('special-span')).not.toBeInTheDocument();
-      });
-    });
-
     it('arrow left does not collapse trace root row', async () => {
       const {virtualizedContainer} = await keyboardNavigationTestSetup();
       const rows = getVirtualizedRows(virtualizedContainer);
@@ -1655,56 +2074,6 @@ describe('trace view', () => {
 
       await userEvent.keyboard('{arrowleft}');
       expect(await screen.findByText('transaction-name-1')).toBeInTheDocument();
-    });
-
-    it('arrow left on transaction row still renders transaction children', async () => {
-      const {virtualizedContainer} = await nestedTransactionsTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      await userEvent.keyboard('{arrowleft}');
-      expect(await screen.findByText('transaction-name-2')).toBeInTheDocument();
-    });
-
-    it('roving updates the element in the drawer', async () => {
-      const {virtualizedContainer} = await keyboardNavigationTestSetup();
-      const rows = getVirtualizedRows(virtualizedContainer);
-
-      mockSpansResponse(
-        '0',
-        {},
-        {
-          entries: [
-            {
-              type: EntryType.SPANS,
-              data: [makeSpan({span_id: '0', op: 'special-span'})],
-            },
-          ],
-        }
-      );
-
-      await userEvent.click(rows[1]!);
-      await waitFor(() => expect(rows[1]).toHaveFocus());
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'TransactionID: 0'
-      );
-
-      await userEvent.keyboard('{arrowright}');
-      expect(await screen.findByText('special-span')).toBeInTheDocument();
-      await userEvent.keyboard('{arrowdown}');
-      await waitFor(() => {
-        const updatedRows = virtualizedContainer.querySelectorAll(
-          VISIBLE_TRACE_ROW_SELECTOR
-        );
-        expect(updatedRows[2]).toHaveFocus();
-      });
-
-      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
-        'SpanID: 0'
-      );
     });
 
     it('arrowup on first node jumps to end', async () => {
@@ -2213,14 +2582,22 @@ describe('trace view', () => {
       await userEvent.type(searchInput, '5');
       await waitFor(() => expect(searchInput).toHaveValue('transaction-op-5'));
 
-      await searchToResolve();
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          '1/1'
+        );
+      });
       await assertHighlightedRowAtIndex(container, 6);
 
-      await userEvent.clear(searchInput);
-      await waitFor(() => expect(searchInput).toHaveValue(''));
-      await userEvent.click(searchInput);
-      await userEvent.paste('transaction-op-none');
-      await searchToResolve();
+      // Keep the previous results until the new search completes. Clearing the
+      // query also resets the results and can make the idle icon look finished.
+      await userEvent.type(searchInput, '-none');
+      expect(searchInput).toHaveValue('transaction-op-5-none');
+      await waitFor(() => {
+        expect(screen.getByTestId('trace-search-result-iterator')).toHaveTextContent(
+          'no results'
+        );
+      });
       await waitFor(() => {
         // eslint-disable-next-line testing-library/no-container
         expect(container.querySelectorAll('.TraceRow.Highlight')).toHaveLength(0);

@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from unittest import mock
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.github_permissions import GITHUB_APP_LATEST_PERMISSIONS
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -16,12 +21,13 @@ from sentry.seer.autofix.github_perms import (
     MissingGithubPermissions,
     failed_tool_calls,
     get_blocked_pr_iteration_permissions,
+    get_missing_permissions_by_repo,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 REPO_NAME = "getsentry/sentry"
+LOGGER_NAME = "sentry.seer.autofix.github_perms"
 
 
 def _block(
@@ -86,14 +92,14 @@ class GetBlockedPrIterationPermissionsTest(TestCase):
             external_id="9999",
             metadata={"permissions": {"contents": "read"}},
         )
-        self.create_repo(
+        self.repo = self.create_repo(
             project=self.create_project(organization=self.organization),
             name=REPO_NAME,
             provider="integrations:github",
             integration_id=self.integration.id,
         )
 
-    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
     def test_warns_when_a_pr_exists_and_feedback_is_queued(self) -> None:
         missing = get_blocked_pr_iteration_permissions(
             self.organization, _state(pr_number=7), has_actionable_feedback=True
@@ -102,8 +108,9 @@ class GetBlockedPrIterationPermissionsTest(TestCase):
         assert set(missing) == {REPO_NAME}
         assert missing[REPO_NAME].missing_scopes == ["contents"]
         assert missing[REPO_NAME].installation_id == "9999"
+        assert missing[REPO_NAME].repository_id == self.repo.id
 
-    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
     def test_silent_without_actionable_feedback(self) -> None:
         assert (
             get_blocked_pr_iteration_permissions(
@@ -112,7 +119,7 @@ class GetBlockedPrIterationPermissionsTest(TestCase):
             == {}
         )
 
-    @override_options({"github-app.required-permissions": {"contents": "write"}})
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
     def test_silent_before_the_pr_is_created(self) -> None:
         assert (
             get_blocked_pr_iteration_permissions(
@@ -121,7 +128,7 @@ class GetBlockedPrIterationPermissionsTest(TestCase):
             == {}
         )
 
-    @override_options({"github-app.required-permissions": {"contents": "read"}})
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "read"}, clear=True)
     def test_silent_when_the_install_is_healthy(self) -> None:
         assert (
             get_blocked_pr_iteration_permissions(
@@ -129,6 +136,71 @@ class GetBlockedPrIterationPermissionsTest(TestCase):
             )
             == {}
         )
+
+
+class GetMissingPermissionsByRepoTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="9999",
+            metadata={"permissions": {"contents": "read"}},
+        )
+        self.repo = self.create_repo(
+            project=self.create_project(organization=self.organization),
+            name=REPO_NAME,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+        )
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_reports_the_repository_the_install_was_resolved_for(self) -> None:
+        missing = get_missing_permissions_by_repo(self.organization, [REPO_NAME])
+
+        assert missing[REPO_NAME].repository_id == self.repo.id
+        assert missing[REPO_NAME].missing_scopes == ["contents"]
+
+    def _assert_warns(self, organization: Organization, repo_name: str, reason: str) -> None:
+        with self.assertLogs(LOGGER_NAME, level="WARNING") as logs:
+            assert get_missing_permissions_by_repo(organization, [repo_name]) == {}
+
+        assert len(logs.records) == 1
+        assert logs.records[0].__dict__["reason"] == reason
+        assert logs.records[0].__dict__["organization_id"] == organization.id
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_warns_without_a_repository_row(self) -> None:
+        self._assert_warns(self.organization, "org/unknown", "no_repository_row")
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_warns_when_the_repository_is_not_active(self) -> None:
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+
+        self._assert_warns(self.organization, REPO_NAME, "no_repository_row")
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_warns_when_the_repository_belongs_to_another_org(self) -> None:
+        self._assert_warns(self.create_organization(), REPO_NAME, "no_repository_row")
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_warns_when_the_repository_has_no_integration(self) -> None:
+        Repository.objects.filter(id=self.repo.id).update(integration_id=None)
+
+        self._assert_warns(self.organization, REPO_NAME, "no_integration_id")
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_warns_when_the_integration_is_gone(self) -> None:
+        Repository.objects.filter(id=self.repo.id).update(integration_id=self.integration.id + 1000)
+
+        self._assert_warns(self.organization, REPO_NAME, "integration_not_found")
+
+    @mock.patch.dict(GITHUB_APP_LATEST_PERMISSIONS, {"contents": "write"}, clear=True)
+    def test_quiet_when_every_repo_resolves(self) -> None:
+        with self.assertNoLogs(LOGGER_NAME, level="WARNING"):
+            assert set(get_missing_permissions_by_repo(self.organization, [REPO_NAME])) == {
+                REPO_NAME
+            }
 
 
 class InstallationUrlTest(TestCase):

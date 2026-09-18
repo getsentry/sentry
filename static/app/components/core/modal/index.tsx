@@ -150,6 +150,7 @@ export function GlobalModal() {
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
+    // oxlint-disable-next-line react/immutability
     window.SentryApp.modalFocusTrap = focusTrap;
   }
 
@@ -185,6 +186,7 @@ export function GlobalModal() {
     }
 
     return reset;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [portal, handleEscapeClose, visible, scrollLock, triggerElement]);
 
   // Close the modal when the browser history changes.
@@ -211,6 +213,7 @@ export function GlobalModal() {
 
   const onCloseButtonClick = useCallback(() => closeModal('close-button'), [closeModal]);
 
+  // oxlint-disable-next-line react/refs
   const renderedChild = renderer?.({
     CloseButton: makeCloseButton(onCloseButtonClick),
     Header: makeClosableHeader(onCloseButtonClick),

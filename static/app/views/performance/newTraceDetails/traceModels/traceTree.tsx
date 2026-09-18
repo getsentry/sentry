@@ -48,8 +48,6 @@ import {traceChronologicalSort} from './traceTreeNode/utils';
 import {makeExampleTrace} from './makeExampleTrace';
 import {TraceTreeEventDispatcher} from './traceTreeEventDispatcher';
 
-const {info, fmt} = Sentry.logger;
-
 /**
  *
  * This file implements the tree data structure that is used to represent a trace. We do
@@ -345,13 +343,10 @@ function fetchTrace(
     orgSlug: string;
     query: string;
     traceId: string;
-  },
-  type: 'eap' | 'non-eap'
+  }
 ): Promise<TraceSplitResults<TraceTree.Transaction> | TraceTree.EAPTrace> {
   return api.requestPromise(
-    type === 'eap'
-      ? `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
-      : `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+    `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
   );
 }
 
@@ -409,7 +404,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (options?.preferences?.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(root, {organization: options.organization});
+      TraceTree.AutogroupSiblingSpanNodes(root, {
+        organization: options.organization,
+      });
     }
   }
 
@@ -449,7 +446,9 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       const nodeId = 'event_id' in value ? value.event_id : undefined;
       if (nodeId && visitedIds.has(nodeId)) {
-        Sentry.logger.warn('Cycle detected in trace tree structure', {nodeId});
+        Sentry.logger.warn('Cycle detected in trace tree structure', {
+          nodeId,
+        });
         return;
       }
       if (nodeId) {
@@ -550,7 +549,11 @@ export class TraceTree extends TraceTreeEventDispatcher {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
         const parent = c.parent.parent;
-        TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
+        TraceTree.Swap({
+          parent: c.parent,
+          child: c,
+          reason: 'pageload server handler',
+        });
         parent!.invalidate();
         parent!.forEachChild(child => {
           child.invalidate();
@@ -1106,11 +1109,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
   static ExpandToEventID(
     tree: TraceTree,
     eventId: string,
-    options: {
-      api: Client;
-      organization: Organization;
-      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-    }
+    _options?: unknown
   ): Promise<void> {
     const node = tree.root.findChild(n => n.matchById(eventId));
 
@@ -1118,51 +1117,33 @@ export class TraceTree extends TraceTreeEventDispatcher {
       return Promise.resolve();
     }
 
-    return TraceTree.ExpandToPath(tree, node.pathToNode(), options);
+    return TraceTree.ExpandToPath(tree, node.pathToNode());
   }
 
   static ExpandToPath(
     tree: TraceTree,
     scrollQueue: TraceTree.NodePath[],
-    options: {
-      api: Client;
-      organization: Organization;
-      preferences: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
-    }
+    _options?: unknown
   ): Promise<void> {
-    const transactionIds = new Set(
-      scrollQueue.filter(s => s.startsWith('txn-')).map(s => s.replace('txn-', ''))
-    );
+    for (const path of scrollQueue) {
+      const node = tree.root.findChild(candidate => candidate.matchByPath(path));
+      if (!node) {
+        continue;
+      }
 
-    // If we are just linking to a transaction, then we dont need to fetch its spans
-    if (transactionIds.size === 1 && scrollQueue.length === 1) {
-      return Promise.resolve();
+      const ancestors: BaseNode[] = [];
+      let parent = node.parent;
+      while (parent && !parent.isRootNodeChild()) {
+        ancestors.push(parent);
+        parent = parent.parent;
+      }
+
+      for (const ancestor of ancestors.toReversed()) {
+        ancestor.expand(true, tree);
+      }
     }
 
-    const transactionNodes = tree.root.findAllChildren(
-      node => node.canFetchChildren && transactionIds.has(node.id ?? '')
-    );
-
-    const promises = transactionNodes.map(node =>
-      tree.fetchNodeSubTree(true, node, {
-        api: options.api,
-        organization: options.organization,
-        preferences: options.preferences,
-      })
-    );
-
-    return Promise.all(promises)
-      .then(_resp => {
-        // Ignore response
-      })
-      .catch(e => {
-        Sentry.withScope(scope => {
-          scope.setFingerprint(['trace-view-expand-to-path-error']);
-          scope.captureMessage('Failed to expand to path');
-          info(fmt`Failed to expand to path`);
-          scope.captureException(e);
-        });
-      });
+    return Promise.resolve();
   }
 
   // Only supports parent/child swaps (the only ones we need)
@@ -1433,7 +1414,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
     organization: Organization;
     replayTraces: ReplayTrace[];
     rerender: () => void;
-    type: 'eap' | 'non-eap';
     urlParams: Location['query'];
     preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
   }): () => void {
@@ -1450,19 +1430,15 @@ export class TraceTree extends TraceTreeEventDispatcher {
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(
-              api,
-              {
-                orgSlug: organization.slug,
-                query: qs.stringify(
-                  getTraceQueryParams(options.type, urlParams, filters.selection, {
-                    timestamp: batchTraceData.timestamp,
-                  })
-                ),
-                traceId: batchTraceData.traceSlug,
-              },
-              options.type
-            );
+            return fetchTrace(api, {
+              orgSlug: organization.slug,
+              query: qs.stringify(
+                getTraceQueryParams(urlParams, filters.selection, {
+                  timestamp: batchTraceData.timestamp,
+                })
+              ),
+              traceId: batchTraceData.traceSlug,
+            });
           })
         );
 

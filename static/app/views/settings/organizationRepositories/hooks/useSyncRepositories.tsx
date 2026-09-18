@@ -53,12 +53,15 @@ function usePhaseTimer(
 
   const timerRef = useRef<number | null>(null);
   const configRef = useRef(config);
+  // oxlint-disable-next-line react/refs
   configRef.current = config;
   const onTimeoutRef = useRef(onTimeout);
+  // oxlint-disable-next-line react/refs
   onTimeoutRef.current = onTimeout;
 
   // Stored in a ref to allow recursion without useCallback deps.
   const scheduleRef = useRef<(idx: number) => void>(() => {});
+  // oxlint-disable-next-line react/refs
   scheduleRef.current = (idx: number) => {
     const phase = configRef.current[idx];
     if (!phase) {
@@ -131,13 +134,6 @@ interface Options {
    * Use to trigger a repository list refresh.
    */
   onSynced?: () => void;
-  /**
-   * Polling phases to work through before giving up. Each phase defines how
-   * frequently to poll and how long to stay in that phase. Defaults to a
-   * two-phase backoff: every 5 seconds for 30 seconds, then every 30 seconds
-   * for 4.5 minutes (5 minutes total).
-   */
-  pollingConfig?: PollPhaseConfig[];
 }
 
 /**
@@ -170,12 +166,13 @@ export function useSyncRepositories(
   const integrationId = integration.id;
   const organizationIdOrSlug = organization.slug;
 
-  const pollingConfig = options?.pollingConfig ?? DEFAULT_POLLING_CONFIG;
+  const pollingConfig = DEFAULT_POLLING_CONFIG;
 
   const [lastSyncBefore, setLastSyncBefore] = useState<string | undefined>(undefined);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const onSyncedRef = useRef(options?.onSynced);
+  // oxlint-disable-next-line react/refs
   onSyncedRef.current = options?.onSynced;
 
   function startSyncing() {
@@ -198,6 +195,7 @@ export function useSyncRepositories(
   });
 
   const phaseTimerRef = useRef(phaseTimer);
+  // oxlint-disable-next-line react/refs
   phaseTimerRef.current = phaseTimer;
 
   const query = useQuery({
@@ -221,10 +219,12 @@ export function useSyncRepositories(
     const currentLastSync = query.data.configData?.last_sync as string | undefined;
     if (currentLastSync !== lastSyncBefore) {
       phaseTimerRef.current.cancel();
+      // oxlint-disable-next-line react/set-state-in-effect
       stopSyncing();
       addSuccessMessage(t('Repositories synced successfully'));
       onSyncedRef.current?.();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [query.data, isSyncing, lastSyncBefore]);
 
   // syncNow is undefined while the query is loading or a sync is in progress,

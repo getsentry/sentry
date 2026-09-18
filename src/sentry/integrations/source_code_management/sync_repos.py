@@ -63,6 +63,7 @@ SCM_SYNC_PROVIDERS = [
     "bitbucket_server",
     "vsts",
     "perforce",
+    "cursor_origin",
 ]
 
 SYNC_BATCH_SIZE = 100

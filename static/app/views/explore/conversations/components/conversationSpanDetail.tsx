@@ -99,6 +99,7 @@ export function ConversationSpanDetail({
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [scrollResetKey]);
 
   // Full attributes (tool inputs/results, the complete attribute list) aren't
@@ -192,18 +193,12 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptyTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab>
-          value={activeTab}
-          onChange={onTabChange}
-          disableOverflow
-        >
-          <Flex flexShrink={0}>
-            <TabList>
-              <TabList.Item key="input">{t('Input')}</TabList.Item>
-              <TabList.Item key="output">{t('Output')}</TabList.Item>
-              <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-            </TabList>
-          </Flex>
+        <TabStateProvider<DetailTab> value={activeTab} onChange={onTabChange}>
+          <TabList>
+            <TabList.Item key="input">{t('Input')}</TabList.Item>
+            <TabList.Item key="output">{t('Output')}</TabList.Item>
+            <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+          </TabList>
 
           <Container
             flex="0 0 auto"

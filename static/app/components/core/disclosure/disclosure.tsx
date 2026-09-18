@@ -10,7 +10,6 @@ import {useDisclosureState, type DisclosureState} from '@react-stately/disclosur
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 
@@ -116,7 +115,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
       paddingRight="xs"
       radius="md"
     >
-      {leadingItems}
+      {leadingItems ? <Flex flexShrink={0}>{leadingItems}</Flex> : null}
       <StretchedButton
         icon={leadingItems ? undefined : chevron}
         disabled={isDisabled}
@@ -126,7 +125,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
         {...rest}
       >
         {leadingItems ? (
-          <Flex align="center" gap="xs">
+          <Flex align="center" gap="xs" minWidth={0}>
             {children}
             {chevron}
           </Flex>
@@ -134,7 +133,7 @@ function Title({children, leadingItems, trailingItems, ...rest}: DisclosureTitle
           children
         )}
       </StretchedButton>
-      {trailingItems}
+      {trailingItems ? <Flex flexShrink={0}>{trailingItems}</Flex> : null}
     </TitleRow>
   );
 }
@@ -154,6 +153,7 @@ const TitleRow = styled(Flex)`
 
 const StretchedButton = styled(Button)`
   flex-grow: 1;
+  min-width: 0;
   justify-content: flex-start;
   padding-left: ${p => p.theme.space.xs};
 
@@ -200,9 +200,7 @@ function Content({children, ...props}: DisclosureContentProps) {
       width="100%"
       {...props}
     >
-      <Text as="div" size={context.size}>
-        {children}
-      </Text>
+      {children}
     </AlignedContainer>
   );
 }

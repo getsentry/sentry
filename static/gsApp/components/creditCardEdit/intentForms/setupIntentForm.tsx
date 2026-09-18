@@ -10,7 +10,6 @@ import {useMutation} from '@tanstack/react-query';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
@@ -29,9 +28,8 @@ export function SetupIntentForm(props: IntentFormProps) {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {url} = parseQueryKey(props.intentDataQueryKey);
   const {intentData, isLoading, isError, error} = useSetupIntentData({
-    endpoint: url,
+    queryKey: props.intentDataQueryKey,
   });
 
   const {mutateAsync: updateSubscription} = useMutation({
@@ -60,6 +58,7 @@ export function SetupIntentForm(props: IntentFormProps) {
 
   useEffect(() => {
     if (isError) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setErrorMessage(error);
     }
   }, [isError, error]);

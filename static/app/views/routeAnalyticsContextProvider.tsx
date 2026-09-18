@@ -48,7 +48,7 @@ export function RouteAnalyticsContextProvider({children}: Props) {
     setOrganization,
     setEventNames,
     previousUrl,
-  } = useRouteActivatedHook?.(context) || DEFAULT_CONTEXT;
+  } = useRouteActivatedHook?.(context) || DEFAULT_CONTEXT; // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
 
   const memoizedValue = useMemo(
     () => ({

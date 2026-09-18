@@ -36,9 +36,6 @@ from sentry.api.endpoints.organization_releases import (
     OrganizationReleasesEndpoint,
     OrganizationReleasesStatsEndpoint,
 )
-from sentry.api.endpoints.organization_sampling_admin_metrics import (
-    OrganizationDynamicSamplingAdminMetricsEndpoint,
-)
 from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
     OrganizationSamplingEffectiveSampleRateEndpoint,
 )
@@ -177,6 +174,7 @@ from sentry.discover.endpoints.discover_saved_query_detail import (
     DiscoverSavedQueryDetailEndpoint,
     DiscoverSavedQueryVisitEndpoint,
 )
+from sentry.discover.endpoints.discover_saved_query_starred import DiscoverSavedQueryStarredEndpoint
 from sentry.explore.endpoints.explore_saved_queries import ExploreSavedQueriesEndpoint
 from sentry.explore.endpoints.explore_saved_query_detail import (
     ExploreSavedQueryDetailEndpoint,
@@ -186,6 +184,8 @@ from sentry.explore.endpoints.explore_saved_query_starred import ExploreSavedQue
 from sentry.explore.endpoints.explore_saved_query_starred_order import (
     ExploreSavedQueryStarredOrderEndpoint,
 )
+from sentry.explore.endpoints.saved_queries import SavedQueriesEndpoint
+from sentry.explore.endpoints.saved_query_starred_order import SavedQueryStarredOrderEndpoint
 from sentry.feedback.endpoints.organization_feedback_categories import (
     OrganizationFeedbackCategoriesEndpoint,
 )
@@ -738,6 +738,7 @@ from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_organization_config import AuthOrganizationConfigEndpoint
+from .endpoints.auth_organization_demo_login import AuthDemoLoginEndpoint
 from .endpoints.auth_recovery import AuthRecoveryConfirmEndpoint, AuthRecoveryEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
@@ -1103,6 +1104,11 @@ AUTH_URLS = [
         r"^login/$",
         AuthLoginEndpoint.as_view(),
         name="sentry-api-0-auth-login",
+    ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^/]+)/demo/$",
+        AuthDemoLoginEndpoint.as_view(),
+        name="sentry-api-0-auth-demo-login",
     ),
     re_path(
         r"^organizations/(?P<organization_id_or_slug>[^/]+)/config/$",
@@ -1562,6 +1568,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-discover-saved-query-visit",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/discover/saved/(?P<id>\d+)/starred/$",
+        DiscoverSavedQueryStarredEndpoint.as_view(),
+        name="sentry-api-0-discover-saved-query-starred",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/key-transactions/$",
         KeyTransactionEndpoint.as_view(),
         name="sentry-api-0-organization-key-transactions",
@@ -1612,6 +1623,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/starred/order/$",
         ExploreSavedQueryStarredOrderEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-starred-order",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/all-queries/$",
+        SavedQueriesEndpoint.as_view(),
+        name="sentry-api-0-explore-all-queries",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/all-queries/starred/order/$",
+        SavedQueryStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-explore-all-queries-starred-order",
     ),
     # Attribute Mappings
     re_path(
@@ -1759,11 +1780,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/sampling/effective-sample-rate/$",
         OrganizationSamplingEffectiveSampleRateEndpoint.as_view(),
         name="sentry-api-0-organization-sampling-effective-sample-rate",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/sampling/admin-metrics/$",
-        OrganizationDynamicSamplingAdminMetricsEndpoint.as_view(),
-        name="sentry-api-0-organization-sampling-admin-metrics",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/sdk-updates/$",
