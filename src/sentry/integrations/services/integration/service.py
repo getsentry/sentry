@@ -322,6 +322,27 @@ class IntegrationService(RpcService):
 
     @rpc_method
     @abstractmethod
+    def refresh_github_permissions(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        """Re-read what a GitHub App installation grants, from any silo.
+
+        Mints a fresh installation token, because that response is the only
+        place GitHub reports permissions, and returns the integration with the
+        new ``metadata["permissions"]`` and ``metadata["last_refresh_at"]``.
+
+        Org-scoped like ``refresh_github_access_token``: the caller has to name
+        an organization the install is actually linked to. The mint itself is
+        authed with the app's own JWT and would work without one, but reaching
+        an installation through an integration id alone is not a door we want
+        open.
+
+        None when the integration is missing, not GitHub, not active, or not
+        installed on that organization.
+        """
+
+    @rpc_method
+    @abstractmethod
     def get_gcp_service_account_email(
         self,
         *,
