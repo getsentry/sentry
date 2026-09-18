@@ -14,6 +14,7 @@ from sentry.taskworker.namespaces import uptime_tasks
 from sentry.uptime.config_drift import (
     SUBSCRIPTION_ID_PREFIX_BUCKETS,
     SWEEP_RUN_INTERVAL,
+    ConfigStore,
     find_missing_configs,
     find_orphaned_configs,
     get_config_stores,
@@ -260,16 +261,34 @@ def config_drift_dispatcher(**kwargs):
 
     cycle_hours = options.get("uptime.config-drift.cycle-hours")
     now = timezone.now()
+    stores = get_config_stores()
 
+    # One task per (prefix, store) so a failing store doesn't take the others down with it.
     for bucket in sweep_slice(SUBSCRIPTION_ID_PREFIX_BUCKETS, cycle_hours, now):
-        check_missing_configs.delay(subscription_id_prefix=f"{bucket:02x}")
+        for store in stores:
+            check_missing_configs.delay(
+                subscription_id_prefix=f"{bucket:02x}",
+                cluster=store.cluster,
+                key_prefix=store.key_prefix,
+            )
 
     partitions = sweep_slice(settings.UPTIME_CONFIG_PARTITIONS, cycle_hours, now)
-    for store in get_config_stores():
+    for store in stores:
         for partition in partitions:
             check_orphaned_configs.delay(
                 cluster=store.cluster, key_prefix=store.key_prefix, partition=partition
             )
+
+
+def _find_store(cluster: str, key_prefix: str) -> ConfigStore | None:
+    stores = get_config_stores()
+    store = next((s for s in stores if (s.cluster, s.key_prefix) == (cluster, key_prefix)), None)
+    if store is None:
+        logger.warning(
+            "uptime.config_drift.unknown_store",
+            extra={"cluster": cluster, "key_prefix": key_prefix},
+        )
+    return store
 
 
 @instrumented_task(
@@ -279,29 +298,28 @@ def config_drift_dispatcher(**kwargs):
     expires=SWEEP_RUN_INTERVAL,
     retry=Retry(times=3, delay=5),
 )
-def check_missing_configs(subscription_id_prefix: str, **kwargs):
+def check_missing_configs(subscription_id_prefix: str, cluster: str, key_prefix: str, **kwargs):
     """
     Postgres → Redis direction of the drift sweep: for ACTIVE subscriptions in this
-    subscription_id prefix, count the (subscription, store) pairs whose config is absent.
+    subscription_id prefix, count those whose config is absent from one store.
     """
-    for store in get_config_stores():
-        count = find_missing_configs(store, subscription_id_prefix)
-        tags = {"cluster": store.cluster, "direction": "missing"}
-        metrics.incr(
-            "uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0
+    store = _find_store(cluster, key_prefix)
+    if store is None:
+        return
+
+    count = find_missing_configs(store, subscription_id_prefix)
+    tags = {"cluster": store.cluster, "direction": "missing"}
+    metrics.incr("uptime.config_drift.checked", amount=count.checked, tags=tags, sample_rate=1.0)
+    metrics.incr("uptime.config_drift.missing", amount=count.drifted, tags=tags, sample_rate=1.0)
+    if count.drifted:
+        logger.warning(
+            "uptime.config_drift.missing",
+            extra={
+                "subscription_id_prefix": subscription_id_prefix,
+                "cluster": store.cluster,
+                "count": count.drifted,
+            },
         )
-        metrics.incr(
-            "uptime.config_drift.missing", amount=count.drifted, tags=tags, sample_rate=1.0
-        )
-        if count.drifted:
-            logger.warning(
-                "uptime.config_drift.missing",
-                extra={
-                    "subscription_id_prefix": subscription_id_prefix,
-                    "cluster": store.cluster,
-                    "count": count.drifted,
-                },
-            )
 
 
 @instrumented_task(
@@ -316,13 +334,8 @@ def check_orphaned_configs(cluster: str, key_prefix: str, partition: int, **kwar
     Redis → Postgres direction of the drift sweep: for one config partition in one store,
     count configs that no ACTIVE subscription owns in a region served by that store.
     """
-    stores = get_config_stores()
-    store = next((s for s in stores if (s.cluster, s.key_prefix) == (cluster, key_prefix)), None)
+    store = _find_store(cluster, key_prefix)
     if store is None:
-        logger.warning(
-            "uptime.config_drift.unknown_store",
-            extra={"cluster": cluster, "key_prefix": key_prefix},
-        )
         return
 
     count = find_orphaned_configs(store, partition)
