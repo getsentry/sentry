@@ -48,7 +48,11 @@ def get_ingestion_delay_status(
     if not measurement.succeeded:
         return IngestionDelayStatus(None, None, IngestionStatus.UNKNOWN)
 
-    delay_seconds = measurement.delay_seconds
+    delay_seconds = (
+        None
+        if measurement.delay_seconds is None
+        else measurement.delay_seconds + STALL_MARGIN.total_seconds()
+    )
     last_ingested_at = measurement.last_ingested_at
 
     complete_through = now - timedelta(seconds=delay_seconds) if delay_seconds is not None else None
@@ -72,7 +76,7 @@ def get_ingestion_delay_status(
     # Check outcomes to determine if the pipeline is stalled or idle.
     # Add some buffer to account for outliers and projects just exiting idle.
     if delay_seconds is not None and last_ingested_at is not None:
-        evidence_end = now - (timedelta(seconds=delay_seconds) + STALL_MARGIN)
+        evidence_end = now - timedelta(seconds=delay_seconds)
         evidence_start = last_ingested_at
         if evidence_end <= evidence_start:
             return result(IngestionStatus.UNKNOWN, None)
