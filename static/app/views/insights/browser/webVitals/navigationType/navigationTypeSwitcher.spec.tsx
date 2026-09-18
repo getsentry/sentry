@@ -124,7 +124,7 @@ describe('NavigationTypeSwitcher', () => {
         NavigationTypeBucket.BFCACHE,
       ]).value
     ).toBe(
-      '(browser.navigation.type:[navigate,reload,back-forward,restore,back-forward-cache] OR !has:browser.navigation.type)'
+      '(browser.navigation.type:[navigate,reload,back-forward,restore,back-forward-cache,bfcache] OR !has:browser.navigation.type)'
     );
 
     expect(
@@ -132,7 +132,23 @@ describe('NavigationTypeSwitcher', () => {
         NavigationTypeBucket.BFCACHE,
         NavigationTypeBucket.PRERENDER,
       ]).value
-    ).toBe('browser.navigation.type:[back-forward-cache,prerender]');
+    ).toBe('browser.navigation.type:[back-forward-cache,bfcache,prerender]');
+  });
+
+  it('counts and queries the pre-rename bfcache value too', async () => {
+    mockCounts([{[SpanFields.BROWSER_NAVIGATION_TYPE]: 'bfcache', 'count()': 7}]);
+
+    expect(buildNavigationTypeGlobalFilter([NavigationTypeBucket.BFCACHE]).value).toBe(
+      'browser.navigation.type:[back-forward-cache,bfcache]'
+    );
+
+    renderSwitcher([buildNavigationTypeGlobalFilter([NavigationTypeBucket.BFCACHE])]);
+
+    await userEvent.click(screen.getByRole('button', {name: /Measured on/}));
+
+    expect(
+      await screen.findByRole('option', {name: /bfcache restores/})
+    ).toHaveTextContent('7');
   });
 
   it('reads "All" and filters nothing when everything is selected', async () => {
