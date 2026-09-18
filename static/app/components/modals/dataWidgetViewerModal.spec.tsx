@@ -92,8 +92,11 @@ async function renderModal({
       initialRouterConfig: routerConfig,
     }
   );
-  // Component renders twice
-  await act(tick);
+  if (widget.displayType === DisplayType.TABLE) {
+    await act(tick);
+  } else {
+    await screen.findByText(/^(echarts mock|No data to plot\.)$/);
+  }
   return rendered;
 }
 
@@ -1102,14 +1105,10 @@ describe('Modals -> DataWidgetViewerModal', () => {
     });
 
     it('does not render pagination buttons when sorting by release', async () => {
-      // TODO(scttcper): We shouldn't need to wrap render with act, it seems to double render ReleaseWidgetQueries
-      await act(() =>
-        renderModal({
-          initialData,
-          widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
-          // in react 17 act requires that nothing is returned
-        }).then(() => void 0)
-      );
+      await renderModal({
+        initialData,
+        widget: {...mockWidget, queries: [{...mockQuery, orderby: 'release'}]},
+      });
       expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
     });
