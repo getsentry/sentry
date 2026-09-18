@@ -85,7 +85,7 @@
                   {% else %}
                     No author provided
                   {% endif %}
-                  &middot; {{ commit.date_added }}
+                  &middot; {{ commit.date_added|date:"M j, g:i A" }}
                 </div>
               </td>
             </tr>
