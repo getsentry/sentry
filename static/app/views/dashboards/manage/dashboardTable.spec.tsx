@@ -33,6 +33,10 @@ describe('Dashboards - DashboardTable', () => {
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
+    });
     dashboards = [
       DashboardListItemFixture({
         id: '1',
@@ -277,10 +281,19 @@ describe('Dashboards - DashboardTable', () => {
       />
     );
 
+    renderGlobalModal();
+
     expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
     expect(screen.getByText('Access')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('All'));
-    expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Edit access for Dashboard 2'})
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'View Permissions'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
   });
 
   it('renders favorite column', async () => {

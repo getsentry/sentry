@@ -29,7 +29,8 @@ import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {withApi} from 'sentry/utils/withApi';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import {EditAccessSelector} from 'sentry/views/dashboards/editAccessSelector';
+import {EditAccessAvatars} from 'sentry/views/dashboards/editAccessAvatars';
+import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
 import {useDeleteDashboard} from 'sentry/views/dashboards/hooks/useDeleteDashboard';
 import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateDashboard';
 import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
@@ -90,6 +91,35 @@ function FavoriteButton({isFavorited, dashboard}: FavoriteButtonProps) {
       }
       onClick={() => toggleFavorite({dashboard, shouldFavorite: !isFavorited})}
     />
+  );
+}
+
+type EditAccessCellProps = {
+  dashboard: DashboardListItem;
+  onChangeEditAccess: (newDashboardPermissions: DashboardPermissions) => void;
+};
+
+function EditAccessCell({dashboard, onChangeEditAccess}: EditAccessCellProps) {
+  const openEditAccess = useOpenEditAccessModal(dashboard, onChangeEditAccess);
+  const isPrebuiltDashboard = defined(dashboard.prebuiltId);
+
+  return (
+    <Button
+      aria-label={t('Edit access for %s', dashboard.title)}
+      size="zero"
+      variant="transparent"
+      onClick={openEditAccess}
+      disabled={isPrebuiltDashboard}
+      tooltipProps={{
+        title: isPrebuiltDashboard
+          ? tct('[label] dashboards cannot be edited', {
+              label: PREBUILT_DASHBOARD_LABEL,
+            })
+          : undefined,
+      }}
+    >
+      <EditAccessAvatars dashboard={dashboard} />
+    </Button>
   );
 }
 
@@ -304,12 +334,7 @@ function DashboardTable({
       };
 
       return (
-        <EditAccessSelector
-          dashboard={dataRow}
-          onChangeEditAccess={onChangeEditAccess}
-          listOnly
-          disabled={defined(dataRow.prebuiltId)} // Prebuilt dashboards cannot be edited
-        />
+        <EditAccessCell dashboard={dataRow} onChangeEditAccess={onChangeEditAccess} />
       );
     }
 
