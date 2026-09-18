@@ -100,7 +100,6 @@ def update_remote_uptime_subscription(
         return
     # A filtered publish never writes the row, so an id minted here would reach Redis only.
     if region_slugs is not None and subscription.subscription_id is None:
-        metrics.incr("uptime.subscriptions.update.no_subscription_id", sample_rate=1.0)
         return
 
     regions = subscription.regions.all()
