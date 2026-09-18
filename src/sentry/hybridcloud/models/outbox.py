@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import contextlib
 import datetime
+import logging
 import threading
 from collections.abc import Generator, Iterable, Mapping
 from typing import Any, Self
@@ -42,6 +43,8 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
+
+logger = logging.getLogger(__name__)
 
 
 class OutboxFlushError(Exception):
@@ -274,6 +277,7 @@ class OutboxBase(Model):
         if coalesced is not None:
             assert first_coalesced, "first_coalesced incorrectly set for non-empty coalesce group"
             deleted_count = 0
+            coalesced_older_count = 0
 
             # Use a fetch and delete loop as doing cleanup in a single query
             # causes timeouts with large datasets. Fetch in batches of 50 and
@@ -290,14 +294,21 @@ class OutboxBase(Model):
                     break
                 self.objects.filter(id__in=delete_ids).delete()
                 deleted_count += len(delete_ids)
+                coalesced_older_count += len(delete_ids)
 
             # Only process the highest id after the others have been batch processed.
             # It's not guaranteed that the ordering of the batch processing is in order,
             # meaning that failures during deletion could leave an old, staler outbox
             # alive.
+            coalesced_id = coalesced.id
             if not self.should_skip_shard():
                 deleted_count += 1
                 coalesced.delete()
+
+            if coalesced_older_count > 0:
+                self._maybe_log_unexpected_coalescing(
+                    coalesced_id=coalesced_id, coalesced_count=coalesced_older_count
+                )
 
             metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
@@ -312,6 +323,39 @@ class OutboxBase(Model):
                 - first_coalesced.date_added.timestamp(),
                 tags=tags,
             )
+
+    def _maybe_log_unexpected_coalescing(self, coalesced_id: int, coalesced_count: int) -> None:
+        """Log when older rows from a non-coalescing category were discarded.
+
+        ``coalesced_count`` is the number of discarded older rows.
+        """
+        try:
+            category = OutboxCategory(self.category)
+        except ValueError:
+            logger.warning(
+                "outbox.unknown_category",
+                extra={"category_value": self.category, "outbox_type": type(self).__name__},
+            )
+            return
+
+        if not category.is_non_coalescing():
+            return
+
+        extra: dict[str, Any] = {
+            "category": category.name,
+            "category_value": int(category),
+            "shard_scope": self.shard_scope,
+            "shard_identifier": self.shard_identifier,
+            "object_identifier": self.object_identifier,
+            "coalesced_count": coalesced_count,
+            "coalesced_id": coalesced_id,
+            "outbox_type": type(self).__name__,
+        }
+        cell_name = getattr(self, "cell_name", None)
+        if cell_name is not None:
+            extra["cell_name"] = cell_name
+
+        logger.error("outbox.unexpected_coalescing", extra=extra)
 
     def _set_span_data_for_coalesced_message(
         self, span: Span | StreamedSpan, message: OutboxBase

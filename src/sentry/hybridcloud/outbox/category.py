@@ -75,6 +75,10 @@ class OutboxCategory(IntEnum):
     def as_choices(cls) -> Sequence[tuple[int, int]]:
         return [(i.value, i.value) for i in cls]
 
+    def is_non_coalescing(self) -> bool:
+        """True if messages in this category must not be coalesced."""
+        return self in {OutboxCategory.GROUP_ACTION_LOG_EVENT}
+
     def connect_cell_model_updates(self, model: type[ReplicatedCellModel]) -> None:
         def receiver(
             object_identifier: int,
@@ -395,3 +399,4 @@ class WebhookProviderIdentifier(IntEnum):
     DISCORD = 12
     VERCEL = 13
     GOOGLE = 14
+    CURSOR_ORIGIN = 15

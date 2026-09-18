@@ -772,6 +772,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=None,
             user=ANY,
             enable_bash_tools=False,
+            actor_user_id=None,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -807,6 +808,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=3,
             user=ANY,
             enable_bash_tools=False,
+            actor_user_id=None,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -864,6 +866,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202, response.data
         mock_trigger_explorer.assert_called_once()
+        assert mock_trigger_explorer.call_args.kwargs["actor_user_id"] == self.user.id
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
@@ -1376,6 +1379,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data == {"run_id": 123, "sentry_run_id": None}
         payload = mock_explorer_update_request.call_args[0][0]["payload"]
+        assert mock_explorer_update_request.call_args.kwargs["viewer_context"] == {
+            "organization_id": self.organization.id,
+            "user_id": self.user.id,
+        }
         assert payload["type"] == "create_pr"
         # No repo name and no GitHub-linked acting user, so neither key is sent.
         assert "repo_name" not in payload

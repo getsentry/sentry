@@ -13,10 +13,12 @@ from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.delayed_workflow import (
+    DelayedWorkflowEvaluationResult,
     EventRedisData,
     _process_workflows_for_project,
     process_delayed_workflows,
 )
+from sentry.workflow_engine.processors.evaluations import EvaluationPhase
 from sentry.workflow_engine.processors.schedule import process_in_batches
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
@@ -277,11 +279,21 @@ class TestDelayedWorkflowTaskIntegration(TestDelayedWorkflowTaskBase):
         initial_data = project_client.get_hash_data(batch_key=None)
         assert len(initial_data) == 2
 
-        with patch(
-            "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
-        ) as mock_fire:
+        with (
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.fire_actions_for_groups"
+            ) as mock_fire,
+            patch(
+                "sentry.workflow_engine.processors.delayed_workflow.emit_workflow_evaluation_logs"
+            ) as mock_emit,
+        ):
             process_delayed_workflows(self.batch_client, self.project.id)
-            assert mock_fire.called
+
+        mock_fire.assert_called_once()
+        mock_emit.assert_called_once()
+        result = mock_emit.call_args.kwargs["result"]
+        assert isinstance(result, DelayedWorkflowEvaluationResult)
+        assert result.artifacts[0].evaluation_phase == EvaluationPhase.DELAYED
 
         final_data = project_client.get_hash_data(batch_key=None)
         assert final_data == {}

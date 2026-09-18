@@ -34,7 +34,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @sentry_schema_serializer(
     omit_from_public_schema={
-        "data_source.discover": "Deprecated 2026-07; use events. Send data_source explicitly.",
+        "data_source.discover": "Deprecated 2026-07; use errors. Send data_source explicitly.",
+        "data_source.events": "Deprecated 2026-09; use errors instead.",
         "data_source.transactions": "Deprecated 2026-07; use spans. Still accepted until blocked.",
     }
 )
@@ -49,6 +50,7 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
     data_source = serializers.ChoiceField(
         choices=(
             Dataset.Discover.value,
+            "errors",
             Dataset.Events.value,
             Dataset.Transactions.value,
             Dataset.IssuePlatform.value,
@@ -129,12 +131,17 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
         if not validator.is_valid():
             raise ParseError(validator.errors)
         query_params = validator.validated_data
+        data_source = (
+            Dataset.Events
+            if query_params["data_source"] == "errors"
+            else query_params["data_source"]
+        )
 
         try:
             replay_counts = get_replay_counts(
                 snuba_params,
                 query_params["query"],
-                query_params["data_source"],
+                data_source,
                 return_ids=query_params["returnIds"],
             )
         except (InvalidSearchQuery, ValueError) as e:

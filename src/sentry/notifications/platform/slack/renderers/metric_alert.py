@@ -32,6 +32,9 @@ class SlackMetricAlertRenderer(NotificationRenderer[SlackRenderable]):
         incident_text = f"{data.text}\n{get_started_at(data.open_period_context.date_started)}"
         blocks = [BlockSlackMessageBuilder.get_markdown_block(text=incident_text)]
 
+        if data.notes:
+            blocks.append(BlockSlackMessageBuilder.get_markdown_block(text=f"notes: {data.notes}"))
+
         if data.chart_url:
             blocks.append(
                 BlockSlackMessageBuilder.get_image_block(data.chart_url, alt="Metric Alert Chart")

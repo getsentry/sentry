@@ -56,6 +56,7 @@ export function CollapsibleBadgeRow({tags}: {tags: Record<string, string>}) {
       cancelAnimationFrame(rafId);
       observer.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [tags, expanded, overflowCount]);
 
   const entries = Object.entries(tags);

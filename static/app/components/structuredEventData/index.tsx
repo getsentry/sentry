@@ -103,6 +103,7 @@ export function StructuredData({
 
     // No need to update if expand/collapse props changes, we're not going to
     // re-render based on those.
+    // oxlint-disable-next-line react/memo-dependencies
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
