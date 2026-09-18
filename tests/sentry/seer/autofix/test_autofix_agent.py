@@ -306,8 +306,10 @@ class TestBuildStepPrompt(TestCase):
             AutofixStep.CODE_CHANGES, self.group, should_run_repo_checks=True
         )
 
-        assert "Run the linter/formatter over the files you changed." in prompt
-        assert "Run the tests covering the code you changed" in prompt
+        assert "best-effort" in prompt
+        assert "formatter" in prompt
+        assert "linter" in prompt
+        assert "tests" in prompt
 
     def test_prompt_with_missing_culprit_uses_default(self) -> None:
         self.group.culprit = None
