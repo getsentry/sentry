@@ -75,8 +75,11 @@ def solution_prompt(
     should_run_repo_checks: bool = False,
 ) -> str:
     testing_guidance = (
-        "End your plan with a verification step that runs the repository's linter over the"
-        " changed files and the tests covering the changed code."
+        "End your plan with a best-effort verification step covering, where applicable:"
+        " (1) running the formatter in auto-fix mode (look for a format/lint:format/fmt script;"
+        " formatting and linting are separate tools), (2) running the linter separately, and"
+        " (3) running the tests covering the changed code. Not all repos have all three — skip"
+        " any that don't apply and report what was skipped."
         f" {_CHECK_COMMAND_SOURCES} Name them in the step."
         if should_run_repo_checks
         else "Do NOT include testing as part of your plan."
@@ -136,13 +139,14 @@ def code_changes_prompt(
     if should_run_repo_checks:
         prompt += dedent(
             f"""
-            Before you finish, verify your changes with the repository's own tooling:
-            - Set the repository up first. The checkout has no dependencies installed, so run the project's install/setup commands (e.g. `npm install`, `yarn install`, `pip install -e .`, `make bootstrap`) before running any checks.
-            - Run the linter/formatter over the files you changed.
-            - Run the tests covering the code you changed, scoping the run to the affected area when the suite is large.
+            Before you finish, do a best-effort verification with the repository's own tooling — skip any step that doesn't apply or can't be run, and report what you skipped:
+            - Set the repository up first if needed. The checkout has no dependencies installed, so run the project's install/setup commands (e.g. `npm install`, `yarn install`, `pip install -e .`, `make bootstrap`) before running any checks.
+            - If the repo has a **formatter**, run it in auto-fix/write mode over the files you changed (look for a `format`, `lint:format`, `fmt`, or similar script in `package.json`, `Makefile`, `pyproject.toml`, or CI config — common tools: `prettier --write`, `black`, `ruff format`, `gofmt -w`). Note: formatting and linting are separate tools — running the linter is not sufficient.
+            - If the repo has a **linter**, run it separately over the files you changed.
+            - If the repo has **tests** covering the changed code, run them, scoping the run to the affected area when the suite is large.
             - Fix any failures your changes introduced, then re-run until they pass.
 
-            {_CHECK_COMMAND_SOURCES} If a check cannot be run, report that instead of claiming it passed."""
+            {_CHECK_COMMAND_SOURCES} If a check cannot be run or does not exist, report that instead of claiming it passed."""
         )
 
     return prompt
